@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Layout from "../components/layout/Layout";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
@@ -8,25 +9,28 @@ import Reports from "../pages/Reports";
 import Profile from "../pages/Profile";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
-import Navbar from "../components/layout/Navbar"; // Import Navbar
+
+// Define routes
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Layout />, // Wraps all pages inside Layout
+    children: [
+      { index: true, element: <Home /> },
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "activity-request", element: <ActivityRequest /> },
+      { path: "org-recognition", element: <OrgRecognition /> },
+      { path: "reports", element: <Reports /> },
+      { path: "profile", element: <Profile /> },
+      { path: "admin", element: <AdminPanel /> },
+    ],
+  },
+  { path: "/login", element: <Login /> }, // Separate login page (no layout)
+  { path: "*", element: <NotFound /> },   // 404 Page
+]);
 
 const AppRoutes = () => {
-  return (
-    <Router>
-        <Navbar /> {/* Add Navbar */}
-        <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/activity-request" element={<ActivityRequest />} />
-            <Route path="/org-recognition" element={<OrgRecognition />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="*" element={<NotFound />} /> {/* 404 Page */}
-        </Routes>
-    </Router>
-  );
+  return <RouterProvider router={router} />;
 };
 
 export default AppRoutes;
