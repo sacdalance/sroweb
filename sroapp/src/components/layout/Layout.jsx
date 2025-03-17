@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 
 const Layout = () => {
   return (
-    <div className="flex">
+    <div className="flex-1">
       {/* Sidebar for navigation */}
       <Sidebar />
 
