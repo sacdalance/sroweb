@@ -10,7 +10,7 @@ const Sidebar = () => {
     <Sheet open={open} onOpenChange={setOpen}>
       {/* Sidebar Toggle Button */}
       <SheetTrigger asChild>
-        <button className="p-2 m-4 bg-[#9B2242] text-white rounded-md fixed z-50">
+        <button className="p-2 m-4  bg-[#9B2242] text-white rounded-md fixed z-50">
           <Menu className="w-6 h-6" />
         </button>
       </SheetTrigger>
