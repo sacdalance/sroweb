@@ -1,5 +1,5 @@
 const ActivityRequest = () => {
-    return <h1>Activity Request Page</h1>;
+    return <h1 className = "flex justify-center">Activity Request Page</h1>;
 };
 
 export default ActivityRequest;
