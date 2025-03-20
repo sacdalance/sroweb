@@ -64,7 +64,7 @@ const OrgRecognition = () => {
             const uploadPromises = files.map(file => uploadToGoogleDrive(file, folder));
             await Promise.all(uploadPromises);
             
-            setUploadStatus("Files successfully uploaded to the admin Google Drive!");
+            setUploadStatus("Files successfully uploaded to the!");
             setFiles([]);
         } catch (error) {
             console.error("Error during upload:", error);
@@ -179,7 +179,7 @@ const OrgRecognition = () => {
                                 </svg>
                                 Uploading...
                             </span>
-                        ) : "Upload to Admin Drive"}
+                        ) : "Submit Files"}
                     </button>
                     
                     <p className="mt-2 text-xs text-gray-500 text-center">
