@@ -3,24 +3,75 @@ import { useState } from "react";
 const OrgRecognition = () => {
     const [selectedOption, setSelectedOption] = useState("Annual Report");
     const [files, setFiles] = useState([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState(null);
 
     const handleOptionChange = (e) => {
         setSelectedOption(e.target.value);
         setFiles([]); // Clear files when changing option
+        setUploadStatus(null);
     };
 
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
         setFiles(selectedFiles);
+        setUploadStatus(null);
     };
 
-    const handleSubmit = (e) => {
+    const uploadToGoogleDrive = async (file, folder) => {
+        // This is a placeholder for the actual Google Drive API implementation
+        // In a real application, you would use the Google Drive API client library
+        
+        try {
+            // Create FormData object for the file
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', folder);
+            formData.append('submissionType', selectedOption);
+            
+            // Send the file to your backend, which will handle Google Drive authentication and upload
+            const response = await fetch('/api/upload-to-drive', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to upload file to Google Drive');
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error uploading to Google Drive:', error);
+            throw error;
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Here you would implement the actual file submission logic
-        // For example, send files to a server using fetch or axios
-        console.log("Files to submit:", files);
-        alert("Files submitted successfully!");
-        setFiles([]);
+        
+        if (files.length === 0) return;
+        
+        setIsUploading(true);
+        setUploadStatus("Uploading files to Google Drive...");
+        
+        try {
+            // Determine the appropriate folder based on the submission type
+            const folder = selectedOption === "Annual Report" 
+                ? "Annual Reports" 
+                : "Organization Recognition";
+            
+            // Upload each file to Google Drive
+            const uploadPromises = files.map(file => uploadToGoogleDrive(file, folder));
+            await Promise.all(uploadPromises);
+            
+            setUploadStatus("Files successfully uploaded to the admin Google Drive!");
+            setFiles([]);
+        } catch (error) {
+            console.error("Error during upload:", error);
+            setUploadStatus("Error uploading files. Please try again.");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -78,6 +129,7 @@ const OrgRecognition = () => {
                                 multiple
                                 onChange={handleFileChange}
                                 className="hidden"
+                                disabled={isUploading}
                             />
                         </label>
                     </div>
@@ -98,15 +150,41 @@ const OrgRecognition = () => {
                         </div>
                     )}
 
+                    {uploadStatus && (
+                        <div className={`mb-4 p-3 rounded-md ${
+                            uploadStatus.includes("successfully") 
+                            ? "bg-green-100 text-green-800" 
+                            : uploadStatus.includes("Error") 
+                              ? "bg-red-100 text-red-800" 
+                              : "bg-blue-100 text-blue-800"
+                        }`}>
+                            {uploadStatus}
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        disabled={files.length === 0}
+                        disabled={files.length === 0 || isUploading}
                         className={`w-full py-2 px-4 rounded-md text-white font-medium ${
-                            files.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                            files.length === 0 || isUploading
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                     >
-                        Submit Files
+                        {isUploading ? (
+                            <span className="flex items-center justify-center">
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Uploading...
+                            </span>
+                        ) : "Upload to Admin Drive"}
                     </button>
+                    
+                    <p className="mt-2 text-xs text-gray-500 text-center">
+                        Files will be uploaded to a secure Business Google Drive accessible only to administrators
+                    </p>
                 </form>
             </div>
         </div>
