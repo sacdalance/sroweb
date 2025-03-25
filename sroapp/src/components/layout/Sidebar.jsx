@@ -32,6 +32,9 @@ const Sidebar = () => {
             <Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link>
           </li>
           <li>
+            <Link to="/appointments" className="block hover:text-gray-300">Book Appointment</Link>
+          </li>
+          <li>
             <Link to="/reports" className="block hover:text-gray-300">Reports</Link>
           </li>
           <li>

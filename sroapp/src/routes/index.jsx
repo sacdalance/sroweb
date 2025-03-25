@@ -9,6 +9,8 @@ import Reports from "../pages/Reports";
 import Profile from "../pages/Profile";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
+import AppointmentBooking from "../pages/AppointmentBooking";
+import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
 
 // Define routes
 const router = createBrowserRouter([
@@ -20,9 +22,11 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <Dashboard /> },
       { path: "activity-request", element: <ActivityRequest /> },
       { path: "org-recognition", element: <OrgRecognition /> },
+      { path: "appointments", element: <AppointmentBooking /> },
       { path: "reports", element: <Reports /> },
       { path: "profile", element: <Profile /> },
       { path: "admin", element: <AdminPanel /> },
+      { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
     ],
   },
   { path: "/login", element: <Login /> }, // Separate login page (no layout)
