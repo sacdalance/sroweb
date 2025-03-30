@@ -16,6 +16,34 @@ CREATE TABLE organization {
     name VARCHAR(255) NOT NULL UNIQUE,
     org_email VARCHAR(255) NOT NULL UNIQUE CHECK (email LIKE '%@gmail.com')
     description TEXT,
-    adviser_name VARCHAR(255),
-    adviser_contact VARCHAR(255)
+    adviser_name VARCHAR(255) NOT NULL,
+    adviser_contact VARCHAR(255) NOT NULL
+}
+
+CREATE TABLE activity {
+    activity_id SERIAL PRIMARY KEY,
+    account_id INT REFERENCES account(account_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organization(organization_id) ON DELETE CASCADE,
+    student_position VARCHAR(255),
+    activity_name VARCHAR(255) NOT NULL,
+    activity_description TEXT NOT NULL,
+    category_id INT REFERENCES activity_category(category_id) ON DELETE CASCADE,
+    sdg_goals TEXT NOT NULL,
+    charge_fee BOOLEAN NOT NULL DEFAULT FALSE,
+    university_partner BOOLEAN NOT NULL DEFAULT FALSE,
+    partner_name TEXT NOT NULL,
+    partner_role TEXT NOT NULL,
+    venue VARCHAR(255) NOT NULL,
+    venue_approver VARCHAR(255) NOT NULL,
+    venue_approver_contact VARCHAR(255) NOT NULL,
+    is_off_campus BOOLEAN NOT NULL DEFAULT FALSE,
+    green_monitor_name VARCHAR(255) NOT NULL,
+    green_monitor_contact VARCHAR(255) NOT NULL,
+    drive_folder_id VARCHAR(255) NOT NULL UNIQUE,
+    drive_folder_link TEXT, 
+    sro_approval_status VARCHAR(50) DEFAULT 'Pending',
+    odsa_approval_status VARCHAR(50) DEFAULT 'Pending',
+    final_status VARCHAR(50) DEFAULT 'Pending',
+    sro_remarks TEXT,
+    odsa_remarks TEXT,
 }
