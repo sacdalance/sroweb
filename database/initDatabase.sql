@@ -58,3 +58,31 @@ CREATE TABLE activity_schedule (
     end_time TIME NOT NULL,
     recurring_days TEXT -- Comma-separated days (e.g., 'Wed,Fri')
 );
+
+CREATE TABLE change_request (
+    request_id SERIAL PRIMARY KEY,
+    activity_id INT REFERENCES activity(activity_id),
+    submitted_by INT REFERENCES account(account_id),
+    request_type VARCHAR(50), -- Change Schedule, Change Venue, Both, Cancellation
+    new_start_date DATE,
+    new_end_date DATE,
+    new_start_time TIME,
+    new_end_time TIME,
+    new_venue VARCHAR(255),
+    venue_approver_name VARCHAR(100),
+    venue_approver_contact VARCHAR(100),
+    submission_file_url TEXT,
+    sro_approval_status VARCHAR(10) DEFAULT 'Pending',
+    sro_remarks TEXT,
+    submitted_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE org_annual_report (
+    report_id SERIAL PRIMARY KEY,
+    organization_id INT REFERENCES organization(organization_id),
+    submitted_by INT REFERENCES account(account_id),
+    academic_year VARCHAR(9), -- Format: YYYY-YYYY
+    drive_folder_id VARCHAR(100) UNIQUE, -- Google Drive Folder ID
+    submission_file_url TEXT, -- Direct link to the uploaded PDF
+    submitted_at TIMESTAMP DEFAULT now()
+);
