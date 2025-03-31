@@ -76,13 +76,3 @@ CREATE TABLE change_request (
     sro_remarks TEXT,
     submitted_at TIMESTAMP DEFAULT now()
 );
-
-CREATE TABLE org_annual_report (
-    report_id SERIAL PRIMARY KEY,
-    organization_id INT REFERENCES organization(organization_id),
-    submitted_by INT REFERENCES account(account_id),
-    academic_year VARCHAR(9), -- Format: YYYY-YYYY
-    drive_folder_id VARCHAR(100) UNIQUE, -- Google Drive Folder ID
-    submission_file_url TEXT, -- Direct link to the uploaded PDF
-    submitted_at TIMESTAMP DEFAULT now()
-);
