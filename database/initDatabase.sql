@@ -47,3 +47,14 @@ CREATE TABLE activity {
     sro_remarks TEXT,
     odsa_remarks TEXT,
 }
+
+CREATE TABLE activity_schedule (
+    schedule_id SERIAL PRIMARY KEY,
+    activity_id INT REFERENCES activity(activity_id),
+    is_recurring BOOLEAN DEFAULT FALSE,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    recurring_days TEXT -- Comma-separated days (e.g., 'Wed,Fri')
+);
