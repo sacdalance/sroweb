@@ -96,4 +96,13 @@ CREATE TABLE interview_slots (
     is_booked BOOLEAN DEFAULT FALSE -- True when booked
 );
 
-
+CREATE TABLE org_recognition (
+    recognition_id SERIAL PRIMARY KEY,
+    organization_id INT REFERENCES organization(organization_id),
+    submitted_by INT REFERENCES account(account_id),
+    academic_year VARCHAR(9), -- Format: YYYY-YYYY
+    drive_folder_id VARCHAR(100) UNIQUE, -- Google Drive Folder ID
+    submission_file_url TEXT, -- Direct link to uploaded PDF
+    interview_slot_id INT UNIQUE REFERENCES interview_slots(slot_id), -- Booked slot
+    submitted_at TIMESTAMP DEFAULT now()
+);
