@@ -106,3 +106,10 @@ CREATE TABLE org_recognition (
     interview_slot_id INT UNIQUE REFERENCES interview_slots(slot_id), -- Booked slot
     submitted_at TIMESTAMP DEFAULT now()
 );
+
+CREATE TABLE logs (
+    log_id SERIAL PRIMARY KEY,
+    account_id INT REFERENCES account(account_id),
+    action VARCHAR(255),
+    timestamp TIMESTAMP DEFAULT now()
+);
