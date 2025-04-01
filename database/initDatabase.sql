@@ -5,15 +5,15 @@ CREATE TABLE role {
 
 CREATE TABLE account {
     account_id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    account_name VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE CHECK (email LIKE '%@up.edu.ph'),
     role_id INT REFERENCES role (role_id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 };
 
 CREATE TABLE organization {
-    organization_id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    org_id SERIAL PRIMARY KEY,
+    org_name VARCHAR(255) NOT NULL UNIQUE,
     org_email VARCHAR(255) NOT NULL UNIQUE CHECK (email LIKE '%@gmail.com')
     description TEXT,
     adviser_name VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE organization {
 CREATE TABLE activity {
     activity_id SERIAL PRIMARY KEY,
     account_id INT REFERENCES account(account_id) ON DELETE CASCADE,
-    organization_id INT REFERENCES organization(organization_id) ON DELETE CASCADE,
+    org_id INT REFERENCES organization(org_id) ON DELETE CASCADE,
     student_position VARCHAR(255),
     activity_name VARCHAR(255) NOT NULL,
     activity_description TEXT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE change_request (
 
 CREATE TABLE org_annual_report (
     report_id SERIAL PRIMARY KEY,
-    organization_id INT REFERENCES organization(organization_id),
+    org_id INT REFERENCES organization(org_id),
     submitted_by INT REFERENCES account(account_id),
     academic_year VARCHAR(9), -- Format: YYYY-YYYY
     drive_folder_id VARCHAR(100) UNIQUE, -- Google Drive Folder ID
@@ -98,7 +98,7 @@ CREATE TABLE interview_slots (
 
 CREATE TABLE org_recognition (
     recognition_id SERIAL PRIMARY KEY,
-    organization_id INT REFERENCES organization(organization_id),
+    org_id INT REFERENCES organization(org_id),
     submitted_by INT REFERENCES account(account_id),
     academic_year VARCHAR(9), -- Format: YYYY-YYYY
     drive_folder_id VARCHAR(100) UNIQUE, -- Google Drive Folder ID
@@ -113,3 +113,6 @@ CREATE TABLE logs (
     action VARCHAR(255),
     timestamp TIMESTAMP DEFAULT now()
 );
+
+
+
