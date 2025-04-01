@@ -88,5 +88,12 @@ CREATE TABLE org_annual_report (
 );
 
 
+CREATE TABLE interview_slots (
+    slot_id SERIAL PRIMARY KEY,
+    academic_year VARCHAR(9), -- Format: YYYY-YYYY
+    interview_date DATE, -- Available date set by SRO
+    interview_time TIME, -- Available time set by SRO
+    is_booked BOOLEAN DEFAULT FALSE -- True when booked
+);
 
 
