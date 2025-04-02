@@ -107,12 +107,5 @@ CREATE TABLE org_recognition (
     submitted_at TIMESTAMP DEFAULT now()
 );
 
-CREATE TABLE logs (
-    log_id SERIAL PRIMARY KEY,
-    account_id INT REFERENCES account(account_id),
-    action VARCHAR(255),
-    timestamp TIMESTAMP DEFAULT now()
-);
-
 
 
