@@ -40,7 +40,7 @@ const Login = () => {
                 <CardHeader className="flex flex-col items-center">
                     {/* Placeholder for SRO Logo */}
                     <img 
-                        src="https://scontent.fmnl17-2.fna.fbcdn.net/v/t39.30808-1/385740471_2006953466315668_9045008695325744888_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=111&ccb=1-7&_nc_sid=1d2534&_nc_ohc=wp-oTCTvzYsQ7kNvgHuY2Wu&_nc_oc=AdksonZQu8AljaRHynN4N94WAv95W_GiMxTRiX9NMmkYcRlOq4hLPoiiAaG9Snfyj7c&_nc_zt=24&_nc_ht=scontent.fmnl17-2.fna&_nc_gid=sP8LX00PKeNUPG3X71j4ow&oh=00_AYEeHqL03FIs8xRq4lUpAuTwnua-V1nAHbuXy5JkpLK9RA&oe=67E1EEE3" // Change this to the actual SRO logo
+                        src="https://i.imgur.com/DwPUF1G.jpeg" // Change this to the actual SRO logo
                         alt="SRO Logo" 
                         className="w-20 h-20" 
                     />
