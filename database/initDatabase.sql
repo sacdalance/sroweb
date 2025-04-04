@@ -88,6 +88,7 @@ CREATE TABLE org_annual_report (
 );
 
 
+
 CREATE TABLE interview_slots (
     slot_id SERIAL PRIMARY KEY,
     academic_year VARCHAR(9), -- Format: YYYY-YYYY
