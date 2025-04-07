@@ -1,4 +1,6 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -12,25 +14,119 @@ import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
 
+/**
+ * Redirects "/" based on authentication status.
+ */
+const RedirectHome = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+
+      if (user) {
+        navigate("/dashboard");
+      } else {
+        navigate("/login");
+      }
+    };
+    checkUser();
+  }, [navigate]);
+
+  if (loading) return <p>Loading...</p>;
+
+  return null;
+};
+
+/**
+ * Protects routes from unauthenticated users.
+ */
+const PrivateRoute = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    checkUser();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+/**
+ * Redirects logged-in users from `/login` to `/dashboard`.
+ */
+const RedirectIfLoggedIn = ({ element }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    checkUser();
+
+    // Listen for authentication state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+
+  return user ? <Navigate to="/dashboard" replace /> : element;
+};
+
 // Define routes
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout />, // Wraps all pages inside Layout
+    element: <Layout />,
     children: [
-      { index: true, element: <Home /> },
-      { path: "dashboard", element: <Dashboard /> },
-      { path: "activity-request", element: <ActivityRequest /> },
-      { path: "org-recognition", element: <OrgRecognition /> },
-      { path: "appointments", element: <AppointmentBooking /> },
-      { path: "reports", element: <Reports /> },
-      { path: "profile", element: <Profile /> },
-      { path: "admin", element: <AdminPanel /> },
-      { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
+
+      { index: true, element: <RedirectHome /> },
+      {
+        element: <PrivateRoute />,
+        children: [
+          { path: "dashboard", element: <Dashboard /> },
+          { path: "activity-request", element: <ActivityRequest /> },
+          { path: "org-recognition", element: <OrgRecognition /> },
+          { path: "reports", element: <Reports /> },
+          { path: "profile", element: <Profile /> },
+          { path: "admin", element: <AdminPanel /> },
+          { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
+        ],
+      },
+
     ],
   },
-  { path: "/login", element: <Login /> }, // Separate login page (no layout)
-  { path: "*", element: <NotFound /> },   // 404 Page
+  { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> }, // Redirect logged-in users
+  { path: "*", element: <NotFound /> },
 ]);
 
 const AppRoutes = () => {
