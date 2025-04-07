@@ -11,6 +11,8 @@ import Reports from "../pages/Reports";
 import Profile from "../pages/Profile";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
+import AppointmentBooking from "../pages/AppointmentBooking";
+import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
 
 /**
  * Redirects "/" based on authentication status.
@@ -106,6 +108,7 @@ const router = createBrowserRouter([
     path: "/",
     element: <Layout />,
     children: [
+
       { index: true, element: <RedirectHome /> },
       {
         element: <PrivateRoute />,
@@ -116,8 +119,10 @@ const router = createBrowserRouter([
           { path: "reports", element: <Reports /> },
           { path: "profile", element: <Profile /> },
           { path: "admin", element: <AdminPanel /> },
+          { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
         ],
       },
+
     ],
   },
   { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> }, // Redirect logged-in users
