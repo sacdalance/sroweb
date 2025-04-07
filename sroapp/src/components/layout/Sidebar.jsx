@@ -27,6 +27,9 @@ const Sidebar = () => {
     };
   }, []);
 
+
+  const isValidUPMail = user && user.email.endsWith("@up.edu.ph"); 
+
   // Handle Sign Out
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -38,7 +41,9 @@ const Sidebar = () => {
     <Sheet open={open} onOpenChange={setOpen}>
       {/* Sidebar Toggle Button */}
       <SheetTrigger asChild>
-        <button className="p-2 m-4 bg-[#7B1113] text-white rounded-md fixed z-50">
+        <button 
+          className="p-2 m-4 bg-[#7B1113] text-white rounded-md fixed z-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isValidUPMail}>
           <Menu className="w-6 h-6" />
         </button>
       </SheetTrigger>

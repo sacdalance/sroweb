@@ -37,7 +37,7 @@ const RedirectHome = () => {
     checkUser();
   }, [navigate]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
 
   return null;
 };
@@ -48,6 +48,7 @@ const RedirectHome = () => {
 const PrivateRoute = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -67,8 +68,32 @@ const PrivateRoute = () => {
     };
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  // Handles sign out when clicked
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    navigate("/login");
+  };
 
+  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
+
+  // Show error if email is not a UP Mail
+  if (user && !user.email.endsWith("@up.edu.ph")) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white-100 text-center px-4">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Please use your UP Mail</h2>
+        <p className="text-gray-700 mb-6">The email <strong>{user.email}</strong> is not a valid UP Mail address.</p>
+        <button
+          onClick={handleSignOut}
+          className="bg-[#7B1113] text-white px-6 py-2 rounded-md hover:bg-[#5e0d0e] transition"
+        >
+          Sign Out
+        </button>
+      </div>
+    );
+  }
+
+  // If logged in and email is valid, render the route
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
@@ -97,7 +122,7 @@ const RedirectIfLoggedIn = ({ element }) => {
     };
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };
