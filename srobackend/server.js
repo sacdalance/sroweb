@@ -4,7 +4,6 @@ import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
-
 const app = express();
 const port = 3000;
 
@@ -17,10 +16,14 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_ANON_KEY
 );
 
+import activityRequestRoute from './routes/activityRequest.js';
+
 // Example endpoint
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');
 });
+
+app.use('/activityRequest', activityRequestRoute);
 
 app.listen(port, () => {
   console.log(`✅ Server is running at http://localhost:${port}`);
