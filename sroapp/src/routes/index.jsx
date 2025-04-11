@@ -8,7 +8,6 @@ import Dashboard from "../pages/Dashboard";
 import ActivityRequest from "../pages/ActivityRequest";
 import OrgRecognition from "../pages/OrgRecognition";
 import Reports from "../pages/Reports";
-import Profile from "../pages/Profile";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
@@ -29,7 +28,7 @@ const RedirectHome = () => {
       setLoading(false);
 
       if (user) {
-        navigate("/dashboard");
+        navigate("/home");
       } else {
         navigate("/login");
       }
@@ -138,11 +137,11 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
+          { path: "home", element: <Home /> },
           { path: "dashboard", element: <Dashboard /> },
           { path: "activity-request", element: <ActivityRequest /> },
           { path: "org-recognition", element: <OrgRecognition /> },
           { path: "reports", element: <Reports /> },
-          { path: "profile", element: <Profile /> },
           { path: "admin", element: <AdminPanel /> },
           { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
         ],
