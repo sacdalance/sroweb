@@ -1,5 +1,6 @@
-import express from 'express';
 import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
@@ -7,15 +8,20 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Initialize Supabase client
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+app.use(cors());
+app.use(express.json());
 
-app.get('/api/users', async (req, res) => {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+// Create Supabase client with secret keys (DO NOT expose these in frontend)
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+);
+
+// Example endpoint
+app.get('/', (req, res) => {
+  res.send('🎉 Supabase backend is working!');
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`✅ Server is running at http://localhost:${port}`);
 });
