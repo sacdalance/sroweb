@@ -1,30 +1,22 @@
-import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
+import activityRequestRoute from './routes/activityRequest.js';
 
+import dotenv from 'dotenv';
 dotenv.config();
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Create Supabase client with secret keys (DO NOT expose these in frontend)
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
-);
+app.use('/activityRequest', activityRequestRoute);
 
-import activityRequestRoute from './routes/activityRequest.js';
-
-// Example endpoint
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');
 });
 
-app.use('/activityRequest', activityRequestRoute);
-
 app.listen(port, () => {
-  console.log(`✅ Server is running at http://localhost:${port}`);
+  console.log(`✅ Server running at http://localhost:${port}`);
 });
