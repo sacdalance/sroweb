@@ -9,10 +9,11 @@ const Login = () => {
 
     // Function to handle Google Sign-In
     const handleGoogleSignIn = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider: "google",
-            options: { redirectTo: "http://localhost:5173/" }, // Redirect user to homepage after login
+            options: { redirectTo: "http://localhost:5173/" },
         });
+    
         if (error) console.error("Login error:", error.message);
     };
 

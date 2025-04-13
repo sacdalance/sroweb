@@ -7,17 +7,30 @@ import supabase from "@/lib/supabase"; // Import Supabase client
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null); // State to store user data
+  const [role, setRole] = useState(null); // Role state
   const navigate = useNavigate(); // Navigation function
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user || null);
+
+      if (user) {
+        // Fetch role from the account table
+        const { data, error } = await supabase
+          .from("account")
+          .select("role_id")
+          .eq("email", user.email)
+          .single();
+
+        if (!error && data) {
+          setRole(data.role_id);
+        }
+      }
     };
 
-    fetchUser();
+    fetchUserAndRole();
 
-    // Listen for authentication state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
     });
@@ -27,8 +40,7 @@ const Sidebar = () => {
     };
   }, []);
 
-
-  const isValidUPMail = user && user.email.endsWith("@up.edu.ph"); 
+  const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
 
   // Handle Sign Out
   const handleSignOut = async () => {
@@ -58,8 +70,20 @@ const Sidebar = () => {
               alt="User Profile"
               className="w-20 h-20 rounded-full border-2 border-white"
             />
-            <p className="mt-2 text-lg font-medium">{user.user_metadata?.full_name || "User"}</p>
-            <p className="text-sm text-gray-300">{user.email}</p>
+            <p className="mt-2 text-lg font-medium text-center break-words px-2">
+              {user.user_metadata?.full_name || "User"}
+            </p>
+
+            {/* Role Label */}
+            {role && (
+              <p className="text-sm text-gray-200 italic">
+                {role === 1 ? "Student" : "Admin"}
+              </p>
+            )}
+
+            <p className="text-sm text-gray-300 text-center break-words px-2">
+              {user.email}
+            </p>
           </div>
         )}
 
@@ -70,7 +94,9 @@ const Sidebar = () => {
           <li><Link to="/activity-request" className="block hover:text-gray-300">Activity Request</Link></li>
           <li><Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link></li>
           <li><Link to="/reports" className="block hover:text-gray-300">Reports</Link></li>
-          <li><Link to="/admin" className="block hover:text-gray-300">Admin</Link></li>
+          {role === 2 || role === 3 ? (
+            <li><Link to="/admin" className="block hover:text-gray-300">Admin</Link></li>
+          ) : null}
         </ul>
 
         {/* Sign Out Button */}
