@@ -12,6 +12,7 @@ import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
+import RequireAdmin from "../components/RequireAdmin";
 
 /**
  * Redirects "/" based on authentication status.
@@ -22,21 +23,44 @@ const RedirectHome = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
+    const checkUserAndRole = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (user) {
-        navigate("/home");
-      } else {
+      if (!user) {
         navigate("/login");
+        return;
       }
+
+      setUser(user);
+
+      // Fetch role from 'account' table
+      const { data, error } = await supabase
+        .from("account")
+        .select("role_id")
+        .eq("email", user.email)
+        .single();
+
+      const roleId = data?.role_id;
+
+      if (!error && roleId) {
+        if (roleId === 2 || roleId === 3) {
+          navigate("/admin");
+        } else {
+          navigate("/home");
+        }
+      } else {
+        navigate("/home"); // default fallback
+      }
+
+      setLoading(false);
     };
-    checkUser();
+
+    checkUserAndRole();
   }, [navigate]);
 
-  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
+  if (loading) return <h1 className="flex justify-center">Loading...</h1>;
 
   return null;
 };
@@ -132,7 +156,6 @@ const router = createBrowserRouter([
     path: "/",
     element: <Layout />,
     children: [
-
       { index: true, element: <RedirectHome /> },
       {
         element: <PrivateRoute />,
@@ -142,15 +165,28 @@ const router = createBrowserRouter([
           { path: "activity-request", element: <ActivityRequest /> },
           { path: "org-recognition", element: <OrgRecognition /> },
           { path: "reports", element: <Reports /> },
-          { path: "admin", element: <AdminPanel /> },
-          { path: "admin/appointment-settings", element: <AdminAppointmentSettings /> },
+          {
+            path: "admin",
+            element: (
+              <RequireAdmin>
+                <AdminPanel />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/appointment-settings",
+            element: (
+              <RequireAdmin>
+                <AdminAppointmentSettings />
+              </RequireAdmin>
+            ),
+          },
         ],
       },
-
     ],
   },
-  { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> }, // Redirect logged-in users
-  { path: "*", element: <NotFound /> },
+  { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
+  { path: "*", element: <NotFound /> },  
 ]);
 
 const AppRoutes = () => {
