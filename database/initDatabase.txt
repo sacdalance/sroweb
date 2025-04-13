@@ -33,7 +33,7 @@ CREATE TABLE activity (
     student_position VARCHAR(255) NOT NULL,
     activity_name VARCHAR(255) NOT NULL,
     activity_description TEXT NOT NULL,
-    category_id INT NOT NULL REFERENCES activity_category(category_id) ON DELETE RESTRICT,
+    category_id INT NOT NULL REFERENCES activity_category(category_id) ON  DELETE RESTRICT,
     sdg_goals TEXT NOT NULL,
     charge_fee BOOLEAN NOT NULL DEFAULT FALSE,
     university_partner BOOLEAN NOT NULL DEFAULT FALSE,

@@ -1,10 +1,15 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
-export async function createActivity(activity) {
+export async function createActivity(activity, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  Object.keys(activity).forEach(key => {
+    formData.append(key, activity[key]);
+  });
+
   const response = await fetch(`${BASE_URL}/activityRequest`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(activity),
+    body: formData,
   });
 
   const result = await response.json();
