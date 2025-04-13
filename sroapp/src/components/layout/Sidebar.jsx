@@ -70,7 +70,6 @@ const Sidebar = () => {
           <li><Link to="/activity-request" className="block hover:text-gray-300">Activity Request</Link></li>
           <li><Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link></li>
           <li><Link to="/reports" className="block hover:text-gray-300">Reports</Link></li>
-          <li><Link to="/profile" className="block hover:text-gray-300">Profile</Link></li>
           <li><Link to="/admin" className="block hover:text-gray-300">Admin</Link></li>
         </ul>
 
