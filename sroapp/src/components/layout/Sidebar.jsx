@@ -106,8 +106,13 @@ const linkClass = (path) =>
           </h3>
           <ul className="space-y-1 text-sm font-normal">
             <li>
-              <Link to="/org-recognition" className={linkClass("/org-recognition")}>
-                Organizational Recognition
+              <Link to="/org-application" className={linkClass("/org-application")}>
+                Organizational Application
+              </Link>
+            </li>
+            <li>
+              <Link to="/annual-report" className={linkClass("/annual-report")}>
+                Annual Report
               </Link>
             </li>
           </ul>
