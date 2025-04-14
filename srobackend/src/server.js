@@ -6,13 +6,15 @@ import protectedRoutes from './routes/protectedRoutes.js';
 
 import activityRequestRoutes from './routes/activityRequestRoutes.js';
 
+import organizationRoutes from './routes/organization.js';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors());  
 app.use(express.json());
 
 // Public routes
@@ -25,6 +27,8 @@ app.use('/api', protectedRoutes);
 // Activity Request
 app.use('/activityRequest', activityRequestRoutes);
 
+// Organizations
+app.use('/api/organization', organizationRoutes);
 
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');
