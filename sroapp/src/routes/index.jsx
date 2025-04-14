@@ -6,7 +6,8 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import ActivityRequest from "../pages/ActivityRequest";
-import OrgRecognition from "../pages/OrgRecognition";
+import OrgApplication from "../pages/OrgApplication";
+import AnnualReport from "../pages/AnnualReport";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
@@ -162,7 +163,8 @@ const router = createBrowserRouter([
           { path: "home", element: <Home /> },
           { path: "dashboard", element: <Dashboard /> },
           { path: "activity-request", element: <ActivityRequest /> },
-          { path: "org-recognition", element: <OrgRecognition /> },
+          { path: "org-application", element: <OrgApplication /> },
+          { path: "annual-report", element: <AnnualReport /> },
           { path: "appointment-booking", element: <AppointmentBooking /> },
           {
             path: "admin",
