@@ -89,7 +89,6 @@ const Sidebar = () => {
 
         {/* Navigation Links */}
         <ul className="space-y-4">
-          <li><Link to="/" className="block hover:text-gray-300">Home</Link></li>
           <li><Link to="/dashboard" className="block hover:text-gray-300">Dashboard</Link></li>
           <li><Link to="/activity-request" className="block hover:text-gray-300">Activity Request</Link></li>
           <li><Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link></li>

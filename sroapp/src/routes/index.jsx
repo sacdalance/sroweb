@@ -48,10 +48,10 @@ const RedirectHome = () => {
         if (roleId === 2 || roleId === 3) {
           navigate("/admin");
         } else {
-          navigate("/home");
+          navigate("/dashboard");
         }
       } else {
-        navigate("/home"); // default fallback
+        navigate("/dashboard"); // default fallback
       }
 
       setLoading(false);
