@@ -7,7 +7,6 @@ import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import ActivityRequest from "../pages/ActivityRequest";
 import OrgRecognition from "../pages/OrgRecognition";
-import Reports from "../pages/Reports";
 import AdminPanel from "../pages/AdminPanel";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
@@ -165,7 +164,6 @@ const router = createBrowserRouter([
           { path: "activity-request", element: <ActivityRequest /> },
           { path: "org-recognition", element: <OrgRecognition /> },
           { path: "appointment-booking", element: <AppointmentBooking /> },
-          { path: "reports", element: <Reports /> },
           {
             path: "admin",
             element: (
