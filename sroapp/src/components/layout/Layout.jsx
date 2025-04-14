@@ -1,17 +1,15 @@
 import { Outlet } from "react-router-dom";
-// import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import Navbar from "./Navbar";
 
 const Layout = () => {
   return (
-    <div className="flex-1">
-      {/* Sidebar for navigation */}
+    <div className="flex">
       <Sidebar />
-
-      {/* Main content */}
-      <div className="flex-1">
-        <main className="p-4">
-          <Outlet /> {/* This renders the current page inside Layout */}
+      <div className="flex-1 ml-64">
+        <Navbar />
+        <main className="pt-20 p-4">
+          <Outlet />
         </main>
       </div>
     </div>
