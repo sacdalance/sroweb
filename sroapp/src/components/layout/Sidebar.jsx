@@ -1,112 +1,131 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import supabase from "@/lib/supabase"; // Import Supabase client
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import supabase from "@/lib/supabase";
+import { LogOut } from "lucide-react";
 
 const Sidebar = () => {
-  const [open, setOpen] = useState(false);
-  const [user, setUser] = useState(null); // State to store user data
-  const [role, setRole] = useState(null); // Role state
-  const navigate = useNavigate(); // Navigation function
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation(); // for highlighting active link
 
   useEffect(() => {
-    const fetchUserAndRole = async () => {
+    const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user || null);
 
       if (user) {
-        // Fetch role from the account table
         const { data, error } = await supabase
           .from("account")
           .select("role_id")
           .eq("email", user.email)
           .single();
-
-        if (!error && data) {
-          setRole(data.role_id);
-        }
+        if (!error && data) setRole(data.role_id);
       }
     };
 
-    fetchUserAndRole();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+    fetchUser();
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
+  const isAdmin = role === 2 || role === 3;
+  const dashboardLink = isAdmin ? "/admin" : "/dashboard";
 
-  // Handle Sign Out
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setUser(null); // Clear user state
-    navigate("/login"); // Redirect to login page
+    navigate("/login");
   };
 
+  // Highlight class if current location matches
+const linkClass = (path) =>
+  `hover:text-gray-700 ${location.pathname === path ? "text-[#7B1113] font-bold" : ""}`;
+
+  if (!isValidUPMail) return null;
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      {/* Sidebar Toggle Button */}
-      <SheetTrigger asChild>
-        <button 
-          className="p-2 m-4 bg-[#7B1113] text-white rounded-md fixed z-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!isValidUPMail}>
-          <Menu className="w-6 h-6" />
-        </button>
-      </SheetTrigger>
+    <aside className="w-72 min-h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-4 flex flex-col justify-between">
+      <div>
+        {/* Profile */}
+        <div className="flex flex-col items-center mb-6">
+          <img
+            src={user?.user_metadata?.avatar_url || "https://via.placeholder.com/80"}
+            className="w-20 h-20 rounded-full"
+            alt="User"
+          />
+          <h2 className="text-lg font-semibold mt-2 text-center">
+            {user?.user_metadata?.full_name || "User"}
+          </h2>
+          <p className="text-sm italic text-center">{isAdmin ? "Admin" : "Student"}</p>
+          <p className="text-xs text-center break-all">{user.email}</p>
+        </div>
 
-      {/* Sidebar Content */}
-      <SheetContent side="left" className="w-64 bg-[#7B1113] text-white p-4">
-        {/* User Info Section */}
-        {user && (
-          <div className="flex flex-col items-center mb-6">
-            <img
-              src={user.user_metadata?.avatar_url || "https://via.placeholder.com/80"}
-              alt="User Profile"
-              className="w-20 h-20 rounded-full border-2 border-white"
-            />
-            <p className="mt-2 text-lg font-medium text-center break-words px-2">
-              {user.user_metadata?.full_name || "User"}
-            </p>
+        <hr className="border-t border-[#DBDBDB] my-2" />
 
-            {/* Role Label */}
-            {role && (
-              <p className="text-sm text-gray-200 italic">
-                {role === 1 ? "Student" : "Admin"}
-              </p>
-            )}
+        {/* Dashboard */}
+        <div className="mb-4 mt-4">
+          <Link
+            to={dashboardLink}
+            className={`block text-sm font-bold ${linkClass(dashboardLink)}`}
+          >
+            Dashboard
+          </Link>
+        </div>
 
-            <p className="text-sm text-gray-300 text-center break-words px-2">
-              {user.email}
-            </p>
-          </div>
-        )}
+        <hr className="border-t border-[#DBDBDB] my-2" />
 
-        {/* Navigation Links */}
-        <ul className="space-y-4">
-          <li><Link to="/dashboard" className="block hover:text-gray-300">Dashboard</Link></li>
-          <li><Link to="/activity-request" className="block hover:text-gray-300">Activity Request</Link></li>
-          <li><Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link></li>
-          <li><Link to="/appointment-booking" className="block hover:text-gray-300">Appointment Booking</Link></li>
-          {role === 2 || role === 3 ? (
-            <li><Link to="/admin" className="block hover:text-gray-300">Admin</Link></li>
-          ) : null}
-        </ul>
+        {/* Student Activities */}
+        <div className="mb-4">
+          <h3 className="uppercase text-sm font-bold mb-2">Student Activities</h3>
+          <ul className="space-y-1 text-sm font-normal">
+            <li>
+              <Link to="/activity-request" className={linkClass("/activity-request")}>
+                Activity Request
+              </Link>
+            </li>
+            <li>
+              <Link to="/appointment-booking" className={linkClass("/appointment-booking")}>
+                Appointment Booking
+              </Link>
+            </li>
+          </ul>
+        </div>
 
-        {/* Sign Out Button */}
+        <hr className="border-t border-[#DBDBDB] my-2" />
+
+        {/* Org Requirements */}
+        <div className="mb-4">
+          <h3 className="uppercase text-sm font-bold mb-2 whitespace-nowrap">
+            Organizational Requirements
+          </h3>
+          <ul className="space-y-1 text-sm font-normal">
+            <li>
+              <Link to="/org-recognition" className={linkClass("/org-recognition")}>
+                Organizational Recognition
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <div className="mb-6">
+        <hr className="border-t border-[#DBDBDB] my-2" />
         <button
           onClick={handleSignOut}
-          className="mt-6 w-full bg-[#5e0d0e] text-white py-2 rounded-md hover:bg-[#3D0808] transition"
+          className="flex items-center gap-2 text-sm font-semibold py-2 px-3 hover:bg-gray-200 transition rounded w-full"
         >
-          Sign Out
+          <LogOut className="w-5 h-5" />
+          Log Out
         </button>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </aside>
   );
 };
 

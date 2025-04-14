@@ -1,19 +1,10 @@
-import { Link } from "react-router-dom";
-
 const Navbar = () => {
   return (
-    <nav className="p-4 bg-[#9B2242]-900 text-white flex justify-between">
-      <h1 className="text-lg font-bold">SRO Web App</h1>
-      <div className="space-x-4">
-        <Link to="/">Home</Link>
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/activity-request">Activity Request</Link>
-        <Link to="/org-recognition">Org Recognition</Link>
-        <Link to="/reports">Reports</Link>
-        <Link to="/profile">Profile</Link>
-        <Link to="/admin">Admin</Link>
+    <div className="fixed top-0 left-0 w-full bg-[#7B1113] text-white z-30 shadow-md">
+      <div className="flex justify-between items-center px-6 py-3">
+        <h1 className="font-bold text-lg">SRO Web App</h1>
       </div>
-    </nav>
+    </div>
   );
 };
 
