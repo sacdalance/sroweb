@@ -93,6 +93,7 @@ const Sidebar = () => {
           <li><Link to="/dashboard" className="block hover:text-gray-300">Dashboard</Link></li>
           <li><Link to="/activity-request" className="block hover:text-gray-300">Activity Request</Link></li>
           <li><Link to="/org-recognition" className="block hover:text-gray-300">Org Recognition</Link></li>
+          <li><Link to="/appointment-booking" className="block hover:text-gray-300">Appointment Booking</Link></li>
           <li><Link to="/reports" className="block hover:text-gray-300">Reports</Link></li>
           {role === 2 || role === 3 ? (
             <li><Link to="/admin" className="block hover:text-gray-300">Admin</Link></li>
