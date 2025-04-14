@@ -25,4 +25,6 @@ dist-ssr
 
 #Environment Variables
 .env
+
+#GDrive Credentials
 gdrive-creds.json

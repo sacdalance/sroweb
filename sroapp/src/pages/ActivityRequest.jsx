@@ -13,7 +13,10 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
 import { Progress } from "../components/ui/progress";
-import { createActivity } from '../api/activityRequestAPI';  
+import { createActivity } from '../api/activityRequestAPI';     
+import { useNavigate } from "react-router-dom";
+import { toast, Toaster } from "sonner";
+import supabase from "@/lib/supabase";  
 
 const ActivityRequest = () => {
     const [selectedValue, setSelectedValue] = useState("");
@@ -52,6 +55,7 @@ const ActivityRequest = () => {
         Saturday: false
     });
     const [currentSection, setCurrentSection] = useState("general-info");
+    const navigate = useNavigate();
 
     const activityTypeOptions = [
         { id: "charitable", label: "Charitable" },
@@ -146,42 +150,82 @@ const ActivityRequest = () => {
         ]
     };
 
-    const handleFileChange = (e) => {
-        if (e.target.files?.[0]) {
-            setSelectedFile(e.target.files[0]);
+        // ✅ Handles file upload validation
+        const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file && file.type !== 'application/pdf') {
+            alert("Only PDF files are allowed.");
+            return;
         }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-      
-        const activityData = {
-          account_id: 'your-account-id', // Replace with actual data
-          org_id: selectedValue,
-          student_position,
-          activity_name,
-          activity_description,
-          category_id: selectedActivityType,
-          sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
-          charge_fee: chargingFees1,
-          university_partner: partnering,
-          partner_name: partnerDescription,
-          partner_role: '', // fill in as needed
-          venue,
-          venue_approver,
-          venue_approver_contact,
-          is_off_campus: isOffCampus,
-          green_monitor_name: greenCampusMonitor,
-          green_monitor_contact: greenCampusMonitorContact,
+        setSelectedFile(file);
         };
-      
-        try {
-          const result = await createActivity(activityData, selectedFile);
-          console.log(result);
-        } catch (error) {
-          console.error(error);
-        }
-      };
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+        
+            if (selectedFile && selectedFile.type !== "application/pdf") {
+              toast.error("Only PDF files are allowed.");
+              return;
+            }
+        
+            try {
+              const {
+                data: { user },
+                error: userError
+              } = await supabase.auth.getUser();
+        
+              if (userError || !user) {
+                toast.error("You're not logged in.");
+                return;
+              }
+        
+              const { data: accountData, error: accountError } = await supabase
+                .from("account")
+                .select("account_id")
+                .eq("email", user.email)
+                .single();
+        
+              if (accountError || !accountData) {
+                toast.error("No matching account found.");
+                return;
+              }
+        
+              const account_id = accountData.account_id;
+        
+              const activityData = {
+                account_id,
+                org_id: 1, //change this    
+                student_position: studentPosition,
+                activity_name: activityName,
+                activity_description: activityDescription,
+                activity_type: selectedActivityType,
+                sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
+                charge_fee: chargingFees1 === "yes",
+                university_partner: partnering === "yes",
+                partner_name: partnerDescription,
+                partner_role: '',
+                venue,
+                venue_approver: venueApprover,
+                venue_approver_contact: venueApproverContact,
+                is_off_campus: isOffCampus === "yes",
+                green_monitor_name: greenCampusMonitor,
+                green_monitor_contact: greenCampusMonitorContact,
+              };
+        
+              const result = await createActivity(activityData, selectedFile);
+              console.log("✅ Activity submitted:", result);
+        
+              toast.success("Your activity request was submitted successfully!");
+        
+              setTimeout(() => {
+                navigate("/dashboard");
+              }, 2000);
+        
+            } catch (error) {
+              console.error("Submission error:", error);
+              toast.error(error.message || "Something went wrong.");
+            }
+          };
 
     const handleSectionChange = (sectionId) => {
         setCurrentSection(sectionId);
@@ -191,8 +235,8 @@ const ActivityRequest = () => {
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
                 <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
-                
                 <form onSubmit={handleSubmit} className="space-y-8">
+                    <Toaster/>
                     {/* Menu Bar */}
                     <div className="flex items-center space-x-4 mb-4">
                         <Button
