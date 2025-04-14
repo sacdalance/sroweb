@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -10,8 +10,30 @@ const AnnualReport = () => {
     const [uploadStatus, setUploadStatus] = useState(null);
 
     // Form state for Annual Report
+    const [orgOptions, setOrgOptions] = useState([]);
     const [selectedOrg, setSelectedOrg] = useState("");
     const [annualReportEmail, setAnnualReportEmail] = useState("");
+
+    useEffect(() => {
+        const fetchOrganizations = async () => {
+            try {
+                const response = await fetch('/api/organization/list');
+                const data = await response.json();
+                console.log("Fetched organizations:", data);
+                setOrgOptions(data);
+            } catch (err) {
+                console.error("Failed to load orgs", err);
+            }
+        };
+
+        fetchOrganizations();
+    }, []);
+
+    const handleOrgChange = (orgName) => {
+        setSelectedOrg(orgName);
+        const selected = orgOptions.find(o => o.org_name === orgName);
+        setAnnualReportEmail(selected?.org_email || '');
+    };
 
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
@@ -86,14 +108,16 @@ const AnnualReport = () => {
                             <label htmlFor="selectedOrg" className="text-sm font-medium">
                                 Organization Name
                             </label>
-                            <Select value={selectedOrg} onValueChange={setSelectedOrg}>
+                            <Select value={selectedOrg} onValueChange={handleOrgChange}>
                                 <SelectTrigger id="selectedOrg">
                                     <SelectValue placeholder="Select your Organization" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="org1">Samahan ng Organisasyon UPB (SO - UPB)</SelectItem>
-                                    <SelectItem value="org2">Computer Science Society (CSS)</SelectItem>
-                                    <SelectItem value="org3">UP Aguman (UPA)</SelectItem>
+                                    {orgOptions.map((org) => (
+                                        <SelectItem key={org.org_id} value={org.org_name}>
+                                            {org.org_name}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
