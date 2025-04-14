@@ -164,6 +164,7 @@ const router = createBrowserRouter([
           { path: "dashboard", element: <Dashboard /> },
           { path: "activity-request", element: <ActivityRequest /> },
           { path: "org-recognition", element: <OrgRecognition /> },
+          { path: "appointment-booking", element: <AppointmentBooking /> },
           { path: "reports", element: <Reports /> },
           {
             path: "admin",
