@@ -9,6 +9,13 @@ import ActivityRequest from "../pages/ActivityRequest";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
 import AdminPanel from "../pages/AdminPanel";
+import AdminCreateActivity from "../pages/AdminCreateActivity";
+import AdminPendingRequests from "../pages/AdminPendingRequests";
+import AdminActivitySummary from "../pages/AdminActivitySummary";
+import AdminActivitiesCalendar from "../pages/AdminActivitiesCalendar";
+import AdminOrgApplications from "../pages/AdminOrgApplications";
+import AdminOrganizations from "../pages/AdminOrganizations";
+import AdminAnnualReports from "../pages/AdminAnnualReports";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
@@ -179,6 +186,62 @@ const router = createBrowserRouter([
             element: (
               <RequireAdmin>
                 <AdminAppointmentSettings />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/create-activity",
+            element: (
+              <RequireAdmin>
+                <AdminCreateActivity />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/pending-requests",
+            element: (
+              <RequireAdmin>
+                <AdminPendingRequests />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/activity-summary",
+            element: (
+              <RequireAdmin>
+                <AdminActivitySummary />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/activities-calendar",
+            element: (
+              <RequireAdmin>
+                <AdminActivitiesCalendar />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/org-applications",
+            element: (
+              <RequireAdmin>
+                <AdminOrgApplications />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/organizations",
+            element: (
+              <RequireAdmin>
+                <AdminOrganizations />
+              </RequireAdmin>
+            ),
+          },
+          {
+            path: "admin/annual-reports",
+            element: (
+              <RequireAdmin>
+                <AdminAnnualReports />
               </RequireAdmin>
             ),
           },
