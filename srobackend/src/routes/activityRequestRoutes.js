@@ -76,10 +76,10 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Only PDF files are allowed.' });
     }
 
-    let drive_folder_id = 'N/A';
+    let drive_folder_link = 'N/A';
 
     if (file) {
-      drive_folder_id = await uploadToGoogleDrive(
+      drive_folder_link = await uploadToGoogleDrive(
         file.buffer,
         file.originalname,
         file.mimetype
@@ -104,7 +104,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      drive_folder_id, // This now stores the Google Drive viewable link
+      drive_folder_link, // This now stores the Google Drive viewable link
     }]);
 
     if (error) throw error;

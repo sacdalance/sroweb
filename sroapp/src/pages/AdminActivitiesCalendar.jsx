@@ -101,18 +101,18 @@ const AdminActivitiesCalendar = () => {
     return [...previousMonthDays, ...currentMonthDays, ...nextMonthDays];
   };
 
-  // Mock events data
-  const events = [
-    {
-      id: 1,
-      date: new Date(2025, 3, 9), // April 9, 2025
-      title: "EVENT NAME",
-      time: "8:00 AM to 5:00 PM",
-      location: "Location",
-      category: "Academic",
-      organization: "Insert Mahabanog Org Name",
-      status: "approved"
-    },
+    // Mock events data
+    const events = [
+      {
+        id: 1,
+        date: new Date(2025, 3, 9), // April 9, 2025
+        title: "EVENT NAME",
+        time: "8:00 AM to 5:00 PM",
+        location: "Location",
+        category: "Academic",
+        organization: "Insert Mahabanog Org Name",
+        status: "approved"
+      },
     {
       id: 2,
       date: new Date(2025, 3, 9), // April 9, 2025

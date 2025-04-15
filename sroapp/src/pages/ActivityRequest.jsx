@@ -16,7 +16,14 @@ import { Progress } from "../components/ui/progress";
 import { createActivity } from '../api/activityRequestAPI';     
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
-import supabase from "@/lib/supabase";  
+import supabase from "@/lib/supabase"; 
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+  } from "@/components/ui/alert-dialog";
 
 const ActivityRequest = () => {
     const [selectedValue, setSelectedValue] = useState("");
@@ -56,7 +63,46 @@ const ActivityRequest = () => {
     });
     const [currentSection, setCurrentSection] = useState("general-info");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const navigate = useNavigate();
+
+    // Validation function for navigating in forms
+    const validateCurrentSection = (section, state) => {
+        const {
+          selectedValue,
+          studentPosition,
+          studentContact,
+          activityName,
+          activityDescription,
+          selectedActivityType,
+          startDate,
+          startTime,
+          endTime,
+          endDate,
+          recurring,
+          venue,
+          venueApprover,
+          venueApproverContact,
+          greenCampusMonitor,
+          greenCampusMonitorContact,
+          selectedFile,
+        } = state;
+      
+        if (section === "general-info") {
+          return selectedValue && studentPosition && studentContact && activityName && activityDescription && selectedActivityType;
+        }
+        if (section === "date-info") {
+          return startDate && startTime && endTime && (recurring !== "recurring" || endDate);
+        }
+        if (section === "specifications") {
+          return venue && venueApprover && venueApproverContact && greenCampusMonitor && greenCampusMonitorContact;
+        }
+        if (section === "submission") {
+          return selectedFile && selectedFile.type === "application/pdf";
+        }
+        return true;
+      };
+      
 
     const activityTypeOptions = [
         { id: "charitable", label: "Charitable" },
@@ -151,7 +197,7 @@ const ActivityRequest = () => {
         ]
     };
 
-        // ✅ Handles file upload validation
+        // Handles file upload validation
         const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (file && file.type !== 'application/pdf') {
@@ -164,22 +210,43 @@ const ActivityRequest = () => {
         const handleSubmit = async (e) => {
             e.preventDefault();
         
-            if (selectedFile && selectedFile.type !== "application/pdf") {
-              toast.error("Only PDF files are allowed.");
-              return;
+            // Prevent submission if you're not in the submission step
+            if (currentSection !== "submission") {
+                return;
             }
 
-            if (isSubmitting) return; // prevent double click
+            // Prevent submission without a file
+            if (!selectedFile) {
+                toast.dismiss();
+                toast.error("Please upload a PDF file before submitting.");
+                return;
+            }
+
+            // Only allow PDF files
+            if (selectedFile.type !== "application/pdf") {
+                toast.dismiss();
+                toast.error("Only PDF files are allowed.");
+                return;
+            }
+
+            if (isSubmitting) return;
+
+            setIsSubmitting(true);
+
+            // Prevent double click
+            if (isSubmitting) return; 
 
             setIsSubmitting(true);
         
+            // Send data to database and file to cloud
             try {
               const {
                 data: { user },
                 error: userError
-              } = await supabase.auth.getUser();
+              } = await supabase.auth.getUser(); // supabase
         
               if (userError || !user) {
+                toast.dismiss();
                 toast.error("You're not logged in.");
                 return;
               }
@@ -191,8 +258,9 @@ const ActivityRequest = () => {
                 .single();
         
               if (accountError || !accountData) {
+                toast.dismiss();
                 toast.error("No matching account found.");
-                return;
+                return;             
               }
         
               const account_id = accountData.account_id;
@@ -217,31 +285,61 @@ const ActivityRequest = () => {
                 green_monitor_contact: greenCampusMonitorContact,
               };
         
-              const result = await createActivity(activityData, selectedFile);
-              console.log("✅ Activity submitted:", result);
-        
-              toast.success("Your activity request was submitted successfully!");
-        
+              await createActivity(activityData, selectedFile);
+
+              setShowSuccessDialog(true);
+            
               setTimeout(() => {
                 navigate("/dashboard");
-              }, 2000);
-        
+              }, 5000);
             } catch (error) {
               console.error("Submission error:", error);
+              toast.dismiss();  
               toast.error(error.message || "Something went wrong.");
+            } finally {
+              setIsSubmitting(false);
             }
           };
 
-    const handleSectionChange = (sectionId) => {
-        setCurrentSection(sectionId);
-    };
+          const handleSectionChange = (nextSection) => {
+            const isValid = validateCurrentSection(currentSection, {
+              selectedValue,
+              studentPosition,
+              studentContact,
+              activityName,
+              activityDescription,
+              selectedActivityType,
+              startDate,
+              startTime,
+              endTime,
+              endDate,
+              recurring,
+              venue,
+              venueApprover,
+              venueApproverContact,
+              greenCampusMonitor,
+              greenCampusMonitorContact,
+              selectedFile
+            });
+          
+            if (!isValid) {
+                toast.dismiss()
+                toast.error("Please fill in all required fields.")
+              return;
+            }
+          
+            setCurrentSection(nextSection);
+          };
 
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
                 <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
+                    
+                    {/* Sonner, side pop up */}
                     <Toaster/>
+
                     {/* Menu Bar */}
                     <div className="flex items-center space-x-4 mb-4">
                         <Button
@@ -295,7 +393,10 @@ const ActivityRequest = () => {
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Organization Name */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Organization Name</h3>
+                                        <h3 className="text-sm font-medium mb-2">
+                                                    Organization Name 
+                                            <span className="text-red-500">*</span>
+                                        </h3>
                                         <Select value={selectedValue} onValueChange={setSelectedValue}>
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select an option" />
@@ -752,13 +853,27 @@ const ActivityRequest = () => {
                                     </Button>
                                     <Button
                                         type="submit"
+                                        disabled={isSubmitting}
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
                                     >
-                                        Submit
+                                        {isSubmitting ? "Submitting..." : "Submit"}
                                     </Button>
                                 </div>
                             </div>
                         )}
+                        {/* Alert Dialog for Submission */}
+                        <AlertDialog open={showSuccessDialog}>
+                        <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
+                            <AlertDialogHeader>
+                            <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
+                                Submitted Successfully!
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm font-medium mb-2">
+                                You will be redirected to the dashboard...
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                        </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </form>
             </div>
