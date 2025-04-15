@@ -55,6 +55,7 @@ const ActivityRequest = () => {
         Saturday: false
     });
     const [currentSection, setCurrentSection] = useState("general-info");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
     const activityTypeOptions = [
@@ -167,6 +168,10 @@ const ActivityRequest = () => {
               toast.error("Only PDF files are allowed.");
               return;
             }
+
+            if (isSubmitting) return; // prevent double click
+
+            setIsSubmitting(true);
         
             try {
               const {
