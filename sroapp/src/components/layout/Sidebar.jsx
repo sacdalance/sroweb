@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
-import { LogOut, Calendar, ClipboardList, Users, BuildingIcon, FileText, PenSquare, Settings } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 const Sidebar = () => {
   const [user, setUser] = useState(null);
@@ -44,15 +44,8 @@ const Sidebar = () => {
   };
 
   // Highlight class if current location matches
-  const linkClass = (path) =>
-    `hover:text-gray-700 ${location.pathname === path ? "text-[#7B1113] font-bold" : ""}`;
-  
-  // Check if a path is currently active or its subpath is active
-  const isActive = (path) => {
-    if (path === "/admin" && location.pathname === "/admin") return true;
-    if (path !== "/admin" && location.pathname.startsWith(path)) return true;
-    return false;
-  };
+const linkClass = (path) =>
+  `hover:text-gray-700 ${location.pathname === path ? "text-[#7B1113] font-bold" : ""}`;
 
   if (!isValidUPMail) return null;
 
@@ -79,7 +72,7 @@ const Sidebar = () => {
         <div className="mb-4 mt-4">
           <Link
             to={dashboardLink}
-            className={`block text-sm font-bold ${isActive(dashboardLink) ? "text-[#7B1113] font-bold" : ""}`}
+            className={`block text-sm font-bold ${linkClass(dashboardLink)}`}
           >
             Dashboard
           </Link>
@@ -87,81 +80,68 @@ const Sidebar = () => {
 
         <hr className="border-t border-[#DBDBDB] my-2" />
 
-        {/* Admin Pages - only shown to admins */}
+        {/* Admin-only Navigation */}
         {isAdmin && (
-          <>
-            <div className="mb-4">
-              <h3 className="uppercase text-sm font-bold mb-2 text-[#014421]">Admin</h3>
-              <ul className="space-y-1 text-sm font-normal">
-                <li>
-                  <Link to="/admin/create-activity" className={`flex items-center ${isActive("/admin/create-activity") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <PenSquare className={`w-4 h-4 mr-2 ${isActive("/admin/create-activity") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Create Activity Form
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/pending-requests" className={`flex items-center ${isActive("/admin/pending-requests") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <ClipboardList className={`w-4 h-4 mr-2 ${isActive("/admin/pending-requests") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Pending Requests
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/activity-summary" className={`flex items-center ${isActive("/admin/activity-summary") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <FileText className={`w-4 h-4 mr-2 ${isActive("/admin/activity-summary") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Activity Summary
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/activities-calendar" className={`flex items-center ${isActive("/admin/activities-calendar") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <Calendar className={`w-4 h-4 mr-2 ${isActive("/admin/activities-calendar") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Activities Calendar
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/org-applications" className={`flex items-center ${isActive("/admin/org-applications") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <Users className={`w-4 h-4 mr-2 ${isActive("/admin/org-applications") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Organization Applications
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/organizations" className={`flex items-center ${isActive("/admin/organizations") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <BuildingIcon className={`w-4 h-4 mr-2 ${isActive("/admin/organizations") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Approved Organizations
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/annual-reports" className={`flex items-center ${isActive("/admin/annual-reports") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <FileText className={`w-4 h-4 mr-2 ${isActive("/admin/annual-reports") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Annual Reports
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin/appointment-settings" className={`flex items-center ${isActive("/admin/appointment-settings") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <Settings className={`w-4 h-4 mr-2 ${isActive("/admin/appointment-settings") ? "text-[#7B1113]" : "text-[#014421]"}`} />
-                    Appointment Settings
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <hr className="border-t border-[#DBDBDB] my-2" />
-          </>
+          <div className="mb-4">
+            <h3 className="uppercase text-sm font-bold mb-2">Administration</h3>
+            <ul className="space-y-1 text-sm font-normal">
+              <li>
+                <Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>
+                  Pending Submissions
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>
+                  Create Activity Record
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>
+                  Activities Calendar
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/organizations" className={linkClass("/admin/organizations")}>
+                  Summary of Organizations
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>
+                  Organization Applications
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>
+                  Organization Annual Reports
+                </Link>
+              </li>
+              <li>
+                <Link to="/appointment-booking" className={linkClass("/appointment-booking")}>
+                  Create an Appointment
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>
+                  Appointment Settings
+                </Link>
+              </li>
+            </ul>
+          </div>
         )}
 
-        {/* Student Activities - only shown to non-admins */}
+        {/* Student Activities - Only visible to non-admin users */}
         {!isAdmin && (
           <>
             <div className="mb-4">
-              <h3 className="uppercase text-sm font-bold mb-2 text-[#014421]">Student Activities</h3>
+              <h3 className="uppercase text-sm font-bold mb-2">Student Activities</h3>
               <ul className="space-y-1 text-sm font-normal">
                 <li>
-                  <Link to="/activity-request" className={`flex items-center ${isActive("/activity-request") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <PenSquare className={`w-4 h-4 mr-2 ${isActive("/activity-request") ? "text-[#7B1113]" : "text-[#014421]"}`} />
+                  <Link to="/activity-request" className={linkClass("/activity-request")}>
                     Activity Request
                   </Link>
                 </li>
                 <li>
-                  <Link to="/appointment-booking" className={`flex items-center ${isActive("/appointment-booking") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <Calendar className={`w-4 h-4 mr-2 ${isActive("/appointment-booking") ? "text-[#7B1113]" : "text-[#014421]"}`} />
+                  <Link to="/appointment-booking" className={linkClass("/appointment-booking")}>
                     Appointment Booking
                   </Link>
                 </li>
@@ -170,21 +150,19 @@ const Sidebar = () => {
 
             <hr className="border-t border-[#DBDBDB] my-2" />
 
-            {/* Org Requirements */}
+            {/* Org Requirements - Only visible to non-admin users */}
             <div className="mb-4">
-              <h3 className="uppercase text-sm font-bold mb-2 whitespace-nowrap text-[#014421]">
+              <h3 className="uppercase text-sm font-bold mb-2 whitespace-nowrap">
                 Organizational Requirements
               </h3>
               <ul className="space-y-1 text-sm font-normal">
                 <li>
-                  <Link to="/org-application" className={`flex items-center ${isActive("/org-application") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <BuildingIcon className={`w-4 h-4 mr-2 ${isActive("/org-application") ? "text-[#7B1113]" : "text-[#014421]"}`} />
+                  <Link to="/org-application" className={linkClass("/org-application")}>
                     Organizational Application
                   </Link>
                 </li>
                 <li>
-                  <Link to="/annual-report" className={`flex items-center ${isActive("/annual-report") ? "text-[#7B1113] font-bold" : ""}`}>
-                    <FileText className={`w-4 h-4 mr-2 ${isActive("/annual-report") ? "text-[#7B1113]" : "text-[#014421]"}`} />
+                  <Link to="/annual-report" className={linkClass("/annual-report")}>
                     Annual Report
                   </Link>
                 </li>
@@ -199,9 +177,9 @@ const Sidebar = () => {
         <hr className="border-t border-[#DBDBDB] my-2" />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 text-sm font-semibold py-2 px-3 hover:bg-gray-200 transition rounded w-full text-[#7B1113]"
+          className="flex items-center gap-2 text-sm font-semibold py-2 px-3 hover:bg-gray-200 transition rounded w-full"
         >
-          <LogOut className="w-5 h-5 text-[#7B1113]" />
+          <LogOut className="w-5 h-5" />
           Log Out
         </button>
       </div>
