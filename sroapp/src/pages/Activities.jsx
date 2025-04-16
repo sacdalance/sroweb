@@ -80,7 +80,7 @@ const Activities = () => {
                 {requested.length > 0 ? (
                   requested.map((act) => (
                     <tr key={act.activity_id} className="border-b">
-                      <td className="py-2 px-4">TESTING</td>
+                      <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
                       <td className="py-2 px-4">{act.activity_name}</td>
                       <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
                       <td className="py-2 px-4">{act.venue}</td>
@@ -122,7 +122,7 @@ const Activities = () => {
                 {approved.length > 0 ? (
                   approved.map((act) => (
                     <tr key={act.activity_id} className="border-b">
-                      <td className="py-2 px-4">TESTING</td>
+                      <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
                       <td className="py-2 px-4">{act.activity_name}</td>
                       <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
                       <td className="py-2 px-4">{act.venue}</td>
