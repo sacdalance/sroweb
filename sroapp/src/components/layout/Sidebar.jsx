@@ -55,9 +55,10 @@ const linkClass = (path) =>
         {/* Profile */}
         <div className="flex flex-col items-center mb-6">
           <img
-            src={user?.user_metadata?.avatar_url || "https://via.placeholder.com/80"}
+            src={user?.user_metadata?.avatar_url || "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"}
             className="w-20 h-20 rounded-full"
             alt="User"
+            referrerPolicy="no-referrer"
           />
           <h2 className="text-lg font-semibold mt-2 text-center">
             {user?.user_metadata?.full_name || "User"}
