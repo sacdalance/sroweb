@@ -44,129 +44,79 @@ const Sidebar = () => {
   };
 
   // Highlight class if current location matches
-const linkClass = (path) =>
-  `hover:text-gray-700 ${location.pathname === path ? "text-[#7B1113] font-bold" : ""}`;
+  const linkClass = (path) =>
+    `block px-4 py-2 rounded-md -mx-2 transition-all duration-200 ease-in-out ${
+      location.pathname === path
+        ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
+        : "text-[15px] text-black hover:text-gray-700"
+    }`;
+  
+  
 
   if (!isValidUPMail) return null;
 
   return (
-    <aside className="w-72 min-h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-4 flex flex-col justify-between">
+    <aside className="w-80 min-h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-6 flex flex-col justify-between">
       <div>
         {/* Profile */}
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mb-8">
           <img
             src={user?.user_metadata?.avatar_url || "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"}
-            className="w-20 h-20 rounded-full"
+            className="w-24 h-24 rounded-full"
             alt="User"
             referrerPolicy="no-referrer"
           />
-          <h2 className="text-lg font-semibold mt-2 text-center">
+          <h2 className="text-xl font-semibold mt-3 text-center">
             {user?.user_metadata?.full_name || "User"}
           </h2>
-          <p className="text-sm italic text-center">{isAdmin ? "Admin" : "Student"}</p>
-          <p className="text-xs text-center break-all">{user.email}</p>
+          <p className="text-base italic text-center">{isAdmin ? "Admin" : "Student"}</p>
+          <p className="text-sm text-center break-all">{user.email}</p>
         </div>
 
-        <hr className="border-t border-[#DBDBDB] my-2" />
+        <hr className="border-t border-[#DBDBDB] my-4" />
 
-        {/* Dashboard */}
-        <div className="mb-4 mt-4">
+        <div className="mb-4 mt-4 font-medium">
           <Link
             to={dashboardLink}
-            className={`block text-sm font-bold ${linkClass(dashboardLink)}`}
+            className={linkClass(dashboardLink)}
           >
             Dashboard
           </Link>
         </div>
 
-        <hr className="border-t border-[#DBDBDB] my-2" />
+        <hr className="border-t border-[#DBDBDB] my-4" />
 
-        {/* Admin-only Navigation */}
-        {isAdmin && (
-          <div className="mb-4">
-            <h3 className="uppercase text-sm font-bold mb-2">Administration</h3>
-            <ul className="space-y-1 text-sm font-normal">
-              <li>
-                <Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>
-                  Pending Submissions
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>
-                  Create Activity Record
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>
-                  Activities Calendar
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/organizations" className={linkClass("/admin/organizations")}>
-                  Summary of Organizations
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>
-                  Organization Applications
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>
-                  Organization Annual Reports
-                </Link>
-              </li>
-              <li>
-                <Link to="/appointment-booking" className={linkClass("/appointment-booking")}>
-                  Create an Appointment
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>
-                  Appointment Settings
-                </Link>
-              </li>
+        {isAdmin ? (
+          <div className="mb-6">
+            <h3 className="uppercase text-base font-bold mb-3">Administration</h3>
+            <ul className="space-y-2 text-[15px] font-medium">
+              <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Submissions</Link></li>
+              <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity Record</Link></li>
+              <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
+              <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>
+              <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Organization Applications</Link></li>
+              <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Organization Annual Reports</Link></li>
+              <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Create an Appointment</Link></li>
+              <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
             </ul>
           </div>
-        )}
-
-        {/* Student Activities - Only visible to non-admin users */}
-        {!isAdmin && (
+        ) : (
           <>
-            <div className="mb-4">
-              <h3 className="uppercase text-sm font-bold mb-2">Student Activities</h3>
-              <ul className="space-y-1 text-sm font-normal">
-                <li>
-                  <Link to="/activity-request" className={linkClass("/activity-request")}>
-                    Activity Request
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/appointment-booking" className={linkClass("/appointment-booking")}>
-                    Appointment Booking
-                  </Link>
-                </li>
+            <div className="mb-6">
+              <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
+              <ul className="space-y-2 text-[15px] font-medium">
+                <li><Link to="/activity-request" className={linkClass("/activity-request")}>Activity Request</Link></li>
+                <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Appointment Booking</Link></li>
               </ul>
             </div>
 
-            <hr className="border-t border-[#DBDBDB] my-2" />
+            <hr className="border-t border-[#DBDBDB] my-4" />
 
-            {/* Org Requirements - Only visible to non-admin users */}
-            <div className="mb-4">
-              <h3 className="uppercase text-sm font-bold mb-2 whitespace-nowrap">
-                Organizational Requirements
-              </h3>
-              <ul className="space-y-1 text-sm font-normal">
-                <li>
-                  <Link to="/org-application" className={linkClass("/org-application")}>
-                    Organizational Application
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/annual-report" className={linkClass("/annual-report")}>
-                    Annual Report
-                  </Link>
-                </li>
+            <div className="mb-6">
+              <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Organizational Requirements</h3>
+              <ul className="space-y-2 text-[15px] font-medium">
+                <li><Link to="/org-application" className={linkClass("/org-application")}>Organizational Application</Link></li>
+                <li><Link to="/annual-report" className={linkClass("/annual-report")}>Annual Report</Link></li>
               </ul>
             </div>
           </>
@@ -174,17 +124,18 @@ const linkClass = (path) =>
       </div>
 
       {/* Logout */}
-      <div className="mb-6">
-        <hr className="border-t border-[#DBDBDB] my-2" />
+      <div className="mb-8">
+        <hr className="border-t border-[#DBDBDB] my-4" />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 text-sm font-semibold py-2 px-3 hover:bg-gray-200 transition rounded w-full"
+          className="flex items-center gap-2 text-[15px] font-medium py-3 px-4 rounded-md -mx-2 transition-all duration-200 ease-in-out hover:bg-white hover:text-[#7B1113] w-full"
         >
           <LogOut className="w-5 h-5" />
           Log Out
-        </button>
+      </button>
       </div>
     </aside>
+
   );
 };
 

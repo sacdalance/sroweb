@@ -26,7 +26,7 @@ import {
     AlertDialogFooter,
     AlertDialogCancel,
     AlertDialogAction
-  } from "@/components/ui/alert-dialog";
+    } from "@/components/ui/alert-dialog";
 
 const ActivityRequest = () => {
     const [selectedValue, setSelectedValue] = useState("");
@@ -74,40 +74,40 @@ const ActivityRequest = () => {
     // Validation function for navigating in forms
     const validateCurrentSection = (section, state) => {
         const {
-          selectedValue,
-          studentPosition,
-          studentContact,
-          activityName,
-          activityDescription,
-          selectedActivityType,
-          startDate,
-          startTime,
-          endTime,
-          endDate,
-          recurring,
-          venue,
-          venueApprover,
-          venueApproverContact,
-          greenCampusMonitor,
-          greenCampusMonitorContact,
-          selectedFile,
+            selectedValue,
+            studentPosition,
+            studentContact,
+            activityName,
+            activityDescription,
+            selectedActivityType,
+            startDate,
+            startTime,
+            endTime,
+            endDate,
+            recurring,
+            venue,
+            venueApprover,
+            venueApproverContact,
+            greenCampusMonitor,
+            greenCampusMonitorContact,
+            selectedFile,
         } = state;
-      
+        
         if (section === "general-info") {
-          return selectedValue && studentPosition && studentContact && activityName && activityDescription && selectedActivityType;
+            return selectedValue && studentPosition && studentContact && activityName && activityDescription && selectedActivityType;
         }
         if (section === "date-info") {
-          return startDate && startTime && endTime && (recurring !== "recurring" || endDate);
+            return startDate && startTime && endTime && (recurring !== "recurring" || endDate);
         }
         if (section === "specifications") {
-          return venue && venueApprover && venueApproverContact && greenCampusMonitor && greenCampusMonitorContact;
+            return venue && venueApprover && venueApproverContact && greenCampusMonitor && greenCampusMonitorContact;
         }
         if (section === "submission") {
-          return selectedFile && selectedFile.type === "application/pdf";
+            return selectedFile && selectedFile.type === "application/pdf";
         }
         return true;
-      };
-      
+        };
+        
 
     const activityTypeOptions = [
         { id: "charitable", label: "Charitable" },
@@ -245,32 +245,32 @@ const ActivityRequest = () => {
         
             // Send data to database and file to cloud
             try {
-              const {
+                const {
                 data: { user },
                 error: userError
               } = await supabase.auth.getUser(); // supabase
         
-              if (userError || !user) {
+                if (userError || !user) {
                 toast.dismiss();
                 toast.error("You're not logged in.");
                 return;
-              }
+                }
         
-              const { data: accountData, error: accountError } = await supabase
+                const { data: accountData, error: accountError } = await supabase
                 .from("account")
                 .select("account_id")
                 .eq("email", user.email)
                 .single();
         
-              if (accountError || !accountData) {
+                if (accountError || !accountData) {
                 toast.dismiss();
                 toast.error("No matching account found.");
                 return;             
-              }
+                }
         
-              const account_id = accountData.account_id;
+                const account_id = accountData.account_id;
         
-              const activityData = {
+                const activityData = {
                 account_id,
                 org_id: 1, //change this    
                 student_position: studentPosition,
@@ -288,53 +288,53 @@ const ActivityRequest = () => {
                 is_off_campus: isOffCampus === "yes",
                 green_monitor_name: greenCampusMonitor,
                 green_monitor_contact: greenCampusMonitorContact,
-              };
+                };
         
-              await createActivity(activityData, selectedFile);
+                await createActivity(activityData, selectedFile);
 
-              setShowSuccessDialog(true);
+                setShowSuccessDialog(true);
             
-              setTimeout(() => {
+                setTimeout(() => {
                 navigate("/dashboard");
-              }, 5000);
+                }, 5000);
             } catch (error) {
-              console.error("Submission error:", error);
-              toast.dismiss();  
-              toast.error(error.message || "Something went wrong.");
+                console.error("Submission error:", error);
+                toast.dismiss();  
+                toast.error(error.message || "Something went wrong.");
             } finally {
-              setIsSubmitting(false);
+                setIsSubmitting(false);
             }
-          };
+            };
 
-          const handleSectionChange = (nextSection) => {
+            const handleSectionChange = (nextSection) => {
             const isValid = validateCurrentSection(currentSection, {
-              selectedValue,
-              studentPosition,
-              studentContact,
-              activityName,
-              activityDescription,
-              selectedActivityType,
-              startDate,
-              startTime,
-              endTime,
-              endDate,
-              recurring,
-              venue,
-              venueApprover,
-              venueApproverContact,
-              greenCampusMonitor,
-              greenCampusMonitorContact,
-              selectedFile
+                selectedValue,
+                studentPosition,
+                studentContact,
+                activityName,
+                activityDescription,
+                selectedActivityType,
+                startDate,
+                startTime,
+                endTime,
+                endDate,
+                recurring,
+                venue,
+                venueApprover,
+                venueApproverContact,
+                greenCampusMonitor,
+                greenCampusMonitorContact,
+                selectedFile
             });
-          
+            
             if (!isValid) {
                 toast.dismiss()
                 toast.error("Please fill in all required fields.")
-              return;
+                return;
             }
-          
+            
             setCurrentSection(nextSection);
-          };
+            };
 
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
