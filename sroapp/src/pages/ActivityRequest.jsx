@@ -23,6 +23,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction
   } from "@/components/ui/alert-dialog";
 
 const ActivityRequest = () => {
@@ -64,6 +67,8 @@ const ActivityRequest = () => {
     const [currentSection, setCurrentSection] = useState("general-info");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
     const navigate = useNavigate();
 
     // Validation function for navigating in forms
@@ -852,15 +857,40 @@ const ActivityRequest = () => {
                                         Back
                                     </Button>
                                     <Button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setShowConfirmDialog(true);
+                                            }}  
                                         type="submit"
                                         disabled={isSubmitting}
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
                                     >
-                                        {isSubmitting ? "Submitting..." : "Submit"}
+                                        {isSubmitting ? "In Progress" : "Submit"}
                                     </Button>
                                 </div>
                             </div>
-                        )}
+                        )}  
+                        {/* Confirmation Dialog */}
+                        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>  
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                Are you sure you want to submit this activity request now?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>No</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleSubmit}                                         
+                                        disabled={isSubmitting}
+                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        >
+                                        {isSubmitting ? "Submitting..." : "Yes"}
+                                        </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
                         {/* Alert Dialog for Submission */}
                         <AlertDialog open={showSuccessDialog}>
                         <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
