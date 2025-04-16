@@ -216,9 +216,7 @@ const ActivityRequest = () => {
             e.preventDefault();
         
             // Prevent submission if you're not in the submission step
-            if (currentSection !== "submission") {
-                return;
-            }
+            if (currentSection !== "submission") return;
 
             // Prevent submission without a file
             if (!selectedFile) {
@@ -235,14 +233,8 @@ const ActivityRequest = () => {
             }
 
             if (isSubmitting) return;
-
             setIsSubmitting(true);
 
-            // Prevent double click
-            if (isSubmitting) return; 
-
-            setIsSubmitting(true);
-        
             // Send data to database and file to cloud
             try {
                 const {
@@ -289,9 +281,17 @@ const ActivityRequest = () => {
                 green_monitor_name: greenCampusMonitor,
                 green_monitor_contact: greenCampusMonitorContact,
                 };
-        
-                await createActivity(activityData, selectedFile);
 
+                const scheduleData = {
+                    is_recurring: recurring,
+                    start_date: startDate,
+                    end_date: endDate || null,
+                    start_time: startTime,
+                    end_time: endTime,
+                    recurring_days: recurring === "recurring" ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",") : null,
+                  };
+        
+                await createActivity(activityData, selectedFile, scheduleData);
                 setShowSuccessDialog(true);
             
                 setTimeout(() => {

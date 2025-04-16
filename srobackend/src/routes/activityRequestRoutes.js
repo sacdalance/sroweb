@@ -64,10 +64,14 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     const {
-      account_id, org_id, student_position, activity_name, activity_description, activity_type,
+      account_id,  org_id, student_position, activity_name, activity_description, activity_type,
       sdg_goals, charge_fee, university_partner, partner_name, partner_role, venue,
       venue_approver, venue_approver_contact, is_off_campus, green_monitor_name,
       green_monitor_contact
+    } = req.body;
+
+    const {
+      is_recurring, start_date, end_date, start_time, end_time, recurring_days
     } = req.body;
 
     const file = req.file;
@@ -86,7 +90,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       );
     }
 
-    const { data, error } = await supabase.from('activity').insert([{
+    const { data: activityInsertData, error: activityError } = await supabase.from('activity').insert([{
       account_id,
       org_id,
       student_position,
@@ -104,12 +108,28 @@ router.post('/', upload.single('file'), async (req, res) => {
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      drive_folder_link, // This now stores the Google Drive viewable link
+      drive_folder_link
+    }]).select(); // to get back the inserted activity_id
+    
+    if (activityError) throw activityError;
+    
+    // Insert into activity_schedule table
+    const activity_id = activityInsertData[0].activity_id;
+
+    const { error: scheduleError } = await supabase.from('activity_schedule').insert([{
+      activity_id,
+      is_recurring,
+      start_date,
+      end_date: end_date || null,
+      start_time,
+      end_time,
+      recurring_days: recurring_days || null
     }]);
+    
+    if (scheduleError) throw scheduleError;
 
-    if (error) throw error;
+    res.status(201).json({ message: 'Activity submitted!', data: activityInsertData });
 
-    res.status(201).json({ message: 'Activity submitted!', data });
   } catch (error) {
     console.error('Submission Error:', error.message);
     res.status(500).json({ error: error.message });
