@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AnnualReport = () => {
     const [files, setFiles] = useState([]);
@@ -13,6 +16,12 @@ const AnnualReport = () => {
     const [orgOptions, setOrgOptions] = useState([]);
     const [selectedOrg, setSelectedOrg] = useState("");
     const [annualReportEmail, setAnnualReportEmail] = useState("");
+
+    const [open, setOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const filteredOrgs = orgOptions.filter((org) =>
+    org.org_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     useEffect(() => {
         const fetchOrganizations = async () => {
@@ -108,18 +117,55 @@ const AnnualReport = () => {
                             <label htmlFor="selectedOrg" className="text-sm font-medium">
                                 Organization Name
                             </label>
-                            <Select value={selectedOrg} onValueChange={handleOrgChange}>
-                                <SelectTrigger id="selectedOrg">
-                                    <SelectValue placeholder="Select your Organization" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {orgOptions.map((org) => (
-                                        <SelectItem key={org.org_id} value={org.org_name}>
-                                            {org.org_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Popover open={open} onOpenChange={setOpen}>
+                            <PopoverTrigger asChild>
+                                <div
+                                role="combobox"
+                                aria-expanded={open}
+                                className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                >
+                                <span className={cn(!selectedOrg && "text-muted-foreground")}>
+                                    {selectedOrg || "Type your org name or select from the list"}
+                                </span>
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </div>
+                            </PopoverTrigger>
+
+                            <PopoverContent align="start" className="w-full max-w-md p-0">
+                                <Input
+                                placeholder="Search organization..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                                />
+                                <div className="max-h-60 overflow-y-auto">
+                                {filteredOrgs.length > 0 ? (
+                                    filteredOrgs.map((org) => (
+                                    <button
+                                        key={org.org_id}
+                                        onClick={() => {
+                                        setSelectedOrg(org.org_name);
+                                        setAnnualReportEmail(org.org_email);
+                                        setSearchTerm(org.org_name);
+                                        setOpen(false);
+                                        }}
+                                        className={cn(
+                                        "w-full text-left px-4 py-2 hover:bg-gray-100",
+                                        selectedOrg === org.org_name && "bg-gray-100 font-medium"
+                                        )}
+                                    >
+                                        {org.org_name}
+                                        {selectedOrg === org.org_name && (
+                                        <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                                        )}
+                                    </button>
+                                    ))
+                                ) : (
+                                    <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                                )}
+                                </div>
+                            </PopoverContent>
+                            </Popover>
                         </div>
                         
                         <div className="space-y-2">

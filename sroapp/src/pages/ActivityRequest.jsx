@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-Select,
-SelectContent,
-SelectItem,
-SelectTrigger,
-SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
@@ -26,7 +26,10 @@ import {
     AlertDialogFooter,
     AlertDialogCancel,
     AlertDialogAction
-    } from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils"; // if you're using ShadCN's cn() class merging
 
 const ActivityRequest = () => {
     const [selectedValue, setSelectedValue] = useState("");
@@ -264,7 +267,7 @@ const ActivityRequest = () => {
         
                 const activityData = {
                 account_id,
-                org_id: 1, //change this    
+                org_id: parseInt(selectedValue), //change this    
                 student_position: studentPosition,
                 activity_name: activityName,
                 activity_description: activityDescription,
@@ -289,7 +292,7 @@ const ActivityRequest = () => {
                     start_time: startTime,
                     end_time: endTime,
                     recurring_days: recurring === "recurring" ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",") : null,
-                  };
+                    };
         
                 await createActivity(activityData, selectedFile, scheduleData);
                 setShowSuccessDialog(true);
@@ -336,6 +339,27 @@ const ActivityRequest = () => {
             setCurrentSection(nextSection);
             };
 
+    const [orgOptions, setOrgOptions] = useState([]);
+    useEffect(() => {
+        const fetchOrganizations = async () => {
+            try {
+            const response = await fetch("/api/organization/list"); // must be served by your Express route
+            const data = await response.json();
+            setOrgOptions(data);
+            } catch (err) {
+            console.error("Failed to load organizations:", err);
+            } 
+        };
+        
+        fetchOrganizations();
+        }, []);
+        const [searchTerm, setSearchTerm] = useState("");
+        const [selectedOrgName, setSelectedOrgName] = useState("");
+        const [open, setOpen] = useState(false);
+    
+        const filteredOrgs = orgOptions.filter((org) =>
+        org.org_name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
@@ -398,22 +422,59 @@ const ActivityRequest = () => {
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Organization Name */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">
-                                                    Organization Name 
-                                            <span className="text-red-500">*</span>
-                                        </h3>
-                                        <Select value={selectedValue} onValueChange={setSelectedValue}>
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select an option" />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-h-[200px]">
-                                                {options.map((option) => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                    <h3 className="text-sm font-medium mb-2">
+                                        Organization Name <span className="text-red-500">*</span>
+                                    </h3>
+
+                                    <Popover open={open} onOpenChange={setOpen}>
+                                    <PopoverTrigger asChild>
+                                        <div 
+                                            role="combobox"
+                                            aria-expanded={open}
+                                            className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
+                                        >
+                                            <span className={cn(!selectedOrgName && "text-muted-foreground")}>
+                                            {selectedOrgName || "Type your org name or select from the list"}
+                                            </span>
+                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </div>
+                                    </PopoverTrigger>
+
+                                        <PopoverContent align="start" className="w-full max-w-md p-0">
+                                        <Input
+                                            placeholder="Search organization..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                                        />
+                                        <div className="max-h-48 overflow-y-auto">
+                                            {filteredOrgs.length > 0 ? (
+                                            filteredOrgs.map((org) => (
+                                                <button
+                                                key={org.org_id}
+                                                onClick={() => {
+                                                    setSelectedValue(String(org.org_id));
+                                                    setSelectedOrgName(org.org_name);
+                                                    setSearchTerm(org.org_name);
+                                                    setOpen(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-2 hover:bg-gray-100",
+                                                    selectedValue === String(org.org_id) && "bg-gray-100 font-medium"
+                                                )}
+                                                >
+                                                {org.org_name}
+                                                {selectedValue === String(org.org_id) && (
+                                                    <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                                                )}
+                                                </button>
+                                            ))
+                                            ) : (
+                                            <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                                            )}
+                                        </div>
+                                        </PopoverContent>
+                                    </Popover>
                                     </div>
 
                                     {/* Student Information */}
