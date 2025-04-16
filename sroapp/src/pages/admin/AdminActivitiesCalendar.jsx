@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { ChevronLeft, ChevronRight, Printer, Eye } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Badge } from "../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Badge } from "../../components/ui/badge";
 
 const AdminActivitiesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 3)); // April 2025
