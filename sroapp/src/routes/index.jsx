@@ -21,6 +21,7 @@ import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
 import RequireAdmin from "../components/RequireAdmin";
+import LoadingSpinner from "../components/ui/loading-spinner";
 
 /**
  * Redirects "/" based on authentication status.
@@ -68,7 +69,7 @@ const RedirectHome = () => {
     checkUserAndRole();
   }, [navigate]);
 
-  if (loading) return <h1 className="flex justify-center">Loading...</h1>;
+  if (loading) return <LoadingSpinner />;
 
   return null;
 };
@@ -106,7 +107,7 @@ const PrivateRoute = () => {
     navigate("/login");
   };
 
-  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
+  if (loading) return <LoadingSpinner />;
 
   // Show error if email is not a UP Mail
   if (user && !user.email.endsWith("@up.edu.ph")) {
