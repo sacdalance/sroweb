@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://localhost:3000", // Proxy API requests to Express backend
+      "/activities": "http://localhost:3000",
     },
   },
   // base: process.env.VITE_BASE_PATH || "/sroapp"
