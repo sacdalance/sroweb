@@ -45,11 +45,12 @@ const Sidebar = () => {
 
   // Highlight class if current location matches
   const linkClass = (path) =>
-    `block px-4 py-2 rounded-md -mx-2 transition-all duration-200 ease-in-out ${
-      location.pathname === path
-        ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
-        : "text-[15px] text-black hover:text-gray-700"
-    }`;
+    `block px-4 py-2 rounded-md -mx-2 transition-all duration-200 ease-in-out transform 
+      ${
+        location.pathname === path
+          ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
+          : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
+      }`;
   
   
 
@@ -129,7 +130,9 @@ const Sidebar = () => {
         <hr className="border-t border-[#DBDBDB] my-4" />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 text-[15px] font-medium py-3 px-4 rounded-md -mx-2 transition-all duration-200 ease-in-out hover:bg-white hover:text-[#7B1113] w-full"
+          className="flex items-center gap-2 text-[15px] font-medium py-3 px-4 rounded-md -mx-2 w-full
+              transition-transform duration-200 ease-in-out 
+              hover:bg-white hover:text-[#7B1113] hover:scale-105 cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
           Log Out
