@@ -4,10 +4,10 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import protectedRoutes from './routes/protectedRoutes.js';
 
-import userActivitiesRoutes from "./routes/userActivities.js";
+import userActivitiesRoutes from "./routes/userActivitiesRoutes.js";
 import activityRequestRoutes from './routes/activityRequestRoutes.js';
 
-import organizationRoutes from './routes/organization.js';
+import organizationRoutes from './routes/organizationRoutes.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
