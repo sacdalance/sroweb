@@ -9,18 +9,18 @@ import ActivityRequest from "../pages/ActivityRequest";
 import Activities from "../pages/Activities";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
-import AdminPanel from "../pages/AdminPanel";
+/* import AdminPanel from "../pages/AdminPanel";
 import AdminCreateActivity from "../pages/AdminCreateActivity";
 import AdminPendingRequests from "../pages/AdminPendingRequests";
 import AdminActivitySummary from "../pages/AdminActivitySummary";
 import AdminActivitiesCalendar from "../pages/AdminActivitiesCalendar";
 import AdminOrgApplications from "../pages/AdminOrgApplications";
 import AdminOrganizations from "../pages/AdminOrganizations";
-import AdminAnnualReports from "../pages/AdminAnnualReports";
-import NotFound from "../pages/NotFound";
-import AppointmentBooking from "../pages/AppointmentBooking";
 import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
 import RequireAdmin from "../components/RequireAdmin";
+import AdminAnnualReports from "../pages/AdminAnnualReports"; */
+import NotFound from "../pages/NotFound";
+import AppointmentBooking from "../pages/AppointmentBooking";
 import LoadingSpinner from "../components/ui/loading-spinner";
 
 /**
@@ -176,7 +176,7 @@ const router = createBrowserRouter([
           { path: "org-application", element: <OrgApplication /> },
           { path: "annual-report", element: <AnnualReport /> },
           { path: "appointment-booking", element: <AppointmentBooking /> },
-          {
+          /*{
             path: "admin",
             element: (
               <RequireAdmin>
@@ -247,11 +247,11 @@ const router = createBrowserRouter([
                 <AdminAnnualReports />
               </RequireAdmin>
             ),
-          },
+          }, */
         ],
       },
-    ],
-  },
+    ], 
+  }, 
   { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
   { path: "*", element: <NotFound /> },  
 ]);

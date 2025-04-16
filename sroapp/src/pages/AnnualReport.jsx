@@ -2,274 +2,227 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Check, ChevronDown } from "lucide-react";
+import { FileText, UploadCloud, Loader2, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const AnnualReport = () => {
-    const [files, setFiles] = useState([]);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadStatus, setUploadStatus] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
 
-    // Form state for Annual Report
-    const [orgOptions, setOrgOptions] = useState([]);
-    const [selectedOrg, setSelectedOrg] = useState("");
-    const [annualReportEmail, setAnnualReportEmail] = useState("");
+  const [orgOptions, setOrgOptions] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState("");
+  const [annualReportEmail, setAnnualReportEmail] = useState("");
 
-    const [open, setOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-    const filteredOrgs = orgOptions.filter((org) =>
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredOrgs = orgOptions.filter((org) =>
     org.org_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  );
 
-    useEffect(() => {
-        const fetchOrganizations = async () => {
-            try {
-                const response = await fetch('/api/organization/list');
-                const data = await response.json();
-                console.log("Fetched organizations:", data);
-                setOrgOptions(data);
-            } catch (err) {
-                console.error("Failed to load orgs", err);
-            }
-        };
-
-        fetchOrganizations();
-    }, []);
-
-    const handleOrgChange = (orgName) => {
-        setSelectedOrg(orgName);
-        const selected = orgOptions.find(o => o.org_name === orgName);
-        setAnnualReportEmail(selected?.org_email || '');
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch("/api/organization/list");
+        const data = await response.json();
+        setOrgOptions(data);
+      } catch (err) {
+        console.error("Failed to load orgs", err);
+      }
     };
 
-    const handleFileChange = (e) => {
-        const selectedFiles = Array.from(e.target.files);
-        setFiles(selectedFiles);
-        setUploadStatus(null);
-    };
+    fetchOrganizations();
+  }, []);
 
-    const uploadToGoogleDrive = async (file) => {
-        // This is a placeholder for the actual Google Drive API implementation
-        // In a real application, you would use the Google Drive API client library
-        
-        try {
-            // Create FormData object for the file
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('folder', "Annual Reports");
-            formData.append('submissionType', "Annual Report");
-            
-            // Send the file to your backend, which will handle Google Drive authentication and upload
-            const response = await fetch('/api/upload-to-drive', {
-                method: 'POST',
-                body: formData,
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to upload file to Google Drive');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error uploading to Google Drive:', error);
-            throw error;
-        }
-    };
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    setFiles(selectedFiles);
+    setUploadStatus(null);
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (files.length === 0) return;
-        
-        setIsUploading(true);
-        setUploadStatus("Uploading files to Google Drive...");
-        
-        try {
-            // Upload each file to Google Drive
-            const uploadPromises = files.map(file => uploadToGoogleDrive(file));
-            await Promise.all(uploadPromises);
-            
-            // Show success message for Annual Report
-            setUploadStatus("Submission Sent! Your files have been successfully uploaded.");
-            
-            setFiles([]);
-        } catch (error) {
-            console.error("Error during upload:", error);
-            setUploadStatus("Error uploading files. Please try again.");
-        } finally {
-            setIsUploading(false);
-        }
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (files.length === 0) return;
 
-    return (
-        <div className="container mx-auto p-6">
-            <h1 className="text-2xl font-bold mb-6 text-center">Annual Report</h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Annual Report</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <label htmlFor="selectedOrg" className="text-sm font-medium">
-                                Organization Name
-                            </label>
-                            <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                                <div
-                                role="combobox"
-                                aria-expanded={open}
-                                className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                >
-                                <span className={cn(!selectedOrg && "text-muted-foreground")}>
-                                    {selectedOrg || "Type your org name or select from the list"}
-                                </span>
-                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </div>
-                            </PopoverTrigger>
+    setIsUploading(true);
+    setUploadStatus("Uploading files to Google Drive...");
 
-                            <PopoverContent align="start" className="w-full max-w-md p-0">
-                                <Input
-                                placeholder="Search organization..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
-                                />
-                                <div className="max-h-60 overflow-y-auto">
-                                {filteredOrgs.length > 0 ? (
-                                    filteredOrgs.map((org) => (
-                                    <button
-                                        key={org.org_id}
-                                        onClick={() => {
-                                        setSelectedOrg(org.org_name);
-                                        setAnnualReportEmail(org.org_email);
-                                        setSearchTerm(org.org_name);
-                                        setOpen(false);
-                                        }}
-                                        className={cn(
-                                        "w-full text-left px-4 py-2 hover:bg-gray-100",
-                                        selectedOrg === org.org_name && "bg-gray-100 font-medium"
-                                        )}
-                                    >
-                                        {org.org_name}
-                                        {selectedOrg === org.org_name && (
-                                        <Check className="ml-2 inline h-4 w-4 text-green-600" />
-                                        )}
-                                    </button>
-                                    ))
-                                ) : (
-                                    <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
-                                )}
-                                </div>
-                            </PopoverContent>
-                            </Popover>
-                        </div>
-                        
-                        <div className="space-y-2">
-                            <label htmlFor="annualReportEmail" className="text-sm font-medium">
-                                Organization E-mail
-                            </label>
-                            <Input 
-                                type="email" 
-                                id="annualReportEmail" 
-                                value={annualReportEmail}
-                                onChange={(e) => setAnnualReportEmail(e.target.value)}
-                                placeholder="orgemail@gmail.com"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Required Forms</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-2 mb-6">
-                            <li className="flex justify-between items-center">
-                                <span>Revised OSA Form D: Report on Past Activities, including partnerships</span>
-                                <Button variant="outline" size="sm" className="h-7">Download</Button>
-                            </li>
-                            <li className="flex justify-between items-center">
-                                <span>Financial Report (Form F), AY 202X-202X</span>
-                                <Button variant="outline" size="sm" className="h-7">Download</Button>
-                            </li>
-                        </ul>
-                        
-                        <form onSubmit={handleSubmit}>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-4 text-center">
-                                <label htmlFor="annualReportFileUpload" className="cursor-pointer block">
-                                    <div className="mb-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-1">Drag and Drop or Upload File</p>
-                                    <input
-                                        id="annualReportFileUpload"
-                                        type="file"
-                                        accept=".pdf"
-                                        multiple
-                                        onChange={handleFileChange}
-                                        className="hidden"
-                                        disabled={isUploading}
-                                    />
-                                </label>
-                            </div>
+    try {
+      const uploadPromises = files.map(file => uploadToGoogleDrive(file));
+      await Promise.all(uploadPromises);
+      setUploadStatus("Submission Sent! Your files have been successfully uploaded.");
+      setFiles([]);
+    } catch (error) {
+      console.error("Upload failed", error);
+      setUploadStatus("Error uploading files. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-                            {files.length > 0 && (
-                                <div className="mb-4">
-                                    <h3 className="text-sm font-medium mb-2">Selected Files:</h3>
-                                    <ul className="text-sm text-gray-600 space-y-1">
-                                        {files.map((file, index) => (
-                                            <li key={index} className="flex items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                </svg>
-                                                {file.name}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+  const uploadToGoogleDrive = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', "Annual Reports");
+    formData.append('submissionType', "Annual Report");
 
-                            {uploadStatus && (
-                                <div className={`mb-4 p-3 rounded-md ${
-                                    uploadStatus.includes("successfully") || uploadStatus.includes("Submission Sent")
-                                    ? "bg-green-100 text-green-800" 
-                                    : uploadStatus.includes("Error") 
-                                    ? "bg-red-100 text-red-800" 
-                                    : "bg-blue-100 text-blue-800"
-                                }`}>
-                                    {uploadStatus}
-                                </div>
-                            )}
+    const response = await fetch("/api/upload-to-drive", {
+      method: "POST",
+      body: formData,
+    });
 
-                            <Button 
-                                type="submit" 
-                                className="w-full" 
-                                disabled={files.length === 0 || isUploading}
-                                variant={files.length === 0 || isUploading ? "outline" : "default"}
-                            >
-                                {isUploading ? (
-                                    <span className="flex items-center justify-center">
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Uploading...
-                                    </span>
-                                ) : "Submit Form"}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+    if (!response.ok) throw new Error("Failed to upload");
+    return response.json();
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-semibold mb-8 text-center">Annual Report Submission</h1>
+      <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
+        {/* Organization Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Organization Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Organization Name</label>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <div className="w-full border px-3 py-2 rounded-md flex justify-between items-center cursor-pointer">
+                    <span className={cn(!selectedOrg && "text-muted-foreground")}>
+                      {selectedOrg || "Type or select your org"}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-full max-w-md">
+                  <Input
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="rounded-none border-none"
+                  />
+                  <div className="max-h-60 overflow-y-auto">
+                    {filteredOrgs.length > 0 ? (
+                      filteredOrgs.map((org) => (
+                        <button
+                          type="button"
+                          key={org.org_id}
+                          onClick={() => {
+                            setSelectedOrg(org.org_name);
+                            setAnnualReportEmail(org.org_email);
+                            setSearchTerm(org.org_name);
+                            setOpen(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-4 py-2 hover:bg-muted/50",
+                            selectedOrg === org.org_name && "bg-muted font-medium"
+                          )}
+                        >
+                          {org.org_name}
+                          {selectedOrg === org.org_name && (
+                            <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-4 py-2 text-sm text-muted-foreground">No results</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-        </div>
-    );
+            <div>
+              <label className="text-sm font-medium mb-1 block">Organization Email</label>
+              <Input
+                type="email"
+                value={annualReportEmail}
+                onChange={(e) => setAnnualReportEmail(e.target.value)}
+                placeholder="orgname@domain.com"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* File Upload Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Upload Annual Report Files</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                Revised OSA Form D (Report on Past Activities)
+                <Button variant="link" className="ml-auto text-xs">Download</Button>
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                Financial Report (Form F)
+                <Button variant="link" className="ml-auto text-xs">Download</Button>
+              </li>
+            </ul>
+
+            <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center">
+              <label htmlFor="annualReportFileUpload" className="cursor-pointer flex flex-col items-center">
+                <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                <p className="text-sm">Click or drag files to upload</p>
+                <input
+                  id="annualReportFileUpload"
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+              </label>
+            </div>
+
+            {files.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-1">Selected Files</h4>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {files.map((file, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-red-500" />
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {uploadStatus && (
+              <div className={cn(
+                "text-sm px-3 py-2 rounded-md",
+                uploadStatus.includes("successfully") ? "bg-green-100 text-green-800" :
+                uploadStatus.includes("Error") ? "bg-red-100 text-red-800" :
+                "bg-blue-100 text-blue-800"
+              )}>
+                {uploadStatus}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={files.length === 0 || isUploading}
+            >
+              {isUploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  Uploading...
+                </span>
+              ) : "Submit Form"}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
 };
 
-export default AnnualReport; 
+export default AnnualReport;
