@@ -9,17 +9,16 @@ import ActivityRequest from "../pages/ActivityRequest";
 import Activities from "../pages/Activities";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
-/*import AdminPanel from "../pages/AdminPanel";
-import AdminCreateActivity from "../pages/AdminCreateActivity";
-import AdminPendingRequests from "../pages/AdminPendingRequests";
-import AdminActivitySummary from "../pages/AdminActivitySummary";
-import AdminActivitiesCalendar from "../pages/AdminActivitiesCalendar";
-import AdminOrgApplications from "../pages/AdminOrgApplications";
-import AdminOrganizations from "../pages/AdminOrganizations";
-import AdminAnnualReports from "../pages/AdminAnnualReports";
-import AdminAppointmentSettings from "../pages/AdminAppointmentSettings";
+import AdminPanel from "../pages/admin/AdminPanel";
+import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
+import AdminPendingRequests from "../pages/admin/AdminPendingRequests";
+import AdminActivitySummary from "../pages/admin/AdminActivitySummary";
+import AdminActivitiesCalendar from "../pages/admin/AdminActivitiesCalendar";
+import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
+import AdminOrganizations from "../pages/admin/AdminOrganizations";
+import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
+import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
 import RequireAdmin from "../components/RequireAdmin";
-import AdminAnnualReports from "../pages/AdminAnnualReports"; */
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import LoadingSpinner from "../components/ui/loading-spinner";
@@ -177,7 +176,7 @@ const router = createBrowserRouter([
           { path: "org-application", element: <OrgApplication /> },
           { path: "annual-report", element: <AnnualReport /> },
           { path: "appointment-booking", element: <AppointmentBooking /> },
-          /*{
+          {
             path: "admin",
             element: (
               <RequireAdmin>
@@ -248,7 +247,7 @@ const router = createBrowserRouter([
                 <AdminAnnualReports />
               </RequireAdmin>
             ),
-          }, */
+          },
         ],
       },
     ], 
