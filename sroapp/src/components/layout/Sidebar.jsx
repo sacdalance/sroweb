@@ -105,7 +105,8 @@ const Sidebar = () => {
             <div className="mb-6">
               <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
               <ul className="space-y-2 text-[15px] font-medium">
-                <li><Link to="/activity-request" className={linkClass("/activity-request")}>Activity Request</Link></li>
+                <li><Link to="/activity-request" className={linkClass("/activity-request")}>Submit a Request</Link></li>
+                <li><Link to="/activities" className={linkClass("/activities")}>My Activities</Link></li>
                 <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Appointment Booking</Link></li>
               </ul>
             </div>

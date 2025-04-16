@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import protectedRoutes from './routes/protectedRoutes.js';
 
+import userActivitiesRoutes from "./routes/userActivities.js";
 import activityRequestRoutes from './routes/activityRequestRoutes.js';
 
 import organizationRoutes from './routes/organization.js';
@@ -26,6 +27,7 @@ app.use('/api', protectedRoutes);
 
 // Activity Request
 app.use('/activityRequest', activityRequestRoutes);
+app.use('/activities', userActivitiesRoutes);
 
 // Organizations
 app.use('/api/organization', organizationRoutes);
