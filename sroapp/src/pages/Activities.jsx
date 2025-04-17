@@ -150,7 +150,7 @@ const Activities = () => {
         </DialogHeader>
 
         {/* Sectioned layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
           {/* General Information */}
           <div className="space-y-3 py-2">
             <h3 className="text-[#7B1113] font-semibold mb-2">General Information</h3>
@@ -160,23 +160,34 @@ const Activities = () => {
             <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
             <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
             <p><strong>University Partner:</strong> {activity.university_partner === "true" ? "Yes" : "No"}</p>
-            {activity.university_partner === "true" && (
-              <p><strong>Partner Name:</strong> {activity.partner_name || "N/A"}</p>
-            )}
             <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
             <p><strong>Adviser Contact:</strong> {activity.organization?.adviser_email || "N/A"}</p>
+            {/* University Partners collapsible */}
+            {activity.university_partner === "true" && (
+              <Collapsible className="border rounded-md">
+                <CollapsibleTrigger className="group w-full bg-gray-100 px-4 py-2 flex items-center justify-between text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    <span>University Partners</span>
+                  </div>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="px-6 py-3 text-sm">
+                  <p>{activity.partner_name || "None listed"}</p>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             {/* Sustainable Development Goals collapsible */}
-            <Collapsible>
-              <CollapsibleTrigger className="flex items-center gap-1 text-sm font-semibold text-black hover:underline hover:cursor-pointer w-full">
-                <span className="whitespace-nowrap">Sustainable Development Goals</span>
-                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            <Collapsible className="border rounded-md">
+              <CollapsibleTrigger className="group w-full bg-gray-100 px-4 py-2 flex items-center justify-between text-sm font-medium">
+                <div className="flex items-center gap-2">
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  <span>SDG List</span>
+                </div>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pl-4 pt-2">
-                <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-black">
-                  {formatSDGLabels(activity.sdg_goals).map((goal, index) => (
-                    <li key={index} className="list-disc list-inside">{goal}</li>
-                  ))}
-                </ul>
+
+              <CollapsibleContent className="px-6 py-3 text-sm">
+                {formatSDGLabels(activity.sdg_goals).join(", ") || "None listed"}
               </CollapsibleContent>
             </Collapsible>
           </div>
