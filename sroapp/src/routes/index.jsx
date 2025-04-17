@@ -22,6 +22,7 @@ import RequireAdmin from "../components/RequireAdmin";
 import NotFound from "../pages/NotFound";
 import AppointmentBooking from "../pages/AppointmentBooking";
 import LoadingSpinner from "../components/ui/loading-spinner";
+import { checkOrCreateUser } from "@/api/authAPI";
 
 /**
  * Redirects "/" based on authentication status.
@@ -42,7 +43,12 @@ const RedirectHome = () => {
         return;
       }
 
-      setUser(user);
+      try {
+        await checkOrCreateUser(user.email, user.user_metadata.full_name);
+        console.log("User synced!");
+      } catch (err) {
+        console.error("Sync error:", err.message);
+      }
 
       // Fetch role from 'account' table
       const { data, error } = await supabase
