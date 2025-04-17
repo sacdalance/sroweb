@@ -11,24 +11,48 @@ router.get("/user/:account_id", async (req, res) => {
   const { account_id } = req.params;
 
   const { data, error } = await supabase
-  .from("activity")
-  .select(`
-    activity_id,
-    activity_name,
-    venue,
-    final_status,
-    venue_approver,
-    org_id,
-    organization:organization (
-      org_name
-    ),
-    schedule:activity_schedule (
-      start_date,
-      end_date
-    )
-  `)
-  .eq("account_id", account_id)
-  .order("activity_id", { ascending: false });
+    .from("activity")
+    .select(`
+      activity_id,
+      account_id,
+      org_id,
+      student_position,
+      activity_name,
+      activity_description,
+      sdg_goals,
+      charge_fee,
+      university_partner,
+      partner_name,
+      partner_role,
+      venue,
+      venue_approver,
+      venue_approver_contact,
+      is_off_campus,
+      green_monitor_name,
+      green_monitor_contact,
+      sro_approval_status,
+      odsa_approval_status,
+      final_status,
+      sro_remarks,
+      odsa_remarks,
+      activity_type,
+      drive_folder_link,
+      organization:organization (
+        org_name,
+        adviser_name,
+        adviser_email
+      ),
+      schedule:activity_schedule (
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        recurring_days,
+        is_recurring
+      )
+    `)
+    .eq("account_id", account_id)
+    .order("activity_id", { ascending: false });
 
   if (error) {
     return res.status(500).json({ error: error.message });
@@ -36,6 +60,5 @@ router.get("/user/:account_id", async (req, res) => {
 
   res.json(data);
 });
-
 
 export default router;
