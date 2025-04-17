@@ -40,6 +40,7 @@ const Sidebar = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    sessionStorage.removeItem("sroRemindersSeen");
     navigate("/login");
   };
 

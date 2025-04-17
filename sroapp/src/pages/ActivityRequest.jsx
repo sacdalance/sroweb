@@ -47,13 +47,21 @@ const ActivityRequest = () => {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [startTime, setStartTime] = useState("");
-    const [otherPublicAffairs, setOtherPublicAffairs] = useState("");
     const [selectedPublicAffairs, setSelectedPublicAffairs] = useState({});
     const [endTime, setEndTime] = useState("");
     const [isOffCampus, setIsOffCampus] = useState("");
     const [venue, setVenue] = useState("");
     const [venueApprover, setVenueApprover] = useState("");
     const [venueApproverContact, setVenueApproverContact] = useState("");
+    useEffect(() => {
+        if (isOffCampus === "yes") {
+            setVenueApprover("N/A");
+            setVenueApproverContact("N/A");
+            } else if (isOffCampus === "no") {
+            setVenueApprover("");
+            setVenueApproverContact("");
+            }
+        }, [isOffCampus]);        
     const [organizationAdviser, setOrganizationAdviser] = useState("");
     const [organizationAdviserContact, setOrganizationAdviserContact] = useState("");
     const [greenCampusMonitor, setGreenCampusMonitor] = useState("");
@@ -71,7 +79,17 @@ const ActivityRequest = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [showRemindersDialog, setShowRemindersDialog] = useState(false);
 
+    useEffect(() => {
+        const seen = sessionStorage.getItem("sroRemindersSeen");
+        
+        // Only show the modal if it hasn't been seen this session
+        if (!seen) {
+            setShowRemindersDialog(true);
+            sessionStorage.setItem("sroRemindersSeen", "true");
+        }
+        }, []);
     const navigate = useNavigate();
 
     // Validation function for navigating in forms
@@ -94,22 +112,91 @@ const ActivityRequest = () => {
             greenCampusMonitor,
             greenCampusMonitorContact,
             selectedFile,
-        } = state;
+            chargingFees1,
+            selectedSDGs,
+            partnering,
+            selectedPublicAffairs,
+            partnerDescription,
+            isOffCampus,
+            } = state;
         
-        if (section === "general-info") {
-            return selectedValue && studentPosition && studentContact && activityName && activityDescription && selectedActivityType;
-        }
-        if (section === "date-info") {
-            return startDate && startTime && endTime && (recurring !== "recurring" || endDate);
-        }
-        if (section === "specifications") {
-            return venue && venueApprover && venueApproverContact && greenCampusMonitor && greenCampusMonitorContact;
-        }
-        if (section === "submission") {
-            return selectedFile && selectedFile.type === "application/pdf";
-        }
-        return true;
-        };
+            const isValidContact = /^09\d{9}$/.test(studentContact);
+            const isValidEmailOrMobile = (val) =>
+            /^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(val);
+        
+            if (section === "general-info") {
+            if (!selectedValue) return { valid: false, field: "orgSelect", message: "Please select your organization." };
+            if (!studentPosition) return { valid: false, field: "studentPosition", message: "Student position is required." };
+            if (!isValidContact) return { valid: false, field: "studentContact", message: "Invalid contact number!" };
+            if (!activityName) return { valid: false, field: "activityName", message: "Activity name is required." };
+            if (!activityDescription) return { valid: false, field: "activityDescription", message: "Activity description is required." };
+            if (!selectedActivityType) return { valid: false, field: "activityType", message: "Please select an activity type." };
+            if (!Object.values(selectedSDGs).some((v) => v)) {
+                return { valid: false, field: "sdgGoals", message: "Please select at least one SDG goal." };
+            }
+            if (!chargingFees1) return { valid: false, field: "chargingFees", message: "Please answer if you're charging fees." };
+            if (!partnering) return { valid: false, field: "partnering", message: "Please indicate if you're partnering with a university unit." };
+            }
+        
+            if (section === "date-info") {
+                if (!recurring) return { valid: false, field: "recurring", message: "Please select if the activity is recurring." };
+                if (!startDate) return { valid: false, field: "startDate", message: "Start date is required." };
+                if (!startTime) return { valid: false, field: "startTime", message: "Start time is required." };
+                if (!endTime) return { valid: false, field: "endTime", message: "End time is required." };
+                
+                    if (recurring === "recurring") {
+                    if (!endDate) return { valid: false, field: "endDate", message: "End date is required for recurring activities." };
+                
+                    const selectedDays = Object.values(state.recurringDays || {}).filter(Boolean);
+                    if (selectedDays.length === 0) {
+                        return {
+                        valid: false,
+                        field: "recurringDays",
+                        message: "Please select at least one recurring day per week."
+                        };
+                    }
+                    }
+                }
+        
+            if (section === "specifications") {
+            if (!isOffCampus) return { valid: false, field: "offcampus", message: "Please specify if the activity is off-campus." };
+            if (!venue) return { valid: false, field: "venue", message: "Venue is required." };
+            if (!venueApprover) return { valid: false, field: "venueApprover", message: "Venue approver name is required." };
+            if (
+                isOffCampus !== "yes" &&
+                !isValidEmailOrMobile(venueApproverContact)
+                ) {
+                    return {
+                    valid: false,
+                    field: "venueApproverContact",
+                    message: "Venue approver contact must be valid.",
+                    };
+                }
+        
+            if (partnering === "yes") {
+                const selectedPartners = Object.values(selectedPublicAffairs).filter(Boolean);
+                if (selectedPartners.length === 0) {
+                return { valid: false, field: "partnering", message: "Please select at least one university partner." };
+                }
+                if (!partnerDescription) {
+                return { valid: false, field: "partnering", message: "Please describe the partner’s role in the activity." };
+                }
+            }
+        
+            if (!greenCampusMonitor) return { valid: false, field: "greenCampusMonitor", message: "Green campus monitor name is required." };
+            if (!isValidEmailOrMobile(greenCampusMonitorContact)) {
+                return { valid: false, field: "greenCampusMonitorContact", message: "Green monitor contact must be a valid email or mobile number." };
+            }
+            }
+        
+            if (section === "submission") {
+            if (!selectedFile || selectedFile.type !== "application/pdf") {
+                return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
+            }
+            }
+        
+            return { valid: true };
+        };      
         
 
     const activityTypeOptions = [
@@ -189,7 +276,7 @@ const ActivityRequest = () => {
             "Learning Resource Center (LRC)",
             "Science Research Center (SRC)",
             "Museo Kordilyera",
-            "Kasarian Gender Studies Program)",
+            "Kasarian Gender Studies Program",
             "Office of Anti-Sexual Harassment",
         ],
         publicAffairs: [
@@ -312,7 +399,10 @@ const ActivityRequest = () => {
                 sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
                 charge_fee: chargingFees1 === "yes",
                 university_partner: partnering === "yes",
-                partner_name: Object.keys(selectedPublicAffairs).filter((key) => selectedPublicAffairs[key]).join(", "),
+                partner_name: Object.entries(selectedPublicAffairs)
+                .filter(([_, v]) => v && v !== false)
+                .flatMap(([k, v]) => (Array.isArray(v) ? v : [k]))
+                .join(", "),              
                 partner_role: partnerDescription,
                 venue,
                 venue_approver: venueApprover,
@@ -347,40 +437,59 @@ const ActivityRequest = () => {
             };
 
             const handleSectionChange = (nextSection) => {
-            const isValid = validateCurrentSection(currentSection, {
-                selectedValue,
-                studentPosition,
-                studentContact,
-                activityName,
-                activityDescription,
-                selectedActivityType,
-                startDate,
-                startTime,
-                endTime,
-                endDate,
-                recurring,
-                venue,
-                venueApprover,
-                venueApproverContact,
-                greenCampusMonitor,
-                greenCampusMonitorContact,
-                selectedFile
-            });
+                const result = validateCurrentSection(currentSection, {
+                    selectedValue,
+                    studentPosition,
+                    studentContact,
+                    activityName,
+                    activityDescription,
+                    selectedActivityType,
+                    startDate,
+                    startTime,
+                    endTime,
+                    endDate,
+                    recurring,
+                    venue,
+                    venueApprover,
+                    venueApproverContact,
+                    greenCampusMonitor,
+                    greenCampusMonitorContact,
+                    selectedFile,
+                    chargingFees1,
+                    selectedSDGs,
+                    partnering,
+                    selectedPublicAffairs,
+                    partnerDescription,
+                    isOffCampus,
+                    recurringDays
+                    });                  
+                
+                    if (!result.valid) {
+                    toast.dismiss();
+                    toast.error(result.message);
+                
+                    const el = document.getElementById(result.field);
+                    if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                
+                        // Only try focus if it's a natively focusable element
+                        if (typeof el.focus === "function" && ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
+                        el.focus();
+                        }
+                    }
+                
+                    return;
+                    }
+                
+                    setCurrentSection(nextSection);
+                };              
             
-            if (!isValid) {
-                toast.dismiss()
-                toast.error("Please fill in all required fields.")
-                return;
-            }
-            
-            setCurrentSection(nextSection);
-            };
 
     const [orgOptions, setOrgOptions] = useState([]);
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-            const response = await fetch("/api/organization/list"); // must be served by your Express route
+            const response = await fetch("/api/organization/list");
             const data = await response.json();
             setOrgOptions(data);
             } catch (err) {
@@ -466,6 +575,7 @@ const ActivityRequest = () => {
                                     <Popover open={open} onOpenChange={setOpen}>
                                     <PopoverTrigger asChild>
                                         <div 
+                                            id="orgSelect"
                                             role="combobox"
                                             aria-expanded={open}
                                             className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
@@ -519,17 +629,19 @@ const ActivityRequest = () => {
                                     {/* Student Information */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Student Position</h3>
+                                            <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
+                                                id="studentPosition"
                                                 placeholder="(Chairperson, Secretary, etc.)"
                                                 value={studentPosition}
                                                 onChange={(e) => setStudentPosition(e.target.value)}
                                             />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Student Contact Number</h3>
+                                            <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                                             <Input
-                                                placeholder="(09xxxxxxxxx)"
+                                                id="studentContact"
+                                                placeholder="(09XXXXXXXXX)"
                                                 value={studentContact}
                                                 onChange={(e) => setStudentContact(e.target.value)}
                                             />
@@ -539,16 +651,18 @@ const ActivityRequest = () => {
                                     {/* Activity Information */}
                                     <div className="space-y-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Activity Name</h3>
+                                            <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                                             <Input
+                                                id="activityName"
                                                 placeholder="(Mass Orientation, Welcome Party, etc.)"
                                                 value={activityName}
                                                 onChange={(e) => setActivityName(e.target.value)}
                                             />
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Activity Description</h3>
+                                            <h3 className="text-sm font-medium mb-2">Activity Description <span className="text-red-500">*</span></h3>
                                             <Textarea
+                                                id="activityDescription"
                                                 placeholder="Enter activity description"
                                                 value={activityDescription}
                                                 onChange={(e) => setActivityDescription(e.target.value)}
@@ -559,9 +673,9 @@ const ActivityRequest = () => {
 
                                     {/* Activity Type */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Activity Type</h3>
+                                        <h3 className="text-sm font-medium mb-2">Activity Type <span className="text-red-500">*</span></h3>
                                         <Select value={selectedActivityType} onValueChange={setSelectedActivityType}>
-                                            <SelectTrigger className="w-full">
+                                            <SelectTrigger id="activityType" className="w-full">
                                                 <SelectValue placeholder="Select activity type" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -585,30 +699,35 @@ const ActivityRequest = () => {
 
                                     {/* Sustainable Development Goals */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Sustainable Development Goals</h3>
-                                        <div className="grid grid-cols-2 gap-4">
+                                    <h3 className="text-sm font-medium mb-2">Sustainable Development Goals <span className="text-red-500">*</span></h3>
+                                    <div className="mb-4 border border-gray-200 rounded-md">
+                                        <details id="sdgGoals" open>
+                                        <summary className="cursor-pointer px-4 py-2 bg-gray-100 font-medium capitalize">
+                                            SDG List
+                                        </summary>
+                                        <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {sdgOptions.map((option) => (
-                                                <div key={option.id} className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        id={option.id}
-                                                        checked={selectedSDGs[option.id]}
-                                                        onCheckedChange={() => handleSDGChange(option.id)}
-                                                    />
-                                                    <label
-                                                        htmlFor={option.id}
-                                                        className="text-sm font-medium leading-none"
-                                                    >
-                                                        {option.label}
-                                                    </label>
-                                                </div>
+                                            <div key={option.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                id={option.id}
+                                                checked={selectedSDGs[option.id] || false}
+                                                onCheckedChange={() => handleSDGChange(option.id)}
+                                                />
+                                                <label htmlFor={option.id} className="text-sm">
+                                                {option.label}
+                                                </label>
+                                            </div>
                                             ))}
                                         </div>
+                                        </details>
+                                    </div>
                                     </div>
 
                                     {/* Charging Fees */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Charging Fees?</h3>
+                                        <h3 className="text-sm font-medium mb-2">Charging Fees? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
+                                            id="chargingFees"
                                             value={chargingFees1}
                                             onValueChange={setChargingFees1}
                                             className="space-y-3"
@@ -630,8 +749,9 @@ const ActivityRequest = () => {
 
                                     {/* Partnering */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization?</h3>
+                                        <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
+                                            id="partnering"
                                             value={partnering}
                                             onValueChange={setPartnering}
                                             className="space-y-3"
@@ -676,8 +796,9 @@ const ActivityRequest = () => {
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Recurring */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Recurring?</h3>
+                                        <h3 className="text-sm font-medium mb-2">Recurring? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
+                                            id="recurring"
                                             value={recurring}
                                             onValueChange={setRecurring}
                                             className="space-y-3"
@@ -700,18 +821,22 @@ const ActivityRequest = () => {
                                     {/* Date and Time Information */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Activity Start Date</h3>
+                                            <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                                             <Input
+                                                id="startDate"
                                                 type="date"
+                                                min={new Date().toISOString().split("T")[0]}
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
                                             />
                                         </div>
                                         {recurring === "recurring" && (
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Activity End Date</h3>
+                                                <h3 className="text-sm font-medium mb-2">Activity End Date <span className="text-red-500">*</span></h3>
                                                 <Input
+                                                    id="endDate"
                                                     type="date"
+                                                    min={new Date().toISOString().split("T")[0]}
                                                     value={endDate}
                                                     onChange={(e) => setEndDate(e.target.value)}
                                                 />
@@ -721,16 +846,22 @@ const ActivityRequest = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Activity Start Time</h3>
+                                            <h3 className="text-sm font-medium mb-2">Activity Start Time <span className="text-red-500">*</span> </h3>
+                                            
                                             <Input
+                                                id="startTime"
                                                 type="time"
                                                 value={startTime}
                                                 onChange={(e) => setStartTime(e.target.value)}
                                             />
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                            NOTE: Official curfew in the campus is at 9:00PM.
+                                            </p>
                                         </div>
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Activity End Time</h3>
+                                            <h3 className="text-sm font-medium mb-2">Activity End Time <span className="text-red-500">*</span></h3>
                                             <Input
+                                                id="endTime"
                                                 type="time"
                                                 value={endTime}
                                                 onChange={(e) => setEndTime(e.target.value)}
@@ -740,8 +871,8 @@ const ActivityRequest = () => {
 
                                     {/* Recurring Days */}
                                     {recurring === "recurring" && (
-                                        <div>
-                                            <h3 className="text-sm font-medium mb-2">Recurring Day/s Per Week</h3>
+                                        <div id="recurringDays">
+                                            <h3 className="text-sm font-medium mb-2">Recurring Day/s Per Week <span className="text-red-500">*</span></h3>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                                 {Object.keys(recurringDays).map((day) => (
                                                     <div key={day} className="flex items-center space-x-2">
@@ -792,8 +923,9 @@ const ActivityRequest = () => {
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Off-Campus */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Off-Campus?</h3>
+                                        <h3 className="text-sm font-medium mb-2">Off-Campus? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
+                                            id="offcampus"
                                             value={isOffCampus}
                                             onValueChange={setIsOffCampus}
                                             className="space-y-3"
@@ -816,30 +948,37 @@ const ActivityRequest = () => {
                                     {/* Venue Information */}
                                     <div className="space-y-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Venue</h3>
+                                            <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                                             <Input
+                                                id="venue"
                                                 type="text"
-                                                placeholder="Your Answer"
+                                                placeholder="(Teatro Amianan, CS AVR, etc.)"
                                                 value={venue}
                                                 onChange={(e) => setVenue(e.target.value)}
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Venue Approver</h3>
+                                                <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                                                 <Input
+                                                    id="venueApprover"
                                                     type="text"
-                                                    placeholder="Provide their name. Write 'N/A' if the venue is off-campus."
-                                                    value={venueApprover}
-                                                    onChange={(e) => setVenueApprover(e.target.value)}
+                                                    placeholder="Provide their name"
+                                                    value={isOffCampus === "yes" ? "N/A" : venueApprover}
+                                                    disabled={isOffCampus === "yes"}
+                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
+                                                    onChange={(e) => setVenue(e.target.value)}
                                                 />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Venue Approver Contact Info</h3>
+                                                <h3 className="text-sm font-medium mb-2">Venue Approver Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
+                                                    id="venueApproverContact"
                                                     type="text"
-                                                    placeholder="Provide their contact information"
-                                                    value={venueApproverContact}
+                                                    placeholder="09XXXXXXXXX or XXX@up.edu.ph"
+                                                    value={isOffCampus === "yes" ? "N/A" : venueApproverContact}
+                                                    disabled={isOffCampus === "yes"}
+                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
                                                     onChange={(e) => setVenueApproverContact(e.target.value)}
                                                 />
                                             </div>
@@ -850,7 +989,7 @@ const ActivityRequest = () => {
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Organization Adviser</h3>
+                                                <h3 className="text-sm font-medium mb-2">Organization Adviser <span className="text-red-500">*</span></h3>
                                                 <Input
                                                 type="text"
                                                 value={organizationAdviser}
@@ -859,7 +998,7 @@ const ActivityRequest = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Organization Adviser Contact Info</h3>
+                                                <h3 className="text-sm font-medium mb-2">Organization Adviser Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
                                                 type="text"
                                                 value={organizationAdviserContact}
@@ -873,7 +1012,7 @@ const ActivityRequest = () => {
                                     {/* University Partner Section (Only if partnering === "yes") */}
                                     {partnering === "yes" && (
                                         <div className="space-y-6">
-                                            <h3 className="text-sm font-medium mb-2">Select all that you are partnered with.</h3>
+                                            <h3 className="text-sm font-medium mb-2">Partners <span className="text-red-500">*</span></h3>
 
                                             {Object.entries(universityPartners).map(([category, units]) => (
                                                 <div key={category} className="mb-4 border border-gray-200 rounded-md">
@@ -882,22 +1021,74 @@ const ActivityRequest = () => {
                                                             {category.replace(/([A-Z])/g, " $1")}
                                                         </summary>
                                                         <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                            {units.map((unit) => (
-                                                                <div key={unit} className="flex items-center space-x-2">
-                                                                    <Checkbox
-                                                                        id={`${category}-${unit}`}
-                                                                        checked={selectedPublicAffairs[unit] || false}
-                                                                        onCheckedChange={() =>
-                                                                            setSelectedPublicAffairs((prev) => ({
+                                                        {units.map((unit) => (
+                                                            <div key={unit} className="flex flex-col space-y-1">
+                                                                <div className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={`${category}-${unit}`}
+                                                                    checked={!!selectedPublicAffairs[unit]}
+                                                                    onCheckedChange={(checked) => {
+                                                                        setSelectedPublicAffairs((prev) => ({
+                                                                            ...prev,
+                                                                            [unit]: checked ? (unit === "Others" ? [""] : true) : false
+                                                                            }));
+                                                                        }}
+                                                                />
+                                                                <label htmlFor={`${category}-${unit}`} className="text-sm">
+                                                                    {unit}
+                                                                </label>
+                                                                </div>
+                                                                {unit === "Others" && Array.isArray(selectedPublicAffairs["Others"]) && (
+                                                                    <div className="ml-6 mt-1 space-y-2">
+                                                                        {selectedPublicAffairs["Others"].map((value, index) => (
+                                                                        <div key={index} className="flex items-center gap-2">
+                                                                            <Input
+                                                                            type="text"
+                                                                            placeholder={`Custom Partner #${index + 1}`}
+                                                                            value={value}
+                                                                            onChange={(e) => {
+                                                                                const updated = [...selectedPublicAffairs["Others"]];
+                                                                                updated[index] = e.target.value;
+                                                                                setSelectedPublicAffairs((prev) => ({
                                                                                 ...prev,
-                                                                                [unit]: !prev[unit],
+                                                                                Others: updated,
+                                                                                }));
+                                                                            }}
+                                                                            />
+                                                                            <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            className="text-[#7B1113]"
+                                                                            onClick={() => {
+                                                                                const updated = [...selectedPublicAffairs["Others"]];
+                                                                                updated.splice(index, 1);
+                                                                                setSelectedPublicAffairs((prev) => ({
+                                                                                ...prev,
+                                                                                Others: updated,
+                                                                                }));
+                                                                            }}
+                                                                            >
+                                                                            Remove
+                                                                            </Button>
+                                                                        </div>
+                                                                        ))}
+                                                                        <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="text-xs"
+                                                                        onClick={() =>
+                                                                            setSelectedPublicAffairs((prev) => ({
+                                                                            ...prev,
+                                                                            Others: [...prev["Others"], ""],
                                                                             }))
                                                                         }
-                                                                    />
-                                                                    <label htmlFor={`${category}-${unit}`} className="text-sm">
-                                                                        {unit}
-                                                                    </label>
-                                                                </div>
+                                                                        >
+                                                                        + Add Another
+                                                                        </Button>
+                                                                    </div>
+                                                                    )}
+                                                            </div>
                                                             ))}
                                                         </div>
                                                     </details>
@@ -905,10 +1096,10 @@ const ActivityRequest = () => {
                                             ))}
 
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Description of Partner’s Role in the Activity</h3>
+                                                <h3 className="text-sm font-medium mb-2">Description of Partner’s Role in the Activity <span className="text-red-500">*</span></h3>
                                                 <Input
                                                     type="text"
-                                                    placeholder="Your Answer"
+                                                    placeholder="Provide their role"
                                                     value={partnerDescription}
                                                     onChange={(e) => setPartnerDescription(e.target.value)}
                                                 />
@@ -918,19 +1109,21 @@ const ActivityRequest = () => {
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Green Campus Monitor/s</h3>
+                                                <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                                                 <Input
+                                                    id="greenCampusMonitor"
                                                     type="text"
-                                                    placeholder="Provide their name/s."
+                                                    placeholder="Provide their name"
                                                     value={greenCampusMonitor}
                                                     onChange={(e) => setGreenCampusMonitor(e.target.value)}
                                                 />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-medium mb-2">Green Campus Monitor/s Contact Info</h3>
+                                                <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
+                                                    id="greenCampusMonitorContact"
                                                     type="text"
-                                                    placeholder="Provide their mobile no. or e-mail."
+                                                    placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                                                     value={greenCampusMonitorContact}
                                                     onChange={(e) => setGreenCampusMonitorContact(e.target.value)}
                                                 />
@@ -961,7 +1154,7 @@ const ActivityRequest = () => {
                         {currentSection === "submission" && (
                             <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                                 <div>
-                                    <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF)</h3>
+                                    <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF) <span className="text-red-500">*</span></h3>
                                     <div className="border rounded-md p-4">
                                         <p className="text-sm text-gray-600 mb-3">
                                             Provide a scanned copy of your activity request form with your point person's, venue approver's, and adviser's signature.
@@ -1077,6 +1270,58 @@ const ActivityRequest = () => {
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
+                {/* Reminders Popup Modal */}
+                <AlertDialog open={showRemindersDialog} onOpenChange={setShowRemindersDialog}>
+                <AlertDialogContent className="max-h-[80vh] overflow-y-auto">
+                    <AlertDialogHeader>
+                    <AlertDialogTitle className="text-[#7B1113]">
+                        Please read before submitting your activity request:
+                    </AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <div className="text-sm text-gray-800 space-y-2 leading-relaxed">
+                    <ol className="list-decimal list-inside space-y-2">
+                    <li>
+                    Requests to use any university facility or space must be submitted <strong>at least five days</strong> or at most two weeks prior to use. However, requests for activities to be held off-campus may be submitted earlier than two weeks.
+                    </li>
+                    <li>
+                    The official curfew on campus is <strong>9:00 PM</strong>. Staying beyond this time is permitted only under exceptional circumstances, and requests for extensions will be considered only if supported by valid and acceptable justifications. Strict instructions are given to the Security Office not to allow use of facilities without prior approval for late stays. <strong>The presence of the organization’s adviser is required if the organization intends to remain on campus beyond 9:00 PM.</strong> Overnight sleeping on campus is strictly prohibited.
+                    </li>
+                    <li>
+                    Student organizations requesting tables and chairs for their activity are responsible for setting them up in the designated venues and ensuring their proper return. Organizations that fail to return the equipment will receive a warning, and repeated violations may result in disciplinary action. Additionally, organizations are responsible for obtaining the keys to their requested rooms and must coordinate with the relevant offices or venue approvers during office hours, especially if the activity is scheduled for the weekend or extends beyond the 9:00 PM curfew.
+                    </li>
+                    <li>
+                    There are designated areas for specific activities. For example, selling activities must be held in the space near the guardhouse and will not be allowed in the lobby or other areas. Organizations must always coordinate with the OSA and SRO to ensure that proper arrangements are made.
+                    </li>
+                    <li>
+                    For the use of classrooms: (A) Organizations, particularly the Green Campus Monitor, must clean up and return the chairs to their original arrangement; (B) Any markings on the board should be erased; (C) Users should minimize noise to avoid disturbing ongoing classes and activities in adjacent rooms.
+                    </li>
+                    <li>
+                    For borrowed equipment at OSA: (A) Equipment may be signed out an hour before the activity. If the equipment is to be used over the weekend, it may be signed out between 1:00 and 3:00 PM on Friday. (B) Equipment must be returned immediately after the approved time stated in the Approval Slip. If the activity takes place on a weekend, the equipment must be returned the following Monday between 8:00 AM and 9:00 AM. Upon return, OSA personnel will inspect the equipment to ensure it is in proper condition. (C) Lost equipment must be replaced with the same specifications. A reasonable deadline will be set for replacement. Damaged or non-functioning units will be dealt with on a 'case-to-case' basis, depending on the severity of the damage.
+                    </li>
+                    <li>
+                    Student organizations must strictly adhere to the approved time for using the facility or staying on campus. Any extensions will require further approval, as other requests may be scheduled after their use.
+                    </li>
+                    <li>
+                    When collaborating with a university unit or another organization, the concept paper for the activity must be signed by the representatives of both the partner unit or organization and the student organization's representatives, including the organization advisers.
+                    </li>
+                    <li>
+                    If the activity is off-campus, the requesting organization must also submit OSA-SRO Form 2A (Notice of Off-Campus Activity) and OSA-SRO Form 2B (Waiver for Off-Campus Student Activities), with Form 2B requiring notarization.
+                    </li>
+                    <li>
+                    A venue approver is only needed when the activity is held on-campus and conducted in person. Otherwise, the organization must indicate the online platform to be used or the off-campus venue.
+                    </li>
+                    <li>
+                    Violations of any rules/guidelines shall be dealt with strictly and accordingly.
+                    </li>
+                </ol>
+                    </div>
+                    <AlertDialogFooter className="mt-4">
+                    <Button onClick={() => setShowRemindersDialog(false)} className="bg-[#7B1113] text-white hover:bg-[#5e0d0f]">
+                        I Understand
+                    </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
                 </form>
             </div>
         </div>
