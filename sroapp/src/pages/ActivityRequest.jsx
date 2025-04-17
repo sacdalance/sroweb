@@ -28,7 +28,7 @@ import {
     AlertDialogAction
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Check, ChevronDown } from "lucide-react";
+import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils"; // if you're using ShadCN's cn() class merging
 
 const ActivityRequest = () => {
@@ -886,53 +886,71 @@ const ActivityRequest = () => {
                                             <br />
                                             i.e. LARUA-TinigAmianan_Activity-Request-Form_01-01-2024
                                         </p>
+                                        
                                         <div className="mt-4">
+
+                                        <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-gray-400 hover:bg-muted transition-colors">
+                                            <label
+                                            htmlFor="activityRequestFileUpload"
+                                            className="cursor-pointer flex flex-col items-center"
+                                            >
+                                            <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                                            <p className="text-sm">Drag and Drop or Click to Upload File</p>
                                             <input
+                                                id="activityRequestFileUpload"
                                                 type="file"
                                                 accept=".pdf"
                                                 onChange={handleFileChange}
                                                 className="hidden"
-                                                id="file-upload"
+                                                disabled={isSubmitting}
                                             />
-                                            <Button
-                                                type="button"
-                                                className="bg-[#014421] text-white hover:bg-[#003218]"
-                                                onClick={() => document.getElementById('file-upload').click()}
-                                            >
-                                                Add File
-                                            </Button>
+                                            </label>
+                                        </div>
+
                                             {selectedFile && (
-                                                <p className="mt-2 text-sm text-gray-600">
-                                                    Selected file: {selectedFile.name}
+                                                <div>
+                                                <h4 className="text-sm font-medium mb-1">Selected File</h4>
+                                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <FileText className="w-4 h-4 text-red-500" />
+                                                    {selectedFile.name}
                                                 </p>
+                                            </div>
                                             )}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex justify-between">
-                                    <Button
-                                        type="button"
-                                        className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6"
-                                        onClick={() => handleSectionChange("specifications")}
+                                <Button
+                                    type="button"
+                                    className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5"
+                                    onClick={() => handleSectionChange("specifications")}
                                     >
-                                        Back
+                                    Back
                                     </Button>
+
                                     <Button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            setShowConfirmDialog(true);
-                                            }}  
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setShowConfirmDialog(true);
+                                    }}
+                                    type="submit"
+                                    className="w-relative"
+                                    disabled={isSubmitting}
                                     >
-                                        {isSubmitting ? "In Progress" : "Submit"}
+                                    {isSubmitting ? (
+                                        <span className="flex items-center gap-2">
+                                        <Loader2 className="animate-spin h-4 w-4" />
+                                        Uploading...
+                                        </span>
+                                    ) : (
+                                        "Submit Form"
+                                    )}
                                     </Button>
                                 </div>
                             </div>
                         )}  
                         {/* Confirmation Dialog */}
-                        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>  
+                        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                             <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
@@ -941,29 +959,32 @@ const ActivityRequest = () => {
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>No</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleSubmit}                                         
-                                        disabled={isSubmitting}
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
-                                        >
-                                        {isSubmitting ? "Submitting..." : "Yes"}
-                                        </AlertDialogAction>
+                                <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+                                No
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                >
+                                {isSubmitting ? "Submitting..." : "Yes"}
+                                </AlertDialogAction>
                             </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
 
                         {/* Alert Dialog for Submission */}
                         <AlertDialog open={showSuccessDialog}>
-                        <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
+                            <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
                             <AlertDialogHeader>
-                            <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
+                                <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
                                 Submitted Successfully!
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-sm font-medium mb-2">
+                                </AlertDialogTitle>
+                                <AlertDialogDescription className="text-sm font-medium mb-2">
                                 You will be redirected to the dashboard...
-                            </AlertDialogDescription>
+                                </AlertDialogDescription>
                             </AlertDialogHeader>
-                        </AlertDialogContent>
+                            </AlertDialogContent>
                         </AlertDialog>
                     </div>
                 </form>
