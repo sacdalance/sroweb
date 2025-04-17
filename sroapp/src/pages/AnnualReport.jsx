@@ -7,6 +7,7 @@ import { FileText, UploadCloud, Loader2, Check, ChevronDown } from "lucide-react
 import { toast, Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchOrganizations } from "@/api/annualReportAPI";
+import { submitAnnualReport } from "@/api/annualReportAPI";
 
 const AnnualReport = () => {
   const [files, setFiles] = useState([]);
@@ -15,11 +16,18 @@ const AnnualReport = () => {
   const [selectedOrg, setSelectedOrg] = useState("");
   const [annualReportEmail, setAnnualReportEmail] = useState("");
 
+
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [academicYear, setAcademicYear] = useState("");
+
+  const [userId, setUserId] = useState(null); // from session/auth
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const filteredOrgs = orgOptions.filter((org) =>
     org.org_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const [isDragActive, setIsDragActive] = useState(false);
 
   useEffect(() => {
     const loadOrgs = async () => {
@@ -34,39 +42,52 @@ const AnnualReport = () => {
   }, []);
 
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (files.length === 0) {
-      toast.error("Please upload at least one file.");
+    const incomingFiles = Array.from(e.target.files);
+    const pdfFiles = incomingFiles.filter((file) => file.type === "application/pdf");
+  
+    if (pdfFiles.length === 0) {
+      toast.error("Only PDF files are allowed.");
       return;
     }
+  
+    const combinedFiles = [...files, ...pdfFiles];
+  
+    if (combinedFiles.length > 2) {
+      toast.error("You can only upload up to 2 PDF files.");
+      return;
+    }
+  
+    setFiles(combinedFiles);
+  };
+
+  const handleRemoveFile = (indexToRemove) => {
+    const newFiles = files.filter((_, idx) => idx !== indexToRemove);
+    setFiles(newFiles);
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (files.length !== 2) {
+      toast.error("You must upload exactly 2 files.");
+      return;
+    }
+  
 
     setIsUploading(true);
-    toast.loading("Uploading files...");
-
+    toast.loading("Submitting...");
+  
     try {
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("org_name", selectedOrg);
-        formData.append("org_email", annualReportEmail);
-
-        const response = await fetch("/api/annual-report", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) throw new Error("Upload failed");
-      }
-
-      toast.success("Files uploaded successfully.");
+      await submitAnnualReport({
+        org_id: '',         // get from dropdown or fetch (change this)
+        submitted_by: userId,          // from auth/session
+        academic_year: '',   // from form input (change this)
+        files,
+      });
+  
+      toast.success("Submitted successfully!");
       setFiles([]);
     } catch (error) {
-      toast.error("Upload failed. Please try again.");
+      toast.error(error.message || "Submission failed.");
     } finally {
       toast.dismiss();
       setIsUploading(false);
@@ -114,6 +135,7 @@ const AnnualReport = () => {
                         key={org.org_id}
                         onClick={() => {
                           setSelectedOrg(org.org_name);
+                          // setSelectedOrgId(org.org_id);
                           setAnnualReportEmail(org.org_email);
                           setSearchTerm(org.org_name);
                           setOpen(false);
@@ -162,12 +184,42 @@ const AnnualReport = () => {
               </Button>
             </div>
           ))}
-            <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-gray-400 hover:bg-muted transition-colors">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragActive(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragActive(false);
+              
+                const dataTransferEvent = {
+                  target: {
+                    files: e.dataTransfer.files,
+                  },
+                };
+              
+                handleFileChange(dataTransferEvent);
+              }}
+              className={cn(
+                "border-2 border-dashed p-4 rounded-md text-center transition-colors",
+                isDragActive
+                  ? "border-green-600 bg-green-50"
+                  : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+              )}
+            >
               <label htmlFor="annualReportFileUpload" className="cursor-pointer flex flex-col items-center">
                 <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm">Drag and Drop or Upload File</p>
+                <p className="text-sm">
+                  {isDragActive ? "Drop the file here" : "Drag and Drop or Upload File"}
+                </p>
                 <input
                   id="annualReportFileUpload"
+                  name="files"
                   type="file"
                   accept=".pdf"
                   multiple
@@ -183,9 +235,21 @@ const AnnualReport = () => {
                 <h4 className="text-sm font-medium mb-1">Selected Files</h4>
                 <ul className="space-y-1 text-sm text-muted-foreground">
                   {files.map((file, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-red-500" />
-                      {file.name}
+                    <li
+                      key={idx}
+                      className="flex items-center justify-between bg-muted px-3 py-2 rounded-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-red-500" />
+                        <span className="truncate max-w-[200px]">{file.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(idx)}
+                        className="text-gray-500 hover:text-red-600"
+                      >
+                        &times;
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -195,7 +259,7 @@ const AnnualReport = () => {
             <Button
               type="submit"
               className="w-full"
-              disabled={files.length === 0 || isUploading}
+              disabled={files.length !== 2   || isUploading}
             >
               {isUploading ? (
                 <span className="flex items-center gap-2">

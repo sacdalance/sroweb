@@ -57,34 +57,55 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
   return file.data.webViewLink;
 }
 
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', upload.array('files', 2), async (req, res) => {
   try {
-    const { org_name, org_email } = req.body;
-    const file = req.file;
+    const { org_id, submitted_by, academic_year } = req.body;
+    const files = req.files;
 
-    if (!file || !file.originalname.toLowerCase().endsWith('.pdf') || file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ error: 'Only PDF files are allowed.' });
+    if (!files || files.length !== 2) {
+      return res.status(400).json({ error: 'Exactly 2 PDF files must be uploaded.' });
     }
 
-    const drive_folder_link = await uploadToGoogleDrive(
-      file.buffer,
-      file.originalname,
-      file.mimetype
+    // Check if all files are PDFs
+    for (const file of files) {
+      if (
+        !file.originalname.toLowerCase().endsWith('.pdf') ||
+        file.mimetype !== 'application/pdf'
+      ) {
+        return res.status(400).json({ error: 'Only PDF files are allowed.' });
+      }
+    }
+
+    // Upload files to Google Drive
+    const uploadedLinks = await Promise.all(
+      files.map((file) =>
+        uploadToGoogleDrive(file.buffer, file.originalname, file.mimetype)
+      )
     );
 
     const { error } = await supabase.from('org_annual_report').insert([{
-      org_name,
-      org_email,
-      drive_folder_link,
+      org_id: parseInt(org_id),
+      submitted_by: parseInt(submitted_by),
+      academic_year,
+      drive_folder_link: uploadedLinks[0],
+      submission_file_url: JSON.stringify(uploadedLinks),
+      submitted_at: new Date(),
     }]);
+    
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
 
-    if (error) throw error;
-
-    res.status(201).json({ message: 'Annual Report uploaded successfully!', drive_folder_link });
+    res.status(201).json({
+      message: 'Annual Report uploaded successfully!',
+      links: uploadedLinks,
+    });
   } catch (error) {
     console.error('Annual Report Submission Error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 export default router;
