@@ -154,12 +154,6 @@ const ActivityRequest = () => {
         }));
     };
 
-    // Example options for the select component
-    const options = Array.from({ length: 20 }, (_, i) => ({
-        value: `option-${i + 1}`,
-        label: `Option ${i + 1}`
-    }));
-
     const universityPartners = {
         colleges: [
             "College of Science",
@@ -456,8 +450,10 @@ const ActivityRequest = () => {
                                                     setSelectedValue(String(org.org_id));
                                                     setSelectedOrgName(org.org_name);
                                                     setSearchTerm(org.org_name);
+                                                    setOrganizationAdviser(org.adviser_name || "");
+                                                    setOrganizationAdviserContact(org.adviser_email || "");
                                                     setOpen(false);
-                                                }}
+                                                    }}
                                                 className={cn(
                                                     "w-full text-left px-4 py-2 hover:bg-gray-100",
                                                     selectedValue === String(org.org_id) && "bg-gray-100 font-medium"
@@ -806,19 +802,19 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Organization Adviser</h3>
                                                 <Input
-                                                    type="text"
-                                                    placeholder="Provide their name"
-                                                    value={organizationAdviser}
-                                                    onChange={(e) => setOrganizationAdviser(e.target.value)}
+                                                type="text"
+                                                value={organizationAdviser}
+                                                disabled
+                                                className="cursor-not-allowed bg-gray-100"
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Organization Adviser Contact Info</h3>
                                                 <Input
-                                                    type="text"
-                                                    placeholder="Provide their mobile no. or e-mail."
-                                                    value={organizationAdviserContact}
-                                                    onChange={(e) => setOrganizationAdviserContact(e.target.value)}
+                                                type="text"
+                                                value={organizationAdviserContact}
+                                                disabled
+                                                className="cursor-not-allowed bg-gray-100"
                                                 />
                                             </div>
                                         </div>
