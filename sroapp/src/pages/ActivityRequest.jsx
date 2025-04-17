@@ -209,6 +209,49 @@ const ActivityRequest = () => {
         setSelectedFile(file);
         };
 
+        // REMOVE AFTER TESTING
+        const fillWithDummyData = () => {
+            setSelectedValue("62");
+            setSelectedOrgName("Junior Blockchain Education Consortium of the Philippines -UPB (JBECP - UPB)*");
+            setOrganizationAdviser("Prof. Satoshi Nakamoto");
+            setOrganizationAdviserContact("nakamoto@up.edu.ph");
+          
+            setStudentPosition("Chairperson");
+            setStudentContact("09171234567");
+          
+            setActivityName("Blockchain Bootcamp");
+            setActivityDescription("A full-day hands-on event introducing blockchain concepts to CS students.");
+            setSelectedActivityType("educational");
+            setChargingFees1("no");
+          
+            setPartnering("yes");
+            setSelectedPublicAffairs({
+              "College of Science": true,
+              "Department of Mathematics and Computer Science": true,
+              "Office of Student Affairs (OSA)": true,
+            });
+            setPartnerDescription("They will provide technical resource persons and venue coordination.");
+          
+            setRecurring("one-time");
+            setStartDate("2025-05-10");
+            setStartTime("09:00");
+            setEndTime("17:00");
+          
+            setIsOffCampus("no");
+            setVenue("CSS AVR");
+            setVenueApprover("Dr. Lina Reyes");
+            setVenueApproverContact("lina.reyes@up.edu.ph");
+          
+            setGreenCampusMonitor("Kyle Carbon");
+            setGreenCampusMonitorContact("kyle.green@up.edu.ph");
+          
+            setSelectedSDGs({
+              qualityEducation: true,
+              industryInnovation: true,
+              decentWork: true,
+            });
+          };          
+
         const handleSubmit = async (e) => {
             e.preventDefault();
         
@@ -609,6 +652,13 @@ const ActivityRequest = () => {
                                     </div>
                                 </div>
                                 <div className="flex justify-end">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={fillWithDummyData}
+                                        >
+                                        Fill with Dummy Data
+                                    </Button>
                                     <Button
                                         type="button"
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
