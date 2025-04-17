@@ -47,8 +47,8 @@ const ActivityRequest = () => {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [startTime, setStartTime] = useState("");
-    const [selectedPublicAffairs, setSelectedPublicAffairs] = useState({});
     const [otherPublicAffairs, setOtherPublicAffairs] = useState("");
+    const [selectedPublicAffairs, setSelectedPublicAffairs] = useState({});
     const [endTime, setEndTime] = useState("");
     const [isOffCampus, setIsOffCampus] = useState("");
     const [venue, setVenue] = useState("");
@@ -269,8 +269,8 @@ const ActivityRequest = () => {
                 sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
                 charge_fee: chargingFees1 === "yes",
                 university_partner: partnering === "yes",
-                partner_name: partnerDescription,
-                partner_role: '',
+                partner_name: Object.keys(selectedPublicAffairs).filter((key) => selectedPublicAffairs[key]).join(", "),
+                partner_role: partnerDescription,
                 venue,
                 venue_approver: venueApprover,
                 venue_approver_contact: venueApproverContact,
@@ -820,7 +820,51 @@ const ActivityRequest = () => {
                                         </div>
                                     </div>
 
-                                    {/* Green Campus Monitor Information */}
+                                    {/* University Partner Section (Only if partnering === "yes") */}
+                                    {partnering === "yes" && (
+                                        <div className="space-y-6">
+                                            <h3 className="text-sm font-medium mb-2">Select all that you are partnered with.</h3>
+
+                                            {Object.entries(universityPartners).map(([category, units]) => (
+                                                <div key={category} className="mb-4 border border-gray-200 rounded-md">
+                                                    <details>
+                                                        <summary className="cursor-pointer px-4 py-2 bg-gray-100 font-medium capitalize">
+                                                            {category.replace(/([A-Z])/g, " $1")}
+                                                        </summary>
+                                                        <div className="px-4 py-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {units.map((unit) => (
+                                                                <div key={unit} className="flex items-center space-x-2">
+                                                                    <Checkbox
+                                                                        id={`${category}-${unit}`}
+                                                                        checked={selectedPublicAffairs[unit] || false}
+                                                                        onCheckedChange={() =>
+                                                                            setSelectedPublicAffairs((prev) => ({
+                                                                                ...prev,
+                                                                                [unit]: !prev[unit],
+                                                                            }))
+                                                                        }
+                                                                    />
+                                                                    <label htmlFor={`${category}-${unit}`} className="text-sm">
+                                                                        {unit}
+                                                                    </label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            ))}
+
+                                            <div>
+                                                <h3 className="text-sm font-medium mb-2">Description of Partner’s Role in the Activity</h3>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="Your Answer"
+                                                    value={partnerDescription}
+                                                    onChange={(e) => setPartnerDescription(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
