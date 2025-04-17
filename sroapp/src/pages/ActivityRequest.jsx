@@ -81,6 +81,45 @@ const ActivityRequest = () => {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showRemindersDialog, setShowRemindersDialog] = useState(false);
 
+    const getRequiredDocuments = () => {
+        const required = [
+        "Concept Paper",
+        "Form 1A (Scanned Copy of Activity Request Form)",
+        ];
+    
+        if (isOffCampus === "yes") {
+        required.push(
+            "Form 2A (Notice of Off-Campus Activity)",
+            "Form 2B (Waiver for Off-Campus Student Activities), Notarized"
+        );
+        }
+    
+        const isWeekend = (dateStr) => {
+        const date = new Date(dateStr);
+        const day = date.getDay();
+        return day === 0 || day === 6; // Sunday or Saturday
+        };
+    
+        const isLate = (time) => {
+        if (!time) return false;
+        const [hours] = time.split(":").map(Number);
+        return hours >= 21;
+        };
+    
+        if (
+        isWeekend(startDate) ||
+        isWeekend(endDate) ||
+        isLate(startTime) ||
+        isLate(endTime)
+        ) {
+        required.push(
+            "Form 3 (Permission to Stay on Campus After 9:00 PM and On Weekends)"
+        );
+        }
+    
+        return required;
+    };      
+
     useEffect(() => {
         const seen = sessionStorage.getItem("sroRemindersSeen");
         
@@ -967,7 +1006,7 @@ const ActivityRequest = () => {
                                                     value={isOffCampus === "yes" ? "N/A" : venueApprover}
                                                     disabled={isOffCampus === "yes"}
                                                     className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
-                                                    onChange={(e) => setVenue(e.target.value)}
+                                                    onChange={(e) => setVenueApprover(e.target.value)}
                                                 />
                                             </div>
                                             <div>
@@ -1171,7 +1210,14 @@ const ActivityRequest = () => {
                                         </p>
                                         
                                         <div className="mt-4">
-
+                                        <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
+                                            <h4 className="font-medium text-base mb-2 text-[#7B1113]">What to include in your single PDF file:</h4>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                {getRequiredDocuments().map((item, index) => (
+                                                <li key={index}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                         <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-gray-400 hover:bg-muted transition-colors">
                                             <label
                                             htmlFor="activityRequestFileUpload"
