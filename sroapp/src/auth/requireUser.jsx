@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 const RequireUser = ({ children }) => {
   const [loading, setLoading] = useState(true);
@@ -46,27 +46,34 @@ const RequireUser = ({ children }) => {
     checkRole();
   }, [navigate]);
 
-  if (loading) return <p className="text-center p-10">Checking access...</p>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
+        <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+        <p>Checking access...</p>
+      </div>
+    );
+  }  
 
   return hasAccess ? (
     children
   ) : (
     <Dialog open={showDialog}>
-      <DialogContent className="z-[100] backdrop-blur-md bg-white/80">
+      <DialogContent className="z-[100] max-w-md rounded-xl shadow-lg bg-white">
         <DialogHeader>
-          <DialogTitle className="text-red-600 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+          <DialogTitle className="text-lg font-semibold text-red-600 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
             Access Denied
           </DialogTitle>
-          <DialogDescription className="text-gray-700 mt-2">
-            You are not authorized to view this page.
-            <br />
-            <span className="inline-flex items-center gap-1 mt-1">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 animate-pulse" />
-              Redirecting you to the homepage...
-            </span>
+          <DialogDescription className="mt-1 text-sm text-gray-600">
+            You are not authorized to view this page. You will be redirected to the homepage shortly.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-yellow-500 animate-pulse" />
+          <p className="text-sm text-gray-500 italic">Redirecting in 3 seconds...</p>
+        </div>
       </DialogContent>
     </Dialog>
   );
