@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { LogOut } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Sidebar = () => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation(); // for highlighting active link
+  const location = useLocation();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user || null);
 
       if (user) {
@@ -35,7 +38,6 @@ const Sidebar = () => {
   }, []);
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
-
   const isUser = role === 1;
   const isSRO = role === 2;
   const isODSA = role === 3;
@@ -49,24 +51,25 @@ const Sidebar = () => {
     navigate("/login");
   };
 
-  // Highlight class if current location matches
   const linkClass = (path) =>
     `block px-4 py-2 rounded-md -mx-2 transition-all duration-200 ease-in-out transform 
-      ${
-        location.pathname === path
-          ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
-          : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
-      }`;
+    ${
+      location.pathname === path
+        ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
+        : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
+    }`;
 
   if (!isValidUPMail) return null;
 
   return (
-    <aside className="w-80 min-h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-6 flex flex-col justify-between">
-      <div>
-        {/* Profile */}
+    <aside className="w-80 h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-5   flex flex-col">
+      <ScrollArea className="flex-1 min-h-0 pr-2">
         <div className="flex flex-col items-center mb-8">
           <img
-            src={user?.user_metadata?.avatar_url || "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"}
+            src={
+              user?.user_metadata?.avatar_url ||
+              "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"
+            }
             className="w-24 h-24 rounded-full"
             alt="User"
             referrerPolicy="no-referrer"
@@ -136,16 +139,12 @@ const Sidebar = () => {
             </ul>
           </div>
         )}
-      </div>
+      </ScrollArea>
 
-      {/* Logout */}
-      <div className="mb-8">
-        <hr className="border-t border-[#DBDBDB] my-4" />
+      <div className="py-6 border-t border-[#DBDBDB]">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 text-[15px] font-medium py-3 px-4 rounded-md -mx-2 w-full
-              transition-transform duration-200 ease-in-out 
-              hover:bg-white hover:text-[#7B1113] hover:scale-105 cursor-pointer"
+          className="flex items-center gap-2 text-[15px] font-medium py-3 px-4 rounded-md -mx-2 w-full transition-transform duration-200 ease-in-out hover:bg-white hover:text-[#7B1113] hover:scale-105 cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
           Log Out
