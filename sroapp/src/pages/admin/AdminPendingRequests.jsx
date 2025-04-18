@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import supabase from "@/lib/supabase";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
@@ -10,10 +12,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Calendar, Clock, User, X, Check } from "lucide-react";
+import { FileText, Calendar, Clock, User, X, Check, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const AdminPendingRequests = () => {
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("appeals");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -30,17 +33,41 @@ const AdminPendingRequests = () => {
     adviser: "Adviser"
   }));
 
-  // Mock data for incoming activity requests
-  const incomingRequests = Array.from({ length: 6 }, (_, i) => ({
-    id: `request-${i + 1}`,
-    submissionDate: "Submission Date",
-    organization: "Organization",
-    activityName: "Activity Name",
-    activityType: "Activity Type",
-    activityDate: "Activity Date",
-    venue: "Venue",
-    adviser: "Adviser"
-  }));
+  const [incomingRequests, setIncomingRequests] = useState([]);
+  useEffect(() => {
+    const fetchIncoming = async () => {
+      try {
+        setLoading(true);
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        const access_token = sessionData?.session?.access_token;
+        
+        if (!access_token) {
+          console.error("No access token found");
+          return;
+        }
+  
+        if (!access_token) {
+          console.error("No access token found");
+          return;
+        }
+  
+        const res = await axios.get("/api/activities/incoming", {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        });
+  
+        console.log("Fetched incoming:", res.data);
+        setIncomingRequests(res.data);
+      } catch (error) {
+        console.error("Failed to fetch incoming submissions:", error);
+      } finally {
+        setLoading(false); // stop loading
+      }
+    };
+  
+    fetchIncoming();
+  }, []);  
 
   const handleViewDetails = (activity) => {
     setSelectedActivity(activity);
@@ -81,19 +108,19 @@ const AdminPendingRequests = () => {
     <div className="container mx-auto py-8 max-w-6xl">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
-      <Tabs defaultValue="appeals" className="w-full mb-8">
+      <Tabs defaultValue="submissions" className="w-full mb-8">
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger 
-            value="appeals" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Appeals and Cancellations
-          </TabsTrigger>
           <TabsTrigger 
             value="submissions" 
             className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
           >
             Incoming Submissions
+          </TabsTrigger>
+          <TabsTrigger 
+            value="appeals" 
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+          >
+            Appeals and Cancellations
           </TabsTrigger>
         </TabsList>
         
@@ -109,33 +136,35 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Submission Date</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Organization</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Name</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Type</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Date</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Venue</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Adviser</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Actions</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Submission Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Organization</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Name</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Type</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Venue</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Adviser</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {pendingAppeals.map((appeal) => (
                       <tr key={appeal.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.submissionDate}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.organization}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.activityName}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.activityType}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.activityDate}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.venue}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{appeal.adviser}</td>
-                        <td className="px-5 py-4 text-sm">
-                          <Button
-                            onClick={() => handleViewDetails(appeal)}
-                            className="px-3 py-1 rounded-md bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
-                          >
-                            Details
-                          </Button>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.submissionDate}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.organization}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityName}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityType}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityDate}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.venue}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.adviser}</td>
+                        <td className="px-5 py-4 text-center text-sm">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => handleViewDetails(request)}
+                              className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                            >
+                              <Eye className="h-5 w-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -158,36 +187,48 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Submission Date</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Organization</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Name</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Type</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity Date</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Venue</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Adviser</th>
-                      <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Actions</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Submission Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Organization</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Name</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Type</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Venue</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Adviser</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] w-20">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {incomingRequests.map((request) => (
-                      <tr key={request.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.submissionDate}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.organization}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.activityName}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.activityType}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.activityDate}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.venue}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700">{request.adviser}</td>
-                        <td className="px-5 py-4 text-sm">
-                          <Button
-                            onClick={() => handleViewDetails(request)}
-                            className="px-3 py-1 rounded-md bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
-                          >
-                            Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                  {loading ? (
+                    <tr>
+                      <td colSpan="8" className="text-center text-gray-500 py-4">Loading incoming submissions...</td>
+                    </tr>
+                  ) : incomingRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="text-center text-gray-500 py-4">No incoming submissions.</td>
+                    </tr>
+                  ) : (
+                      incomingRequests.map((request) => (
+                        <tr key={request.activity_id} className="hover:bg-gray-50">
+                          <td className="px-5 py-4 text-sm text-gray-700">{new Date(request.schedule?.[0]?.start_date).toLocaleDateString()}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.organization?.org_name || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.activity_name}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.activity_type}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.schedule?.[0]?.start_time || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.venue}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700">{request.organization?.adviser_name || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-center">
+                            <div className="flex justify-center">
+                              <button
+                                onClick={() => handleViewDetails(request)}
+                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                              >
+                                <Eye className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
