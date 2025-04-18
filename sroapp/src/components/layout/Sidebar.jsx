@@ -62,7 +62,7 @@ const Sidebar = () => {
   if (!isValidUPMail) return null;
 
   return (
-    <aside className="w-80 h-screen bg-[#F3F4F6] text-black fixed top-0 left-0 z-20 pt-20 px-5   flex flex-col">
+    <aside className="w-80 h-screen bg-[#F3F4F6] text-black relative md:fixed top-0 left-0 z-20 pt-20 px-6 flex flex-col ">  
       <ScrollArea className="flex-1 min-h-0 pr-2">
         <div className="flex flex-col items-center mb-8">
           <img
