@@ -35,8 +35,13 @@ const Sidebar = () => {
   }, []);
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
-  const isAdmin = role === 2 || role === 3;
-  const dashboardLink = isAdmin ? "/admin" : "/dashboard";
+
+  const isUser = role === 1;
+  const isSRO = role === 2;
+  const isODSA = role === 3;
+  const isSuperAdmin = role === 4;
+
+  const dashboardLink = isUser || isSuperAdmin ? "/dashboard" : "/admin";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -52,8 +57,6 @@ const Sidebar = () => {
           ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
           : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
       }`;
-  
-  
 
   if (!isValidUPMail) return null;
 
@@ -71,38 +74,28 @@ const Sidebar = () => {
           <h2 className="text-xl font-semibold mt-3 text-center">
             {user?.user_metadata?.full_name || "User"}
           </h2>
-          <p className="text-base italic text-center">{isAdmin ? "Admin" : "Student"}</p>
+          <p className="text-base italic text-center">
+            {{
+              1: "Student",
+              2: "SRO Staff",
+              3: "ODSA Staff",
+              4: "Super Admin",
+            }[role] || "Undefined"}
+          </p>
           <p className="text-sm text-center break-all">{user.email}</p>
         </div>
 
         <hr className="border-t border-[#DBDBDB] my-4" />
 
         <div className="mb-4 mt-4 font-medium">
-          <Link
-            to={dashboardLink}
-            className={linkClass(dashboardLink)}
-          >
+          <Link to={dashboardLink} className={linkClass(dashboardLink)}>
             Dashboard
           </Link>
         </div>
 
         <hr className="border-t border-[#DBDBDB] my-4" />
 
-        {isAdmin ? (
-          <div className="mb-6">
-            <h3 className="uppercase text-base font-bold mb-3">Administration</h3>
-            <ul className="space-y-2 text-[15px] font-medium">
-              <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Submissions</Link></li>
-              <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity Record</Link></li>
-              <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
-              <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>
-              <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Organization Applications</Link></li>
-              <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Organization Annual Reports</Link></li>
-              <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Create an Appointment</Link></li>
-              <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
-            </ul>
-          </div>
-        ) : (
+        {(isUser || isSuperAdmin) && (
           <>
             <div className="mb-6">
               <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
@@ -122,7 +115,26 @@ const Sidebar = () => {
                 <li><Link to="/annual-report" className={linkClass("/annual-report")}>Annual Report</Link></li>
               </ul>
             </div>
+
+            <hr className="border-t border-[#DBDBDB] my-4" />
           </>
+        )}
+
+        {(isSRO || isODSA || isSuperAdmin) && (
+          <div className="mb-6">
+            <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
+            <ul className="space-y-2 text-[15px] font-medium">
+              <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
+              <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
+              <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity</Link></li>
+              <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
+              <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Activity Summary</Link></li>
+              <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
+              <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Org Applications</Link></li>
+              <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Organizations</Link></li>
+              <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Annual Reports</Link></li>
+            </ul>
+          </div>
         )}
       </div>
 
@@ -137,10 +149,9 @@ const Sidebar = () => {
         >
           <LogOut className="w-5 h-5" />
           Log Out
-      </button>
+        </button>
       </div>
     </aside>
-
   );
 };
 

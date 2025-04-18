@@ -25,18 +25,12 @@ import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
-import RequireAdmin from "../components/RequireAdmin";
 
 // route
 import { checkOrCreateUser } from "@/api/authAPI";
-import RequireUser from "@/components/RequireUser";
-import RequireSRO from "@/components/RequireSRO";
-import RequireODSA from "@/components/RequireODSA";
-import RequireSuperAdmin from "@/components/RequireSuperAdmin";
+import RequireUser from "@/auth/RequireUser";
+import RequireAdminRole from "@/auth/RequireAdmin";
 
-/**
- * Redirects "/" based on authentication status.
- */
 const RedirectHome = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +38,7 @@ const RedirectHome = () => {
 
   useEffect(() => {
     const checkUserAndRole = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
         navigate("/login");
@@ -70,13 +62,13 @@ const RedirectHome = () => {
       const roleId = data?.role_id;
 
       if (!error && roleId) {
-        if (roleId === 2 || roleId === 3 || roleId === 4) {
+        if ([2, 3, 4].includes(roleId)) {
           navigate("/admin");
         } else {
           navigate("/dashboard");
         }
       } else {
-        navigate("/dashboard"); // default fallback
+        navigate("/dashboard"); // defaul fallback
       }
 
       setLoading(false);
@@ -86,7 +78,6 @@ const RedirectHome = () => {
   }, [navigate]);
 
   if (loading) return <LoadingSpinner />;
-
   return null;
 };
 
@@ -105,7 +96,7 @@ const PrivateRoute = () => {
       setLoading(false);
     };
     checkUser();
-
+    
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
@@ -134,9 +125,7 @@ const PrivateRoute = () => {
         <button
           onClick={handleSignOut}
           className="bg-[#7B1113] text-white px-6 py-2 rounded-md hover:bg-[#5e0d0e] transition"
-        >
-          Sign Out
-        </button>
+        >Sign Out</button>
       </div>
     );
   }
@@ -170,7 +159,7 @@ const RedirectIfLoggedIn = ({ element }) => {
     };
   }, []);
 
-  if (loading) return <h1 className = "flex justify-center">Loading...</h1>;
+  if (loading) return <h1 className="flex justify-center">Loading...</h1>;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };
@@ -186,154 +175,40 @@ const router = createBrowserRouter([
         element: <PrivateRoute />,
         children: [
           { path: "home", element: <Home /> },
-  
           // ✅ USER ROUTES (User + SuperAdmin)
-          {
-            path: "dashboard",
-            element: (
-              <RequireUser>
-                <Dashboard />
-              </RequireUser>
-            ),
-          },
-          {
-            path: "activity-request",
-            element: (
-              <RequireUser>
-                <ActivityRequest />
-              </RequireUser>
-            ),
-          },
-          {
-            path: "activities",
-            element: (
-              <RequireUser>
-                <Activities />
-              </RequireUser>
-            ),
-          },
-          {
-            path: "org-application",
-            element: (
-              <RequireUser>
-                <OrgApplication />
-              </RequireUser>
-            ),
-          },
-          {
-            path: "annual-report",
-            element: (
-              <RequireUser>
-                <AnnualReport />
-              </RequireUser>
-            ),
-          },
-          {
-            path: "appointment-booking",
-            element: (
-              <RequireUser>
-                <AppointmentBooking />
-              </RequireUser>
-            ),
-          },
-  
-          // ✅ ADMIN ROUTES (Each role separated)
-          {
-            path: "admin",
-            element: (
-              <>
-                <RequireSRO><AdminPanel /></RequireSRO>
-                <RequireODSA><AdminPanel /></RequireODSA>
-                <RequireSuperAdmin><AdminPanel /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/appointment-settings",
-            element: (
-              <>
-                <RequireSRO><AdminAppointmentSettings /></RequireSRO>
-                <RequireODSA><AdminAppointmentSettings /></RequireODSA>
-                <RequireSuperAdmin><AdminAppointmentSettings /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/create-activity",
-            element: (
-              <>
-                <RequireSRO><AdminCreateActivity /></RequireSRO>
-                <RequireODSA><AdminCreateActivity /></RequireODSA>
-                <RequireSuperAdmin><AdminCreateActivity /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/pending-requests",
-            element: (
-              <>
-                <RequireSRO><AdminPendingRequests /></RequireSRO>
-                <RequireODSA><AdminPendingRequests /></RequireODSA>
-                <RequireSuperAdmin><AdminPendingRequests /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/activity-summary",
-            element: (
-              <>
-                <RequireSRO><AdminActivitySummary /></RequireSRO>
-                <RequireODSA><AdminActivitySummary /></RequireODSA>
-                <RequireSuperAdmin><AdminActivitySummary /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/activities-calendar",
-            element: (
-              <>
-                <RequireSRO><AdminActivitiesCalendar /></RequireSRO>
-                <RequireODSA><AdminActivitiesCalendar /></RequireODSA>
-                <RequireSuperAdmin><AdminActivitiesCalendar /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/org-applications",
-            element: (
-              <>
-                <RequireSRO><AdminOrgApplications /></RequireSRO>
-                <RequireODSA><AdminOrgApplications /></RequireODSA>
-                <RequireSuperAdmin><AdminOrgApplications /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/organizations",
-            element: (
-              <>
-                <RequireSRO><AdminOrganizations /></RequireSRO>
-                <RequireODSA><AdminOrganizations /></RequireODSA>
-                <RequireSuperAdmin><AdminOrganizations /></RequireSuperAdmin>
-              </>
-            ),
-          },
-          {
-            path: "admin/annual-reports",
-            element: (
-              <>
-                <RequireSRO><AdminAnnualReports /></RequireSRO>
-                <RequireODSA><AdminAnnualReports /></RequireODSA>
-                <RequireSuperAdmin><AdminAnnualReports /></RequireSuperAdmin>
-              </>
-            ),
-          },
+          { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
+          { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
+          { path: "activities", element: <RequireUser><Activities /></RequireUser> },
+          { path: "org-application", element: <RequireUser><OrgApplication /></RequireUser> },
+          { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },
+          { path: "appointment-booking", element: <RequireUser><AppointmentBooking /></RequireUser> },
+
+          // Admin routes using unified RequireAdminRole
+          { path: "admin", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} /> },
+          { path: "admin/appointment-settings", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminAppointmentSettings/>, 3: <AdminAppointmentSettings />, 4: <AdminAppointmentSettings /> }} /> },
+          { path: "admin/create-activity", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminCreateActivity />, 3: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} /> },
+          { path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} /> },
+
+          { path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} /> },
+          { path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminActivitiesCalendar />, 3: <AdminActivitiesCalendar />, 4: <AdminActivitiesCalendar /> }} /> },
+          { path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} /> },
+          { path: "admin/organizations", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminOrganizations />, 3: <AdminOrganizations />, 4: <AdminOrganizations /> }} /> },
+          { path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
+            { 2: <AdminAnnualReports/>, 3: <AdminAnnualReports />, 4: <AdminAnnualReports /> }} /> },
         ],
       },
     ],
-  },  
+  },
   { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
-  { path: "*", element: <NotFound /> },  
+  { path: "*", element: <NotFound /> },
 ]);
 
 const AppRoutes = () => {
