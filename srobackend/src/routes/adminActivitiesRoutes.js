@@ -44,7 +44,8 @@ router.get("/incoming", verifyAdminRoles, async (req, res) => {
         end_time,
         recurring_days,
         is_recurring
-      )
+      ),
+      created_at
     `)
     .or("final_status.is.null,final_status.neq.Approved")
     .order("activity_id", { ascending: false });
