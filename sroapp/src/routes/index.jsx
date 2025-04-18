@@ -2,13 +2,20 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } fr
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
+import LoadingSpinner from "../components/ui/loading-spinner";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
+import NotFound from "../pages/NotFound";
+
+// user 
 import Dashboard from "../pages/Dashboard";
 import ActivityRequest from "../pages/ActivityRequest";
 import Activities from "../pages/Activities";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
+import AppointmentBooking from "../pages/AppointmentBooking";
+
+// admin
 import AdminPanel from "../pages/admin/AdminPanel";
 import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
 import AdminPendingRequests from "../pages/admin/AdminPendingRequests";
@@ -19,10 +26,13 @@ import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
 import RequireAdmin from "../components/RequireAdmin";
-import NotFound from "../pages/NotFound";
-import AppointmentBooking from "../pages/AppointmentBooking";
-import LoadingSpinner from "../components/ui/loading-spinner";
+
+// route
 import { checkOrCreateUser } from "@/api/authAPI";
+import RequireUser from "@/components/RequireUser";
+import RequireSRO from "@/components/RequireSRO";
+import RequireODSA from "@/components/RequireODSA";
+import RequireSuperAdmin from "@/components/RequireSuperAdmin";
 
 /**
  * Redirects "/" based on authentication status.
@@ -60,7 +70,7 @@ const RedirectHome = () => {
       const roleId = data?.role_id;
 
       if (!error && roleId) {
-        if (roleId === 2 || roleId === 3) {
+        if (roleId === 2 || roleId === 3 || roleId === 4) {
           navigate("/admin");
         } else {
           navigate("/dashboard");
@@ -176,88 +186,152 @@ const router = createBrowserRouter([
         element: <PrivateRoute />,
         children: [
           { path: "home", element: <Home /> },
-          { path: "dashboard", element: <Dashboard /> },
-          { path: "activity-request", element: <ActivityRequest /> },
-          { path: "activities", element: <Activities /> },
-          { path: "org-application", element: <OrgApplication /> },
-          { path: "annual-report", element: <AnnualReport /> },
-          { path: "appointment-booking", element: <AppointmentBooking /> },
+  
+          // ✅ USER ROUTES (User + SuperAdmin)
+          {
+            path: "dashboard",
+            element: (
+              <RequireUser>
+                <Dashboard />
+              </RequireUser>
+            ),
+          },
+          {
+            path: "activity-request",
+            element: (
+              <RequireUser>
+                <ActivityRequest />
+              </RequireUser>
+            ),
+          },
+          {
+            path: "activities",
+            element: (
+              <RequireUser>
+                <Activities />
+              </RequireUser>
+            ),
+          },
+          {
+            path: "org-application",
+            element: (
+              <RequireUser>
+                <OrgApplication />
+              </RequireUser>
+            ),
+          },
+          {
+            path: "annual-report",
+            element: (
+              <RequireUser>
+                <AnnualReport />
+              </RequireUser>
+            ),
+          },
+          {
+            path: "appointment-booking",
+            element: (
+              <RequireUser>
+                <AppointmentBooking />
+              </RequireUser>
+            ),
+          },
+  
+          // ✅ ADMIN ROUTES (Each role separated)
           {
             path: "admin",
             element: (
-              <RequireAdmin>
-                <AdminPanel />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminPanel /></RequireSRO>
+                <RequireODSA><AdminPanel /></RequireODSA>
+                <RequireSuperAdmin><AdminPanel /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/appointment-settings",
             element: (
-              <RequireAdmin>
-                <AdminAppointmentSettings />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminAppointmentSettings /></RequireSRO>
+                <RequireODSA><AdminAppointmentSettings /></RequireODSA>
+                <RequireSuperAdmin><AdminAppointmentSettings /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/create-activity",
             element: (
-              <RequireAdmin>
-                <AdminCreateActivity />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminCreateActivity /></RequireSRO>
+                <RequireODSA><AdminCreateActivity /></RequireODSA>
+                <RequireSuperAdmin><AdminCreateActivity /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/pending-requests",
             element: (
-              <RequireAdmin>
-                <AdminPendingRequests />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminPendingRequests /></RequireSRO>
+                <RequireODSA><AdminPendingRequests /></RequireODSA>
+                <RequireSuperAdmin><AdminPendingRequests /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/activity-summary",
             element: (
-              <RequireAdmin>
-                <AdminActivitySummary />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminActivitySummary /></RequireSRO>
+                <RequireODSA><AdminActivitySummary /></RequireODSA>
+                <RequireSuperAdmin><AdminActivitySummary /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/activities-calendar",
             element: (
-              <RequireAdmin>
-                <AdminActivitiesCalendar />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminActivitiesCalendar /></RequireSRO>
+                <RequireODSA><AdminActivitiesCalendar /></RequireODSA>
+                <RequireSuperAdmin><AdminActivitiesCalendar /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/org-applications",
             element: (
-              <RequireAdmin>
-                <AdminOrgApplications />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminOrgApplications /></RequireSRO>
+                <RequireODSA><AdminOrgApplications /></RequireODSA>
+                <RequireSuperAdmin><AdminOrgApplications /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/organizations",
             element: (
-              <RequireAdmin>
-                <AdminOrganizations />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminOrganizations /></RequireSRO>
+                <RequireODSA><AdminOrganizations /></RequireODSA>
+                <RequireSuperAdmin><AdminOrganizations /></RequireSuperAdmin>
+              </>
             ),
           },
           {
             path: "admin/annual-reports",
             element: (
-              <RequireAdmin>
-                <AdminAnnualReports />
-              </RequireAdmin>
+              <>
+                <RequireSRO><AdminAnnualReports /></RequireSRO>
+                <RequireODSA><AdminAnnualReports /></RequireODSA>
+                <RequireSuperAdmin><AdminAnnualReports /></RequireSuperAdmin>
+              </>
             ),
           },
         ],
       },
-    ], 
-  }, 
+    ],
+  },  
   { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
   { path: "*", element: <NotFound /> },  
 ]);
