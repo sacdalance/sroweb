@@ -87,19 +87,15 @@ const Sidebar = () => {
           </p>
           <p className="text-sm text-center break-all">{user.email}</p>
         </div>
-
-        <hr className="border-t border-[#DBDBDB] my-4" />
-
-        <div className="mb-4 mt-4 font-medium">
-          <Link to={dashboardLink} className={linkClass(dashboardLink)}>
-            Dashboard
-          </Link>
-        </div>
-
-        <hr className="border-t border-[#DBDBDB] my-4" />
-
         {(isUser || isSuperAdmin) && (
           <>
+            <hr className="border-t border-[#DBDBDB] my-4" />
+            <div className="mb-4 mt-4 font-medium">
+              <Link to={dashboardLink} className={linkClass(dashboardLink)}>
+                Dashboard
+              </Link>
+            </div>
+            <hr className="border-t border-[#DBDBDB] my-4" />
             <div className="mb-6">
               <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
               <ul className="space-y-2 text-[15px] font-medium">
@@ -125,9 +121,11 @@ const Sidebar = () => {
 
         {(isSRO || isODSA || isSuperAdmin) && (
           <div className="mb-6">
-            <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
             <ul className="space-y-2 text-[15px] font-medium">
+              <hr className="border-t border-[#DBDBDB] my-4" />
               <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
+              <hr className="border-t border-[#DBDBDB] my-4" />
+              <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
               <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
               <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity</Link></li>
               <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
@@ -137,6 +135,7 @@ const Sidebar = () => {
               <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Organizations</Link></li>
               <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Annual Reports</Link></li>
             </ul>
+            <hr className="border-t border-[#DBDBDB] my-4" />
           </div>
         )}
       </ScrollArea>
