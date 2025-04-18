@@ -1,28 +1,12 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { useEffect, useState } from "react";
-import supabase from "@/lib/supabase";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import supabase from "@/lib/supabase";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, Pencil, ChevronDown } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
-
 const formatLabel = (value, options) => {
-  if (!Array.isArray(options)) {
-    console.warn("Invalid options passed to formatLabel:", options);
-    return value;
-  }
-
   const found = options.find(opt => opt.id === value);
   return found ? found.label : value;
 };
@@ -64,20 +48,150 @@ const activityTypeOptions = [
 
 const formatSDGLabels = (sdgString) => {
   const ids = sdgString?.split(",") || [];
-  return ids.map((id) => {
+  return ids.map(id => {
     const match = sdgOptions.find(opt => opt.id === id);
     return match ? match.label : id;
   });
 };
 
-const formatActivityTypeLabel = (id) => formatLabel(activityTypeOptions, id);
+const ActivityDialogContent = ({ activity }) => {
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const description = activity.activity_description || "";
+  const isLong = description.length > 300;
+  const toggleDescription = () => setShowFullDescription(!showFullDescription);
 
-const formatLabelArray = (idsString, options) => {
-  if (!idsString) return [];
-  const ids = idsString.split(",");
-  return ids.map(id => formatLabel(id, options));
+  const formatDateRange = (schedule) => {
+    if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
+    const { start_date, end_date } = schedule[0];
+    const start = new Date(start_date).toLocaleDateString();
+    const endFormatted = end_date ? new Date(end_date).toLocaleDateString() : "";
+    return start === endFormatted || !endFormatted ? start : `${start} - ${endFormatted}`;
+  };
+
+  const formatTime = (t) => {
+    if (!t) return "N/A";
+    const [h, m] = t.split(":");
+    return new Date(0, 0, 0, h, m).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  return (
+    <DialogContent className="max-w-5xl w-full p-0 overflow-hidden">
+      <ScrollArea className="max-h-[80vh] px-6 py-4">
+        <DialogHeader>
+          <DialogTitle className="text-2xl text-[#7B1113] font-bold">{activity.activity_name}</DialogTitle>
+          <p className="text-sm font-semibold text-gray-700 mb-2">{activity.organization?.org_name || "Organization Name"}</p>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-y-6 text-sm">
+        {/* Description */}
+        <div className="text-gray-800">
+          {!isLong ? (
+            <p className="whitespace-pre-wrap">{description}</p>
+          ) : showFullDescription ? (
+            <>
+              <p className="whitespace-pre-wrap">{description}</p>
+              <button
+                onClick={toggleDescription}
+                className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+              >
+                Show less
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="whitespace-pre-wrap">{description.slice(0, 300)}...</p>
+              <button
+                onClick={toggleDescription}
+                className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+              >
+                Show more
+              </button>
+            </>
+          )}
+        </div>
+
+          {/* General Info */}
+          <div className="space-y-1">
+            <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
+            <div className="pl-4">
+              <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
+              <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
+              <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
+              <p><strong>Adviser Contact:</strong> {activity.organization?.adviser_email || "N/A"}</p>
+            </div>
+          </div>
+
+          {/* Specifications */}
+          <div className="space-y-1">
+            <h3 className="text-[#7B1113] font-semibold mb-1">Specifications</h3>
+            <div className="pl-4">
+              <p><strong>Venue:</strong> {activity.venue}</p>
+              <p><strong>Venue Approver:</strong> {activity.venue_approver}</p>
+              <p><strong>Venue Contact:</strong> {activity.venue_approver_contact}</p>
+              <p><strong>Green Monitor:</strong> {activity.green_monitor_name}</p>
+              <p><strong>Monitor Contact:</strong> {activity.green_monitor_contact}</p>
+              <p><strong>Off-Campus:</strong> {activity.is_off_campus === "true" ? "Yes" : "No"}</p>
+            </div>
+          </div>
+
+          {/* Schedule */}
+          <div className="space-y-1">
+            <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
+            <div className="pl-4">
+              <p><strong>Date:</strong> {formatDateRange(activity.schedule)}</p>
+              <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+              {activity.schedule?.[0]?.is_recurring !== "one-time" && (
+                <p><strong>Recurring Days:</strong> {activity.schedule?.[0]?.recurring_days || "N/A"}</p>
+              )}
+            </div>
+          </div>
+
+          {/* University Partners */}
+          {activity.university_partner === "true" && (
+            <Collapsible className="border border-gray-300 rounded-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+                <span>University Partners</span>
+                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
+                <p>{activity.partner_name || "None listed"}</p>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* SDG Goals */}
+          <Collapsible className="border border-gray-300 rounded-md">
+            <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+              <span>Sustainable Development Goals</span>
+              <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
+              {formatSDGLabels(activity.sdg_goals).join(", ") || "None listed"}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Status + Button */}
+          <div className="space-y-2">
+            <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
+            {activity.drive_folder_link && (
+              <a
+                href={activity.drive_folder_link}
+                className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Scanned Form
+              </a>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
+    </DialogContent>
+  );
 };
-
 
 const Activities = () => {
   const [requested, setRequested] = useState([]);
@@ -141,95 +255,6 @@ const Activities = () => {
       </div>
     );
   }
-
-  const renderDialogContent = (activity) => {
-    return (
-      <DialogContent className="max-w-5xl w-full">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Activity Details</DialogTitle>
-        </DialogHeader>
-
-        {/* Sectioned layout */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-          {/* General Information */}
-          <div className="space-y-3 py-2">
-            <h3 className="text-[#7B1113] font-semibold mb-2">General Information</h3>
-            <p><strong>Organization:</strong> {activity.organization?.org_name || "N/A"}</p>
-            <p><strong>Title:</strong> {activity.activity_name}</p>
-            <p><strong>Description:</strong> {activity.activity_description}</p>
-            <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
-            <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
-            <p><strong>University Partner:</strong> {activity.university_partner === "true" ? "Yes" : "No"}</p>
-            <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
-            <p><strong>Adviser Contact:</strong> {activity.organization?.adviser_email || "N/A"}</p>
-            {/* University Partners collapsible */}
-            {activity.university_partner === "true" && (
-              <Collapsible className="border rounded-md">
-                <CollapsibleTrigger className="group w-full bg-gray-100 px-4 py-2 flex items-center justify-between text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    <span>University Partners</span>
-                  </div>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent className="px-6 py-3 text-sm">
-                  <p>{activity.partner_name || "None listed"}</p>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-            {/* Sustainable Development Goals collapsible */}
-            <Collapsible className="border rounded-md">
-              <CollapsibleTrigger className="group w-full bg-gray-100 px-4 py-2 flex items-center justify-between text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                  <span>SDG List</span>
-                </div>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent className="px-6 py-3 text-sm">
-                {formatSDGLabels(activity.sdg_goals).join(", ") || "None listed"}
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-
-          {/* Schedule */}
-          <div className="space-y-3 py-2">
-            <h3 className="text-[#7B1113] font-semibold mb-2">Schedule</h3>
-            <p><strong>Date Range:</strong> {formatDateRange(activity.schedule)}</p>
-            <p><strong>Start Time:</strong> {formatTime(activity.schedule?.[0]?.start_time)}</p>
-            <p><strong>End Time:</strong> {formatTime(activity.schedule?.[0]?.end_time)}</p>
-            {activity.schedule?.[0]?.is_recurring !== "one-time" && (
-              <p><strong>Recurring Days:</strong> {activity.schedule?.[0]?.recurring_days || "N/A"}</p>
-            )}
-
-            {/* Specifications */}
-            <h3 className="text-[#7B1113] font-semibold mt-6 mb-2">Specifications</h3>
-            <p><strong>Venue:</strong> {activity.venue}</p>
-            <p><strong>Venue Approver:</strong> {activity.venue_approver}</p>
-            <p><strong>Venue Contact:</strong> {activity.venue_approver_contact}</p>
-            <p><strong>Green Monitor:</strong> {activity.green_monitor_name}</p>
-            <p><strong>Monitor Contact:</strong> {activity.green_monitor_contact}</p>
-            <p><strong>Off Campus:</strong> {activity.is_off_campus === "true" ? "Yes" : "No"}</p>
-
-            {/* Submission */}
-            <h3 className="text-[#7B1113] font-semibold mt-6 mb-2">Submission</h3>
-            <p>
-              <strong>Drive Link:</strong>{" "}
-              <a
-                className="text-blue-600 hover:underline break-all"
-                href={activity.drive_folder_link || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {activity.drive_folder_link || "N/A"}
-              </a>
-            </p>
-            <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
-          </div>
-        </div>
-      </DialogContent>
-    );
-  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
@@ -348,7 +373,7 @@ const Activities = () => {
           </Card>
         </section>
 
-        {selectedActivity && renderDialogContent(selectedActivity)}
+        {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
       </Dialog>
     </div>
   );
