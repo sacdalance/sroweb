@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { LogOut } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2 } from "lucide-react";
 
 const Sidebar = () => {
   const [user, setUser] = useState(null);
@@ -83,7 +84,12 @@ const Sidebar = () => {
               2: "SRO Staff",
               3: "ODSA Staff",
               4: "Super Admin",
-            }[role] || "Undefined"}
+            }[role] || (
+              <span className="inline-flex items-center gap-2 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Assigning...
+              </span>
+            )}
           </p>
           <p className="text-sm text-center break-all">{user.email}</p>
         </div>
