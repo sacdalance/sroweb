@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/list', async (req, res) => {
   const { data, error } = await supabase
     .from('organization')
-    .select('org_id, org_name, org_email');
+    .select('org_id, org_name, adviser_name, adviser_email');
 
   if (error) {
     console.error('Error fetching organizations:', error);
