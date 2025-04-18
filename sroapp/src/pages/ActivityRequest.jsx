@@ -8,6 +8,7 @@ import {
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
 import { Button } from "../components/ui/button";
@@ -1384,43 +1385,46 @@ const ActivityRequest = () => {
                         Please read before submitting your activity request:
                     </AlertDialogTitle>
                     </AlertDialogHeader>
-                    <div className="text-sm text-gray-800 space-y-2 leading-relaxed">
-                    <ol className="list-decimal list-inside space-y-2">
-                    <li>
-                    Requests to use any university facility or space must be submitted <strong>at least five days</strong> or at most two weeks prior to use. However, requests for activities to be held off-campus may be submitted earlier than two weeks.
-                    </li>
-                    <li>
-                    The official curfew on campus is <strong>9:00 PM</strong>. Staying beyond this time is permitted only under exceptional circumstances, and requests for extensions will be considered only if supported by valid and acceptable justifications. Strict instructions are given to the Security Office not to allow use of facilities without prior approval for late stays. <strong>The presence of the organization’s adviser is required if the organization intends to remain on campus beyond 9:00 PM.</strong> Overnight sleeping on campus is strictly prohibited.
-                    </li>
-                    <li>
-                    Student organizations requesting tables and chairs for their activity are responsible for setting them up in the designated venues and ensuring their proper return. Organizations that fail to return the equipment will receive a warning, and repeated violations may result in disciplinary action. Additionally, organizations are responsible for obtaining the keys to their requested rooms and must coordinate with the relevant offices or venue approvers during office hours, especially if the activity is scheduled for the weekend or extends beyond the 9:00 PM curfew.
-                    </li>
-                    <li>
-                    There are designated areas for specific activities. For example, selling activities must be held in the space near the guardhouse and will not be allowed in the lobby or other areas. Organizations must always coordinate with the OSA and SRO to ensure that proper arrangements are made.
-                    </li>
-                    <li>
-                    For the use of classrooms: (A) Organizations, particularly the Green Campus Monitor, must clean up and return the chairs to their original arrangement; (B) Any markings on the board should be erased; (C) Users should minimize noise to avoid disturbing ongoing classes and activities in adjacent rooms.
-                    </li>
-                    <li>
-                    For borrowed equipment at OSA: (A) Equipment may be signed out an hour before the activity. If the equipment is to be used over the weekend, it may be signed out between 1:00 and 3:00 PM on Friday. (B) Equipment must be returned immediately after the approved time stated in the Approval Slip. If the activity takes place on a weekend, the equipment must be returned the following Monday between 8:00 AM and 9:00 AM. Upon return, OSA personnel will inspect the equipment to ensure it is in proper condition. (C) Lost equipment must be replaced with the same specifications. A reasonable deadline will be set for replacement. Damaged or non-functioning units will be dealt with on a 'case-to-case' basis, depending on the severity of the damage.
-                    </li>
-                    <li>
-                    Student organizations must strictly adhere to the approved time for using the facility or staying on campus. Any extensions will require further approval, as other requests may be scheduled after their use.
-                    </li>
-                    <li>
-                    When collaborating with a university unit or another organization, the concept paper for the activity must be signed by the representatives of both the partner unit or organization and the student organization's representatives, including the organization advisers.
-                    </li>
-                    <li>
-                    If the activity is off-campus, the requesting organization must also submit OSA-SRO Form 2A (Notice of Off-Campus Activity) and OSA-SRO Form 2B (Waiver for Off-Campus Student Activities), with Form 2B requiring notarization.
-                    </li>
-                    <li>
-                    A venue approver is only needed when the activity is held on-campus and conducted in person. Otherwise, the organization must indicate the online platform to be used or the off-campus venue.
-                    </li>
-                    <li>
-                    Violations of any rules/guidelines shall be dealt with strictly and accordingly.
-                    </li>
-                </ol>
-                    </div>
+
+                    <ScrollArea className="h-[60vh] pr-4">
+                        <div className="text-sm text-gray-800 space-y-2 leading-relaxed">
+                        <ol className="list-decimal list-inside space-y-2">
+                        <li>
+                        Requests to use any university facility or space must be submitted <strong>at least five days</strong> or at most two weeks prior to use. However, requests for activities to be held off-campus may be submitted earlier than two weeks.
+                        </li>
+                        <li>
+                        The official curfew on campus is <strong>9:00 PM</strong>. Staying beyond this time is permitted only under exceptional circumstances, and requests for extensions will be considered only if supported by valid and acceptable justifications. Strict instructions are given to the Security Office not to allow use of facilities without prior approval for late stays. <strong>The presence of the organization’s adviser is required if the organization intends to remain on campus beyond 9:00 PM.</strong> Overnight sleeping on campus is strictly prohibited.
+                        </li>
+                        <li>
+                        Student organizations requesting tables and chairs for their activity are responsible for setting them up in the designated venues and ensuring their proper return. Organizations that fail to return the equipment will receive a warning, and repeated violations may result in disciplinary action. Additionally, organizations are responsible for obtaining the keys to their requested rooms and must coordinate with the relevant offices or venue approvers during office hours, especially if the activity is scheduled for the weekend or extends beyond the 9:00 PM curfew.
+                        </li>
+                        <li>
+                        There are designated areas for specific activities. For example, selling activities must be held in the space near the guardhouse and will not be allowed in the lobby or other areas. Organizations must always coordinate with the OSA and SRO to ensure that proper arrangements are made.
+                        </li>
+                        <li>
+                        For the use of classrooms: (A) Organizations, particularly the Green Campus Monitor, must clean up and return the chairs to their original arrangement; (B) Any markings on the board should be erased; (C) Users should minimize noise to avoid disturbing ongoing classes and activities in adjacent rooms.
+                        </li>
+                        <li>
+                        For borrowed equipment at OSA: (A) Equipment may be signed out an hour before the activity. If the equipment is to be used over the weekend, it may be signed out between 1:00 and 3:00 PM on Friday. (B) Equipment must be returned immediately after the approved time stated in the Approval Slip. If the activity takes place on a weekend, the equipment must be returned the following Monday between 8:00 AM and 9:00 AM. Upon return, OSA personnel will inspect the equipment to ensure it is in proper condition. (C) Lost equipment must be replaced with the same specifications. A reasonable deadline will be set for replacement. Damaged or non-functioning units will be dealt with on a 'case-to-case' basis, depending on the severity of the damage.
+                        </li>
+                        <li>
+                        Student organizations must strictly adhere to the approved time for using the facility or staying on campus. Any extensions will require further approval, as other requests may be scheduled after their use.
+                        </li>
+                        <li>
+                        When collaborating with a university unit or another organization, the concept paper for the activity must be signed by the representatives of both the partner unit or organization and the student organization's representatives, including the organization advisers.
+                        </li>
+                        <li>
+                        If the activity is off-campus, the requesting organization must also submit OSA-SRO Form 2A (Notice of Off-Campus Activity) and OSA-SRO Form 2B (Waiver for Off-Campus Student Activities), with Form 2B requiring notarization.
+                        </li>
+                        <li>
+                        A venue approver is only needed when the activity is held on-campus and conducted in person. Otherwise, the organization must indicate the online platform to be used or the off-campus venue.
+                        </li>
+                        <li>
+                        Violations of any rules/guidelines shall be dealt with strictly and accordingly.
+                        </li>
+                    </ol>
+                        </div>
+                    </ScrollArea>
                     <AlertDialogFooter className="mt-4">
                     <Button onClick={() => setShowRemindersDialog(false)} className="bg-[#7B1113] text-white hover:bg-[#5e0d0f]">
                         I Understand
