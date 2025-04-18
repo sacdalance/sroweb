@@ -185,6 +185,14 @@ const router = createBrowserRouter([
             ),
           },
           {
+            path: "admin/activity-summary",
+            element: (
+              <RequireAdmin>
+                <AdminActivitySummary />
+              </RequireAdmin>
+            ),
+          },
+          {
             path: "admin/appointment-settings",
             element: (
               <RequireAdmin>
@@ -205,14 +213,6 @@ const router = createBrowserRouter([
             element: (
               <RequireAdmin>
                 <AdminPendingRequests />
-              </RequireAdmin>
-            ),
-          },
-          {
-            path: "admin/activity-summary",
-            element: (
-              <RequireAdmin>
-                <AdminActivitySummary />
               </RequireAdmin>
             ),
           },

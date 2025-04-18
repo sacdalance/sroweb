@@ -116,7 +116,7 @@ const AdminAppointmentSettings = () => {
           </div>
           
           <button 
-            className="p-2 bg-[#9B2242] text-white rounded-md"
+            className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md"
             onClick={handleSaveSettings}
           >
             Save Settings
@@ -136,7 +136,7 @@ const AdminAppointmentSettings = () => {
               onChange={(e) => setNewBlockedDate(e.target.value)}
             />
             <button 
-              className="p-2 bg-[#9B2242] text-white rounded-r-md"
+              className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-r-md"
               onClick={handleAddBlockedDate}
             >
               Add
@@ -149,7 +149,7 @@ const AdminAppointmentSettings = () => {
                 <li key={date} className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
                   {new Date(date).toLocaleDateString()}
                   <button 
-                    className="text-red-500"
+                    className="text-[#7B1113] hover:text-[#5e0d0e]"
                     onClick={() => handleRemoveBlockedDate(date)}
                   >
                     Remove
@@ -174,7 +174,7 @@ const AdminAppointmentSettings = () => {
               key={slot}
               className={`p-2 border rounded-md ${
                 blockedTimeSlots.includes(slot) 
-                  ? "bg-red-100 text-red-700 border-red-300" 
+                  ? "bg-[#7B1113]/10 text-[#7B1113] border-[#7B1113]/20" 
                   : "bg-green-100 text-green-700 border-green-300"
               }`}
               onClick={() => toggleTimeSlot(slot)}

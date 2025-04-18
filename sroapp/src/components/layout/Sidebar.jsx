@@ -92,6 +92,7 @@ const Sidebar = () => {
             <h3 className="uppercase text-base font-bold mb-3">Administration</h3>
             <ul className="space-y-2 text-[15px] font-medium">
               <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Submissions</Link></li>
+              <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Activity Summary</Link></li>
               <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity Record</Link></li>
               <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
               <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>

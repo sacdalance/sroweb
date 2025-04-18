@@ -4,12 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { ChevronLeft, ChevronRight, Printer, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
 
 const AdminActivitiesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 3)); // April 2025
   const [viewMode, setViewMode] = useState("month"); // 'month' or 'day'
   const [selectedDay, setSelectedDay] = useState(new Date(2025, 3, 9)); // April 9, 2025
   const [filter, setFilter] = useState("all"); // 'all', 'approved', 'pending'
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState("all");
   
   // Month and year options
   const months = [
@@ -27,7 +37,6 @@ const AdminActivitiesCalendar = () => {
   // Selected values for dropdowns
   const [selectedMonth, setSelectedMonth] = useState(months[currentDate.getMonth()]);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
-  const [selectedOrganization, setSelectedOrganization] = useState("all");
 
   // Days of the week
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -150,16 +159,14 @@ const AdminActivitiesCalendar = () => {
     if (!date) return [];
     
     return events.filter(event => {
-      if (filter === "all") {
-        return event.date.getDate() === date.getDate() && 
-               event.date.getMonth() === date.getMonth() && 
-               event.date.getFullYear() === date.getFullYear();
-      } else {
-        return event.date.getDate() === date.getDate() && 
-               event.date.getMonth() === date.getMonth() && 
-               event.date.getFullYear() === date.getFullYear() &&
-               event.status === filter;
-      }
+      const dateMatch = event.date.getDate() === date.getDate() && 
+                       event.date.getMonth() === date.getMonth() && 
+                       event.date.getFullYear() === date.getFullYear();
+      
+      const statusMatch = filter === "all" || event.status === filter;
+      const orgMatch = selectedOrganization === "all" || event.organization === selectedOrganization;
+      
+      return dateMatch && statusMatch && orgMatch;
     });
   };
 
@@ -309,10 +316,10 @@ const AdminActivitiesCalendar = () => {
     }
   ];
 
-  // Mock view event details handler
+  // Update the handleViewEventDetails function
   const handleViewEventDetails = (event) => {
-    console.log("Viewing event details:", event);
-    // Logic to view event details
+    setSelectedEvent(event);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -369,7 +376,7 @@ const AdminActivitiesCalendar = () => {
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
-        <CardHeader className="bg-[#7B1113]/10 py-4">
+        <CardHeader className="py-4">
           <div className="flex justify-between items-center">
             <CardTitle className="text-xl font-bold text-[#7B1113]">
               {selectedMonth} {selectedYear}
@@ -526,6 +533,102 @@ const AdminActivitiesCalendar = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add the Dialog component */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
+          <DialogHeader className="px-2">
+            <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-6 px-2">
+              {/* Activity Title, Description and Organization */}
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">{selectedEvent.title}</h2>
+                <p className="text-sm text-gray-600">{selectedEvent.organization}</p>
+                <p className="text-sm text-gray-700 mt-2">{selectedEvent.description || "No description available"}</p>
+              </div>
+
+              {/* General Information */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Activity Type:</span>
+                    <span>{selectedEvent.type}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Date:</span>
+                    <span>{selectedEvent.date}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Time:</span>
+                    <span>{selectedEvent.time}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Venue:</span>
+                    <span>{selectedEvent.venue}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Date:</span>
+                    <span>{selectedEvent.date}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-32 text-gray-600">Time:</span>
+                    <span>{selectedEvent.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* University Partners */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
+                <div className="text-sm">
+                  <p>{selectedEvent.partners || "No university partners specified"}</p>
+                </div>
+              </div>
+
+              {/* List of Sustainable Development Goals */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
+                <div className="flex gap-2">
+                  {selectedEvent.sdgs ? (
+                    selectedEvent.sdgs.map((sdg, index) => (
+                      <span key={index} className="text-sm bg-gray-100 px-2 py-1 rounded">
+                        {sdg}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-500">No SDGs specified</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Section with Status and View Form Button */}
+              <div className="flex justify-between items-center">
+                <Button 
+                  className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
+                >
+                  View Scanned Form
+                </Button>
+                <Badge 
+                  variant={selectedEvent.status === 'approved' ? 'success' : 'warning'}
+                  className="text-sm px-4 py-1"
+                >
+                  {selectedEvent.status ? selectedEvent.status.charAt(0).toUpperCase() + selectedEvent.status.slice(1) : 'Unknown'}
+                </Badge>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

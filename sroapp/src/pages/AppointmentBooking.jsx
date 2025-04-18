@@ -161,20 +161,20 @@ const AppointmentBooking = () => {
       top: 0.75rem;
     }
     .react-datepicker__day--selected {
-      background-color: #9B2242 !important;
+      background-color: #7B1113 !important;
       border-radius: 0.375rem;
       font-weight: bold;
     }
     .react-datepicker__day--today {
       font-weight: bold;
-      color: #9B2242;
+      color: #7B1113;
     }
     .react-datepicker__day:hover {
       background-color: #f3f4f6;
       border-radius: 0.375rem;
     }
     .react-datepicker__day--keyboard-selected {
-      background-color: rgba(155, 34, 66, 0.2);
+      background-color: rgba(123, 17, 19, 0.2);
     }
     .react-datepicker__day {
       margin: 0.2rem;
@@ -207,7 +207,7 @@ const AppointmentBooking = () => {
 
       {/* Error message */}
       {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+        <div className="bg-[#7B1113]/10 text-[#7B1113] p-3 rounded-md mb-4">
           {error}
         </div>
       )}
@@ -318,7 +318,7 @@ const AppointmentBooking = () => {
 
         {/* Book Appointment Button */}
         <button
-          className="p-2 bg-[#9B2242] text-white rounded-md"
+          className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md"
           onClick={() => setShowConfirmation(true)}
           disabled={!isFormValid()}
         >
@@ -357,7 +357,7 @@ const AppointmentBooking = () => {
                 Cancel
               </button>
               <button
-                className="p-2 bg-[#9B2242] text-white rounded-md"
+                className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md"
                 onClick={handleSubmit}
               >
                 Confirm
