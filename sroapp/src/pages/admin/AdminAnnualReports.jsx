@@ -48,7 +48,7 @@ const AdminAnnualReports = () => {
 
       {/* Filters and Search */}
       <Card className="rounded-lg shadow-md mb-8">
-        <CardHeader className="bg-[#7B1113]/10 py-4">
+        <CardHeader className="py-4">
           <CardTitle className="text-xl font-bold text-[#7B1113]">
             Report Filters
           </CardTitle>
@@ -85,7 +85,7 @@ const AdminAnnualReports = () => {
 
       {/* Annual Reports Table */}
       <Card className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <CardHeader className="bg-[#7B1113]/10 py-4">
+        <CardHeader className="py-4">
           <CardTitle className="text-xl font-bold text-[#7B1113]">
             Submitted Reports
           </CardTitle>

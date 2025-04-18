@@ -249,7 +249,7 @@ const AdminOrganizations = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredOrganizations.map((org) => (
           <Card key={org.id} className="rounded-lg overflow-hidden shadow-md">
-            <CardHeader className="bg-[#7B1113]/10 py-4">
+            <CardHeader className="py-4">
               <CardTitle className="text-lg font-bold text-[#7B1113]">{org.name}</CardTitle>
               <p className="text-xs text-gray-600 mt-1">{org.category}</p>
             </CardHeader>
