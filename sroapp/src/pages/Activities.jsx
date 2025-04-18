@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, Pencil, ChevronDown } from "lucide-react";
+import { Loader2, Eye, Pencil, ChevronDown } from "lucide-react";
 const formatLabel = (value, options) => {
   const found = options.find(opt => opt.id === value);
   return found ? found.label : value;
@@ -250,8 +250,9 @@ const Activities = () => {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto text-center">
-        <p className="text-gray-600">Loading activities...</p>
+      <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
+        <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+        <p>Loading activities...</p>
       </div>
     );
   }
