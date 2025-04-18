@@ -136,26 +136,26 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Submission Date</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Organization</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Name</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Type</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Date</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Venue</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Adviser</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Actions</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Submission Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Organization</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Name</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Type</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Venue</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Adviser</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {pendingAppeals.map((appeal) => (
                       <tr key={appeal.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.submissionDate}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.organization}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityName}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityType}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.activityDate}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.venue}</td>
-                        <td className="px-5 py-4 text-center text-sm text-gray-700">{appeal.adviser}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.submissionDate}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.organization}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.activityName}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.activityType}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.activityDate}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.venue}</td>
+                        <td className="px-5 py-4 text-center text-sm text-gray-700 text-center">{appeal.adviser}</td>
                         <td className="px-5 py-4 text-center text-sm">
                           <div className="flex justify-center">
                             <button
@@ -187,14 +187,14 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Submission Date</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Organization</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Name</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Type</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Activity Date</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Venue</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421]">Adviser</th>
-                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] w-20">Actions</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Submission Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Organization</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Name</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Type</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Activity Date</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Venue</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center">Adviser</th>
+                      <th className="px-5 py-3 text-center text-sm font-medium text-[#014421] text-center w-20">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -209,13 +209,13 @@ const AdminPendingRequests = () => {
                   ) : (
                       incomingRequests.map((request) => (
                         <tr key={request.activity_id} className="hover:bg-gray-50">
-                          <td className="px-5 py-4 text-sm text-gray-700">{new Date(request.schedule?.[0]?.start_date).toLocaleDateString()}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.organization?.org_name || "N/A"}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.activity_name}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.activity_type}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.schedule?.[0]?.start_time || "N/A"}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.venue}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700">{request.organization?.adviser_name || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{new Date(request.schedule?.[0]?.start_date).toLocaleDateString()}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.organization?.org_name || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_type}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.schedule?.[0]?.start_time || "N/A"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
+                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.organization?.adviser_name || "N/A"}</td>
                           <td className="px-5 py-4 text-sm text-center">
                             <div className="flex justify-center">
                               <button
@@ -249,7 +249,7 @@ const AdminPendingRequests = () => {
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold">{selectedActivity.activityName}</h2>
                 <p className="text-sm text-gray-600">{selectedActivity.organization}</p>
-                <p className="text-sm text-gray-700 mt-2">{selectedActivity.activityDescription}</p>
+                <p className="text-sm text-gray-700 text-center mt-2">{selectedActivity.activityDescription}</p>
               </div>
 
               {/* General Information */}
