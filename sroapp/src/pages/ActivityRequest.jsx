@@ -475,7 +475,7 @@ const ActivityRequest = () => {
             }
             };
 
-            const handleSectionChange = (nextSection) => {
+            const handleNextSection = (nextSection) => {
                 const result = validateCurrentSection(currentSection, {
                     selectedValue,
                     studentPosition,
@@ -501,28 +501,88 @@ const ActivityRequest = () => {
                     partnerDescription,
                     isOffCampus,
                     recurringDays
-                    });                  
-                
-                    if (!result.valid) {
+                });
+            
+                if (!result.valid) {
                     toast.dismiss();
                     toast.error(result.message);
-                
+            
                     const el = document.getElementById(result.field);
                     if (el) {
                         el.scrollIntoView({ behavior: "smooth", block: "center" });
-                
-                        // Only try focus if it's a natively focusable element
                         if (typeof el.focus === "function" && ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
-                        el.focus();
+                            el.focus();
                         }
                     }
-                
                     return;
-                    }
-                
-                    setCurrentSection(nextSection);
-                };              
+                }
             
+                setCurrentSection(nextSection);
+            };
+            
+            const handleBackSection = (previousSection) => {
+                setCurrentSection(previousSection);
+            };            
+            
+            const handleMenuNavigation = (targetSection) => {
+                const sections = ["general-info", "date-info", "specifications", "submission"];
+                const currentIndex = sections.indexOf(currentSection);
+                const targetIndex = sections.indexOf(targetSection);
+            
+                // Going backward is always allowed
+                if (targetIndex < currentIndex) {
+                setCurrentSection(targetSection);
+                return;
+                }
+            
+                // Validate all sections from current up to target - 1
+                for (let i = currentIndex; i < targetIndex; i++) {
+                const section = sections[i];
+                const result = validateCurrentSection(section, {
+                    selectedValue,
+                    studentPosition,
+                    studentContact,
+                    activityName,
+                    activityDescription,
+                    selectedActivityType,
+                    startDate,
+                    startTime,
+                    endTime,
+                    endDate,
+                    recurring,
+                    venue,
+                    venueApprover,
+                    venueApproverContact,
+                    greenCampusMonitor,
+                    greenCampusMonitorContact,
+                    selectedFile,
+                    chargingFees1,
+                    selectedSDGs,
+                    partnering,
+                    selectedPublicAffairs,
+                    partnerDescription,
+                    isOffCampus,
+                    recurringDays
+                });
+            
+                if (!result.valid) {
+                    toast.dismiss();
+                    toast.error(result.message);
+            
+                    const el = document.getElementById(result.field);
+                    if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    if (typeof el.focus === "function" && ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)) {
+                        el.focus();
+                    }
+                    }
+                    return; // Stop at the first invalid section
+                }
+                }
+            
+                // All validations passed, allow jump
+                setCurrentSection(targetSection);
+            };              
 
     const [orgOptions, setOrgOptions] = useState([]);
     useEffect(() => {
@@ -559,7 +619,7 @@ const ActivityRequest = () => {
                         <Button
                             variant={currentSection === "general-info" ? "default" : "ghost"}
                             className={`${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
-                            onClick={() => handleSectionChange("general-info")}
+                            onClick={() => handleMenuNavigation("general-info")}
                         >
                             General Information
                         </Button>
@@ -567,7 +627,7 @@ const ActivityRequest = () => {
                         <Button
                             variant={currentSection === "date-info" ? "default" : "ghost"}
                             className={`${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
-                            onClick={() => handleSectionChange("date-info")}
+                            onClick={() => handleMenuNavigation("date-info")}
                         >
                             Date Information
                         </Button>
@@ -575,7 +635,7 @@ const ActivityRequest = () => {
                         <Button
                             variant={currentSection === "specifications" ? "default" : "ghost"}
                             className={`${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
-                            onClick={() => handleSectionChange("specifications")}
+                            onClick={() => handleMenuNavigation("specifications")}
                         >
                             Specifications
                         </Button>
@@ -583,7 +643,7 @@ const ActivityRequest = () => {
                         <Button
                             variant={currentSection === "submission" ? "default" : "ghost"}
                             className={`${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
-                            onClick={() => handleSectionChange("submission")}
+                            onClick={() => handleMenuNavigation("submission")}
                         >
                             Submission
                         </Button>
@@ -821,7 +881,7 @@ const ActivityRequest = () => {
                                     <Button
                                         type="button"
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
-                                        onClick={() => handleSectionChange("date-info")}
+                                        onClick={() => handleNextSection("date-info")}
                                     >
                                         Next
                                     </Button>
@@ -941,14 +1001,14 @@ const ActivityRequest = () => {
                                     <Button
                                         type="button"
                                         className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6"
-                                        onClick={() => handleSectionChange("general-info")}
+                                        onClick={() => handleBackSection("general-info")}
                                     >
                                         Back
                                     </Button>
                                     <Button
                                         type="button"
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
-                                        onClick={() => handleSectionChange("specifications")}
+                                        onClick={() => handleNextSection("specifications")}
                                     >
                                         Next
                                     </Button>
@@ -1174,14 +1234,14 @@ const ActivityRequest = () => {
                                     <Button
                                         type="button"
                                         className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6"
-                                        onClick={() => handleSectionChange("date-info")}
+                                        onClick={() => handleBackSection("date-info")}
                                     >
                                         Back
                                     </Button>
                                     <Button
                                         type="button"
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
-                                        onClick={() => handleSectionChange("submission")}
+                                        onClick={() => handleNextSection("submission")}
                                     >
                                         Next
                                     </Button>
@@ -1252,7 +1312,7 @@ const ActivityRequest = () => {
                                 <Button
                                     type="button"
                                     className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5"
-                                    onClick={() => handleSectionChange("specifications")}
+                                    onClick={() => handleBackSection("specifications")}
                                     >
                                     Back
                                     </Button>
