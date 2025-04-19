@@ -48,12 +48,12 @@ export async function rejectActivity(activityId, comment, userRole) {
   }
 
   const { error } = await supabase
-    .from("activity")
-    .update(updates)
-    .eq("activity_id", activityId);
+  .from("activity")
+  .update(updates)
+  .eq("activity_id", activityId);
 
   if (error) {
     console.error("Supabase error during rejection:", error);
-    throw new Error("Failed to reject activity.");
+    throw error;
   }
 }

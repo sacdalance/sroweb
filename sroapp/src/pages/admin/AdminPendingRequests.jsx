@@ -406,8 +406,8 @@ const ActivityDialogContent = ({
                     }));
                   }
                 } catch (error) {
-                  console.error("Error:", error);
-                  toast.error("Something went wrong.");
+                  console.error("Reject Error:", error);
+                  toast.error(`Something went wrong: ${error.message}`);
                 } finally {
                   setSubmitting(false);
                   setConfirmationOpen(false);
@@ -567,7 +567,6 @@ const AdminPendingRequests = () => {
   
     await approveActivity(selectedActivity.activity_id, comment, userRole);
     await refreshSelectedActivity(selectedActivity.activity_id);
-    await fetchIncoming();
   };
   
   const handleReject = async (comment) => {
@@ -578,7 +577,6 @@ const AdminPendingRequests = () => {
   
     await rejectActivity(selectedActivity.activity_id, comment, userRole);
     await refreshSelectedActivity(selectedActivity.activity_id);
-    await fetchIncoming();
   };
 
 
