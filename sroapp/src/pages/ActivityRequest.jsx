@@ -30,8 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils"; // if you're using ShadCN's cn() class merging
-
+import { cn } from "@/lib/utils";
 const ActivityRequest = () => {
     const [selectedValue, setSelectedValue] = useState("");
     const [studentPosition, setStudentPosition] = useState("");
