@@ -18,8 +18,9 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Calendar, Clock, User, X, Check, Eye, ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Eye, ChevronDown } from "lucide-react";
+import { toast, Toaster } from "sonner";
+import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -66,7 +67,6 @@ const ActivityDialogContent = ({
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [decisionType, setDecisionType] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [actionMessage, setActionMessage] = useState("");
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   
   const commentRef = useRef(null);
@@ -85,13 +85,6 @@ const ActivityDialogContent = ({
       setDecisionType(null);
     }
   }, [isModalOpen]);
-
-  useEffect(() => {
-    if (actionMessage) {
-      const timer = setTimeout(() => setActionMessage(""), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [actionMessage]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -326,7 +319,7 @@ const ActivityDialogContent = ({
                 setSubmitting(true);
               
                 if (!userRole || !activity) {
-                  setActionMessage("⚠️ Please wait, your role or activity isn't ready.");
+                  toast.warning("Please wait...");
                   setSubmitting(false);
                   return;
                 }
@@ -334,7 +327,7 @@ const ActivityDialogContent = ({
                 try {
                   if (decisionType === "approve") {
                     await handleApprove(comment);
-                    setActionMessage("✅ Activity approved successfully!");
+                    toast.success("Activity approved successfully!");
                     setActivity({
                       ...activity,
                       ...(userRole === 2
@@ -347,7 +340,7 @@ const ActivityDialogContent = ({
                     });
                   } else {
                     await handleReject(comment);
-                    setActionMessage("❌ Activity rejected.");
+                    toast.error("Activity rejected.");
                     setActivity({
                       ...activity,
                       ...(userRole === 2
@@ -361,7 +354,7 @@ const ActivityDialogContent = ({
                   }
                 } catch (error) {
                   console.error("Error:", error);
-                  setActionMessage("Something went wrong while processing your request.");
+                  toast.error("Something went wrong.");
                 } finally {
                   setSubmitting(false);
                   setConfirmationOpen(false);
@@ -382,11 +375,6 @@ const ActivityDialogContent = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {actionMessage && (
-        <div className="text-sm text-center mt-4 font-medium text-green-700 bg-green-100 border border-green-300 px-4 py-2 rounded-md shadow-sm max-w-md mx-auto">
-          {actionMessage}
-        </div>
-      )}
     </DialogContent>
   );
 };
@@ -480,62 +468,25 @@ const AdminPendingRequests = () => {
 
   const handleApprove = async (comment) => {
     if (!selectedActivity || !userRole) {
-      console.error("No selectedActivity or userRole.");
+      console.error("Missing selectedActivity or userRole.");
       throw new Error("Activity or role not ready.");
     }
   
-    const updates = {};
-  
-    if (userRole === 2) {
-      updates.sro_approval_status = "Approved";
-      updates.sro_remarks = comment;
-    } else if (userRole === 3) {
-      updates.odsa_approval_status = "Approved";
-      updates.odsa_remarks = comment;
-      updates.final_status = "Approved";
-    }
-  
-    const { error } = await supabase
-      .from("activity")
-      .update(updates)
-      .eq("activity_id", selectedActivity.activity_id);
-  
-    if (error) {
-      console.error("Supabase update error:", error);
-      throw new Error("Failed to approve activity.");
-    }
+    await approveActivity(selectedActivity.activity_id, comment, userRole);
   };
   
   const handleReject = async (comment) => {
     if (!selectedActivity || !userRole) {
-      console.error("No selectedActivity or userRole.");
+      console.error("Missing selectedActivity or userRole.");
       throw new Error("Activity or role not ready.");
     }
   
-    const updates = {};
-  
-    if (userRole === 2) {
-      updates.sro_approval_status = "Rejected";
-      updates.sro_remarks = comment;
-    } else if (userRole === 3) {
-      updates.odsa_approval_status = "Rejected";
-      updates.odsa_remarks = comment;
-      updates.final_status = "Rejected";
-    }
-  
-    const { error } = await supabase
-      .from("activity")
-      .update(updates)
-      .eq("activity_id", selectedActivity.activity_id);
-  
-    if (error) {
-      console.error("Supabase update error:", error);
-      throw new Error("Failed to reject activity.");
-    }
+    await rejectActivity(selectedActivity.activity_id, comment, userRole);
   };
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
+      <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
