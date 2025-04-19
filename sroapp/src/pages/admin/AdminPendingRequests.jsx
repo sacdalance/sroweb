@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Button } from "../../components/ui/button";
@@ -18,8 +18,9 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Calendar, Clock, User, X, Check, Eye, ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Eye, ChevronDown } from "lucide-react";
+import { toast, Toaster } from "sonner";
+import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -48,11 +49,79 @@ const formatSDGLabels = (sdg) => {
   }
 };
 
-const ActivityDialogContent = ({ activity }) => {
+const ActivityDialogContent = ({
+  activity,
+  setActivity,
+  isModalOpen,
+  userRole,
+  handleApprove,
+  handleReject,
+}) => {
+  const isSRO = userRole === 2;
+  const isODSA = userRole === 3;
   const [showFullDescription, setShowFullDescription] = useState(false);
   const description = activity.activity_description || "";
   const isLong = description.length > 300;
+  const [comment, setComment] = useState(() => {
+    return userRole === 2
+      ? activity?.sro_remarks || ""
+      : activity?.odsa_remarks || "";
+  });
+  useEffect(() => {
+    setComment(
+      userRole === 2
+        ? activity?.sro_remarks || ""
+        : activity?.odsa_remarks || ""
+    );
+  }, [activity, userRole]);
+  const isActionLocked =
+  (isSRO && activity?.sro_approval_status) ||
+  (isODSA && activity?.odsa_approval_status);
+  const [showDecisionBox, setShowDecisionBox] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [scrollKey, setScrollKey] = useState(0);
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
+  
+  const [localActivity, setLocalActivity] = useState(activity);
+  useEffect(() => {
+    setLocalActivity(activity);
+  }, [activity]);
+    
+  const commentRef = useRef(null);
+
+  useEffect(() => {
+    if (showDecisionBox && commentRef.current) {
+      setTimeout(() => {
+        commentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [scrollKey]);
+
+  useEffect(() => {
+    if (!isModalOpen || !localActivity?.activity_id) return;
+  
+    const actionTaken =
+      (isSRO && localActivity?.sro_approval_status !== null) ||
+      (isODSA && localActivity?.odsa_approval_status !== null);
+  
+    // Reset everything immediately
+    setShowDecisionBox(false);
+    setConfirmationOpen(false);
+    setDecisionType(null);
+    setComment(
+      isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
+    );
+  
+    if (actionTaken) {
+      // Only open + scroll if action was really taken
+      setTimeout(() => {
+        setShowDecisionBox(true);
+        setScrollKey((k) => k + 1);
+      }, 100);
+    }
+  }, [isModalOpen, localActivity?.activity_id]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -171,18 +240,201 @@ const ActivityDialogContent = ({ activity }) => {
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
             {activity.drive_folder_link && (
+              <div className="flex items-center gap-2">
               <a
                 href={activity.drive_folder_link}
                 className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setShowDecisionBox(true)}
               >
                 View Scanned Form
               </a>
+                <button
+                  onClick={() => setShowDecisionBox((prev) => !prev)}
+                  className="text-[#014421] hover:text-[#012f18] transition-transform transform hover:scale-110"
+                  title="Toggle comment and approval options"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
+                </button>
+              </div>
             )}
           </div>
+          {showDecisionBox && (
+            <div className="mt-4 space-y-3" ref={commentRef}>
+              {isODSA && (
+                <div className="text-sm">
+                  <p className="text-gray-600 mb-1 font-medium">SRO Remarks:</p>
+                  <div className="border p-2 rounded bg-gray-50">
+                    {activity.sro_remarks?.trim() || "No comment provided."}
+                  </div>
+                </div>
+              )}
+
+              <label className="text-sm font-medium text-gray-700 block">
+                {isSRO ? "SRO Remarks" : "ODSA Remarks"}
+              </label>
+
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                placeholder={
+                  ((isSRO && activity.sro_approval_status) ||
+                  (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                    ? "No remark was given."
+                    : "Enter your remarks..."
+                }
+                className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                disabled={isActionLocked}
+              />
+
+              <div className="flex justify-end gap-3">
+                {isActionLocked ? (
+                <div className="w-full flex justify-end">
+                {localActivity.final_status === "Rejected" ? (
+                  <span className="px-4 py-1 rounded-full border border-[#7B1113] text-sm text-[#7B1113] font-medium italic">
+                    Activity Rejected
+                  </span>
+                ) : (
+                  <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
+                    {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
+                  </span>
+                )}
+              </div>              
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setDecisionType("approve");
+                        setConfirmationOpen(true);
+                      }}
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200 transition"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDecisionType("reject");
+                        setConfirmationOpen(true);
+                      }}
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200 transition"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
+      <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <DialogContent className="max-w-md rounded-lg shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#7B1113] font-bold text-lg">
+              Confirmation
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-700 mt-1">
+              You are{" "}
+              <strong
+                className={`uppercase font-bold ${
+                  decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"
+                }`}
+              >
+                {decisionType === "approve" ? "APPROVING" : "REJECTING"}
+              </strong>{" "}
+              the request for activity:
+            </DialogDescription>
+            <p className="text-base mt-2 font-semibold text-black">{activity.activity_name}</p>
+          </DialogHeader>
+
+          <div className="mt-2">
+            <p className="text-sm text-gray-600 mb-1">With reason:</p>
+            <div className="border border-gray-300 p-3 rounded-md text-sm bg-gray-50 whitespace-pre-wrap">
+              {comment.trim() || "No reason provided."}
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 mt-6">
+            <Button variant="ghost" className="cursor-pointer hover:scale-105 transform transition-transform duration-200" onClick={() => setConfirmationOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={submitting || !userRole || !activity}
+              onClick={async () => {
+                setSubmitting(true);
+              
+                if (!userRole || !activity) {
+                  toast.warning("Please wait...");
+                  setSubmitting(false);
+                  return;
+                }
+              
+                try {
+                  if (decisionType === "approve") {
+                    await handleApprove(comment);
+                    toast.success("Activity approved successfully!");
+                    setActivity({
+                      ...activity,
+                      ...(userRole === 2
+                        ? { sro_approval_status: "Approved", sro_remarks: comment }
+                        : {
+                            odsa_approval_status: "Approved",
+                            odsa_remarks: comment,
+                            final_status: "Approved",
+                          }),
+                    });
+                  } else {
+                    await handleReject(comment);
+                    toast.error("Activity rejected.");
+                    const updated = {
+                      ...(userRole === 2
+                        ? {
+                            sro_approval_status: "Rejected",
+                            sro_remarks: comment,
+                            odsa_approval_status: "Rejected",
+                            final_status: "Rejected",
+                          }
+                        : {
+                            odsa_approval_status: "Rejected",
+                            odsa_remarks: comment,
+                            final_status: "Rejected",
+                          }),
+                    };
+                    
+                    setActivity((prev) => ({
+                      ...prev,
+                      ...updated,
+                    }));
+                    
+                    setLocalActivity((prev) => ({
+                      ...prev,
+                      ...updated,
+                    }));
+                  }
+                } catch (error) {
+                  console.error("Reject Error:", error);
+                  toast.error(`Something went wrong: ${error.message}`);
+                } finally {
+                  setSubmitting(false);
+                  setConfirmationOpen(false);
+                }
+              }}
+              className={`${
+                decisionType === "approve"
+                  ? "bg-[#014421] hover:bg-[#013a1c]"
+                  : "bg-[#7B1113] hover:bg-[#5a0d0f]"
+              } text-white font-semibold cursor-pointer hover:scale-105 transform transition-transform duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {submitting ? (
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                "Confirm"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DialogContent>
   );
 };
@@ -192,6 +444,44 @@ const AdminPendingRequests = () => {
   const [activeTab, setActiveTab] = useState("appeals");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+  
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: account, error } = await supabase
+      .from("account")
+      .select("role_id")
+      .eq("email", user.email)
+      .single();
+  
+      if (error) {
+        console.error("Error fetching role:", error);
+      } else {
+        setUserRole(account?.role_id);
+        console.log("Fetched user role:", account?.role_id);
+      }
+    };
+  
+    fetchRole();
+  }, []);
+
+  const refreshSelectedActivity = async (id) => {
+    const { data, error } = await supabase
+      .from("activity")
+      .select("*")
+      .eq("activity_id", id)
+      .single();
+  
+    if (error) {
+      console.error("Failed to refresh activity:", error);
+    } else {
+      setSelectedActivity(data);
+    }
+  };
 
   // Mock data for pending appeals and cancellations
   const pendingAppeals = Array.from({ length: 5 }, (_, i) => ({
@@ -211,16 +501,13 @@ const AdminPendingRequests = () => {
 
   const [incomingRequests, setIncomingRequests] = useState([]);
   useEffect(() => {
+    if (!userRole) return; // Wait until role is available
+  
     const fetchIncoming = async () => {
       try {
         setLoading(true);
         const { data: sessionData, error } = await supabase.auth.getSession();
         const access_token = sessionData?.session?.access_token;
-        
-        if (!access_token) {
-          console.error("No access token found");
-          return;
-        }
   
         if (!access_token) {
           console.error("No access token found");
@@ -234,54 +521,79 @@ const AdminPendingRequests = () => {
         });
   
         console.log("Fetched incoming:", res.data);
-        setIncomingRequests(res.data);
+        const allActivities = res.data;
+        
+        const filtered = allActivities.filter((a) => {
+          if (userRole === 2) {
+            return (
+              a.sro_approval_status === null ||
+              (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+            );
+          } else if (userRole === 3) {
+            // ODSA sees only activities approved by SRO and not yet acted on by them
+            return (
+              a.sro_approval_status === "Approved" &&
+              a.odsa_approval_status === null
+            );
+          }
+          return true; // fallback: show all (for devs/superadmins if needed)
+        });
+        
+        setIncomingRequests(filtered);
+
       } catch (error) {
         console.error("Failed to fetch incoming submissions:", error);
       } finally {
-        setLoading(false); // stop loading
+        setLoading(false);
       }
     };
   
     fetchIncoming();
-  }, []);  
+  }, [userRole]); // trigger only when userRole is ready
 
-  const handleViewDetails = (activity) => {
-    setSelectedActivity(activity);
+  const handleViewDetails = async (activity) => {
+    const { data, error } = await supabase
+      .from("activity")
+      .select("*")
+      .eq("activity_id", activity.activity_id)
+      .single();
+  
+    if (error) {
+      console.error("Failed to fetch latest activity:", error);
+      toast.error("Something went wrong loading this activity.");
+      return;
+    }
+  
+    setSelectedActivity(data);
     setIsModalOpen(true);
   };
 
-  const handleApprove = async () => {
-    try {
-      // Here you would implement your API call to approve the activity
-      // For example:
-      // await approveActivity(selectedActivity.id);
-      
-      // Close the modal after successful approval
-      setIsModalOpen(false);
-      // You might want to update your list of activities here
-    } catch (error) {
-      console.error("Error approving activity:", error);
-      // Handle error (show toast, etc.)
+  const handleApprove = async (comment) => {
+    if (!selectedActivity || !userRole) {
+      console.error("Missing selectedActivity or userRole.");
+      throw new Error("Activity or role not ready.");
     }
+  
+    await approveActivity(selectedActivity.activity_id, comment, userRole);
+    await refreshSelectedActivity(selectedActivity.activity_id);
+  };
+  
+  const handleReject = async (comment) => {
+    if (!selectedActivity || !userRole) {
+      console.error("Missing selectedActivity or userRole.");
+      throw new Error("Activity or role not ready.");
+    }
+  
+    await rejectActivity(selectedActivity.activity_id, comment, userRole);
+    await refreshSelectedActivity(selectedActivity.activity_id);
   };
 
-  const handleReject = async () => {
-    try {
-      // Here you would implement your API call to reject the activity
-      // For example:
-      // await rejectActivity(selectedActivity.id);
-      
-      // Close the modal after successful rejection
-      setIsModalOpen(false);
-      // You might want to update your list of activities here
-    } catch (error) {
-      console.error("Error rejecting activity:", error);
-      // Handle error (show toast, etc.)
-    }
-  };
+
+  if (!userRole) return null;
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
+      <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
@@ -377,6 +689,11 @@ const AdminPendingRequests = () => {
               <CardTitle className="text-xl font-bold text-[#7B1113]">
                 Incoming Submissions
               </CardTitle>
+              {userRole === 3 && (
+                <p className="text-sm text-gray-600 italic mb-1">
+                  Showing only activities approved by the SRO.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -455,7 +772,16 @@ const AdminPendingRequests = () => {
 
       {/* Activity Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
+        {selectedActivity && (
+          <ActivityDialogContent
+            activity={selectedActivity}
+            setActivity={setSelectedActivity}
+            isModalOpen={isModalOpen}
+            userRole={userRole}
+            handleApprove={handleApprove}
+            handleReject={handleReject}
+          />
+        )}
       </Dialog>
     </div>
   );
