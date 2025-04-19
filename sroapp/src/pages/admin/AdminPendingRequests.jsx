@@ -81,6 +81,7 @@ const ActivityDialogContent = ({
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [decisionType, setDecisionType] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [scrollKey, setScrollKey] = useState(0);
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   
   const [localActivity, setLocalActivity] = useState(activity);
@@ -92,18 +93,28 @@ const ActivityDialogContent = ({
 
   useEffect(() => {
     if (showDecisionBox && commentRef.current) {
-      commentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        commentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     }
-  }, [showDecisionBox]);
+  }, [scrollKey]);
 
   useEffect(() => {
-    if (!isModalOpen) {
-      setShowDecisionBox(false);
-      setComment("");
-      setConfirmationOpen(false);
-      setDecisionType(null);
-    }
-  }, [isModalOpen]);
+    if (!isModalOpen || !localActivity?.activity_id) return;
+  
+    const actionTaken =
+      (isSRO && localActivity?.sro_approval_status) ||
+      (isODSA && localActivity?.odsa_approval_status);
+  
+    // Reset state every time a NEW activity is loaded into the modal
+    setShowDecisionBox(actionTaken);
+    if (actionTaken) setScrollKey((k) => k + 1); // force scroll
+    setComment(
+      isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
+    );
+    setConfirmationOpen(false);
+    setDecisionType(null);
+  }, [isModalOpen, localActivity?.activity_id]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
