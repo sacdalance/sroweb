@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Button } from "../../components/ui/button";
@@ -48,11 +48,32 @@ const formatSDGLabels = (sdg) => {
   }
 };
 
-const ActivityDialogContent = ({ activity }) => {
+const ActivityDialogContent = ({ activity, isModalOpen }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const description = activity.activity_description || "";
   const isLong = description.length > 300;
+  const [comment, setComment] = useState("");
+  const [showDecisionBox, setShowDecisionBox] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState(null); // "approve" or "reject"
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
+  
+  const commentRef = useRef(null);
+
+  useEffect(() => {
+    if (showDecisionBox && commentRef.current) {
+      commentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [showDecisionBox]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setShowDecisionBox(false);
+      setComment("");
+      setConfirmationOpen(false);
+      setDecisionType(null);
+    }
+  }, [isModalOpen]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -171,18 +192,113 @@ const ActivityDialogContent = ({ activity }) => {
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
             {activity.drive_folder_link && (
+              <div className="flex items-center gap-2">
               <a
                 href={activity.drive_folder_link}
                 className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setShowDecisionBox(true)}
               >
                 View Scanned Form
               </a>
+                <button
+                  onClick={() => setShowDecisionBox((prev) => !prev)}
+                  className="text-[#014421] hover:text-[#012f18] transition-transform transform hover:scale-110"
+                  title="Toggle comment and approval options"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
+                </button>
+              </div>
             )}
           </div>
+          {showDecisionBox  && (
+            <div className="mt-4 space-y-3" ref={commentRef}>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                placeholder="Enter comment or reason for approval/rejection..."
+                className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+              />
+
+              <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setDecisionType("approve");
+                  setConfirmationOpen(true);
+                }}
+                className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white hover:bg-[#013a1c] transition"
+              >
+                Approve
+              </button>
+
+              <button
+                onClick={() => {
+                  setDecisionType("reject");
+                  setConfirmationOpen(true);
+                }}
+                className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white hover:bg-[#5a0d0f] transition"
+              >
+                Reject
+              </button>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
+      <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <DialogContent className="max-w-md rounded-lg shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#7B1113] font-bold text-lg">
+              Confirmation
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-700 mt-1">
+              You are{" "}
+              <strong
+                className={`uppercase font-bold ${
+                  decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"
+                }`}
+              >
+                {decisionType === "approve" ? "APPROVING" : "REJECTING"}
+              </strong>{" "}
+              the request for activity:
+            </DialogDescription>
+            <p className="text-base mt-2 font-semibold text-black">{activity.activity_name}</p>
+          </DialogHeader>
+
+          <div className="mt-2">
+            <p className="text-sm text-gray-600 mb-1">With reason:</p>
+            <div className="border border-gray-300 p-3 rounded-md text-sm bg-gray-50 whitespace-pre-wrap">
+              {comment.trim() || "No reason provided."}
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2 mt-6">
+            <Button variant="ghost" onClick={() => setConfirmationOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (decisionType === "approve") {
+                  handleApprove(comment);
+                } else {
+                  handleReject(comment);
+                }
+                setConfirmationOpen(false);
+              }}
+              className={`${
+                decisionType === "approve"
+                  ? "bg-[#014421] hover:bg-[#013a1c]"
+                  : "bg-[#7B1113] hover:bg-[#5a0d0f]"
+              } text-white font-semibold`}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DialogContent>
   );
 };
@@ -250,33 +366,23 @@ const AdminPendingRequests = () => {
     setIsModalOpen(true);
   };
 
-  const handleApprove = async () => {
+  const handleApprove = async (comment) => {
     try {
-      // Here you would implement your API call to approve the activity
-      // For example:
-      // await approveActivity(selectedActivity.id);
-      
-      // Close the modal after successful approval
+      console.log("Approving with comment:", comment);
+      // await axios.post(`/api/activities/approve`, { id: selectedActivity.id, comment });
       setIsModalOpen(false);
-      // You might want to update your list of activities here
     } catch (error) {
       console.error("Error approving activity:", error);
-      // Handle error (show toast, etc.)
     }
   };
-
-  const handleReject = async () => {
+  
+  const handleReject = async (comment) => {
     try {
-      // Here you would implement your API call to reject the activity
-      // For example:
-      // await rejectActivity(selectedActivity.id);
-      
-      // Close the modal after successful rejection
+      console.log("Rejecting with comment:", comment);
+      // await axios.post(`/api/activities/reject`, { id: selectedActivity.id, comment });
       setIsModalOpen(false);
-      // You might want to update your list of activities here
     } catch (error) {
       console.error("Error rejecting activity:", error);
-      // Handle error (show toast, etc.)
     }
   };
 
@@ -455,7 +561,12 @@ const AdminPendingRequests = () => {
 
       {/* Activity Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
+        {selectedActivity && (
+          <ActivityDialogContent
+            activity={selectedActivity}
+            isModalOpen={isModalOpen}
+          />
+        )}
       </Dialog>
     </div>
   );
