@@ -451,6 +451,20 @@ const AdminPendingRequests = () => {
     fetchRole();
   }, []);
 
+  const refreshSelectedActivity = async (id) => {
+    const { data, error } = await supabase
+      .from("activity")
+      .select("*")
+      .eq("activity_id", id)
+      .single();
+  
+    if (error) {
+      console.error("Failed to refresh activity:", error);
+    } else {
+      setSelectedActivity(data);
+    }
+  };
+
   // Mock data for pending appeals and cancellations
   const pendingAppeals = Array.from({ length: 5 }, (_, i) => ({
     id: `appeal-${i + 1}`,
@@ -503,8 +517,20 @@ const AdminPendingRequests = () => {
     fetchIncoming();
   }, []);  
 
-  const handleViewDetails = (activity) => {
-    setSelectedActivity(activity);
+  const handleViewDetails = async (activity) => {
+    const { data, error } = await supabase
+      .from("activity")
+      .select("*")
+      .eq("activity_id", activity.activity_id)
+      .single();
+  
+    if (error) {
+      console.error("Failed to fetch latest activity:", error);
+      toast.error("Something went wrong loading this activity.");
+      return;
+    }
+  
+    setSelectedActivity(data);
     setIsModalOpen(true);
   };
 
@@ -515,16 +541,7 @@ const AdminPendingRequests = () => {
     }
   
     await approveActivity(selectedActivity.activity_id, comment, userRole);
-    setSelectedActivity((prev) => ({
-      ...prev,
-      ...(userRole === 2
-        ? { sro_approval_status: "Approved", sro_remarks: comment }
-        : {
-            odsa_approval_status: "Approved",
-            odsa_remarks: comment,
-            final_status: "Approved",
-          }),
-    }));
+    await refreshSelectedActivity(selectedActivity.activity_id);
   };
   
   const handleReject = async (comment) => {
@@ -534,21 +551,7 @@ const AdminPendingRequests = () => {
     }
   
     await rejectActivity(selectedActivity.activity_id, comment, userRole);
-    setSelectedActivity((prev) => ({
-      ...prev,
-      ...(userRole === 2
-        ? {
-            sro_approval_status: "Rejected",
-            sro_remarks: comment,
-            odsa_approval_status: "Rejected",
-            final_status: "Rejected",
-          }
-        : {
-            odsa_approval_status: "Rejected",
-            odsa_remarks: comment,
-            final_status: "Rejected",
-          }),
-    }));
+    await refreshSelectedActivity(selectedActivity.activity_id);
   };
 
   return (
