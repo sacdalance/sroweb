@@ -103,17 +103,24 @@ const ActivityDialogContent = ({
     if (!isModalOpen || !localActivity?.activity_id) return;
   
     const actionTaken =
-      (isSRO && localActivity?.sro_approval_status) ||
-      (isODSA && localActivity?.odsa_approval_status);
+      (isSRO && localActivity?.sro_approval_status !== null) ||
+      (isODSA && localActivity?.odsa_approval_status !== null);
   
-    // Reset state every time a NEW activity is loaded into the modal
-    setShowDecisionBox(actionTaken);
-    if (actionTaken) setScrollKey((k) => k + 1); // force scroll
+    // Reset everything immediately
+    setShowDecisionBox(false);
+    setConfirmationOpen(false);
+    setDecisionType(null);
     setComment(
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
-    setConfirmationOpen(false);
-    setDecisionType(null);
+  
+    if (actionTaken) {
+      // Only open + scroll if action was really taken
+      setTimeout(() => {
+        setShowDecisionBox(true);
+        setScrollKey((k) => k + 1);
+      }, 100);
+    }
   }, [isModalOpen, localActivity?.activity_id]);
 
   const formatDateRange = (schedule) => {
@@ -518,8 +525,10 @@ const AdminPendingRequests = () => {
         
         const filtered = allActivities.filter((a) => {
           if (userRole === 2) {
-            // SRO sees only activities they haven't acted on
-            return a.sro_approval_status === null;
+            return (
+              a.sro_approval_status === null ||
+              (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+            );
           } else if (userRole === 3) {
             // ODSA sees only activities approved by SRO and not yet acted on by them
             return (
