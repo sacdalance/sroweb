@@ -37,6 +37,8 @@ export async function rejectActivity(activityId, comment, userRole) {
   if (userRole === 2) {
     updates.sro_approval_status = "Rejected";
     updates.sro_remarks = comment;
+    updates.odsa_approval_status = "Rejected"; // Skip ODSA
+    updates.final_status = "Rejected";
   } else if (userRole === 3) {
     updates.odsa_approval_status = "Rejected";
     updates.odsa_remarks = comment;

@@ -83,6 +83,11 @@ const ActivityDialogContent = ({
   const [submitting, setSubmitting] = useState(false);
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   
+  const [localActivity, setLocalActivity] = useState(activity);
+  useEffect(() => {
+    setLocalActivity(activity);
+  }, [activity]);
+    
   const commentRef = useRef(null);
 
   useEffect(() => {
@@ -269,10 +274,16 @@ const ActivityDialogContent = ({
               <div className="flex justify-end gap-3">
                 {isActionLocked ? (
                 <div className="w-full flex justify-end">
+                {localActivity.final_status === "Rejected" ? (
+                  <span className="px-4 py-1 rounded-full border border-[#7B1113] text-sm text-[#7B1113] font-medium italic">
+                    Activity Rejected
+                  </span>
+                ) : (
                   <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
                     {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
                   </span>
-                </div>
+                )}
+              </div>              
                 ) : (
                   <>
                     <button
@@ -358,16 +369,30 @@ const ActivityDialogContent = ({
                   } else {
                     await handleReject(comment);
                     toast.error("Activity rejected.");
-                    setActivity({
-                      ...activity,
+                    const updated = {
                       ...(userRole === 2
-                        ? { sro_approval_status: "Rejected", sro_remarks: comment }
+                        ? {
+                            sro_approval_status: "Rejected",
+                            sro_remarks: comment,
+                            odsa_approval_status: "Rejected",
+                            final_status: "Rejected",
+                          }
                         : {
                             odsa_approval_status: "Rejected",
                             odsa_remarks: comment,
                             final_status: "Rejected",
                           }),
-                    });
+                    };
+                    
+                    setActivity((prev) => ({
+                      ...prev,
+                      ...updated,
+                    }));
+                    
+                    setLocalActivity((prev) => ({
+                      ...prev,
+                      ...updated,
+                    }));
                   }
                 } catch (error) {
                   console.error("Error:", error);
@@ -512,7 +537,12 @@ const AdminPendingRequests = () => {
     setSelectedActivity((prev) => ({
       ...prev,
       ...(userRole === 2
-        ? { sro_approval_status: "Rejected", sro_remarks: comment }
+        ? {
+            sro_approval_status: "Rejected",
+            sro_remarks: comment,
+            odsa_approval_status: "Rejected",
+            final_status: "Rejected",
+          }
         : {
             odsa_approval_status: "Rejected",
             odsa_remarks: comment,
