@@ -187,6 +187,28 @@ const ActivityDialogContent = ({ activity }) => {
               </a>
             )}
           </div>
+
+          {/* Remarks Section */}
+          {(activity.sro_remarks || activity.odsa_remarks) && (
+            <div className="space-y-2 mt-4">
+              {activity.sro_remarks && (
+                <div>
+                  <h3 className="text-[#7B1113] font-semibold text-sm">SRO Remarks</h3>
+                  <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                    {activity.sro_remarks.trim()}
+                  </p>
+                </div>
+              )}
+              {activity.odsa_remarks && (
+                <div>
+                  <h3 className="text-[#7B1113] font-semibold text-sm">ODSA Remarks</h3>
+                  <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                    {activity.odsa_remarks.trim()}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </ScrollArea>
     </DialogContent>
