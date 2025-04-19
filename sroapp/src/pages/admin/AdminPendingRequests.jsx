@@ -62,7 +62,21 @@ const ActivityDialogContent = ({
   const [showFullDescription, setShowFullDescription] = useState(false);
   const description = activity.activity_description || "";
   const isLong = description.length > 300;
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState(() => {
+    return userRole === 2
+      ? activity?.sro_remarks || ""
+      : activity?.odsa_remarks || "";
+  });
+  useEffect(() => {
+    setComment(
+      userRole === 2
+        ? activity?.sro_remarks || ""
+        : activity?.odsa_remarks || ""
+    );
+  }, [activity, userRole]);
+  const isActionLocked =
+  (isSRO && activity?.sro_approval_status) ||
+  (isODSA && activity?.odsa_approval_status);
   const [showDecisionBox, setShowDecisionBox] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [decisionType, setDecisionType] = useState(null);
@@ -249,15 +263,11 @@ const ActivityDialogContent = ({
                     : "Enter your remarks..."
                 }
                 className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
-                disabled={
-                  (isSRO && activity.sro_approval_status) ||
-                  (isODSA && activity.odsa_approval_status)
-                }
+                disabled={isActionLocked}
               />
 
               <div className="flex justify-end gap-3">
-                {(isSRO && activity.sro_approval_status) ||
-                (isODSA && activity.odsa_approval_status) ? (
+                {isActionLocked ? (
                 <div className="w-full flex justify-end">
                   <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
                     {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
@@ -480,6 +490,16 @@ const AdminPendingRequests = () => {
     }
   
     await approveActivity(selectedActivity.activity_id, comment, userRole);
+    setSelectedActivity((prev) => ({
+      ...prev,
+      ...(userRole === 2
+        ? { sro_approval_status: "Approved", sro_remarks: comment }
+        : {
+            odsa_approval_status: "Approved",
+            odsa_remarks: comment,
+            final_status: "Approved",
+          }),
+    }));
   };
   
   const handleReject = async (comment) => {
@@ -489,6 +509,16 @@ const AdminPendingRequests = () => {
     }
   
     await rejectActivity(selectedActivity.activity_id, comment, userRole);
+    setSelectedActivity((prev) => ({
+      ...prev,
+      ...(userRole === 2
+        ? { sro_approval_status: "Rejected", sro_remarks: comment }
+        : {
+            odsa_approval_status: "Rejected",
+            odsa_remarks: comment,
+            final_status: "Rejected",
+          }),
+    }));
   };
 
   return (
