@@ -515,12 +515,23 @@ const AdminPendingRequests = () => {
   
         console.log("Fetched incoming:", res.data);
         const allActivities = res.data;
-  
-        const filtered = userRole === 3
-          ? allActivities.filter((a) => a.sro_approval_status === "Approved")
-          : allActivities;
-  
+        
+        const filtered = allActivities.filter((a) => {
+          if (userRole === 2) {
+            // SRO sees only activities they haven't acted on
+            return a.sro_approval_status === null;
+          } else if (userRole === 3) {
+            // ODSA sees only activities approved by SRO and not yet acted on by them
+            return (
+              a.sro_approval_status === "Approved" &&
+              a.odsa_approval_status === null
+            );
+          }
+          return true; // fallback: show all (for devs/superadmins if needed)
+        });
+        
         setIncomingRequests(filtered);
+
       } catch (error) {
         console.error("Failed to fetch incoming submissions:", error);
       } finally {
@@ -556,6 +567,7 @@ const AdminPendingRequests = () => {
   
     await approveActivity(selectedActivity.activity_id, comment, userRole);
     await refreshSelectedActivity(selectedActivity.activity_id);
+    await fetchIncoming();
   };
   
   const handleReject = async (comment) => {
@@ -566,6 +578,7 @@ const AdminPendingRequests = () => {
   
     await rejectActivity(selectedActivity.activity_id, comment, userRole);
     await refreshSelectedActivity(selectedActivity.activity_id);
+    await fetchIncoming();
   };
 
 
