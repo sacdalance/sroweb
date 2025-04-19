@@ -494,16 +494,13 @@ const AdminPendingRequests = () => {
 
   const [incomingRequests, setIncomingRequests] = useState([]);
   useEffect(() => {
+    if (!userRole) return; // Wait until role is available
+  
     const fetchIncoming = async () => {
       try {
         setLoading(true);
         const { data: sessionData, error } = await supabase.auth.getSession();
         const access_token = sessionData?.session?.access_token;
-        
-        if (!access_token) {
-          console.error("No access token found");
-          return;
-        }
   
         if (!access_token) {
           console.error("No access token found");
@@ -517,16 +514,22 @@ const AdminPendingRequests = () => {
         });
   
         console.log("Fetched incoming:", res.data);
-        setIncomingRequests(res.data);
+        const allActivities = res.data;
+  
+        const filtered = userRole === 3
+          ? allActivities.filter((a) => a.sro_approval_status === "Approved")
+          : allActivities;
+  
+        setIncomingRequests(filtered);
       } catch (error) {
         console.error("Failed to fetch incoming submissions:", error);
       } finally {
-        setLoading(false); // stop loading
+        setLoading(false);
       }
     };
   
     fetchIncoming();
-  }, []);  
+  }, [userRole]); // trigger only when userRole is ready
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
@@ -564,6 +567,9 @@ const AdminPendingRequests = () => {
     await rejectActivity(selectedActivity.activity_id, comment, userRole);
     await refreshSelectedActivity(selectedActivity.activity_id);
   };
+
+
+  if (!userRole) return null;
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
@@ -663,6 +669,11 @@ const AdminPendingRequests = () => {
               <CardTitle className="text-xl font-bold text-[#7B1113]">
                 Incoming Submissions
               </CardTitle>
+              {userRole === 3 && (
+                <p className="text-sm text-gray-600 italic mb-1">
+                  Showing only activities approved by the SRO.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
