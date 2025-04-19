@@ -242,7 +242,12 @@ const ActivityDialogContent = ({
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={4}
-                placeholder="Enter your remarks..."
+                placeholder={
+                  ((isSRO && activity.sro_approval_status) ||
+                  (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                    ? "No remark was given."
+                    : "Enter your remarks..."
+                }
                 className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
                 disabled={
                   (isSRO && activity.sro_approval_status) ||
@@ -253,9 +258,11 @@ const ActivityDialogContent = ({
               <div className="flex justify-end gap-3">
                 {(isSRO && activity.sro_approval_status) ||
                 (isODSA && activity.odsa_approval_status) ? (
-                  <span className="text-sm italic text-gray-500">
-                    {isSRO ? "Awaiting ODSA approval" : "Action already taken"}
+                <div className="w-full flex justify-end">
+                  <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
+                    {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
                   </span>
+                </div>
                 ) : (
                   <>
                     <button
