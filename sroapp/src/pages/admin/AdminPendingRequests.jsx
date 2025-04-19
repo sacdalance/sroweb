@@ -48,14 +48,25 @@ const formatSDGLabels = (sdg) => {
   }
 };
 
-const ActivityDialogContent = ({ activity, isModalOpen }) => {
+const ActivityDialogContent = ({
+  activity,
+  setActivity,
+  isModalOpen,
+  userRole,
+  handleApprove,
+  handleReject,
+}) => {
+  const isSRO = userRole === 2;
+  const isODSA = userRole === 3;
   const [showFullDescription, setShowFullDescription] = useState(false);
   const description = activity.activity_description || "";
   const isLong = description.length > 300;
   const [comment, setComment] = useState("");
   const [showDecisionBox, setShowDecisionBox] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
-  const [decisionType, setDecisionType] = useState(null); // "approve" or "reject"
+  const [decisionType, setDecisionType] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   
   const commentRef = useRef(null);
@@ -74,6 +85,13 @@ const ActivityDialogContent = ({ activity, isModalOpen }) => {
       setDecisionType(null);
     }
   }, [isModalOpen]);
+
+  useEffect(() => {
+    if (actionMessage) {
+      const timer = setTimeout(() => setActionMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionMessage]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -212,36 +230,61 @@ const ActivityDialogContent = ({ activity, isModalOpen }) => {
               </div>
             )}
           </div>
-          {showDecisionBox  && (
+          {showDecisionBox && (
             <div className="mt-4 space-y-3" ref={commentRef}>
+              {isODSA && (
+                <div className="text-sm">
+                  <p className="text-gray-600 mb-1 font-medium">SRO Remarks:</p>
+                  <div className="border p-2 rounded bg-gray-50">
+                    {activity.sro_remarks?.trim() || "No comment provided."}
+                  </div>
+                </div>
+              )}
+
+              <label className="text-sm font-medium text-gray-700 block">
+                {isSRO ? "SRO Remarks" : "ODSA Remarks"}
+              </label>
+
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={4}
-                placeholder="Enter comment or reason for approval/rejection..."
+                placeholder="Enter your remarks..."
                 className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                disabled={
+                  (isSRO && activity.sro_approval_status) ||
+                  (isODSA && activity.odsa_approval_status)
+                }
               />
 
               <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setDecisionType("approve");
-                  setConfirmationOpen(true);
-                }}
-                className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white hover:bg-[#013a1c] transition"
-              >
-                Approve
-              </button>
-
-              <button
-                onClick={() => {
-                  setDecisionType("reject");
-                  setConfirmationOpen(true);
-                }}
-                className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white hover:bg-[#5a0d0f] transition"
-              >
-                Reject
-              </button>
+                {(isSRO && activity.sro_approval_status) ||
+                (isODSA && activity.odsa_approval_status) ? (
+                  <span className="text-sm italic text-gray-500">
+                    {isSRO ? "Awaiting ODSA approval" : "Action already taken"}
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setDecisionType("approve");
+                        setConfirmationOpen(true);
+                      }}
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200 transition"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDecisionType("reject");
+                        setConfirmationOpen(true);
+                      }}
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200 transition"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -273,32 +316,77 @@ const ActivityDialogContent = ({ activity, isModalOpen }) => {
               {comment.trim() || "No reason provided."}
             </div>
           </div>
-
           <DialogFooter className="flex justify-end gap-2 mt-6">
-            <Button variant="ghost" onClick={() => setConfirmationOpen(false)}>
+            <Button variant="ghost" className="cursor-pointer hover:scale-105 transform transition-transform duration-200" onClick={() => setConfirmationOpen(false)}>
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                if (decisionType === "approve") {
-                  handleApprove(comment);
-                } else {
-                  handleReject(comment);
+              disabled={submitting || !userRole || !activity}
+              onClick={async () => {
+                setSubmitting(true);
+              
+                if (!userRole || !activity) {
+                  setActionMessage("⚠️ Please wait, your role or activity isn't ready.");
+                  setSubmitting(false);
+                  return;
                 }
-                setConfirmationOpen(false);
+              
+                try {
+                  if (decisionType === "approve") {
+                    await handleApprove(comment);
+                    setActionMessage("✅ Activity approved successfully!");
+                    setActivity({
+                      ...activity,
+                      ...(userRole === 2
+                        ? { sro_approval_status: "Approved", sro_remarks: comment }
+                        : {
+                            odsa_approval_status: "Approved",
+                            odsa_remarks: comment,
+                            final_status: "Approved",
+                          }),
+                    });
+                  } else {
+                    await handleReject(comment);
+                    setActionMessage("❌ Activity rejected.");
+                    setActivity({
+                      ...activity,
+                      ...(userRole === 2
+                        ? { sro_approval_status: "Rejected", sro_remarks: comment }
+                        : {
+                            odsa_approval_status: "Rejected",
+                            odsa_remarks: comment,
+                            final_status: "Rejected",
+                          }),
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error:", error);
+                  setActionMessage("Something went wrong while processing your request.");
+                } finally {
+                  setSubmitting(false);
+                  setConfirmationOpen(false);
+                }
               }}
               className={`${
                 decisionType === "approve"
                   ? "bg-[#014421] hover:bg-[#013a1c]"
                   : "bg-[#7B1113] hover:bg-[#5a0d0f]"
-              } text-white font-semibold`}
+              } text-white font-semibold cursor-pointer hover:scale-105 transform transition-transform duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              Confirm
+              {submitting ? (
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                "Confirm"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      {actionMessage && (
+        <div className="text-sm text-center mt-4 font-medium text-green-700 bg-green-100 border border-green-300 px-4 py-2 rounded-md shadow-sm max-w-md mx-auto">
+          {actionMessage}
+        </div>
+      )}
     </DialogContent>
   );
 };
@@ -308,6 +396,30 @@ const AdminPendingRequests = () => {
   const [activeTab, setActiveTab] = useState("appeals");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+  
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: account, error } = await supabase
+      .from("account")
+      .select("role_id")
+      .eq("email", user.email)
+      .single();
+  
+      if (error) {
+        console.error("Error fetching role:", error);
+      } else {
+        setUserRole(account?.role_id);
+        console.log("Fetched user role:", account?.role_id);
+      }
+    };
+  
+    fetchRole();
+  }, []);
 
   // Mock data for pending appeals and cancellations
   const pendingAppeals = Array.from({ length: 5 }, (_, i) => ({
@@ -367,22 +479,58 @@ const AdminPendingRequests = () => {
   };
 
   const handleApprove = async (comment) => {
-    try {
-      console.log("Approving with comment:", comment);
-      // await axios.post(`/api/activities/approve`, { id: selectedActivity.id, comment });
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error approving activity:", error);
+    if (!selectedActivity || !userRole) {
+      console.error("No selectedActivity or userRole.");
+      throw new Error("Activity or role not ready.");
+    }
+  
+    const updates = {};
+  
+    if (userRole === 2) {
+      updates.sro_approval_status = "Approved";
+      updates.sro_remarks = comment;
+    } else if (userRole === 3) {
+      updates.odsa_approval_status = "Approved";
+      updates.odsa_remarks = comment;
+      updates.final_status = "Approved";
+    }
+  
+    const { error } = await supabase
+      .from("activity")
+      .update(updates)
+      .eq("activity_id", selectedActivity.activity_id);
+  
+    if (error) {
+      console.error("Supabase update error:", error);
+      throw new Error("Failed to approve activity.");
     }
   };
   
   const handleReject = async (comment) => {
-    try {
-      console.log("Rejecting with comment:", comment);
-      // await axios.post(`/api/activities/reject`, { id: selectedActivity.id, comment });
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error rejecting activity:", error);
+    if (!selectedActivity || !userRole) {
+      console.error("No selectedActivity or userRole.");
+      throw new Error("Activity or role not ready.");
+    }
+  
+    const updates = {};
+  
+    if (userRole === 2) {
+      updates.sro_approval_status = "Rejected";
+      updates.sro_remarks = comment;
+    } else if (userRole === 3) {
+      updates.odsa_approval_status = "Rejected";
+      updates.odsa_remarks = comment;
+      updates.final_status = "Rejected";
+    }
+  
+    const { error } = await supabase
+      .from("activity")
+      .update(updates)
+      .eq("activity_id", selectedActivity.activity_id);
+  
+    if (error) {
+      console.error("Supabase update error:", error);
+      throw new Error("Failed to reject activity.");
     }
   };
 
@@ -564,7 +712,11 @@ const AdminPendingRequests = () => {
         {selectedActivity && (
           <ActivityDialogContent
             activity={selectedActivity}
+            setActivity={setSelectedActivity}
             isModalOpen={isModalOpen}
+            userRole={userRole}
+            handleApprove={handleApprove}
+            handleReject={handleReject}
           />
         )}
       </Dialog>
