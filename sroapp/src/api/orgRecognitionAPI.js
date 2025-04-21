@@ -1,5 +1,3 @@
-// api/annualReportAPI.js 
-
 /*
 
 export const fetchOrganizations = async () => {
