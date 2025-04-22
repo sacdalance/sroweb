@@ -37,17 +37,55 @@ const activityTypeOptions = [
   { id: "others", label: "Others" },
 ];
 
+const sdgOptions = [
+  { id: "noPoverty", label: "No Poverty" },
+  { id: "zeroHunger", label: "Zero Hunger" },
+  { id: "goodHealth", label: "Good Health and Well-Being" },
+  { id: "qualityEducation", label: "Quality Education" },
+  { id: "genderEquality", label: "Gender Equality" },
+  { id: "cleanWater", label: "Clean Water and Sanitation" },
+  { id: "affordableEnergy", label: "Affordable and Clean Energy" },
+  { id: "decentWork", label: "Decent Work and Economic Work" },
+  { id: "industryInnovation", label: "Industry Innovation and Infrastructure" },
+  { id: "reducedInequalities", label: "Reduced Inequalities" },
+  { id: "sustainableCities", label: "Sustainable Cities and Communities" },
+  { id: "responsibleConsumption", label: "Responsible Consumption and Production" },
+  { id: "climateAction", label: "Climate Action" },
+  { id: "lifeBelowWater", label: "Life Below Water" },
+  { id: "lifeOnLand", label: "Life on Land" },
+  { id: "peaceJustice", label: "Peace, Justice and Strong Institutions" },
+  { id: "partnerships", label: "Partnerships for the Goals" }
+];
+
 const formatLabel = (id, options) =>
   options.find((o) => o.id === id)?.label || id;
 
 const formatSDGLabels = (sdg) => {
   try {
-    const parsed = typeof sdg === "string" ? JSON.parse(sdg) : sdg;
-    return Array.isArray(parsed) ? parsed : [];
+    let ids = [];
+
+    if (typeof sdg === "string") {
+      try {
+        // Try parsing as JSON array
+        ids = JSON.parse(sdg);
+      } catch {
+        // If parsing fails, fallback to comma-separated
+        ids = sdg.split(",").map((s) => s.trim());
+      }
+    } else if (Array.isArray(sdg)) {
+      ids = sdg;
+    }
+
+    return ids.map((id) => {
+      const match = sdgOptions.find((opt) => opt.id === id);
+      return match ? match.label : id; // fallback to raw ID if no match
+    });
   } catch {
     return [];
   }
 };
+
+
 
 const ActivityDialogContent = ({
   activity,
@@ -471,10 +509,13 @@ const AdminPendingRequests = () => {
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
-      .from("activity")
-      .select("*")
-      .eq("activity_id", id)
-      .single();
+    .from("activity")
+    .select(`
+      *,
+      schedule:activity_schedule(*)
+    `)
+    .eq("activity_id", activity.activity_id)
+    .single();
   
     if (error) {
       console.error("Failed to refresh activity:", error);
@@ -553,10 +594,13 @@ const AdminPendingRequests = () => {
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
-      .from("activity")
-      .select("*")
-      .eq("activity_id", activity.activity_id)
-      .single();
+    .from("activity")
+    .select(`
+      *,
+      schedule:activity_schedule(*) -- join schedule into the 'schedule' field
+    `)
+    .eq("activity_id", activity.activity_id)
+    .single();  
   
     if (error) {
       console.error("Failed to fetch latest activity:", error);
