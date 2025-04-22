@@ -387,8 +387,9 @@ const EditActivity = () => {
         
                 const activityData = {
                 account_id,
-                org_id: parseInt(selectedValue), //change this    
+                org_id: parseInt(selectedValue),
                 student_position: studentPosition,
+                student_contact: studentContact,
                 activity_name: activityName,
                 activity_description: activityDescription,
                 activity_type: selectedActivityType,

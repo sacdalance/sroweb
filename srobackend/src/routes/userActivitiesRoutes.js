@@ -17,6 +17,7 @@ router.get("/user/:account_id", async (req, res) => {
       account_id,
       org_id,
       student_position,
+      student_contact,
       activity_name,
       activity_description,
       sdg_goals,
