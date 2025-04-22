@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -223,6 +224,7 @@ const Activities = () => {
   const [isAppealOpen, setIsAppealOpen] = useState(false);
   const [appealReason, setAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
+  const navigate = useNavigate();
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -437,6 +439,7 @@ const Activities = () => {
               onClick={() => {
                 // connect to backend here placeholder
                 console.log("Edit Submission for:", editingActivity, "Reason:", appealReason);
+                navigate("/edit-activity", { state: { activity: editingActivity } });
                 setIsAppealOpen(false);
                 setAppealReason("");
               }}
