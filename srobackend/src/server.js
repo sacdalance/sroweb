@@ -12,6 +12,7 @@ import organizationRoutes from './routes/organizationRoutes.js';
 import annualReportRoutes from './routes/annualReportRoutes.js';
 
 import adminActivitiesRoutes from "./routes/adminActivitiesRoutes.js";
+import appointmentRoutes from './routes/appointmentRoutes.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -40,6 +41,9 @@ app.use('/api/annual-report', annualReportRoutes);
 
 // Admin
 app.use("/api/activities", adminActivitiesRoutes);
+
+// Appointments
+app.use("/api/appointments", appointmentRoutes);
 
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');
