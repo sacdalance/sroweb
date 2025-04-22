@@ -60,29 +60,32 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
   return file.data.webViewLink;
 }
 
+function generateActivityId() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(2);
+  const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  return `${mm}${yy}-${random}`;
+}
+
 // ACTIVITY REQUEST SUBMISSION
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     const {
-      account_id,  org_id, student_position, activity_name, activity_description, activity_type,
+      account_id, org_id, student_position, student_contact, activity_name, activity_description, activity_type,
       sdg_goals, charge_fee, university_partner, partner_name, partner_role, venue,
       venue_approver, venue_approver_contact, is_off_campus, green_monitor_name,
-      green_monitor_contact
-    } = req.body;
-
-    const {
-      is_recurring, start_date, end_date, start_time, end_time, recurring_days
+      green_monitor_contact, is_recurring, start_date, end_date, start_time, end_time, recurring_days
     } = req.body;
 
     const file = req.file;
-
-    if (file && (!file.originalname.toLowerCase().endsWith('.pdf') || file.mimetype !== 'application/pdf')) {
-      return res.status(400).json({ error: 'Only PDF files are allowed.' });
-    }
-
     let drive_folder_link = 'N/A';
 
     if (file) {
+      if (!file.originalname.toLowerCase().endsWith('.pdf') || file.mimetype !== 'application/pdf') {
+        return res.status(400).json({ error: 'Only PDF files are allowed.' });
+      }
+
       drive_folder_link = await uploadToGoogleDrive(
         file.buffer,
         file.originalname,
@@ -90,10 +93,14 @@ router.post('/', upload.single('file'), async (req, res) => {
       );
     }
 
+    const activity_id = generateActivityId();
+
     const { data: activityInsertData, error: activityError } = await supabase.from('activity').insert([{
+      activity_id,
       account_id,
       org_id,
       student_position,
+      student_contact,
       activity_name,
       activity_description,
       activity_type,
@@ -109,12 +116,9 @@ router.post('/', upload.single('file'), async (req, res) => {
       green_monitor_name,
       green_monitor_contact,
       drive_folder_link
-    }]).select(); // to get back the inserted activity_id
-    
+    }]).select();
+
     if (activityError) throw activityError;
-    
-    // Insert into activity_schedule table
-    const activity_id = activityInsertData[0].activity_id;
 
     const { error: scheduleError } = await supabase.from('activity_schedule').insert([{
       activity_id,
@@ -125,7 +129,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       end_time,
       recurring_days: recurring_days || null
     }]);
-    
+
     if (scheduleError) throw scheduleError;
 
     res.status(201).json({ message: 'Activity submitted!', data: activityInsertData });
