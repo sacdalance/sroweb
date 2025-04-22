@@ -598,18 +598,19 @@ const AdminPendingRequests = () => {
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger 
-            value="submissions" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Incoming Submissions
-          </TabsTrigger>
-          <TabsTrigger 
-            value="appeals" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Appeals and Cancellations
-          </TabsTrigger>
+        <TabsTrigger 
+          value="submissions" 
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+        >
+          Incoming Submissions ({incomingRequests.length})
+        </TabsTrigger>
+
+        <TabsTrigger 
+          value="appeals" 
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+        >
+          Appeals and Cancellations ({pendingAppeals.length})
+        </TabsTrigger>
         </TabsList>
         
         <TabsContent value="appeals">
