@@ -56,7 +56,8 @@ const EditActivity = () => {
     const [venueApproverContact, setVenueApproverContact] = useState("");
     const location = useLocation();
     const navigate = useNavigate();
-    const { activity } = location.state;
+    const { activity, appealReason: initialAppealReason } = location.state || {};
+    const [appealReason, setAppealReason] = useState(initialAppealReason || activity?.appeal_reason || "");
     useEffect(() => {
         if (isOffCampus === "yes") {
             setVenueApprover("N/A");
@@ -229,9 +230,13 @@ const EditActivity = () => {
             }
         
             if (section === "submission") {
-            if (!selectedFile || selectedFile.type !== "application/pdf") {
-                return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
-            }
+                if (!appealReason || appealReason.trim() === "") {
+                    return { valid: false, field: "appealReason", message: "Appeal reason is required." };
+                    }
+                
+                    if (!selectedFile || selectedFile.type !== "application/pdf") {
+                    return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
+                    }
             }
         
             return { valid: true };
@@ -407,6 +412,7 @@ const EditActivity = () => {
                 is_off_campus: isOffCampus === "yes",
                 green_monitor_name: greenCampusMonitor,
                 green_monitor_contact: greenCampusMonitorContact,
+                appeal_reason: appealReason,
                 };
 
                 const scheduleData = {
@@ -583,6 +589,7 @@ const EditActivity = () => {
             setVenueApproverContact(activity.venue_approver_contact || "");
             setGreenCampusMonitor(activity.green_monitor_name || "");
             setGreenCampusMonitorContact(activity.green_monitor_contact || "");
+            setAppealReason(prev => prev || activity.appeal_reason || "");
         
             setSelectedSDGs(
             Object.fromEntries((activity.sdg_goals || "").split(",").map((id) => [id, true]))
@@ -1209,6 +1216,16 @@ const EditActivity = () => {
                         {currentSection === "submission" && (
                             <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                                 <div>
+                                <div className="mb-4">
+                                    <h3 className="text-sm font-medium mb-2">Appeal Reason <span className="text-red-500">*</span></h3>
+                                    <Textarea
+                                        id="appealReason"
+                                        placeholder="Write the reason why you are editing your submission..."
+                                        value={appealReason}
+                                        onChange={(e) => setAppealReason(e.target.value)}
+                                        className="min-h-[100px]"
+                                    />
+                                </div>
                                     <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF) <span className="text-red-500">*</span></h3>
                                     <div className="border rounded-md p-4">
                                         <p className="text-sm text-gray-600 mb-3">

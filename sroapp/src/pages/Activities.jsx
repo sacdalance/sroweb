@@ -222,7 +222,7 @@ const Activities = () => {
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isAppealOpen, setIsAppealOpen] = useState(false);
-  const [appealReason, setAppealReason] = useState("");
+  const [modalAppealReason, setModalAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
   const navigate = useNavigate();
 
@@ -427,31 +427,32 @@ const Activities = () => {
             <label htmlFor="appealReason" className="text-sm font-medium">Reason for Appeal</label>
             <textarea
               id="appealReason"
-              value={appealReason}
-              onChange={(e) => setAppealReason(e.target.value)}
+              value={modalAppealReason}
+              onChange={(e) => setModalAppealReason(e.target.value)}
               placeholder="Provide a reason for editing your submission..."
               className="w-full p-2 border rounded-md text-sm resize-none"
               rows={4}
             />
-          </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={() => {
-                // connect to backend here placeholder
-                console.log("Edit Submission for:", editingActivity, "Reason:", appealReason);
-                navigate("/edit-activity", { state: { activity: editingActivity } });
-                setIsAppealOpen(false);
-                setAppealReason("");
-              }}
-              disabled={appealReason.trim() === ""}
-              className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
-                appealReason.trim() === ""
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#014421] hover:bg-[#012f18]"
-              }`}
-            >
-              Edit Submission
-            </button>
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  console.log("Edit Submission for:", editingActivity, "Reason:", modalAppealReason);
+                  navigate("/edit-activity", { state: { activity: editingActivity, appealReason: modalAppealReason } });
+                  setIsAppealOpen(false);
+                  setModalAppealReason(""); // ✅ now safe to reset
+                }}
+                disabled={modalAppealReason.trim() === ""}
+                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
+                  modalAppealReason.trim() === ""
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#014421] hover:bg-[#012f18]"
+                }`}
+              >
+                Edit Submission
+              </button>
+            </div>
+
           </div>
         </DialogContent>
       </Dialog>
