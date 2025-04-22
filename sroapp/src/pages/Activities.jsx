@@ -220,6 +220,9 @@ const Activities = () => {
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [isAppealOpen, setIsAppealOpen] = useState(false);
+  const [appealReason, setAppealReason] = useState("");
+  const [editingActivity, setEditingActivity] = useState(null);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -321,7 +324,13 @@ const Activities = () => {
                                 <Eye className="h-5 w-5" />
                               </button>
                             </DialogTrigger>
-                            <button className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125">
+                            <button
+                              onClick={() => {
+                                setEditingActivity(act);
+                                setIsAppealOpen(true);
+                              }}
+                              className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                            >
                               <Pencil className="h-5 w-5" />
                             </button>
                           </div>
@@ -376,7 +385,13 @@ const Activities = () => {
                                 <Eye className="h-5 w-5" />
                               </button>
                             </DialogTrigger>
-                            <button className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125">
+                            <button
+                              onClick={() => {
+                                setEditingActivity(act);
+                                setIsAppealOpen(true);
+                              }}
+                              className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                            >
                               <Pencil className="h-5 w-5" />
                             </button>
                           </div>
@@ -398,6 +413,46 @@ const Activities = () => {
 
         {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
       </Dialog>
+      <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
+            <p className="text-sm text-red-700">
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to FOR APPEAL.
+            </p>
+          </DialogHeader>
+          <div className="space-y-2 mt-1">
+            <label htmlFor="appealReason" className="text-sm font-medium">Reason for Appeal</label>
+            <textarea
+              id="appealReason"
+              value={appealReason}
+              onChange={(e) => setAppealReason(e.target.value)}
+              placeholder="Provide a reason for editing your submission..."
+              className="w-full p-2 border rounded-md text-sm resize-none"
+              rows={4}
+            />
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => {
+                // connect to backend here placeholder
+                console.log("Edit Submission for:", editingActivity, "Reason:", appealReason);
+                setIsAppealOpen(false);
+                setAppealReason("");
+              }}
+              disabled={appealReason.trim() === ""}
+              className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
+                appealReason.trim() === ""
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#014421] hover:bg-[#012f18]"
+              }`}
+            >
+              Edit Submission
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
