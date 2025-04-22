@@ -78,14 +78,18 @@ const AnnualReport = () => {
   
     try {
       await submitAnnualReport({
-        org_id: '',         // get from dropdown or fetch (change this)
+        org_id: selectedOrgId,         // get from dropdown or fetch (change this)
         submitted_by: userId,          // from auth/session
-        academic_year: '',   // from form input (change this)
+        academic_year: academicYear,   // from form input (change this)
         files,
       });
   
       toast.success("Submitted successfully!");
       setFiles([]);
+      setAcademicYear("");
+      setSelectedOrg("");
+      setSelectedOrgId("");
+      setAnnualReportEmail("");
     } catch (error) {
       toast.error(error.message || "Submission failed.");
     } finally {
@@ -134,8 +138,9 @@ const AnnualReport = () => {
                         type="button"
                         key={org.org_id}
                         onClick={() => {
+                          console.log("Selected Org:", org);
                           setSelectedOrg(org.org_name);
-                          // setSelectedOrgId(org.org_id);
+                          setSelectedOrgId(org.org_id);
                           setAnnualReportEmail(org.org_email);
                           setSearchTerm(org.org_name);
                           setOpen(false);
@@ -158,6 +163,7 @@ const AnnualReport = () => {
               </PopoverContent>
             </Popover>
           </div>
+
           <div>
             <label className="text-sm font-medium block mb-1">Organization E-mail</label>
             <Input
@@ -165,6 +171,16 @@ const AnnualReport = () => {
               value={annualReportEmail}
               onChange={(e) => setAnnualReportEmail(e.target.value)}
               placeholder="orgemail@gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium block mb-1">Academic Year</label>
+            <Input
+              type="text"
+              value={academicYear}
+              onChange={(e) => setAcademicYear(e.target.value)}
+              placeholder="e.g., 2024-2025"
             />
           </div>
         </div>

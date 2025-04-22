@@ -84,8 +84,8 @@ router.post('/', upload.array('files', 2), async (req, res) => {
     );
 
     const { error } = await supabase.from('org_annual_report').insert([{
-      org_id: parseInt(org_id),
-      submitted_by: parseInt(submitted_by),
+      org_id,
+      submitted_by,
       academic_year,
       drive_folder_link: uploadedLinks[0],
       submission_file_url: JSON.stringify(uploadedLinks),
