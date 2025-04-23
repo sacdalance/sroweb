@@ -38,6 +38,7 @@ router.get("/user/:account_id", async (req, res) => {
       odsa_remarks,
       activity_type,
       drive_folder_link,
+      appeal_reason,
       organization:organization (
         org_name,
         adviser_name,

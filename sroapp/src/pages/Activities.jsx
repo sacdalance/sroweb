@@ -177,6 +177,14 @@ const ActivityDialogContent = ({ activity }) => {
           {/* Status + Button */}
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
+            {activity.final_status === "For Appeal" && activity.appeal_reason && (
+            <div className="space-y-1">
+              <h3 className="text-[#7B1113] font-semibold text-sm">Appeal Reason</h3>
+              <p className="bg-gray-50 border mt-2 mb-5 p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                {activity.appeal_reason}
+              </p>
+            </div>
+            )}
             {activity.drive_folder_link && (
               <a
                 href={activity.drive_folder_link}
