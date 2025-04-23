@@ -14,6 +14,7 @@ import Activities from "../pages/Activities";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
 import AppointmentBooking from "../pages/AppointmentBooking";
+import EditActivity from "../pages/EditActivity";
 
 // admin
 import AdminPanel from "../pages/admin/AdminPanel";
@@ -178,6 +179,7 @@ const router = createBrowserRouter([
           // ✅ USER ROUTES (User + SuperAdmin)
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
+          { path: "edit-activity", element: <RequireUser><EditActivity /></RequireUser> },
           { path: "activities", element: <RequireUser><Activities /></RequireUser> },
           { path: "org-application", element: <RequireUser><OrgApplication /></RequireUser> },
           { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },

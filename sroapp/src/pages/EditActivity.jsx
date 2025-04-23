@@ -31,7 +31,9 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-const ActivityRequest = () => {
+import { useLocation } from "react-router-dom";
+import { editActivity } from "../api/activityEditAPI";
+const EditActivity = () => {
     const [selectedValue, setSelectedValue] = useState("");
     const [studentPosition, setStudentPosition] = useState("");
     const [studentContact, setStudentContact] = useState("");
@@ -53,6 +55,10 @@ const ActivityRequest = () => {
     const [venue, setVenue] = useState("");
     const [venueApprover, setVenueApprover] = useState("");
     const [venueApproverContact, setVenueApproverContact] = useState("");
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { activity, appealReason: initialAppealReason } = location.state || {};
+    const [appealReason, setAppealReason] = useState(initialAppealReason || activity?.appeal_reason || "");
     useEffect(() => {
         if (isOffCampus === "yes") {
             setVenueApprover("N/A");
@@ -79,7 +85,14 @@ const ActivityRequest = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-    const [showRemindersDialog, setShowRemindersDialog] = useState(false);
+
+
+    useEffect(() => {
+        if (!activity) {
+            toast.error("No activity data found. Please try editing again from My Activities.");
+            navigate("/activities");
+            }
+        }, [activity, navigate]);
 
     const getRequiredDocuments = () => {
         const required = [
@@ -119,17 +132,6 @@ const ActivityRequest = () => {
     
         return required;
     };      
-
-    useEffect(() => {
-        const seen = sessionStorage.getItem("sroRemindersSeen");
-        
-        // Only show the modal if it hasn't been seen this session
-        if (!seen) {
-            setShowRemindersDialog(true);
-            sessionStorage.setItem("sroRemindersSeen", "true");
-        }
-        }, []);
-    const navigate = useNavigate();
 
     // Validation function for navigating in forms
     const validateCurrentSection = (section, state) => {
@@ -229,9 +231,13 @@ const ActivityRequest = () => {
             }
         
             if (section === "submission") {
-            if (!selectedFile || selectedFile.type !== "application/pdf") {
-                return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
-            }
+                if (!appealReason || appealReason.trim() === "") {
+                    return { valid: false, field: "appealReason", message: "Appeal reason is required." };
+                    }
+                
+                    // if (!selectedFile || selectedFile.type !== "application/pdf") {
+                    // return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
+                    // }
             }
         
             return { valid: true };
@@ -335,49 +341,6 @@ const ActivityRequest = () => {
         setSelectedFile(file);
         };
 
-        // REMOVE AFTER TESTING
-        const fillWithDummyData = () => {
-            setSelectedValue("62");
-            setSelectedOrgName("Junior Blockchain Education Consortium of the Philippines -UPB (JBECP - UPB)*");
-            setOrganizationAdviser("Prof. Satoshi Nakamoto");
-            setOrganizationAdviserContact("nakamoto@up.edu.ph");
-          
-            setStudentPosition("Chairperson");
-            setStudentContact("09171234567");
-          
-            setActivityName("Blockchain Bootcamp");
-            setActivityDescription("A full-day hands-on event introducing blockchain concepts to CS students.");
-            setSelectedActivityType("educational");
-            setChargingFees1("no");
-          
-            setPartnering("yes");
-            setSelectedPublicAffairs({
-              "College of Science": true,
-              "Department of Mathematics and Computer Science": true,
-              "Office of Student Affairs (OSA)": true,
-            });
-            setPartnerDescription("They will provide technical resource persons and venue coordination.");
-          
-            setRecurring("one-time");
-            setStartDate("2025-05-10");
-            setStartTime("09:00");
-            setEndTime("17:00");
-          
-            setIsOffCampus("no");
-            setVenue("CSS AVR");
-            setVenueApprover("Dr. Lina Reyes");
-            setVenueApproverContact("lina.reyes@up.edu.ph");
-          
-            setGreenCampusMonitor("Kyle Carbon");
-            setGreenCampusMonitorContact("kyle.green@up.edu.ph");
-          
-            setSelectedSDGs({
-              qualityEducation: true,
-              industryInnovation: true,
-              decentWork: true,
-            });
-          };          
-
         const handleSubmit = async (e) => {
             e.preventDefault();
         
@@ -385,18 +348,18 @@ const ActivityRequest = () => {
             if (currentSection !== "submission") return;
 
             // Prevent submission without a file
-            if (!selectedFile) {
-                toast.dismiss();
-                toast.error("Please upload a PDF file before submitting.");
-                return;
-            }
+            // if (!selectedFile) {
+            //     toast.dismiss();
+            //     toast.error("Please upload a PDF file before submitting.");
+            //     return;
+            // }
 
             // Only allow PDF files
-            if (selectedFile.type !== "application/pdf") {
-                toast.dismiss();
-                toast.error("Only PDF files are allowed.");
-                return;
-            }
+            // if (selectedFile.type !== "application/pdf") {
+            //     toast.dismiss();
+            //     toast.error("Only PDF files are allowed.");
+            //     return;
+            // }
 
             if (isSubmitting) return;
             setIsSubmitting(true);
@@ -429,8 +392,8 @@ const ActivityRequest = () => {
                 const account_id = accountData.account_id;
         
                 const activityData = {
-                account_id,
-                org_id: parseInt(selectedValue), //change this    
+                activity_id: activity.activity_id,
+                org_id: parseInt(selectedValue),
                 student_position: studentPosition,
                 student_contact: studentContact,
                 activity_name: activityName,
@@ -450,6 +413,7 @@ const ActivityRequest = () => {
                 is_off_campus: isOffCampus === "yes",
                 green_monitor_name: greenCampusMonitor,
                 green_monitor_contact: greenCampusMonitorContact,
+                appeal_reason: appealReason,
                 };
 
                 const scheduleData = {
@@ -461,8 +425,9 @@ const ActivityRequest = () => {
                     recurring_days: recurring === "recurring" ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",") : null,
                     };
         
-                await createActivity(activityData, selectedFile, scheduleData);
-                setShowSuccessDialog(true);
+                    await editActivity(activityData, scheduleData);
+                    toast.success("Submission updated! Your appeal is now pending.");
+                    setShowSuccessDialog(true);
             
                 setTimeout(() => {
                 navigate("/dashboard");
@@ -586,6 +551,7 @@ const ActivityRequest = () => {
             };              
 
     const [orgOptions, setOrgOptions] = useState([]);
+    
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
@@ -599,17 +565,75 @@ const ActivityRequest = () => {
         
         fetchOrganizations();
         }, []);
-        const [searchTerm, setSearchTerm] = useState("");
         const [selectedOrgName, setSelectedOrgName] = useState("");
-        const [open, setOpen] = useState(false);
-    
-        const filteredOrgs = orgOptions.filter((org) =>
-        org.org_name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+
+        useEffect(() => {
+            if (!activity) return;
+            console.log("Incoming Activity:", activity);
+        
+            setSelectedValue(activity.org_id?.toString());
+            setSelectedOrgName(activity.organization?.org_name || "");
+            setOrganizationAdviser(activity.organization?.adviser_name || "");
+            setOrganizationAdviserContact(activity.organization?.adviser_email || "");
+        
+            setStudentPosition(activity.student_position || "");
+            setStudentContact(activity.student_contact || "");
+            setActivityName(activity.activity_name || "");
+            setActivityDescription(activity.activity_description || "");
+            setSelectedActivityType(activity.activity_type ?? "");
+            setOtherActivityType(activity.other_activity_type || "");
+            setChargingFees1(activity.charge_fee ? "yes" : "no");
+            setPartnering(activity.university_partner ? "yes" : "no");
+            setPartnerDescription(activity.partner_role || "");
+            setIsOffCampus(activity.is_off_campus ? "yes" : "no");
+            setVenue(activity.venue || "");
+            setVenueApprover(activity.venue_approver || "");
+            setVenueApproverContact(activity.venue_approver_contact || "");
+            setGreenCampusMonitor(activity.green_monitor_name || "");
+            setGreenCampusMonitorContact(activity.green_monitor_contact || "");
+            setAppealReason(prev => prev || activity.appeal_reason || "");
+        
+            setSelectedSDGs(
+            Object.fromEntries((activity.sdg_goals || "").split(",").map((id) => [id, true]))
+            );
+        
+            // Schedule
+            const sched = activity.schedule?.[0];
+            if (sched) {
+            setRecurring(sched.is_recurring || "one-time");
+            setStartDate(sched.start_date || "");
+            setEndDate(sched.end_date || "");
+            setStartTime(sched.start_time || "");
+            setEndTime(sched.end_time || "");
+            setRecurringDays(
+                Object.fromEntries(
+                (sched.recurring_days || "")
+                    .split(",")
+                    .filter(Boolean)
+                    .map((day) => [day, true])
+                )
+            );
+            }
+        
+            // Public Affairs partners
+            if (activity.partner_name) {
+            const partnerArray = activity.partner_name.split(",").map(p => p.trim());
+            const publicAffairs = {};
+            partnerArray.forEach(p => {
+                if (p === "Others") {
+                publicAffairs["Others"] = [""]; // basic default
+                } else {
+                publicAffairs[p] = true;
+                }
+            });
+            setSelectedPublicAffairs(publicAffairs);
+            }
+        }, [activity]);
+        
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
-                <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
+                <h1 className="text-2xl font-bold mb-6 text-left">Edit Submission</h1>
                 <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
                     
                     {/* Sonner, side pop up */}
@@ -668,62 +692,15 @@ const ActivityRequest = () => {
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Organization Name */}
                                     <div>
-                                    <h3 className="text-sm font-medium mb-2">
-                                        Organization Name <span className="text-red-500">*</span>
-                                    </h3>
-
-                                    <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <div 
-                                            id="orgSelect"
-                                            role="combobox"
-                                            aria-expanded={open}
-                                            className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
-                                        >
-                                            <span className={cn(!selectedOrgName && "text-muted-foreground")}>
-                                            {selectedOrgName || "Type your org name or select from the list"}
-                                            </span>
-                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </div>
-                                    </PopoverTrigger>
-
-                                        <PopoverContent align="start" className="w-full max-w-md p-0">
+                                        <h3 className="text-sm font-medium mb-2">
+                                            Organization Name <span className="text-red-500">*</span>
+                                        </h3>
                                         <Input
-                                            placeholder="Search organization..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                                            type="text"
+                                            value={selectedOrgName}
+                                            disabled
+                                            className="bg-gray-100 cursor-not-allowed"
                                         />
-                                        <div className="max-h-48 overflow-y-auto">
-                                            {filteredOrgs.length > 0 ? (
-                                            filteredOrgs.map((org) => (
-                                                <button
-                                                key={org.org_id}
-                                                onClick={() => {
-                                                    setSelectedValue(String(org.org_id));
-                                                    setSelectedOrgName(org.org_name);
-                                                    setSearchTerm(org.org_name);
-                                                    setOrganizationAdviser(org.adviser_name || "");
-                                                    setOrganizationAdviserContact(org.adviser_email || "");
-                                                    setOpen(false);
-                                                    }}
-                                                className={cn(
-                                                    "w-full text-left px-4 py-2 hover:bg-gray-100",
-                                                    selectedValue === String(org.org_id) && "bg-gray-100 font-medium"
-                                                )}
-                                                >
-                                                {org.org_name}
-                                                {selectedValue === String(org.org_id) && (
-                                                    <Check className="ml-2 inline h-4 w-4 text-green-600" />
-                                                )}
-                                                </button>
-                                            ))
-                                            ) : (
-                                            <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
-                                            )}
-                                        </div>
-                                        </PopoverContent>
-                                    </Popover>
                                     </div>
 
                                     {/* Student Information */}
@@ -773,30 +750,24 @@ const ActivityRequest = () => {
 
                                     {/* Activity Type */}
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">Activity Type <span className="text-red-500">*</span></h3>
-                                        <Select value={selectedActivityType} onValueChange={setSelectedActivityType}>
-                                            <SelectTrigger id="activityType" className="w-full">
-                                                <SelectValue placeholder="Select activity type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {activityTypeOptions.map((option) => (
-                                                    <SelectItem key={option.id} value={option.id}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {selectedActivityType === "others" && (
-                                            <Input
-                                                type="text"
-                                                placeholder="Please specify"
-                                                value={otherActivityType}
-                                                onChange={(e) => setOtherActivityType(e.target.value)}
-                                                className="mt-2"
-                                            />
-                                        )}
+                                    <h3 className="text-sm font-medium mb-2">Activity Type <span className="text-red-500">*</span></h3>
+                                    <Select
+                                        key={selectedActivityType}
+                                        value={selectedActivityType}
+                                        onValueChange={setSelectedActivityType}
+                                    >
+                                        <SelectTrigger id="activityType" className="w-full">
+                                        <SelectValue placeholder="Select activity type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                        {activityTypeOptions.map((option) => (
+                                            <SelectItem key={option.id} value={option.id}>
+                                            {option.label}
+                                            </SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
                                     </div>
-
                                     {/* Sustainable Development Goals */}
                                     <div>
                                     <h3 className="text-sm font-medium mb-2">Sustainable Development Goals <span className="text-red-500">*</span></h3>
@@ -871,14 +842,7 @@ const ActivityRequest = () => {
                                         </RadioGroup>
                                     </div>
                                 </div>
-                                <div className="flex justify-end">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={fillWithDummyData}
-                                        >
-                                        Fill with Dummy Data
-                                    </Button>
+                                <div className="flex justify-end">  
                                     <Button
                                         type="button"
                                         className="bg-[#014421] text-white hover:bg-[#003218] px-6"
@@ -1254,6 +1218,16 @@ const ActivityRequest = () => {
                         {currentSection === "submission" && (
                             <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                                 <div>
+                                <div className="mb-4">
+                                    <h3 className="text-sm font-medium mb-2">Appeal Reason <span className="text-red-500">*</span></h3>
+                                    <Textarea
+                                        id="appealReason"
+                                        placeholder="Write the reason why you are editing your submission..."
+                                        value={appealReason}
+                                        onChange={(e) => setAppealReason(e.target.value)}
+                                        className="min-h-[100px]"
+                                    />
+                                </div>
                                     <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF) <span className="text-red-500">*</span></h3>
                                     <div className="border rounded-md p-4">
                                         <p className="text-sm text-gray-600 mb-3">
@@ -1286,13 +1260,17 @@ const ActivityRequest = () => {
                                             >
                                             <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
                                             <p className="text-sm">Drag and Drop or Click to Upload File</p>
+                                            <p className="text-xs text-gray-500 italic mt-2">
+                                            * File upload not required for now. You may submit the form without attaching a PDF.
+                                            </p>
                                             <input
                                                 id="activityRequestFileUpload"
                                                 type="file"
                                                 accept=".pdf"
                                                 onChange={handleFileChange}
                                                 className="hidden"
-                                                disabled={isSubmitting}
+                                                disabled
+                                                // disabled={isSubmitting}
                                             />
                                             </label>
                                         </div>
@@ -1343,9 +1321,9 @@ const ActivityRequest = () => {
                         <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                             <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+                                <AlertDialogTitle>Confirm Appeal</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                Are you sure you want to submit this activity request now?
+                                Are you sure you want to edit this activity request now?
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -1368,7 +1346,7 @@ const ActivityRequest = () => {
                             <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
                             <AlertDialogHeader>
                                 <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
-                                Submitted Successfully!
+                                Edited Successfully!
                                 </AlertDialogTitle>
                                 <AlertDialogDescription className="text-sm font-medium mb-2">
                                 You will be redirected to the dashboard...
@@ -1377,65 +1355,10 @@ const ActivityRequest = () => {
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
-                {/* Reminders Popup Modal */}
-                <AlertDialog open={showRemindersDialog} onOpenChange={setShowRemindersDialog}>
-                <AlertDialogContent className="max-h-[80vh] overflow-y-auto">
-                    <AlertDialogHeader>
-                    <AlertDialogTitle className="text-[#7B1113]">
-                        Please read before submitting your activity request:
-                    </AlertDialogTitle>
-                    </AlertDialogHeader>
-
-                    <ScrollArea className="h-[60vh] pr-4">
-                        <div className="text-sm text-gray-800 space-y-2 leading-relaxed">
-                        <ol className="list-decimal list-inside space-y-2">
-                        <li>
-                        Requests to use any university facility or space must be submitted <strong>at least five days</strong> or at most two weeks prior to use. However, requests for activities to be held off-campus may be submitted earlier than two weeks.
-                        </li>
-                        <li>
-                        The official curfew on campus is <strong>9:00 PM</strong>. Staying beyond this time is permitted only under exceptional circumstances, and requests for extensions will be considered only if supported by valid and acceptable justifications. Strict instructions are given to the Security Office not to allow use of facilities without prior approval for late stays. <strong>The presence of the organization’s adviser is required if the organization intends to remain on campus beyond 9:00 PM.</strong> Overnight sleeping on campus is strictly prohibited.
-                        </li>
-                        <li>
-                        Student organizations requesting tables and chairs for their activity are responsible for setting them up in the designated venues and ensuring their proper return. Organizations that fail to return the equipment will receive a warning, and repeated violations may result in disciplinary action. Additionally, organizations are responsible for obtaining the keys to their requested rooms and must coordinate with the relevant offices or venue approvers during office hours, especially if the activity is scheduled for the weekend or extends beyond the 9:00 PM curfew.
-                        </li>
-                        <li>
-                        There are designated areas for specific activities. For example, selling activities must be held in the space near the guardhouse and will not be allowed in the lobby or other areas. Organizations must always coordinate with the OSA and SRO to ensure that proper arrangements are made.
-                        </li>
-                        <li>
-                        For the use of classrooms: (A) Organizations, particularly the Green Campus Monitor, must clean up and return the chairs to their original arrangement; (B) Any markings on the board should be erased; (C) Users should minimize noise to avoid disturbing ongoing classes and activities in adjacent rooms.
-                        </li>
-                        <li>
-                        For borrowed equipment at OSA: (A) Equipment may be signed out an hour before the activity. If the equipment is to be used over the weekend, it may be signed out between 1:00 and 3:00 PM on Friday. (B) Equipment must be returned immediately after the approved time stated in the Approval Slip. If the activity takes place on a weekend, the equipment must be returned the following Monday between 8:00 AM and 9:00 AM. Upon return, OSA personnel will inspect the equipment to ensure it is in proper condition. (C) Lost equipment must be replaced with the same specifications. A reasonable deadline will be set for replacement. Damaged or non-functioning units will be dealt with on a 'case-to-case' basis, depending on the severity of the damage.
-                        </li>
-                        <li>
-                        Student organizations must strictly adhere to the approved time for using the facility or staying on campus. Any extensions will require further approval, as other requests may be scheduled after their use.
-                        </li>
-                        <li>
-                        When collaborating with a university unit or another organization, the concept paper for the activity must be signed by the representatives of both the partner unit or organization and the student organization's representatives, including the organization advisers.
-                        </li>
-                        <li>
-                        If the activity is off-campus, the requesting organization must also submit OSA-SRO Form 2A (Notice of Off-Campus Activity) and OSA-SRO Form 2B (Waiver for Off-Campus Student Activities), with Form 2B requiring notarization.
-                        </li>
-                        <li>
-                        A venue approver is only needed when the activity is held on-campus and conducted in person. Otherwise, the organization must indicate the online platform to be used or the off-campus venue.
-                        </li>
-                        <li>
-                        Violations of any rules/guidelines shall be dealt with strictly and accordingly.
-                        </li>
-                    </ol>
-                        </div>
-                    </ScrollArea>
-                    <AlertDialogFooter className="mt-4">
-                    <Button onClick={() => setShowRemindersDialog(false)} className="bg-[#7B1113] text-white hover:bg-[#5e0d0f]">
-                        I Understand
-                    </Button>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-                </AlertDialog>
                 </form>
             </div>
         </div>
     );
 };
 
-export default ActivityRequest;
+export default EditActivity;

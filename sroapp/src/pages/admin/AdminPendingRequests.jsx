@@ -37,17 +37,55 @@ const activityTypeOptions = [
   { id: "others", label: "Others" },
 ];
 
+const sdgOptions = [
+  { id: "noPoverty", label: "No Poverty" },
+  { id: "zeroHunger", label: "Zero Hunger" },
+  { id: "goodHealth", label: "Good Health and Well-Being" },
+  { id: "qualityEducation", label: "Quality Education" },
+  { id: "genderEquality", label: "Gender Equality" },
+  { id: "cleanWater", label: "Clean Water and Sanitation" },
+  { id: "affordableEnergy", label: "Affordable and Clean Energy" },
+  { id: "decentWork", label: "Decent Work and Economic Work" },
+  { id: "industryInnovation", label: "Industry Innovation and Infrastructure" },
+  { id: "reducedInequalities", label: "Reduced Inequalities" },
+  { id: "sustainableCities", label: "Sustainable Cities and Communities" },
+  { id: "responsibleConsumption", label: "Responsible Consumption and Production" },
+  { id: "climateAction", label: "Climate Action" },
+  { id: "lifeBelowWater", label: "Life Below Water" },
+  { id: "lifeOnLand", label: "Life on Land" },
+  { id: "peaceJustice", label: "Peace, Justice and Strong Institutions" },
+  { id: "partnerships", label: "Partnerships for the Goals" }
+];
+
 const formatLabel = (id, options) =>
   options.find((o) => o.id === id)?.label || id;
 
 const formatSDGLabels = (sdg) => {
   try {
-    const parsed = typeof sdg === "string" ? JSON.parse(sdg) : sdg;
-    return Array.isArray(parsed) ? parsed : [];
+    let ids = [];
+
+    if (typeof sdg === "string") {
+      try {
+        // Try parsing as JSON array
+        ids = JSON.parse(sdg);
+      } catch {
+        // If parsing fails, fallback to comma-separated
+        ids = sdg.split(",").map((s) => s.trim());
+      }
+    } else if (Array.isArray(sdg)) {
+      ids = sdg;
+    }
+
+    return ids.map((id) => {
+      const match = sdgOptions.find((opt) => opt.id === id);
+      return match ? match.label : id; // fallback to raw ID if no match
+    });
   } catch {
     return [];
   }
 };
+
+
 
 const ActivityDialogContent = ({
   activity,
@@ -180,6 +218,9 @@ const ActivityDialogContent = ({
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
             <div className="pl-4">
+              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
+              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
+              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
               <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
               <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
               <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
@@ -213,7 +254,7 @@ const ActivityDialogContent = ({
           </div>
 
           {/* University Partners */}
-          {activity.university_partner === "true" && (
+          {activity.university_partner && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
@@ -239,6 +280,14 @@ const ActivityDialogContent = ({
           {/* Status + Button */}
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
+            {activity.final_status === "For Appeal" && activity.appeal_reason && (
+            <div className="space-y-1">
+              <h3 className="text-[#7B1113] font-semibold text-sm">Appeal Reason</h3>
+              <p className="bg-gray-50 border mt-2 mb-5 p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                {activity.appeal_reason}
+              </p>
+            </div>
+            )}
             {activity.drive_folder_link && (
               <div className="flex items-center gap-2">
               <a
@@ -445,6 +494,8 @@ const AdminPendingRequests = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [allActivities, setAllActivities] = useState([]);
+  const [pendingAppeals, setPendingAppeals] = useState([]);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -471,10 +522,10 @@ const AdminPendingRequests = () => {
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
-      .from("activity")
-      .select("*")
-      .eq("activity_id", id)
-      .single();
+    .from("activity")
+    .select(`*, schedule:activity_schedule(*), organization:organization(*)`)
+    .eq("activity_id", activity.activity_id)
+    .single();
   
     if (error) {
       console.error("Failed to refresh activity:", error);
@@ -482,18 +533,6 @@ const AdminPendingRequests = () => {
       setSelectedActivity(data);
     }
   };
-
-  // Mock data for pending appeals and cancellations
-  const pendingAppeals = Array.from({ length: 5 }, (_, i) => ({
-    id: `appeal-${i + 1}`,
-    submissionDate: "Submission Date",
-    organization: "Organization",
-    activityName: "Activity Name",
-    activityType: "Activity Type",
-    activityDate: "Activity Date",
-    venue: "Venue",
-    adviser: "Adviser"
-  }));
 
   const getActivityTypeLabel = (id) => {
     return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
@@ -522,8 +561,12 @@ const AdminPendingRequests = () => {
   
         console.log("Fetched incoming:", res.data);
         const allActivities = res.data;
+        setAllActivities(allActivities);
         
         const filtered = allActivities.filter((a) => {
+          const isAppeal = a.final_status === "For Appeal";  
+          if (isAppeal) return false;
+
           if (userRole === 2) {
             return (
               a.sro_approval_status === null ||
@@ -550,13 +593,22 @@ const AdminPendingRequests = () => {
   
     fetchIncoming();
   }, [userRole]); // trigger only when userRole is ready
+  
+  
+  useEffect(() => {
+    const appeals = allActivities.filter(a => a.final_status === "For Appeal");
+    setPendingAppeals(appeals);
+  }, [allActivities]);
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
-      .from("activity")
-      .select("*")
-      .eq("activity_id", activity.activity_id)
-      .single();
+    .from("activity")
+    .select(`
+      *,
+      schedule:activity_schedule(*) -- join schedule into the 'schedule' field
+    `)
+    .eq("activity_id", activity.activity_id)
+    .single();  
   
     if (error) {
       console.error("Failed to fetch latest activity:", error);

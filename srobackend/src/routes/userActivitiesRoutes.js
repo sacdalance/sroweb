@@ -17,6 +17,7 @@ router.get("/user/:account_id", async (req, res) => {
       account_id,
       org_id,
       student_position,
+      student_contact,
       activity_name,
       activity_description,
       sdg_goals,
@@ -37,6 +38,8 @@ router.get("/user/:account_id", async (req, res) => {
       odsa_remarks,
       activity_type,
       drive_folder_link,
+      appeal_reason,
+      account:account (account_name),
       organization:organization (
         org_name,
         adviser_name,
@@ -49,7 +52,8 @@ router.get("/user/:account_id", async (req, res) => {
         end_time,
         recurring_days,
         is_recurring
-      )
+      ),
+      created_at
     `)
     .eq("account_id", account_id)
     .order("activity_id", { ascending: false });

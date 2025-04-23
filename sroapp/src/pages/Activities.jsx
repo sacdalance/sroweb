@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,6 +78,8 @@ const ActivityDialogContent = ({ activity }) => {
     });
   };
 
+  console.log("Activity dialog data:", activity);
+
   return (
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
@@ -117,6 +120,9 @@ const ActivityDialogContent = ({ activity }) => {
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
             <div className="pl-4">
+              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
+              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
+              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
               <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
               <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
               <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
@@ -150,7 +156,7 @@ const ActivityDialogContent = ({ activity }) => {
           </div>
 
           {/* University Partners */}
-          {activity.university_partner === "true" && (
+          {activity.university_partner && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
@@ -176,6 +182,14 @@ const ActivityDialogContent = ({ activity }) => {
           {/* Status + Button */}
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
+            {activity.final_status === "For Appeal" && activity.appeal_reason && (
+            <div className="space-y-1">
+              <h3 className="text-[#7B1113] font-semibold text-sm">Appeal Reason</h3>
+              <p className="bg-gray-50 border mt-2 mb-5 p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
+                {activity.appeal_reason}
+              </p>
+            </div>
+            )}
             {activity.drive_folder_link && (
               <a
                 href={activity.drive_folder_link}
@@ -220,6 +234,10 @@ const Activities = () => {
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [isAppealOpen, setIsAppealOpen] = useState(false);
+  const [modalAppealReason, setModalAppealReason] = useState("");
+  const [editingActivity, setEditingActivity] = useState(null);
+  const navigate = useNavigate();
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -321,9 +339,17 @@ const Activities = () => {
                                 <Eye className="h-5 w-5" />
                               </button>
                             </DialogTrigger>
-                            <button className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125">
-                              <Pencil className="h-5 w-5" />
-                            </button>
+                            {act.final_status !== "For Appeal" && (
+                              <button
+                                onClick={() => {
+                                  setEditingActivity(act);
+                                  setIsAppealOpen(true);
+                                }}
+                                className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                              >
+                                <Pencil className="h-5 w-5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -376,7 +402,13 @@ const Activities = () => {
                                 <Eye className="h-5 w-5" />
                               </button>
                             </DialogTrigger>
-                            <button className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125">
+                            <button
+                              onClick={() => {
+                                setEditingActivity(act);
+                                setIsAppealOpen(true);
+                              }}
+                              className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                            >
                               <Pencil className="h-5 w-5" />
                             </button>
                           </div>
@@ -398,6 +430,48 @@ const Activities = () => {
 
         {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
       </Dialog>
+      <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
+            <p className="text-sm text-red-700">
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to FOR APPEAL.
+            </p>
+          </DialogHeader>
+          <div className="space-y-2 mt-1">
+            <label htmlFor="appealReason" className="text-sm font-medium">Reason for Appeal</label>
+            <textarea
+              id="appealReason"
+              value={modalAppealReason}
+              onChange={(e) => setModalAppealReason(e.target.value)}
+              placeholder="Provide a reason for editing your submission..."
+              className="w-full p-2 border rounded-md text-sm resize-none"
+              rows={4}
+            />
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  console.log("Edit Submission for:", editingActivity, "Reason:", modalAppealReason);
+                  navigate("/edit-activity", { state: { activity: editingActivity, appealReason: modalAppealReason } });
+                  setIsAppealOpen(false);
+                  setModalAppealReason("");
+                }}
+                disabled={modalAppealReason.trim() === ""}
+                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
+                  modalAppealReason.trim() === ""
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#014421] hover:bg-[#012f18]"
+                }`}
+              >
+                Edit Submission
+              </button>
+            </div>
+
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
