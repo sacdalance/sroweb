@@ -251,7 +251,7 @@ const ActivityDialogContent = ({
           </div>
 
           {/* University Partners */}
-          {activity.university_partner === "true" && (
+          {activity.university_partner && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
@@ -483,6 +483,8 @@ const AdminPendingRequests = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [allActivities, setAllActivities] = useState([]);
+  const [pendingAppeals, setPendingAppeals] = useState([]);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -524,18 +526,6 @@ const AdminPendingRequests = () => {
     }
   };
 
-  // Mock data for pending appeals and cancellations
-  const pendingAppeals = Array.from({ length: 5 }, (_, i) => ({
-    id: `appeal-${i + 1}`,
-    submissionDate: "Submission Date",
-    organization: "Organization",
-    activityName: "Activity Name",
-    activityType: "Activity Type",
-    activityDate: "Activity Date",
-    venue: "Venue",
-    adviser: "Adviser"
-  }));
-
   const getActivityTypeLabel = (id) => {
     return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
   };
@@ -563,8 +553,12 @@ const AdminPendingRequests = () => {
   
         console.log("Fetched incoming:", res.data);
         const allActivities = res.data;
+        setAllActivities(allActivities);
         
         const filtered = allActivities.filter((a) => {
+          const isAppeal = a.final_status === "For Appeal";  
+          if (isAppeal) return false;
+
           if (userRole === 2) {
             return (
               a.sro_approval_status === null ||
@@ -591,6 +585,12 @@ const AdminPendingRequests = () => {
   
     fetchIncoming();
   }, [userRole]); // trigger only when userRole is ready
+  
+  
+  useEffect(() => {
+    const appeals = allActivities.filter(a => a.final_status === "For Appeal");
+    setPendingAppeals(appeals);
+  }, [allActivities]);
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
