@@ -151,7 +151,7 @@ const ActivityDialogContent = ({ activity }) => {
           </div>
 
           {/* University Partners */}
-          {activity.university_partner === "true" && (
+          {activity.university_partner && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
@@ -326,15 +326,17 @@ const Activities = () => {
                                 <Eye className="h-5 w-5" />
                               </button>
                             </DialogTrigger>
-                            <button
-                              onClick={() => {
-                                setEditingActivity(act);
-                                setIsAppealOpen(true);
-                              }}
-                              className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                            >
-                              <Pencil className="h-5 w-5" />
-                            </button>
+                            {act.final_status !== "For Appeal" && (
+                              <button
+                                onClick={() => {
+                                  setEditingActivity(act);
+                                  setIsAppealOpen(true);
+                                }}
+                                className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                              >
+                                <Pencil className="h-5 w-5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
