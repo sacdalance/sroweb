@@ -39,6 +39,7 @@ router.get("/user/:account_id", async (req, res) => {
       activity_type,
       drive_folder_link,
       appeal_reason,
+      account:account (account_name),
       organization:organization (
         org_name,
         adviser_name,
@@ -51,7 +52,8 @@ router.get("/user/:account_id", async (req, res) => {
         end_time,
         recurring_days,
         is_recurring
-      )
+      ),
+      created_at
     `)
     .eq("account_id", account_id)
     .order("activity_id", { ascending: false });

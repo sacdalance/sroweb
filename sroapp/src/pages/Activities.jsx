@@ -78,6 +78,8 @@ const ActivityDialogContent = ({ activity }) => {
     });
   };
 
+  console.log("Activity dialog data:", activity);
+
   return (
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
@@ -118,6 +120,9 @@ const ActivityDialogContent = ({ activity }) => {
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
             <div className="pl-4">
+              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
+              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
+              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
               <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
               <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
               <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>

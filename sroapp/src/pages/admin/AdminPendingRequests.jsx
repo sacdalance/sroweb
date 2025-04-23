@@ -218,6 +218,9 @@ const ActivityDialogContent = ({
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
             <div className="pl-4">
+              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
+              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
+              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
               <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
               <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
               <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
@@ -520,10 +523,7 @@ const AdminPendingRequests = () => {
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
     .from("activity")
-    .select(`
-      *,
-      schedule:activity_schedule(*)
-    `)
+    .select(`*, schedule:activity_schedule(*), organization:organization(*)`)
     .eq("activity_id", activity.activity_id)
     .single();
   

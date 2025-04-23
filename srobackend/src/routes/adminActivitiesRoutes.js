@@ -12,6 +12,7 @@ router.get("/incoming", verifyAdminRoles, async (req, res) => {
       account_id,
       org_id,
       student_position,
+      student_contact,
       activity_name,
       activity_description,
       sdg_goals,
@@ -32,6 +33,8 @@ router.get("/incoming", verifyAdminRoles, async (req, res) => {
       odsa_remarks,
       activity_type,
       drive_folder_link,
+      appeal_reason,
+      account:account (account_name),
       organization:organization (
         org_name,
         adviser_name,
