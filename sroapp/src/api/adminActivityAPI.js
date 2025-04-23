@@ -1,0 +1,36 @@
+import supabase from "@/lib/supabase";
+
+export const submitAdminActivity = async (activity, schedule, file) => {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    throw new Error("No active session. Please log in again.");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  Object.entries(activity).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  Object.entries(schedule).forEach(([key, value]) => {
+    formData.append(key, value ?? "");
+  });
+
+  const response = await fetch("/api/admin/activity", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Failed to submit activity.");
+  }
+
+  return result;
+};

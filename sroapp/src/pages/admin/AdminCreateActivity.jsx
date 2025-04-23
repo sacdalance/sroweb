@@ -14,7 +14,7 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { Button } from "../../components/ui/button";
 import { Separator } from "../../components/ui/separator";
 import { Progress } from "../../components/ui/progress";
-import { createActivity } from '../../api/activityRequestAPI';
+import { submitAdminActivity } from '@/api/adminActivityAPI';
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import supabase from "@/lib/supabase";
@@ -339,100 +339,97 @@ const AdminCreateActivity = () => {
         const handleSubmit = async (e) => {
             e.preventDefault();
         
-            // Prevent submission if you're not in the submission step
             if (currentSection !== "submission") return;
-
-            // Prevent submission without a file
             if (!selectedFile) {
                 toast.dismiss();
                 toast.error("Please upload a PDF file before submitting.");
                 return;
             }
-
-            // Only allow PDF files
             if (selectedFile.type !== "application/pdf") {
                 toast.dismiss();
                 toast.error("Only PDF files are allowed.");
                 return;
             }
-
+        
             if (isSubmitting) return;
             setIsSubmitting(true);
-
-            // Send data to database and file to cloud
+        
             try {
                 const {
-                data: { user },
-                error: userError
-              } = await supabase.auth.getUser(); // supabase
+                    data: { user },
+                    error: userError
+                } = await supabase.auth.getUser();
         
                 if (userError || !user) {
-                toast.dismiss();
-                toast.error("You're not logged in.");
-                return;
+                    toast.dismiss();
+                    toast.error("You're not logged in.");
+                    return;
                 }
         
                 const { data: accountData, error: accountError } = await supabase
-                .from("account")
-                .select("account_id")
-                .eq("email", user.email)
-                .single();
+                    .from("account")
+                    .select("account_id")
+                    .eq("email", user.email)
+                    .single();
         
                 if (accountError || !accountData) {
-                toast.dismiss();
-                toast.error("No matching account found.");
-                return;             
+                    toast.dismiss();
+                    toast.error("No matching account found.");
+                    return;
                 }
         
                 const account_id = accountData.account_id;
         
                 const activityData = {
-                account_id,
-                org_id: parseInt(selectedValue), //change this    
-                student_position: studentPosition,
-                student_contact: studentContact,
-                activity_name: activityName,
-                activity_description: activityDescription,
-                activity_type: selectedActivityType,
-                sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
-                charge_fee: chargingFees1 === "yes",
-                university_partner: partnering === "yes",
-                partner_name: Object.entries(selectedPublicAffairs)
-                .filter(([_, v]) => v && v !== false)
-                .flatMap(([k, v]) => (Array.isArray(v) ? v : [k]))
-                .join(", "),              
-                partner_role: partnerDescription,
-                venue,
-                venue_approver: venueApprover,
-                venue_approver_contact: venueApproverContact,
-                is_off_campus: isOffCampus === "yes",
-                green_monitor_name: greenCampusMonitor,
-                green_monitor_contact: greenCampusMonitorContact,
+                    account_id,
+                    org_id: parseInt(selectedValue),
+                    student_position: studentPosition,
+                    student_contact: studentContact,
+                    activity_name: activityName,
+                    activity_description: activityDescription,
+                    activity_type: selectedActivityType,
+                    sdg_goals: Object.keys(selectedSDGs).filter(key => selectedSDGs[key]).join(","),
+                    charge_fee: chargingFees1 === "yes",
+                    university_partner: partnering === "yes",
+                    partner_name: Object.entries(selectedPublicAffairs)
+                        .filter(([_, v]) => v && v !== false)
+                        .flatMap(([k, v]) => (Array.isArray(v) ? v : [k]))
+                        .join(", "),
+                    partner_role: partnerDescription,
+                    venue,
+                    venue_approver: venueApprover,
+                    venue_approver_contact: venueApproverContact,
+                    is_off_campus: isOffCampus === "yes",
+                    green_monitor_name: greenCampusMonitor,
+                    green_monitor_contact: greenCampusMonitorContact
                 };
-
+        
                 const scheduleData = {
                     is_recurring: recurring,
                     start_date: startDate,
                     end_date: endDate || null,
                     start_time: startTime,
                     end_time: endTime,
-                    recurring_days: recurring === "recurring" ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",") : null,
-                    };
+                    recurring_days:
+                        recurring === "recurring"
+                            ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",")
+                            : null
+                };
         
-                await createActivity(activityData, selectedFile, scheduleData);
+                await submitAdminActivity(activityData, scheduleData, selectedFile);
+
                 setShowSuccessDialog(true);
-            
                 setTimeout(() => {
-                navigate("/dashboard");
+                navigate("/admin");
                 }, 5000);
             } catch (error) {
-                console.error("Submission error:", error);
-                toast.dismiss();  
+                toast.dismiss();
                 toast.error(error.message || "Something went wrong.");
+                console.error("Submission error:", error);
             } finally {
                 setIsSubmitting(false);
             }
-            };
+        };        
 
             const handleNextSection = (nextSection) => {
                 const result = validateCurrentSection(currentSection, {
