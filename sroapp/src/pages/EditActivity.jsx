@@ -32,6 +32,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
+import { editActivity } from "../api/activityEditAPI";
 const EditActivity = () => {
     const [selectedValue, setSelectedValue] = useState("");
     const [studentPosition, setStudentPosition] = useState("");
@@ -234,9 +235,9 @@ const EditActivity = () => {
                     return { valid: false, field: "appealReason", message: "Appeal reason is required." };
                     }
                 
-                    if (!selectedFile || selectedFile.type !== "application/pdf") {
-                    return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
-                    }
+                    // if (!selectedFile || selectedFile.type !== "application/pdf") {
+                    // return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
+                    // }
             }
         
             return { valid: true };
@@ -347,18 +348,18 @@ const EditActivity = () => {
             if (currentSection !== "submission") return;
 
             // Prevent submission without a file
-            if (!selectedFile) {
-                toast.dismiss();
-                toast.error("Please upload a PDF file before submitting.");
-                return;
-            }
+            // if (!selectedFile) {
+            //     toast.dismiss();
+            //     toast.error("Please upload a PDF file before submitting.");
+            //     return;
+            // }
 
             // Only allow PDF files
-            if (selectedFile.type !== "application/pdf") {
-                toast.dismiss();
-                toast.error("Only PDF files are allowed.");
-                return;
-            }
+            // if (selectedFile.type !== "application/pdf") {
+            //     toast.dismiss();
+            //     toast.error("Only PDF files are allowed.");
+            //     return;
+            // }
 
             if (isSubmitting) return;
             setIsSubmitting(true);
@@ -391,7 +392,7 @@ const EditActivity = () => {
                 const account_id = accountData.account_id;
         
                 const activityData = {
-                account_id,
+                activity_id: activity.activity_id,
                 org_id: parseInt(selectedValue),
                 student_position: studentPosition,
                 student_contact: studentContact,
@@ -424,8 +425,9 @@ const EditActivity = () => {
                     recurring_days: recurring === "recurring" ? Object.keys(recurringDays).filter(day => recurringDays[day]).join(",") : null,
                     };
         
-                await createActivity(activityData, selectedFile, scheduleData);
-                setShowSuccessDialog(true);
+                    await editActivity(activityData, scheduleData);
+                    toast.success("Submission updated! Your appeal is now pending.");
+                    setShowSuccessDialog(true);
             
                 setTimeout(() => {
                 navigate("/dashboard");
@@ -1258,13 +1260,17 @@ const EditActivity = () => {
                                             >
                                             <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
                                             <p className="text-sm">Drag and Drop or Click to Upload File</p>
+                                            <p className="text-xs text-gray-500 italic mt-2">
+                                            * File upload not required for now. You may submit the form without attaching a PDF.
+                                            </p>
                                             <input
                                                 id="activityRequestFileUpload"
                                                 type="file"
                                                 accept=".pdf"
                                                 onChange={handleFileChange}
                                                 className="hidden"
-                                                disabled={isSubmitting}
+                                                disabled
+                                                // disabled={isSubmitting}
                                             />
                                             </label>
                                         </div>
@@ -1315,9 +1321,9 @@ const EditActivity = () => {
                         <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                             <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+                                <AlertDialogTitle>Confirm Appeal</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                Are you sure you want to submit this activity request now?
+                                Are you sure you want to edit this activity request now?
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -1340,7 +1346,7 @@ const EditActivity = () => {
                             <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
                             <AlertDialogHeader>
                                 <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
-                                Submitted Successfully!
+                                Edited Successfully!
                                 </AlertDialogTitle>
                                 <AlertDialogDescription className="text-sm font-medium mb-2">
                                 You will be redirected to the dashboard...
