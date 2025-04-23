@@ -57,29 +57,109 @@ const AppointmentBooking = () => {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Log the auth state first
+        console.log("Fetching auth user data...");
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         
-        if (user) {
-          // Get account details from the account table
-          const { data: accountData, error: accountError } = await supabase
+        if (authError) {
+          console.error("Auth error:", authError);
+          return;
+        }
+        
+        console.log("Auth user data:", authUser);
+        
+        if (authUser) {
+          // First try to get account by supabase_uid if it exists
+          console.log("Fetching account data for supabase_uid:", authUser.id);
+          let { data: accountData, error: accountError } = await supabase
             .from('account')
             .select('*')
-            .eq('supabase_uid', user.id)
-            .single();
+            .eq('supabase_uid', authUser.id)
+            .maybeSingle();
           
-          if (accountError) throw accountError;
+          // If no account is found by supabase_uid, try to find by email
+          if (!accountData && authUser.email) {
+            console.log("No account found by supabase_uid, trying with email:", authUser.email);
+            const { data: emailAccount, error: emailError } = await supabase
+              .from('account')
+              .select('*')
+              .eq('email', authUser.email)
+              .maybeSingle();
+            
+            if (emailAccount) {
+              console.log("Found account by email:", emailAccount);
+              // Update the account with the supabase_uid for future logins
+              const { data: updatedAccount, error: updateError } = await supabase
+                .from('account')
+                .update({ supabase_uid: authUser.id })
+                .eq('account_id', emailAccount.account_id)
+                .select();
+              
+              if (updateError) {
+                console.error("Failed to update account with supabase_uid:", updateError);
+              } else {
+                console.log("Updated account with supabase_uid:", updatedAccount);
+                accountData = updatedAccount[0];
+              }
+            } else if (emailError) {
+              console.error("Error fetching account by email:", emailError);
+            }
+          }
+          
+          // If still no account found, try to get admin account (fallback)
+          if (!accountData) {
+            console.log("No account found, checking for admin account");
+            const { data: adminData, error: adminError } = await supabase
+              .from('account')
+              .select('*')
+              .eq('role_id', 1)
+              .limit(1);
+            
+            if (!adminError && adminData && adminData.length > 0) {
+              console.log("Found admin account:", adminData[0]);
+              
+              // If user is not linked to an account but we have their email from auth,
+              // we could optionally create an account for them here
+              
+              setUser(adminData[0]);
+              
+              // Pre-fill email if available
+              if (adminData[0]?.email) {
+                setFormData(prev => ({ ...prev, email: adminData[0].email }));
+              } else if (authUser.email) {
+                setFormData(prev => ({ ...prev, email: authUser.email }));
+              }
+              
+              // Load user's appointments
+              loadUserAppointments(adminData[0].account_id);
+              return;
+            }
+          }
+          
+          if (accountData) {
+            console.log("Using account data:", accountData);
           setUser(accountData);
           
           // Pre-fill email if available
           if (accountData?.email) {
             setFormData(prev => ({ ...prev, email: accountData.email }));
+            } else if (authUser.email) {
+              setFormData(prev => ({ ...prev, email: authUser.email }));
           }
           
           // Load user's appointments
           loadUserAppointments(accountData.account_id);
+          } else {
+            console.error("No account found for user:", authUser);
+            toast.error("Account not found. Please contact an administrator.");
+          }
+        } else {
+          console.log("No authenticated user found");
+          toast.error("Please log in to book an appointment");
         }
       } catch (error) {
-        console.error("Error loading user:", error);
+        console.error("Error in getUser:", error);
+        toast.error("Error loading user data");
       }
     };
     
@@ -88,24 +168,36 @@ const AppointmentBooking = () => {
 
   // Load user's existing appointments
   const loadUserAppointments = async (userId) => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("No user ID provided, skipping appointment loading");
+      setExistingAppointments([]);
+      setLoadingAppointments(false);
+      return;
+    }
     
     try {
       setLoadingAppointments(true);
+      console.log(`Loading appointments for user ID: ${userId}`);
       
       const { data, error } = await supabase
         .from('appointments')
         .select('*')
-        .eq('user_id', userId)
-        .in('status', ['pending', 'confirmed', 'reschedule-pending', 'cancellation-pending'])
-        .order('date', { ascending: true });
+        .eq('account_id', userId)
+        .order('appointment_date', { ascending: true });
       
-      if (error) throw error;
-      
+      if (error) {
+        console.error("Error loading user appointments:", error);
+        toast.error("Failed to load your appointments");
+        setExistingAppointments([]);
+      } else {
+        console.log(`Found ${data.length} appointments for user`);
       setExistingAppointments(data || []);
-      setLoadingAppointments(false);
+      }
     } catch (error) {
       console.error("Error loading user appointments:", error);
+      toast.error("Failed to load your appointments");
+      setExistingAppointments([]);
+    } finally {
       setLoadingAppointments(false);
     }
   };
@@ -180,9 +272,6 @@ const AppointmentBooking = () => {
       const formattedDate = format(date, 'yyyy-MM-dd');
       console.log(`Loading time slots for date: ${formattedDate}`);
       
-      // First check if there are settings with default time slots
-      let defaultTimeSlots = [];
-      
       // Get appointment settings
       const { data: settingsData, error: settingsError } = await supabase
         .from('appointment_settings')
@@ -190,13 +279,41 @@ const AppointmentBooking = () => {
         .order('created_at', { ascending: false })
         .limit(1);
       
+      let defaultTimeSlots = [];
+      
       if (settingsError) {
         console.error("Error fetching settings:", settingsError);
       } else if (settingsData && settingsData.length > 0) {
         console.log("Settings found:", settingsData[0]);
-        // If time_slots is defined in settings, use it
-        if (settingsData[0].time_slots) {
-          defaultTimeSlots = [...settingsData[0].time_slots];
+        
+        // Generate time slots based on start_time, end_time, and interval_minutes
+        const settings = settingsData[0];
+        
+        // Parse start and end times
+        const startTimeParts = settings.start_time.split(':');
+        const endTimeParts = settings.end_time.split(':');
+        
+        const startHour = parseInt(startTimeParts[0]);
+        const startMinute = parseInt(startTimeParts[1]);
+        const endHour = parseInt(endTimeParts[0]);
+        const endMinute = parseInt(endTimeParts[1]);
+        
+        const interval = settings.interval_minutes;
+        
+        // Generate time slots
+        let currentHour = startHour;
+        let currentMinute = startMinute;
+        
+        while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
+          const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          defaultTimeSlots.push(timeString);
+          
+          // Increment by interval
+          currentMinute += interval;
+          if (currentMinute >= 60) {
+            currentHour += Math.floor(currentMinute / 60);
+            currentMinute = currentMinute % 60;
+          }
         }
       }
       
@@ -208,11 +325,31 @@ const AppointmentBooking = () => {
         console.log("Using default time slots:", defaultTimeSlots);
       }
       
+      // Load blocked time slots
+      const { data: blockedTimeSlots, error: blockedTimeSlotsError } = await supabase
+        .from('blocked_time_slots')
+        .select('time_slot');
+      
+      if (blockedTimeSlotsError) {
+        console.error("Error loading blocked time slots:", blockedTimeSlotsError);
+      } else if (blockedTimeSlots && blockedTimeSlots.length > 0) {
+        console.log("Blocked time slots:", blockedTimeSlots);
+        
+        // Filter out blocked time slots
+        const blockedTimes = blockedTimeSlots.map(item => {
+          // Convert time format to match our format (HH:MM)
+          const timeParts = item.time_slot.split(':');
+          return `${timeParts[0]}:${timeParts[1]}`;
+        });
+        
+        defaultTimeSlots = defaultTimeSlots.filter(slot => !blockedTimes.includes(slot));
+      }
+      
       // Load existing appointments for the selected date to check availability
       const { data: existingAppointments, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
-        .eq('date', formattedDate);
+        .eq('appointment_date', formattedDate);
       
       if (appointmentsError) {
         console.error("Error loading existing appointments:", appointmentsError);
@@ -225,10 +362,11 @@ const AppointmentBooking = () => {
       if (existingAppointments && existingAppointments.length > 0) {
         console.log("Existing appointments:", existingAppointments);
         
-        // Get all booked time slots (check both time_slot and time fields for compatibility)
+        // Get all booked time slots
         const bookedTimes = existingAppointments.map(appointment => {
-          // Try to get the time slot from either time_slot or time field
-          return appointment.time_slot || appointment.time || "";
+          // Convert time format to match our format (HH:MM)
+          const timeParts = appointment.appointment_time.split(':');
+          return `${timeParts[0]}:${timeParts[1]}`;
         });
         
         console.log("Booked times:", bookedTimes);
@@ -280,15 +418,15 @@ const AppointmentBooking = () => {
       // Get all confirmed appointments for this month
       const { data, error } = await supabase
         .from('appointments')
-        .select('date')
-        .gte('date', startDateStr)
-        .lte('date', endDateStr)
-        .eq('status', 'confirmed');
+        .select('appointment_date')
+        .gte('appointment_date', startDateStr)
+        .lte('appointment_date', endDateStr)
+        .eq('status', 'scheduled');
       
       if (error) throw error;
       
       // Convert to date objects and store in state
-      const dates = data.map(item => new Date(item.date));
+      const dates = data.map(item => new Date(item.appointment_date));
       setDatesWithAppointments(dates);
     } catch (error) {
       console.error("Error fetching month appointments:", error);
@@ -395,7 +533,7 @@ const AppointmentBooking = () => {
       ...formData,
       date: null,
       time: "",
-      reason: appointment.purpose || appointment.reason || ""
+      reason: appointment.reason || ""
     });
     setShowExistingAppointments(false);
   };
@@ -413,30 +551,28 @@ const AppointmentBooking = () => {
       const appointmentId = selectedAppointment.id;
       const newDate = format(formData.date, 'yyyy-MM-dd');
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}/reschedule-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          new_date: newDate,
-          new_time_slot: formData.time,
-          reason: formData.notes || "Reschedule requested by user"
+      // Update the appointment directly in the database
+      const { data, error } = await supabase
+        .from('appointments')
+        .update({
+          appointment_date: newDate,
+          appointment_time: formData.time,
+          notes: formData.notes || "Rescheduled by user"
         })
-      });
+        .eq('id', appointmentId);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to submit reschedule request");
+      if (error) {
+        throw new Error(error.message || "Failed to reschedule appointment");
       }
       
       // Success
+      toast.success("Appointment rescheduled successfully!");
       setSuccess(true);
       setSubmitting(false);
       setRescheduleMode(false);
     } catch (error) {
       console.error("Error requesting reschedule:", error);
-      setError(error.message || "Failed to submit reschedule request. Please try again later.");
+      setError(error.message || "Failed to reschedule appointment. Please try again later.");
       setSubmitting(false);
     }
   };
@@ -460,28 +596,27 @@ const AppointmentBooking = () => {
       
       const appointmentId = selectedAppointment.id;
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}/cancellation-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          reason: cancelReason
+      // Update the appointment status directly in the database
+      const { data, error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancelled',
+          notes: cancelReason || "Cancelled by user"
         })
-      });
+        .eq('id', appointmentId);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to submit cancellation request");
+      if (error) {
+        throw new Error(error.message || "Failed to cancel appointment");
       }
       
       // Success
+      toast.success("Appointment cancelled successfully!");
       setSuccess(true);
       setSubmitting(false);
       setShowCancelForm(false);
     } catch (error) {
-      console.error("Error requesting cancellation:", error);
-      setError(error.message || "Failed to submit cancellation request. Please try again later.");
+      console.error("Error cancelling appointment:", error);
+      setError(error.message || "Failed to cancel appointment. Please try again later.");
       setSubmitting(false);
     }
   };
@@ -499,9 +634,48 @@ const AppointmentBooking = () => {
   const handleSubmit = async (e) => {
     e?.preventDefault();
     
+    // Detailed user debugging
+    console.log("Current user object:", user);
+    console.log("Form submission started with data:", { ...formData, selectedDate, selectedTime });
+    
     if (!selectedDate || !selectedTime) {
       toast.error("Please select a date and time");
       return;
+    }
+    
+    // Check if user exists and has account_id
+    if (!user) {
+      console.error("No user found at all");
+      toast.error("You must be logged in to book an appointment");
+      return;
+    }
+    
+    // Show what's in the user object
+    console.log("User properties:", Object.keys(user));
+    
+    // Determine which ID to use
+    let userAccountId = user.account_id;
+    
+    if (!userAccountId) {
+      console.error("User object is missing account_id:", user);
+      
+      // Fallback: Check if there's a different ID field we could use
+      const possibleIdFields = ['id', 'user_id', 'uid'];
+      
+      for (const field of possibleIdFields) {
+        if (user[field]) {
+          userAccountId = user[field];
+          console.log(`Found alternative ID field: ${field} with value ${userAccountId}`);
+          break;
+        }
+      }
+      
+      if (!userAccountId) {
+        toast.error("User account data is incomplete. Please contact support.");
+        return;
+      }
+      
+      console.log(`Using fallback ID: ${userAccountId} instead of account_id`);
     }
     
     if (!formData.reason || formData.reason === "Select a reason for booking an appointment with the SRO...") {
@@ -514,35 +688,93 @@ const AppointmentBooking = () => {
       return;
     }
     
+    if (!formData.contact || formData.contact.length < 11) {
+      toast.error("Please enter a valid contact number (11 digits)");
+      return;
+    }
+    
+    if (!formData.email || !formData.email.includes('@')) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
     try {
       setSubmitting(true);
       
+      // Ensure contact number is exactly 10 digits (remove any non-digit characters)
+      const formattedContact = formData.contact.replace(/\D/g, '').slice(-10);
+      
+      // Create appointment data that matches the database schema
       const appointmentData = {
-        user_id: user.account_id, // Use account_id instead of id
-        purpose: formData.reason, // Database expects 'purpose' not 'reason'
-        date: format(selectedDate, 'yyyy-MM-dd'),
-        time_slot: selectedTime, // Use time_slot instead of time
+        account_id: userAccountId, 
+        reason: formData.reason, 
+        appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+        appointment_time: selectedTime,
+        contact_number: formattedContact,
         email: formData.email,
-        contact_number: formData.contact,
-        meeting_mode: formData.mode,
         notes: formData.notes || "",
-        status: "pending",
-        created_at: new Date().toISOString()
+        other_reason: formData.reason === "Other" ? formData.notes : null,
+        status: "scheduled",
+        meeting_mode: formData.mode
       };
       
-      console.log("Submitting appointment data:", appointmentData);
+      console.log("Submitting final appointment data:", appointmentData);
       
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert([appointmentData]);
-      
-      if (error) {
-        console.error("Error submitting appointment:", error);
-        toast.error(`Failed to book appointment: ${error.message}`);
-        return;
-      }
-      
-      toast.success("Appointment booked successfully! You'll receive a confirmation soon.");
+      // Try a direct fetch approach
+      try {
+        // Get the JWT token from supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          throw new Error("No authentication token found. Please login again.");
+        }
+        
+        // Log all the details for debugging
+        console.log("Supabase URL:", supabase.supabaseUrl);
+        console.log("Token available:", !!token);
+        console.log("API endpoint:", `${supabase.supabaseUrl}/rest/v1/appointments`);
+        
+        // Do a direct REST API call to the Supabase endpoint
+        const response = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/appointments`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'apikey': supabase.supabaseKey,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(appointmentData)
+          }
+        );
+        
+        const responseText = await response.text();
+        console.log("Response status:", response.status);
+        console.log("Response text:", responseText);
+        
+        if (!response.ok) {
+          let errorMessage = `API error: ${response.status}`;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage += ` - ${JSON.stringify(errorData)}`;
+          } catch (e) {
+            errorMessage += ` - ${responseText}`;
+          }
+          throw new Error(errorMessage);
+        }
+        
+        // Parse the response only if it contains JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log("Appointment created successfully:", data);
+        } catch (e) {
+          console.log("Response wasn't JSON, but appointment was created");
+        }
+        
+        toast.success("Appointment booked successfully! You'll receive a confirmation email soon.");
       setSuccess(true);
       
       // Reset form
@@ -555,6 +787,16 @@ const AppointmentBooking = () => {
         mode: "",
         notes: ""
       });
+        
+        // Reload appointments
+        if (user && userAccountId) {
+          loadUserAppointments(userAccountId);
+        }
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        toast.error(`Failed to book appointment: ${fetchError.message}`);
+      }
+      
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error("An unexpected error occurred. Please try again later.");
@@ -607,16 +849,12 @@ const AppointmentBooking = () => {
   // Get appointment status display
   const getStatusDisplay = (status) => {
     switch(status) {
-      case 'pending':
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Pending</span>;
-      case 'confirmed':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Confirmed</span>;
+      case 'scheduled':
+        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Scheduled</span>;
+      case 'completed':
+        return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Completed</span>;
       case 'cancelled':
         return <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Cancelled</span>;
-      case 'reschedule-pending':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">Reschedule Pending</span>;
-      case 'cancellation-pending':
-        return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs">Cancellation Pending</span>;
       default:
         return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">{status}</span>;
     }
@@ -731,12 +969,12 @@ const AppointmentBooking = () => {
           <h2 className="text-xl font-semibold mb-2">
             {rescheduleMode ? "Appointment Reschedule Requested!" : 
              showCancelForm ? "Appointment Cancellation Requested!" : 
-             "Appointment Booked Successfully!"}
+             "Appointment Request Submitted Successfully!"}
           </h2>
           <p className="mb-4">
             {rescheduleMode ? "Your reschedule request has been submitted and is pending approval. You will receive an email notification once it's processed." :
              showCancelForm ? "Your cancellation request has been submitted and is pending approval. You will receive an email notification once it's processed." :
-             "Your appointment request has been submitted. You will receive an email confirmation shortly."}
+             "Your appointment request has been submitted. An administrator will review your request and send you a confirmation email shortly. Your appointment is not finalized until you receive this confirmation email."}
           </p>
           <div className="flex gap-4">
             <button
@@ -835,15 +1073,15 @@ const AppointmentBooking = () => {
                 <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-medium">{appointment.purpose}</h3>
+                      <h3 className="font-medium">{appointment.reason}</h3>
                       <div className="text-sm text-gray-500 mt-1">
                         <div className="flex items-center">
                           <Calendar size={14} className="mr-1" />
-                          <span>{new Date(appointment.date).toLocaleDateString()}</span>
+                          <span>{new Date(appointment.appointment_date).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center mt-1">
                           <Clock size={14} className="mr-1" />
-                          <span>{appointment.time_slot}</span>
+                          <span>{appointment.appointment_time}</span>
                         </div>
                       </div>
                       <div className="mt-2">
@@ -853,7 +1091,7 @@ const AppointmentBooking = () => {
                     
                     {/* Action buttons */}
                     <div className="flex space-x-2">
-                      {appointment.status === 'confirmed' && (
+                      {appointment.status === 'scheduled' && (
                         <>
                           <button 
                             onClick={() => requestReschedule(appointment)}
@@ -870,15 +1108,6 @@ const AppointmentBooking = () => {
                             <X size={16} />
                           </button>
                         </>
-                      )}
-                      {appointment.status === 'pending' && (
-                        <span className="text-sm text-gray-500 italic">Awaiting confirmation</span>
-                      )}
-                      {appointment.status === 'reschedule-pending' && (
-                        <span className="text-sm text-gray-500 italic">Reschedule request pending</span>
-                      )}
-                      {appointment.status === 'cancellation-pending' && (
-                        <span className="text-sm text-gray-500 italic">Cancellation request pending</span>
                       )}
                     </div>
                   </div>
@@ -937,6 +1166,22 @@ const AppointmentBooking = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column - Form Fields */}
           <div className="space-y-6">
+            {/* Add an information box about the appointment confirmation process */}
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
+              <div className="flex items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-blue-500">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h4 className="font-medium mb-1">Appointment Confirmation Process</h4>
+                  <p className="text-sm">
+                    After submitting your appointment request, an administrator will review it and send you a confirmation email.
+                    Your appointment is not finalized until you receive this confirmation.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium mb-2">Reason for Appointment</label>
               <select
@@ -1157,14 +1402,21 @@ const AppointmentBooking = () => {
       <div className="mt-8 border-t pt-4">
         <button
           onClick={async () => {
+            alert("Generate sample data clicked");
             try {
+              // Check if user is logged in
+              if (!user || !user.account_id) {
+                toast.error("Please log in to generate sample appointments");
+                return;
+              }
+              
               // Generate sample data directly
               const today = new Date();
               
-              // Generate 10 sample appointments
+              // Generate 5 sample appointments
               const sampleAppointments = [];
               
-              for (let i = 0; i < 10; i++) {
+              for (let i = 0; i < 5; i++) {
                 // Add 1-10 days to today
                 const appointmentDate = new Date(today);
                 appointmentDate.setDate(today.getDate() + Math.floor(Math.random() * 10) + 1);
@@ -1182,57 +1434,68 @@ const AppointmentBooking = () => {
                 if (hour === 12) continue; // Skip lunch hour
                 const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
                 
-                // Random status (mostly confirmed for visibility)
-                const statuses = ['confirmed', 'confirmed', 'confirmed', 'pending', 'pending'];
-                const status = statuses[Math.floor(Math.random() * statuses.length)];
-                
                 // Get a random reason
                 const reason = appointmentReasons[Math.floor(Math.random() * (appointmentReasons.length - 1)) + 1];
                 
-                // Get a random meeting mode
-                const meetingMode = meetingModes[Math.floor(Math.random() * meetingModes.length)];
-                
                 // Create appointment with proper schema
                 sampleAppointments.push({
-                  user_id: user?.account_id || 1,
-                  purpose: reason,
-                  date: dateStr,
-                  time_slot: timeSlot,
-                  email: user?.email || 'test@up.edu.ph',
-                  contact_number: '09123456789',
-                  meeting_mode: meetingMode,
-                  status: status,
-                  created_at: new Date().toISOString()
+                  account_id: user.account_id,
+                  reason: reason,
+                  appointment_date: dateStr,
+                  appointment_time: timeSlot,
+                  email: user.email || 'test@up.edu.ph',
+                  contact_number: '1234567890', // Exactly 10 digits
+                  notes: "Sample appointment generated for testing",
+                  status: "scheduled"
                 });
               }
               
               console.log("Sample appointments prepared:", sampleAppointments);
               
-              // Test database schema by retrieving a sample appointment first
-              const { data: schemaCheck, error: schemaError } = await supabase
-                .from('appointments')
-                .select('*')
-                .limit(1);
-                
-              if (schemaError) {
-                console.error("Error checking schema:", schemaError);
-                throw new Error(`Schema check failed: ${schemaError.message}`);
+              if (sampleAppointments.length === 0) {
+                toast.error("No sample appointments generated - check your logic");
+                return;
               }
               
-              // Log the schema for debugging
-              console.log("Existing appointment schema:", schemaCheck);
-              
-              // Insert directly via Supabase
-              const { data, error } = await supabase
-                .from('appointments')
-                .insert(sampleAppointments);
+              // Try a direct fetch approach for sample data
+              try {
+                // Get the JWT token from supabase
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
                 
-              if (error) {
-                console.error("Error inserting sample data:", error);
-                throw error;
-              }
-              
-              toast.success("Sample appointments generated successfully!");
+                if (!token) {
+                  throw new Error("No authentication token found. Please login again.");
+                }
+                
+                // Insert each appointment individually to avoid batch issues
+                let successCount = 0;
+                
+                for (const appointment of sampleAppointments) {
+                  // Do a direct REST API call to the Supabase endpoint
+                  const response = await fetch(
+                    `${supabase.supabaseUrl}/rest/v1/appointments`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': supabase.supabaseKey,
+                        'Prefer': 'return=representation'
+                      },
+                      body: JSON.stringify(appointment)
+                    }
+                  );
+                  
+                  if (response.ok) {
+                    successCount++;
+                  } else {
+                    const errorData = await response.json();
+                    console.error(`Failed to insert sample appointment: ${JSON.stringify(errorData)}`);
+                  }
+                }
+                
+                if (successCount > 0) {
+                  toast.success(`Successfully created ${successCount} sample appointments!`);
               
               // Reload appointments for the current month
               fetchMonthAppointments();
@@ -1240,6 +1503,13 @@ const AppointmentBooking = () => {
               // Reload user appointments if user is logged in
               if (user?.account_id) {
                 loadUserAppointments(user.account_id);
+                  }
+                } else {
+                  toast.error("Failed to create any sample appointments");
+                }
+              } catch (fetchError) {
+                console.error("Fetch error when creating sample data:", fetchError);
+                toast.error(`Failed to generate sample data: ${fetchError.message}`);
               }
             } catch (error) {
               console.error("Error generating sample appointments:", error);

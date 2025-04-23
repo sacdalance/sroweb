@@ -441,17 +441,10 @@ const ActivityDialogContent = ({
 
 const AdminPendingRequests = () => {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("submissions");
+  const [activeTab, setActiveTab] = useState("appeals");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [pendingAppointments, setPendingAppointments] = useState([]);
-  const [loadingAppointments, setLoadingAppointments] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
-  const [appointmentAction, setAppointmentAction] = useState(null);
-  const [appointmentComment, setAppointmentComment] = useState("");
-  const [appointmentSubmitting, setAppointmentSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -595,146 +588,6 @@ const AdminPendingRequests = () => {
     await refreshSelectedActivity(selectedActivity.activity_id);
   };
 
-  // Load pending appointment requests
-  useEffect(() => {
-    if (!userRole) return;
-    
-    const fetchPendingAppointments = async () => {
-      try {
-        setLoadingAppointments(true);
-        
-        // Fetch pending appointment requests
-        const { data, error } = await supabase
-          .from('appointments')
-          .select(`
-            id,
-            date,
-            time_slot,
-            purpose,
-            details,
-            email,
-            contact_number,
-            meeting_mode,
-            created_at,
-            account:user_id (account_id, first_name, last_name, email)
-          `)
-          .eq('status', 'pending')
-          .order('date', { ascending: true });
-        
-        if (error) throw error;
-        
-        setPendingAppointments(data || []);
-        setLoadingAppointments(false);
-      } catch (error) {
-        console.error("Error loading appointment requests:", error);
-        setLoadingAppointments(false);
-      }
-    };
-    
-    fetchPendingAppointments();
-  }, [userRole]);
-
-  // Handle viewing appointment details
-  const handleViewAppointment = (appointment) => {
-    setSelectedAppointment(appointment);
-    setAppointmentModalOpen(true);
-  };
-  
-  // Handle approving appointment
-  const handleApproveAppointment = async () => {
-    if (!selectedAppointment) return;
-    
-    try {
-      setAppointmentSubmitting(true);
-      
-      // Update appointment status to confirmed
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'confirmed',
-          admin_notes: appointmentComment,
-          updated_at: new Date()
-        })
-        .eq('id', selectedAppointment.id);
-      
-      if (error) throw error;
-      
-      // Send notification email to user
-      await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${selectedAppointment.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'confirmed',
-          admin_notes: appointmentComment
-        })
-      });
-      
-      toast.success("Appointment approved successfully!");
-      
-      // Refresh appointment list
-      setPendingAppointments(prev => 
-        prev.filter(app => app.id !== selectedAppointment.id)
-      );
-      
-      setAppointmentSubmitting(false);
-      setAppointmentModalOpen(false);
-      setAppointmentComment("");
-    } catch (error) {
-      console.error("Error approving appointment:", error);
-      toast.error("Failed to approve appointment");
-      setAppointmentSubmitting(false);
-    }
-  };
-  
-  // Handle rejecting appointment
-  const handleRejectAppointment = async () => {
-    if (!selectedAppointment) return;
-    
-    try {
-      setAppointmentSubmitting(true);
-      
-      // Update appointment status to rejected
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'rejected',
-          admin_notes: appointmentComment,
-          updated_at: new Date()
-        })
-        .eq('id', selectedAppointment.id);
-      
-      if (error) throw error;
-      
-      // Send notification email to user
-      await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${selectedAppointment.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'rejected',
-          admin_notes: appointmentComment
-        })
-      });
-      
-      toast.success("Appointment rejected successfully!");
-      
-      // Refresh appointment list
-      setPendingAppointments(prev => 
-        prev.filter(app => app.id !== selectedAppointment.id)
-      );
-      
-      setAppointmentSubmitting(false);
-      setAppointmentModalOpen(false);
-      setAppointmentComment("");
-    } catch (error) {
-      console.error("Error rejecting appointment:", error);
-      toast.error("Failed to reject appointment");
-      setAppointmentSubmitting(false);
-    }
-  };
 
   if (!userRole) return null;
 
@@ -744,25 +597,20 @@ const AdminPendingRequests = () => {
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger 
-            value="submissions" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Incoming Submissions ({incomingRequests.length})
-          </TabsTrigger>
-          <TabsTrigger 
-            value="appeals" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Appeals & Cancellations
-          </TabsTrigger>
-          <TabsTrigger 
-            value="appointments" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
-          >
-            Appointment Requests ({pendingAppointments.length})
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger 
+          value="submissions" 
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+        >
+          Incoming Submissions ({incomingRequests.length})
+        </TabsTrigger>
+
+        <TabsTrigger 
+          value="appeals" 
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+        >
+          Appeals and Cancellations ({pendingAppeals.length})
+        </TabsTrigger>
         </TabsList>
         
         <TabsContent value="appeals">
@@ -921,79 +769,6 @@ const AdminPendingRequests = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="appointments">
-          <Card>
-            <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#7B1113]">
-                Incoming Appointment Requests
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Submitted</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Student</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Email</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Purpose</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Time</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Meeting Mode</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {loadingAppointments ? (
-                      <tr>
-                        <td colSpan="9" className="text-center text-gray-500 py-4">Loading appointment requests...</td>
-                      </tr>
-                    ) : pendingAppointments.length === 0 ? (
-                      <tr>
-                        <td colSpan="9" className="text-center text-gray-500 py-4">No pending appointment requests.</td>
-                      </tr>
-                    ) : (
-                      pendingAppointments.map((appointment) => (
-                        <tr key={appointment.id} className="hover:bg-gray-50">
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.id}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {new Date(appointment.created_at).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {appointment.account?.first_name} {appointment.account?.last_name}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.email}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.purpose}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {new Date(appointment.date).toLocaleDateString()}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.time_slot}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.meeting_mode}</td>
-                          <td className="px-5 py-4 text-sm text-center">
-                            <div className="flex justify-center">
-                              <button
-                                onClick={() => handleViewAppointment(appointment)}
-                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Activity Details Modal */}
@@ -1007,97 +782,6 @@ const AdminPendingRequests = () => {
             handleApprove={handleApprove}
             handleReject={handleReject}
           />
-        )}
-      </Dialog>
-
-      {/* Appointment Details Modal */}
-      <Dialog open={appointmentModalOpen} onOpenChange={setAppointmentModalOpen}>
-        {selectedAppointment && (
-          <DialogContent className="max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-[#7B1113]">
-                Appointment Request
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-              {/* Appointment Details */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-[#014421]">Appointment Details</h3>
-                <div className="bg-gray-50 p-3 rounded-md space-y-2 text-sm">
-                  <p><span className="font-medium">Purpose:</span> {selectedAppointment.purpose}</p>
-                  <p><span className="font-medium">Date:</span> {new Date(selectedAppointment.date).toLocaleDateString()}</p>
-                  <p><span className="font-medium">Time:</span> {selectedAppointment.time_slot}</p>
-                  <p><span className="font-medium">Meeting Mode:</span> {selectedAppointment.meeting_mode}</p>
-                  {selectedAppointment.details && (
-                    <div>
-                      <p className="font-medium">Additional Notes:</p>
-                      <p className="whitespace-pre-wrap">{selectedAppointment.details}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Student Details */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-[#014421]">Student Information</h3>
-                <div className="bg-gray-50 p-3 rounded-md space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Name:</span> 
-                    {selectedAppointment.account?.first_name} {selectedAppointment.account?.last_name}
-                  </p>
-                  <p><span className="font-medium">Email:</span> {selectedAppointment.email || selectedAppointment.account?.email}</p>
-                  <p><span className="font-medium">Contact:</span> {selectedAppointment.contact_number}</p>
-                </div>
-              </div>
-              
-              {/* Admin Response */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-[#014421]">Your Response</h3>
-                <textarea
-                  className="w-full p-3 border rounded-md text-sm h-24"
-                  placeholder="Add optional comments for the student (will be included in the email notification)..."
-                  value={appointmentComment}
-                  onChange={(e) => setAppointmentComment(e.target.value)}
-                ></textarea>
-              </div>
-              
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setAppointmentModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-[#7B1113] hover:bg-[#5a0d0f] text-white"
-                  onClick={() => {
-                    setAppointmentAction("reject");
-                    handleRejectAppointment();
-                  }}
-                  disabled={appointmentSubmitting}
-                >
-                  {appointmentSubmitting && appointmentAction === "reject" ? (
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  ) : null}
-                  Reject
-                </Button>
-                <Button
-                  className="bg-[#014421] hover:bg-[#013a1c] text-white"
-                  onClick={() => {
-                    setAppointmentAction("approve");
-                    handleApproveAppointment();
-                  }}
-                  disabled={appointmentSubmitting}
-                >
-                  {appointmentSubmitting && appointmentAction === "approve" ? (
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  ) : null}
-                  Approve
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
         )}
       </Dialog>
     </div>

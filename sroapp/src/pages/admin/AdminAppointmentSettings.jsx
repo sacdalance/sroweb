@@ -312,6 +312,88 @@ const AdminAppointmentSettings = () => {
     }
   };
 
+  // Send a confirmation email to the user
+  const sendConfirmationEmail = async (appointment) => {
+    try {
+      // Get API URL based on current hostname
+      const apiHost = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3001' 
+        : `https://api.${window.location.hostname}`;
+      
+      // Format the appointment time and date for display
+      const time = new Date(`2000-01-01T${appointment.appointment_time}`);
+      const formattedTime = time.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+      
+      const date = new Date(appointment.appointment_date);
+      const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      
+      // Show confirmation dialog with email form
+      const confirmationNote = prompt(
+        `Enter any notes for the confirmation email to ${appointment.account?.email} for ${formattedDate} at ${formattedTime}:`,
+        `Your appointment for ${appointment.reason} has been confirmed.`
+      );
+      
+      if (confirmationNote === null) {
+        // User cancelled the prompt
+        return;
+      }
+      
+      setMessage({ text: "Sending confirmation email...", type: "info" });
+      
+      // Get the auth token for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        throw new Error("Authentication required. Please login again.");
+      }
+      
+      // Make API call to send confirmation email
+      const response = await fetch(`${apiHost}/api/appointments/${appointment.id}/send-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          notes: confirmationNote,
+          status: 'confirmed' // Always set status to confirmed
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send confirmation email');
+      }
+      
+      // Update local state if the status was changed
+      setAppointments(appointments.map(app => 
+        app.id === appointment.id ? { ...app, status: 'confirmed' } : app
+      ));
+      
+      setMessage({ text: "Confirmation email sent successfully!", type: "success" });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setMessage({ text: "", type: "" });
+      }, 3000);
+    } catch (error) {
+      console.error("Error sending confirmation email:", error);
+      setMessage({ 
+        text: `Failed to send confirmation email: ${error.message}`, 
+        type: "error" 
+      });
+    }
+  };
+
   const timeSlots = generateTimeSlots();
 
   if (loading) {
@@ -418,6 +500,17 @@ const AdminAppointmentSettings = () => {
                                     onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
                                   >
                                     Cancel
+                                  </button>
+                                  <button
+                                    className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                                    onClick={() => sendConfirmationEmail(appointment)}
+                                    title="Send confirmation email to user"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 mr-1">
+                                      <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                                      <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+                                    </svg>
+                                    Confirm via Email
                                   </button>
                                 </>
                               )}

@@ -6,7 +6,6 @@ import LoadingSpinner from "../components/ui/loading-spinner";
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
-import { Toaster } from 'sonner';
 
 // user 
 import Dashboard from "../pages/Dashboard";
@@ -213,12 +212,7 @@ const router = createBrowserRouter([
 ]);
 
 const AppRoutes = () => {
-  return (
-    <>
-      <Toaster position="top-right" />
-      <RouterProvider router={router} />
-    </>
-  );
+  return <RouterProvider router={router} />;
 };
 
 export default AppRoutes;

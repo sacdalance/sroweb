@@ -1203,4 +1203,121 @@ router.patch('/:id/cancellation-decision', async (req, res) => {
   }
 });
 
+// Send confirmation email for appointment
+router.post('/:id/send-confirmation', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes, status } = req.body;
+    
+    // Get appointment details with account information
+    const { data: appointment, error: appointmentError } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        account:account(account_id, account_name, email)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (appointmentError) throw appointmentError;
+    
+    if (!appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+    
+    // Format the date for display
+    const appointmentDate = new Date(appointment.appointment_date);
+    const formattedDate = appointmentDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    });
+    
+    // Format the time for display
+    const timeParts = appointment.appointment_time.split(':');
+    const hours = parseInt(timeParts[0]);
+    const minutes = parseInt(timeParts[1]);
+    
+    const formattedTime = new Date(0, 0, 0, hours, minutes).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    // Update appointment status if provided
+    if (status) {
+      const { error: updateError } = await supabase
+        .from('appointments')
+        .update({ 
+          status,
+          admin_notes: notes || null,
+          updated_at: new Date()
+        })
+        .eq('id', id);
+      
+      if (updateError) throw updateError;
+    }
+    
+    // Check if we have an email to send to
+    if (!appointment.account?.email) {
+      return res.status(400).json({ 
+        error: 'No email available for this appointment',
+        appointment
+      });
+    }
+    
+    // Prepare email content
+    const userEmailData = {
+      from: process.env.EMAIL_USER,
+      to: appointment.account.email,
+      subject: 'Your Appointment Has Been Confirmed',
+      text: `
+Dear ${appointment.account.account_name || 'Student'},
+
+Your appointment has been confirmed for the following date and time:
+
+Date: ${formattedDate}
+Time: ${formattedTime}
+Purpose: ${appointment.reason}
+Meeting Mode: ${appointment.meeting_mode || 'Face-to-face'}
+
+${notes ? `Notes from admin: ${notes}` : ''}
+
+Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.
+
+Thank you,
+The Student Relations Office
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #007749;">Your Appointment Has Been Confirmed</h2>
+          <p>Dear ${appointment.account.account_name || 'Student'},</p>
+          <p>Your appointment has been confirmed for the following date and time:</p>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p><strong>Date:</strong> ${formattedDate}</p>
+            <p><strong>Time:</strong> ${formattedTime}</p>
+            <p><strong>Purpose:</strong> ${appointment.reason}</p>
+            <p><strong>Meeting Mode:</strong> ${appointment.meeting_mode || 'Face-to-face'}</p>
+          </div>
+          ${notes ? `<p><strong>Notes from admin:</strong> ${notes}</p>` : ''}
+          <p>Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.</p>
+          <p>Thank you,<br>The Student Relations Office</p>
+        </div>
+      `
+    };
+    
+    // Send the email
+    await transporter.sendMail(userEmailData);
+    
+    return res.status(200).json({ 
+      message: 'Confirmation email sent successfully',
+      recipient: appointment.account.email 
+    });
+  } catch (error) {
+    console.error('Error sending confirmation email:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 export default router; 
