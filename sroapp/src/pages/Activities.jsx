@@ -238,6 +238,7 @@ const Activities = () => {
   const [modalAppealReason, setModalAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
   const navigate = useNavigate();
+  const [accountId, setAccountId] = useState(null);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -275,6 +276,7 @@ const Activities = () => {
       if (!account) return;
 
       const res = await axios.get(`/activities/user/${account.account_id}`);
+      setAccountId(account.account_id);
       const all = res.data;
 
       const requestedActivities = all.filter((a) => a.final_status !== "Approved");
@@ -333,7 +335,17 @@ const Activities = () => {
                           <div className="flex justify-end space-x-2">
                             <DialogTrigger asChild>
                               <button
-                                onClick={() => setSelectedActivity(act)}
+                                onClick={() => {
+                                  axios
+                                  .get(`/activities/user/${accountId}`)
+                                    .then((res) => {
+                                      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                      setSelectedActivity(fullActivity);
+                                    })
+                                    .catch((err) => {
+                                      console.error("Error fetching activity with account info:", err);
+                                    });
+                                }}
                                 className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
                               >
                                 <Eye className="h-5 w-5" />
@@ -396,7 +408,17 @@ const Activities = () => {
                           <div className="flex justify-end space-x-2">
                             <DialogTrigger asChild>
                               <button
-                                onClick={() => setSelectedActivity(act)}
+                                onClick={() => {
+                                  axios
+                                    .get(`/activities/user/${accountId}`)
+                                    .then((res) => {
+                                      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                      setSelectedActivity(fullActivity);
+                                    })
+                                    .catch((err) => {
+                                      console.error("Error fetching activity with account info:", err);
+                                    });
+                                }}
                                 className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
                               >
                                 <Eye className="h-5 w-5" />

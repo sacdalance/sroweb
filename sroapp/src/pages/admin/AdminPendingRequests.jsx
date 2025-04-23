@@ -218,6 +218,7 @@ const ActivityDialogContent = ({
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
             <div className="pl-4">
+            {console.log("Dialog activity data:", activity)}
               <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
               <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
               <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
@@ -523,10 +524,15 @@ const AdminPendingRequests = () => {
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
     .from("activity")
-    .select(`*, schedule:activity_schedule(*), organization:organization(*)`)
+    .select(`
+      *,
+      account:account (*),
+      schedule:activity_schedule(*),
+      organization:organization(*)
+    `)
     .eq("activity_id", activity.activity_id)
     .single();
-  
+    
     if (error) {
       console.error("Failed to refresh activity:", error);
     } else {
@@ -605,10 +611,12 @@ const AdminPendingRequests = () => {
     .from("activity")
     .select(`
       *,
-      schedule:activity_schedule(*) -- join schedule into the 'schedule' field
+      account:account (*),
+      schedule:activity_schedule(*),
+      organization:organization(*)
     `)
     .eq("activity_id", activity.activity_id)
-    .single();  
+    .single();
   
     if (error) {
       console.error("Failed to fetch latest activity:", error);
