@@ -26,6 +26,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
+import { Eye, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Calendar, Clock, User } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -53,6 +55,7 @@ const activityTypes = [
 // Mock data for the table with multiple categories per activity
 const mockActivities = [
   {
+    activityID: "0424-2421", 
     submissionDate: "2024-03-15",
     organization: "Organization Name",
     activityName: "Community Outreach Program",
@@ -60,9 +63,11 @@ const mockActivities = [
     activityTypes: ["A", "B"], // Can be both Charitable and Service (within UPB)
     activityDate: "2024-04-01",
     venue: "UP Baguio Grounds",
+    adviser: "Steve Magalong",
     status: "Pending"
   },
   {
+    activityID: "0424-2321", 
     submissionDate: "2024-03-16",
     organization: "Student Council",
     activityName: "Leadership Training Workshop",
@@ -70,9 +75,11 @@ const mockActivities = [
     activityTypes: ["F", "H"], // Educational and Mass Orientation
     activityDate: "2024-04-05",
     venue: "AVR 1",
+    adviser: "Biogesic",
     status: "Approved"
   },
-  {
+  {   
+    activityID: "0424-1241", 
     submissionDate: "2024-03-17",
     organization: "Theater Guild",
     activityName: "Annual Theater Production",
@@ -80,6 +87,7 @@ const mockActivities = [
     activityTypes: ["J", "K"], // Rehearsals and Special Events
     activityDate: "2024-04-10",
     venue: "Theater Hall",
+    adviser: "Tung Tung Tung Sahur",
     status: "Pending"
   }
 ];
@@ -194,11 +202,11 @@ const AdminActivitySummary = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-[1600px] mx-auto p-6">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Summary of Activity Requests</h1>
       
       {/* Activity Type Pills using shadcn Button with variant ghost */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap justify-center gap-2 mb-6">
         {activityTypes.map((type) => (
           <Button
             key={type.id}
@@ -347,10 +355,10 @@ const AdminActivitySummary = () => {
 
           <div className="flex justify-center px-8">
             <Tabs value={filter} onValueChange={setFilter} className="w-[400px]">
-              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-md">
+              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
                 <TabsTrigger 
                   value="all"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-md"
+                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-4xl"
                 >
                   Show All
                 </TabsTrigger>
@@ -362,7 +370,7 @@ const AdminActivitySummary = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="pending"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-md"
+                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
                 >
                   Pending ({pendingCount})
                 </TabsTrigger>
@@ -370,26 +378,25 @@ const AdminActivitySummary = () => {
             </Tabs>
           </div>
         </div>
-      </Card>
-
       {/* Table Section */}
-      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow className="border-b-0">
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Activity ID</TableHead>
               <TableHead className="w-[180px] text-sm font-semibold text-center py-5">Submission Date</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Organization</TableHead>
+              <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Organization</TableHead>
               <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Activity Name</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Categories</TableHead>
+              <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Activity Type</TableHead>
               <TableHead className="w-[180px] text-sm font-semibold text-center py-5">Activity Date</TableHead>
               <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Venue</TableHead>
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Status</TableHead>
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Actions</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Adviser</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Status</TableHead>  
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredActivities.map((activity, index) => (
               <TableRow key={index} className="border-b border-gray-100">
+                <TableCell className="py-5 text-sm text-center">{activity.activityID}</TableCell>
                 <TableCell className="py-5 text-sm text-center">{activity.submissionDate}</TableCell>
                 <TableCell className="py-5 text-sm text-center">{activity.organization}</TableCell>
                 <TableCell className="py-5 text-sm text-center">{activity.activityName}</TableCell>
@@ -422,6 +429,7 @@ const AdminActivitySummary = () => {
                 </TableCell>
                 <TableCell className="py-5 text-sm text-center">{activity.activityDate}</TableCell>
                 <TableCell className="py-5 text-sm text-center">{activity.venue}</TableCell>
+                <TableCell className="py-5 text-sm text-center">{activity.adviser}</TableCell>
                 <TableCell className="py-5">
                   <div className="flex items-center justify-center">
                     <Badge 
@@ -432,26 +440,25 @@ const AdminActivitySummary = () => {
                     </Badge>
                   </div>
                 </TableCell>
-                <TableCell className="py-5">
-                  <div className="flex items-center justify-center">
-                      <Button
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-sm px-6 text-white bg-[#7B1113] hover:bg-[#641113] border-0"
-                      onClick={() => {
-                        setSelectedActivity(activity);
-                        setIsModalOpen(true);
-                      }}
-                      >
-                        Details
-                      </Button>
-                  </div>
+                <TableCell className="py-5 px-5">
+                  <div className="flex justify-center">
+                          <button
+                            onClick={() => {
+                              setSelectedActivity(activity);
+                              setIsModalOpen(true);
+                            }}
+                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+
+      </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
@@ -572,7 +579,7 @@ const AdminActivitySummary = () => {
       <div className="flex justify-end mt-4">
         <Link to="/admin/activities-calendar">
           <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm">
-            See Activities Calendar
+            See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
           </div>
