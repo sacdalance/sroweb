@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Eye, ChevronDown } from "lucide-react";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,6 +88,7 @@ const AdminPanel = () => {
     submissionDate: "Submission Date",
     activityName: "Activity Name",
     organization: "Organization",
+    activityDate: "Activity Date"
   }));
 
   // Mock data for calendar events with dates
@@ -170,32 +172,31 @@ const AdminPanel = () => {
   const activeDay = "WED"; // Highlighted day
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Admin Dashboard</h1>
+    <div className="max-w-[1500px] mx-auto p-6">
       
       {/* Summary of Submissions */}
       <div className="mb-10">
         <h2 className="text-2xl font-bold text-[#7B1113] mb-4">Summary of Submissions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-6 gap-4">
           {statsSummary.map((stat) => (
             stat.title === "Total Submissions" ? (
               <div 
                 key={stat.path}
-                className="block p-4 bg-[#F8F9FA] border border-gray-200 rounded-md shadow-sm relative hover:bg-gray-50 transition-colors"
+                className="block p-4 bg-[#F8F9FA] border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start"
               >
-                <h3 className="text-4xl font-bold mb-2 text-[#7B1113]">{stat.count}</h3>
+                <h3 className="text-5xl font-bold mb-1 text-[#7B1113]">{stat.count}</h3>
                 <p className="text-sm text-gray-600">{stat.title}</p>
               </div>
             ) : (
               <Link 
                 to={stat.path}
                 key={stat.path}
-                className="block p-4 bg-[#F8F9FA] border border-gray-200 rounded-md shadow-sm relative hover:bg-gray-50 transition-colors"
+                className="block p-4 bg-[#F8F9FA] border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start"
               >
-                <span className="absolute top-2 right-2 text-[#014421]">
+                <span className="absolute top-3 right-3 text-[#014421]">
                   <ArrowRight className="w-4 h-4" />
                 </span>
-                <h3 className="text-4xl font-bold mb-2 text-[#7B1113]">{stat.count}</h3>
+                <h3 className="text-5xl font-bold mb-1 text-[#7B1113]">{stat.count}</h3>
                 <p className="text-sm text-gray-600">{stat.title}</p>
               </Link>
             )
@@ -213,25 +214,34 @@ const AdminPanel = () => {
             <table className="w-full">
               <thead className="bg-[#f5f5f5]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#014421]">Submission Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#014421]">Activity Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#014421]">Organization</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#014421]">Actions</th>
+                  <th className="px-4 py-3 text-left text-s font-medium text-[#000000]">Submission Date</th>
+                  <th className="px-4 py-3 text-left text-s font-medium text-[#000000]">Activity Name</th>
+                  <th className="px-4 py-3 text-left text-s font-medium text-[#000000]">Organization</th>
+                  <th className="px-4 py-3 text-left text-s font-medium text-[#000000]">Activity Date</th>
+                  <th className="px-2 py-3 text-left text-s font-medium text-[#000000]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {incomingRequests.map((request) => (
                   <tr key={request.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{request.submissionDate}</td>
-                    <td className="px-4 py-3 text-sm">{request.activityName}</td>
-                    <td className="px-4 py-3 text-sm">{request.organization}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <Button
-                        onClick={() => handleViewDetails(request)}
-                        className="px-3 py-1 rounded-md bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
-                      >
-                        Details
-                      </Button>
+                    <td className="px-6 py-3 text-sm">{request.submissionDate}</td>
+                    <td className="px-6 py-3 text-sm">{request.activityName}</td>
+                    <td className="px-6  py-3  text-sm">{request.organization}</td>
+                    <td className="px-6  py-3  text-sm">{request.activityDate}</td>
+                    <td className="px-6 py-3 text-sm">
+
+                      <div className="flex justify-center">
+                          <button
+                            onClick={() => {
+                              setSelectedActivity(request);
+                              setIsModalOpen(true);
+                            }}
+                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </div>
+
                     </td>
                   </tr>
                 ))}
