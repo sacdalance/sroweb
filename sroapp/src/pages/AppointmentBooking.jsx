@@ -547,10 +547,70 @@ const AppointmentBooking = () => {
     setError("");
   };
 
-  // Handle form submission
+  // Add handleRescheduleAppointment function
+  const handleRescheduleAppointment = async (appointment) => {
+    setSelectedAppointment(appointment);
+    setRescheduleMode(true);
+    
+    // Pre-fill form with existing appointment data
+    setFormData({
+      ...formData,
+      reason: appointment.reason,
+      email: appointment.email,
+      contact: appointment.contact_number,
+      mode: appointment.meeting_mode || "Face-to-face"
+    });
+  };
+
+  // Add submitRescheduleRequest function
+  const submitRescheduleRequest = async () => {
+    if (!selectedAppointment || !selectedDate || !selectedTime) {
+      setError("Please select a new date and time");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          reschedule_requested: true,
+          requested_date: format(selectedDate, 'yyyy-MM-dd'),
+          requested_time_slot: selectedTime,
+          reschedule_reason: formData.notes,
+          status: 'reschedule-pending'
+        })
+        .eq('id', selectedAppointment.id);
+
+      if (error) throw error;
+
+      toast.success("Reschedule request submitted! You'll receive a confirmation email soon.");
+      setRescheduleMode(false);
+      setSelectedAppointment(null);
+      
+      // Refresh appointments list
+      if (user?.account_id) {
+        loadUserAppointments(user.account_id);
+        setShowExistingAppointments(true);
+      }
+    } catch (error) {
+      console.error("Error requesting reschedule:", error);
+      toast.error("Failed to submit reschedule request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Enhance the existing handleSubmit to use submitRescheduleRequest when in reschedule mode
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    
+
+    if (rescheduleMode) {
+      await submitRescheduleRequest();
+      return;
+    }
+
     // Detailed user debugging
     console.log("Current user object:", user);
     console.log("Form submission started with data:", { ...formData, selectedDate, selectedTime });
@@ -868,16 +928,52 @@ const AppointmentBooking = () => {
                       </div>
                     </div>
                   </div>
-                  {appointment.status === "scheduled" && (
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        onClick={() => handleCancelAppointment(appointment.id)}
-                        className="px-4 py-2 text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Cancel Appointment
-                      </button>
+                  {/* Enhanced status display and actions */}
+                  <div className="mt-4 border-t pt-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
+                          appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                          appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                          appointment.status === "reschedule-pending" ? "bg-yellow-100 text-yellow-700" :
+                          "bg-gray-100 text-gray-700"
+                        }`}>
+                          {appointment.status === "reschedule-pending" ? "Reschedule Pending" :
+                           appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                        </span>
+                        {appointment.reschedule_requested && (
+                          <span className="text-xs text-gray-500">
+                            (Requested: {new Date(appointment.requested_date).toLocaleDateString()} at {appointment.requested_time_slot})
+                          </span>
+                        )}
+                      </div>
+                      {appointment.status === "scheduled" && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRescheduleAppointment(appointment)}
+                            className="px-4 py-2 text-[#007749] hover:text-[#005a37] text-sm font-medium"
+                          >
+                            Reschedule
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setShowCancelForm(true);
+                            }}
+                            className="px-4 py-2 text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    {appointment.reschedule_reason && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        <span className="font-medium">Reschedule Reason:</span> {appointment.reschedule_reason}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

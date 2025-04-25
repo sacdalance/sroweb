@@ -3,6 +3,10 @@ import supabase from "../../lib/supabase";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast, Toaster } from "sonner";
 
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
@@ -17,6 +21,10 @@ const AdminAppointmentSettings = () => {
   const [addingDate, setAddingDate] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [adminComment, setAdminComment] = useState("");
 
   // Load settings and blocked dates/times from the database
   useEffect(() => {
@@ -286,6 +294,96 @@ const AdminAppointmentSettings = () => {
     }
   };
 
+  // Add functions to handle reschedule and cancellation requests
+  const handleAppointmentAction = async (appointmentId, action, type) => {
+    try {
+      // Get the current appointment data
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', appointmentId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: action === 'approve' ? 
+            (type === 'reschedule' ? 'scheduled' : 'cancelled') : 
+            'scheduled',
+          ...(type === 'reschedule' && action === 'approve' ? {
+            appointment_date: appointment.requested_date,
+            appointment_time: appointment.requested_time_slot,
+            requested_date: null,
+            requested_time_slot: null,
+            reschedule_reason: null,
+            reschedule_requested: false
+          } : type === 'reschedule' ? {
+            requested_date: null,
+            requested_time_slot: null,
+            reschedule_reason: null,
+            reschedule_requested: false
+          } : {
+            cancellation_requested: false
+          })
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast.success(`${type === 'reschedule' ? 'Reschedule' : 'Cancellation'} request ${action === 'approve' ? 'approved' : 'rejected'}`);
+      loadAppointments();
+    } catch (error) {
+      console.error(`Error ${action}ing ${type} request:`, error);
+      toast.error(`Failed to ${action} ${type} request`);
+    }
+  };
+
+  // Add function to handle appointment confirmation/rejection
+  const handleAppointmentResponse = async (appointmentId, action) => {
+    if (!appointmentId) return;
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: action === 'confirm' ? 'confirmed' : 'rejected',
+          admin_notes: adminComment,
+          updated_at: new Date()
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      // Send confirmation email
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appointmentId}/send-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          notes: adminComment,
+          status: action === 'confirm' ? 'confirmed' : 'rejected'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send confirmation email');
+      }
+
+      toast.success(`Appointment ${action === 'confirm' ? 'confirmed' : 'rejected'} successfully`);
+      setShowConfirmDialog(false);
+      setShowRejectDialog(false);
+      setAdminComment("");
+      setSelectedAppointment(null);
+      loadAppointments();
+    } catch (error) {
+      console.error(`Error ${action}ing appointment:`, error);
+      toast.error(`Failed to ${action} appointment`);
+    }
+  };
+
   const timeSlots = generateTimeSlots();
 
   if (loading) {
@@ -299,6 +397,7 @@ const AdminAppointmentSettings = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      <Toaster />
       <h1 className="text-2xl font-bold text-[#7B1113] mb-6">Appointment Management</h1>
 
       <Tabs defaultValue="appointments" className="space-y-4">
@@ -328,6 +427,7 @@ const AdminAppointmentSettings = () => {
                       <th className="py-2 px-3 text-left">Mode</th>
                       <th className="py-2 px-3 text-left">Contact</th>
                       <th className="py-2 px-3 text-left">Status</th>
+                      <th className="py-2 px-3 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -353,6 +453,62 @@ const AdminAppointmentSettings = () => {
                           }`}>
                             {appointment.status}
                           </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {appointment.status === 'scheduled' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedAppointment(appointment);
+                                  setShowConfirmDialog(true);
+                                }}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedAppointment(appointment);
+                                  setShowRejectDialog(true);
+                                }}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          {appointment.status === 'reschedule-pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'approve', 'reschedule')}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Approve Reschedule
+                              </button>
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'reject', 'reschedule')}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          {appointment.status === 'cancellation-pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'approve', 'cancel')}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Approve Cancel
+                              </button>
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'reject', 'cancel')}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -494,6 +650,68 @@ const AdminAppointmentSettings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Appointment</DialogTitle>
+            <DialogDescription>
+              Add any additional comments or instructions for the user.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
+              placeholder="E.g., Please arrive 10 minutes early..."
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'confirm')}
+              className="bg-[#007749] text-white hover:bg-[#006638]"
+            >
+              Confirm Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Appointment</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this appointment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
+              placeholder="Reason for rejection..."
+              className="min-h-[100px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'reject')}
+              variant="destructive"
+            >
+              Reject Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Message display */}
       {message.text && (
