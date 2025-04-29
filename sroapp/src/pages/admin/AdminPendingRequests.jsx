@@ -685,11 +685,11 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center ">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity ID</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Type</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Organization</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Name</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Type</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Date</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Venue</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Adviser</th>
@@ -762,9 +762,9 @@ const AdminPendingRequests = () => {
                 <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
