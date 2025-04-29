@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { ChevronLeft, ChevronRight, Printer, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Eye, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
 import {
@@ -11,6 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
+import supabase from "@/lib/supabase";
+import { toast } from "sonner";
 
 const AdminActivitiesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 3)); // April 2025
@@ -20,6 +22,11 @@ const AdminActivitiesCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState("all");
+  const [events, setEvents] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [error, setError] = useState(null);
   
   // Month and year options
   const months = [
@@ -27,12 +34,6 @@ const AdminActivitiesCalendar = () => {
     "July", "August", "September", "October", "November", "December"
   ];
   const years = ["2024", "2025", "2026", "2027", "2028"];
-  const organizations = [
-    "Computer Science Society",
-    "UP Aguman",
-    "Junior Blockchain Education Consortium of the Philippines",
-    "Samahan ng Organisasyon UPB"
-  ];
   
   // Selected values for dropdowns
   const [selectedMonth, setSelectedMonth] = useState(months[currentDate.getMonth()]);
@@ -40,6 +41,93 @@ const AdminActivitiesCalendar = () => {
 
   // Days of the week
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+  // Fetch organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('organization')
+          .select('org_id, org_name');
+        
+        if (error) throw error;
+        setOrganizations(data.map(org => org.org_name));
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+        toast.error('Failed to load organizations');
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
+
+  // Fetch activities
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const { data, error: activitiesError } = await supabase
+          .from('activity')
+          .select(`
+            *,
+            organization:organization(*),
+            schedule:activity_schedule(*)
+          `)
+          .eq('final_status', 'Approved');
+
+        if (activitiesError) throw activitiesError;
+
+        // Transform the data to match our events structure
+        const transformedEvents = data.map(activity => ({
+          id: activity.activity_id,
+          date: new Date(activity.schedule[0]?.start_date),
+          title: activity.activity_name,
+          time: `${activity.schedule[0]?.start_time} to ${activity.schedule[0]?.end_time}`,
+          location: activity.venue,
+          category: activity.activity_type,
+          organization: activity.organization?.org_name,
+          status: 'approved',
+          description: activity.activity_description,
+          partners: activity.university_partner,
+          sdgs: activity.sdg_goals,
+          venue: activity.venue
+        }));
+
+        setEvents(transformedEvents);
+
+        // Set upcoming events (events from today onwards)
+        const today = new Date();
+        const upcoming = transformedEvents
+          .filter(event => event.date >= today)
+          .sort((a, b) => a.date - b.date)
+          .slice(0, 5);
+
+        setUpcomingEvents(upcoming.map(event => ({
+          id: event.id,
+          date: event.date.toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          title: event.title,
+          organization: event.organization,
+          type: event.category,
+          venue: event.venue
+        })));
+
+      } catch (err) {
+        console.error('Error fetching activities:', err);
+        setError(err.message);
+        toast.error('Failed to load activities');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   // Function to get the first day of the month (0-6 for Sunday-Saturday)
   const getFirstDayOfMonth = (date) => {
@@ -109,50 +197,6 @@ const AdminActivitiesCalendar = () => {
     
     return [...previousMonthDays, ...currentMonthDays, ...nextMonthDays];
   };
-
-    // Mock events data
-    const events = [
-      {
-        id: 1,
-        date: new Date(2025, 3, 9), // April 9, 2025
-        title: "EVENT NAME",
-        time: "8:00 AM to 5:00 PM",
-        location: "Location",
-        category: "Academic",
-        organization: "Insert Mahabanog Org Name",
-        status: "approved"
-      },
-    {
-      id: 2,
-      date: new Date(2025, 3, 9), // April 9, 2025
-      title: "EVENT NAME",
-      time: "3:00 PM to 5:00 PM",
-      location: "Saeeum Cafe",
-      category: "Cultural",
-      organization: "Insert Mahabanog Org Name",
-      status: "approved"
-    },
-    {
-      id: 3,
-      date: new Date(2025, 3, 10), // April 10, 2025
-      title: "HACK BUDDIES",
-      time: "1:00 PM to 5:00 PM",
-      location: "Saeeum Cafe",
-      category: "Educational",
-      organization: "Junior Blockchain Education Consortium of the Philippines",
-      status: "approved"
-    },
-    {
-      id: 4,
-      date: new Date(2025, 3, 17), // April 17, 2025
-      title: "EVENT NAME",
-      time: "1:00 PM to 5:00 PM",
-      location: "Location",
-      category: "Sports",
-      organization: "Insert Mahabanog Org Name",
-      status: "pending"
-    }
-  ];
 
   // Get events for a specific date
   const getEventsForDate = (date) => {
@@ -288,39 +332,41 @@ const AdminActivitiesCalendar = () => {
 
   const calendar = generateCalendar();
 
-  // Mock upcoming events data
-  const upcomingEvents = [
-    {
-      id: 1,
-      date: "April 9, 2025",
-      title: "EVENT NAME",
-      organization: "Insert Mahabanog Org Name",
-      type: "Academic",
-      venue: "Location"
-    },
-    {
-      id: 2,
-      date: "April 10, 2025",
-      title: "HACK BUDDIES",
-      organization: "Junior Blockchain Education Consortium of the Philippines",
-      type: "Educational",
-      venue: "Saeeum Cafe"
-    },
-    {
-      id: 3,
-      date: "April 17, 2025",
-      title: "EVENT NAME",
-      organization: "Insert Mahabanog Org Name",
-      type: "Sports",
-      venue: "Location"
-    }
-  ];
-
   // Update the handleViewEventDetails function
   const handleViewEventDetails = (event) => {
     setSelectedEvent(event);
     setIsDialogOpen(true);
   };
+
+  // Loading state component
+  const LoadingState = () => (
+    <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin text-[#7B1113]" />
+      <span className="ml-2 text-[#7B1113]">Loading activities...</span>
+    </div>
+  );
+
+  // Error state component
+  const ErrorState = ({ message }) => (
+    <div className="flex flex-col items-center justify-center p-8 text-[#7B1113]">
+      <p className="text-lg font-semibold">Something went wrong</p>
+      <p className="text-sm text-gray-600">{message}</p>
+      <Button 
+        onClick={fetchActivities} 
+        className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+      >
+        Try Again
+      </Button>
+    </div>
+  );
+
+  // Empty state component
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center p-8 text-gray-500">
+      <p className="text-lg font-semibold">No activities found</p>
+      <p className="text-sm">There are no approved activities to display.</p>
+    </div>
+  );
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
@@ -400,15 +446,23 @@ const AdminActivitiesCalendar = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="grid grid-cols-7 text-sm font-medium text-center bg-gray-50 border-b border-gray-200">
-            {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(
-              (day) => (
-                <div key={day} className="py-3 border-r last:border-r-0 border-gray-200 text-[#014421]">
-                  {day}
-                </div>
-              )
-            )}
-          </div>
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState message={error} />
+          ) : events.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-7 text-sm font-medium text-center bg-gray-50 border-b border-gray-200">
+              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(
+                (day) => (
+                  <div key={day} className="py-3 border-r last:border-r-0 border-gray-200 text-[#014421]">
+                    {day}
+                  </div>
+                )
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-7 text-sm">
             {calendar.map((week, weekIndex) =>
@@ -479,58 +533,67 @@ const AdminActivitiesCalendar = () => {
       </div>
 
       <Card className="rounded-lg shadow-md">
-        <CardHeader className="bg-[#7B1113]/10 py-4">
+        <CardHeader className="bg-white py-4">
           <CardTitle className="text-xl font-bold text-[#7B1113]">
             Upcoming Activities
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Date</th>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Activity</th>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Organization</th>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Type</th>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Venue</th>
-                  <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {upcomingEvents.map((event, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-5 py-4 text-sm text-gray-700">
-                      {event.date}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-700 font-medium">
-                      {event.title}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-700">
-                      {event.organization}
-                    </td>
-                    <td className="px-5 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventBadgeColor(event.type)}`}>
-                        {event.type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-700">
-                      {event.venue}
-                    </td>
-                    <td className="px-5 py-4 text-sm">
-                      <Button
-                        onClick={() => handleViewEventDetails(event)}
-                        className="px-3 py-1 rounded-md bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs flex items-center gap-1"
-                      >
-                        <Eye className="h-3 w-3" />
-                        Details
-                      </Button>
-                    </td>
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState message={error} />
+          ) : upcomingEvents.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Date</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Activity</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Organization</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Type</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Venue</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-black"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {upcomingEvents.map((event, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-5 py-4 text-sm text-gray-700">
+                        {event.date}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-700 font-medium">
+                        {event.title}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-700">
+                        {event.organization}
+                      </td>
+                      <td className="px-5 py-4 text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventBadgeColor(event.type)}`}>
+                          {event.type}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-700">
+                        {event.venue}
+                      </td>
+                      <td className="px-5 py-4 text-sm flex justify-center">
+                        <button
+                          onClick={() => {
+                          handleViewEventDetails(event)
+                          }}
+                          className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                          >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
