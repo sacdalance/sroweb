@@ -107,6 +107,7 @@ const Sidebar = () => {
               <ul className="space-y-2 text-[15px] font-medium">
                 <li><Link to="/activity-request" className={linkClass("/activity-request")}>Submit a Request</Link></li>
                 <li><Link to="/activities" className={linkClass("/activities")}>My Activities</Link></li>
+                <li><Link to="/activities-calendar" className={linkClass("/activities-calendar")}>Activities Calendar</Link></li>
                 <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Book an Appointment</Link></li>
               </ul>
             </div>
