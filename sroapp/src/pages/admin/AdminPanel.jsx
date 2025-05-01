@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { ArrowRight, ChevronLeft, ChevronRight, FileText, Calendar, Clock, User, Loader2 } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Calendar, Clock, User, Loader2, Pencil } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Eye, ChevronDown } from "lucide-react";
 import supabase from "@/lib/supabase";
+import { Input } from "@/components/ui/input";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +26,11 @@ const AdminPanel = () => {
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [requestsError, setRequestsError] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState(null);
 
   // Function to check if a date falls within the current week
   const isDateInCurrentWeek = (dateString) => {
@@ -88,6 +94,52 @@ const AdminPanel = () => {
     { title: "Approved Applications", count: 25},
     { title: "Annual Reports", count: 15, path: "/admin/annual-reports" },
   ];
+
+  // Function to fetch announcements from Supabase
+  const fetchAnnouncements = async () => {
+    try {
+      setAnnouncementsLoading(true);
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('posted_at', { ascending: false });
+
+      if (error) throw error;
+      setAnnouncements(data || []);
+    } catch (err) {
+      console.error('Error fetching announcements:', err);
+      setAnnouncementsError(err.message);
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  };
+
+  // Function to handle creating a new announcement
+  const handleCreateAnnouncement = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert([
+          {
+            title: newAnnouncement.title,
+            content: newAnnouncement.content,
+            posted_by: 'Admin', // You might want to get this from the authenticated user
+            posted_at: new Date().toISOString()
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      // Refresh announcements
+      await fetchAnnouncements();
+      setIsAnnouncementModalOpen(false);
+      setNewAnnouncement({ title: '', content: '' });
+    } catch (error) {
+      console.error('Error creating announcement:', error);
+      // You might want to show an error message to the user here
+    }
+  };
 
   // Fetch incoming activity requests
   useEffect(() => {
@@ -204,6 +256,11 @@ const AdminPanel = () => {
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const activeDay = "WED"; // Highlighted day
 
+  // Fetch announcements on component mount
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
   return (
     <div className="max-w-[1500px] mx-auto p-6">
       
@@ -237,18 +294,67 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Incoming Activity Requests Section */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl font-bold text-[#7B1113]">Incoming Activity Requests</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-hidden">
-              {requestsLoading ? (
-                <>
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Incoming Activity Requests */}
+        <div className="lg:col-span-1">
+          <Card className="shadow-sm h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold text-[#7B1113]">Incoming Activity Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-hidden">
+                {requestsLoading ? (
+                  <>
+                    <table className="w-full">
+                      <thead className="bg-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-s font-medium text-black">Submission Date</th>
+                          <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Name</th>
+                          <th className="px-4 py-3 text-left text-s font-medium text-black">Organization</th>
+                          <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Date</th>
+                          <th className="px-4 py-3 text-left text-s font-medium text-black">Status</th>
+                          <th className="px-2 py-3 text-left text-s font-medium text-black"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {[...Array(5)].map((_, index) => (
+                          <tr key={index} className="animate-pulse">
+                            <td className="px-6 py-3">
+                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="h-4 bg-gray-200 rounded w-32"></div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="h-4 bg-gray-200 rounded w-28"></div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="h-4 bg-gray-200 rounded w-24"></div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="h-4 bg-gray-200 rounded w-16"></div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="flex justify-center">
+                                <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="p-4 flex justify-center border-t">
+                      <div className="h-9 bg-gray-200 rounded w-28"></div>
+                    </div>
+                  </>
+                ) : requestsError ? (
+                  <div className="text-center py-4 text-red-500">
+                    Error loading requests: {requestsError}
+                  </div>
+                ) : incomingRequests.length > 0 ? (
                   <table className="w-full">
-                    <thead className="bg-white">
+                    <thead className="bg-[#f5f5f5]">
                       <tr>
                         <th className="px-4 py-3 text-left text-s font-medium text-black">Submission Date</th>
                         <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Name</th>
@@ -259,269 +365,323 @@ const AdminPanel = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {[...Array(5)].map((_, index) => (
-                        <tr key={index} className="animate-pulse">
-                          <td className="px-6 py-3">
-                            <div className="h-4 bg-gray-200 rounded w-20"></div>
+                      {incomingRequests.map((request) => (
+                        <tr key={request.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-3 text-sm text-gray-700">{request.submissionDate}</td>
+                          <td className="px-6 py-3 text-sm text-gray-700">{request.activityName}</td>
+                          <td className="px-6 py-3 text-sm text-gray-700">{request.organization}</td>
+                          <td className="px-6 py-3 text-sm text-gray-700">{request.activityDate}</td>
+                          <td className="px-6 py-3 text-sm">
+                            <Badge 
+                              className={
+                                request.status === 'Appeal' 
+                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-100'
+                              }
+                            >
+                              {request.status}
+                            </Badge>
                           </td>
-                          <td className="px-6 py-3">
-                            <div className="h-4 bg-gray-200 rounded w-32"></div>
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="h-4 bg-gray-200 rounded w-28"></div>
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="h-4 bg-gray-200 rounded w-24"></div>
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="h-4 bg-gray-200 rounded w-16"></div>
-                          </td>
-                          <td className="px-6 py-3">
+                          <td className="px-6 py-3 text-sm">
                             <div className="flex justify-center">
-                              <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
+                              <button
+                                onClick={() => {
+                                  setSelectedActivity(request);
+                                  setIsModalOpen(true);
+                                }}
+                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                              >
+                                <Eye className="h-5 w-5" />
+                              </button>
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <div className="p-4 flex justify-center border-t">
-                    <div className="h-9 bg-gray-200 rounded w-28"></div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No pending or appeal requests
                   </div>
-                </>
-              ) : requestsError ? (
-                <div className="text-center py-4 text-red-500">
-                  Error loading requests: {requestsError}
+                )}
+                <div className="p-4 flex justify-center border-t">
+                  <Link to="/admin/pending-requests">
+                    <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+                      See More <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
                 </div>
-              ) : incomingRequests.length > 0 ? (
-                <table className="w-full">
-                  <thead className="bg-[#f5f5f5]">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-s font-medium text-black">Submission Date</th>
-                      <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Name</th>
-                      <th className="px-4 py-3 text-left text-s font-medium text-black">Organization</th>
-                      <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Date</th>
-                      <th className="px-4 py-3 text-left text-s font-medium text-black">Status</th>
-                      <th className="px-2 py-3 text-left text-s font-medium text-black"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {incomingRequests.map((request) => (
-                      <tr key={request.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm text-gray-700">{request.submissionDate}</td>
-                        <td className="px-6 py-3 text-sm text-gray-700">{request.activityName}</td>
-                        <td className="px-6 py-3 text-sm text-gray-700">{request.organization}</td>
-                        <td className="px-6 py-3 text-sm text-gray-700">{request.activityDate}</td>
-                        <td className="px-6 py-3 text-sm">
-                          <Badge 
-                            className={
-                              request.status === 'Appeal' 
-                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-100'
-                            }
-                          >
-                            {request.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-3 text-sm">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => {
-                                setSelectedActivity(request);
-                                setIsModalOpen(true);
-                              }}
-                              className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                            >
-                              <Eye className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Announcements and Calendar */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Announcements Section */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-bold text-[#7B1113]">Announcements</CardTitle>
+                <button
+                  onClick={() => setIsAnnouncementModalOpen(true)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="Write Announcement"
+                >
+                  <Pencil className="h-5 w-5 text-[#014421]" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {announcementsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
+                    <span className="ml-2 text-gray-600">Loading announcements...</span>
+                  </div>
+                ) : announcementsError ? (
+                  <div className="text-center py-4 text-red-500">
+                    Error loading announcements: {announcementsError}
+                  </div>
+                ) : announcements.length > 0 ? (
+                  announcements.map((announcement) => (
+                    <div key={announcement.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-[#7B1113] mt-2"></div>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Posted: {new Date(announcement.posted_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No announcements available
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activities Calendar Section */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
+                    onClick={() => handleWeekNavigation('prev')}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium">{getWeekRange(currentWeekStart)}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
+                    onClick={() => handleWeekNavigation('next')}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Days of the week with day numbers */}
+              <div className="grid grid-cols-7 gap-2 mb-4">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const date = new Date(currentWeekStart);
+                  date.setDate(date.getDate() - date.getDay() + i);
+                  const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
+                  const isToday = new Date().toDateString() === date.toDateString();
+                  
+                  return (
+                    <div key={i} className="flex flex-col items-center">
+                      <div 
+                        className={`text-sm font-medium py-1
+                          ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-600'}
+                        `}
+                      >
+                        {day}
+                      </div>
+                      <div className={`text-sm ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-500'}`}>
+                        {date.getDate()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Calendar Events */}
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
+                  <span className="ml-2 text-gray-600">Loading activities...</span>
+                </div>
+              ) : error ? (
+                <div className="text-center py-4 text-red-500">
+                  Error loading activities: {error}
+                </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No pending or appeal requests
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    // Check if we're viewing the current week
+                    const currentWeekStartDate = new Date(currentWeekStart);
+                    const currentWeekEndDate = new Date(currentWeekStart);
+                    currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
+                    
+                    const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
+
+                    if (isCurrentWeek) {
+                      // For current week, show activities only for today with filler if none
+                      const todayEvents = filteredEvents.filter(event => {
+                        const eventDate = new Date(event.date);
+                        eventDate.setHours(0, 0, 0, 0);
+                        return eventDate.getTime() === today.getTime();
+                      });
+
+                      if (todayEvents.length > 0) {
+                        return todayEvents.map((event) => (
+                          <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
+                            <div className="p-3 space-y-1">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center text-white text-sm">
+                                    <span>{event.time}</span>
+                                    <span className="mx-1">•</span>
+                                    <span>{event.location}</span>
+                                  </div>
+                                  <h3 className="text-white font-bold text-lg">
+                                    {event.name}
+                                  </h3>
+                                </div>
+                                <div className="flex flex-col items-end text-sm">
+                                  <span className="text-white">{event.organization}</span>
+                                  <span className="text-white/80 italic">{event.category}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ));
+                      } else {
+                        return (
+                          <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                            <div className="p-6 text-center">
+                              <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities Today</h3>
+                            </div>
+                          </div>
+                        );
+                      }
+                    } else {
+                      // For other weeks, show all activities of that week
+                      const weekEvents = filteredEvents.filter(event => {
+                        const eventDate = new Date(event.date);
+                        return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
+                      });
+
+                      if (weekEvents.length > 0) {
+                        return weekEvents.map((event) => (
+                          <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
+                            <div className="p-3 space-y-1">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center text-white text-sm">
+                                    <span>{event.time}</span>
+                                    <span className="mx-1">•</span>
+                                    <span>{event.location}</span>
+                                  </div>
+                                  <h3 className="text-white font-bold text-lg">
+                                    {event.name}
+                                  </h3>
+                                </div>
+                                <div className="flex flex-col items-end text-sm">
+                                  <span className="text-white">{event.organization}</span>
+                                  <span className="text-white/80 italic">{event.category}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ));
+                      } else {
+                        return (
+                          <div className="text-center py-4 text-gray-500">
+                            No activities scheduled for this week
+                          </div>
+                        );
+                      }
+                    }
+                  })()}
                 </div>
               )}
-              <div className="p-4 flex justify-center border-t">
-                <Link to="/admin/pending-requests">
+              <div className="flex justify-center mt-4 border-t pt-4">
+                <Link to="/admin/activities-calendar">
                   <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
-                    See More <ArrowRight className="w-4 h-4" />
+                    See Activities Calendar <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Activities Calendar Section */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                  onClick={() => handleWeekNavigation('prev')}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium">{getWeekRange(currentWeekStart)}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                  onClick={() => handleWeekNavigation('next')}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Days of the week with day numbers */}
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {Array.from({ length: 7 }, (_, i) => {
-                const date = new Date(currentWeekStart);
-                date.setDate(date.getDate() - date.getDay() + i);
-                const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                const isToday = new Date().toDateString() === date.toDateString();
-                
-                return (
-                  <div key={i} className="flex flex-col items-center">
-                    <div 
-                      className={`text-sm font-medium py-1
-                        ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-600'}
-                      `}
-                    >
-                      {day}
-                    </div>
-                    <div className={`text-sm ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-500'}`}>
-                      {date.getDate()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Calendar Events */}
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
-                <span className="ml-2 text-gray-600">Loading activities...</span>
-              </div>
-            ) : error ? (
-              <div className="text-center py-4 text-red-500">
-                Error loading activities: {error}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(() => {
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-
-                  // Check if we're viewing the current week
-                  const currentWeekStartDate = new Date(currentWeekStart);
-                  const currentWeekEndDate = new Date(currentWeekStart);
-                  currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
-                  
-                  const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
-
-                  if (isCurrentWeek) {
-                    // For current week, show activities only for today with filler if none
-                    const todayEvents = filteredEvents.filter(event => {
-                      const eventDate = new Date(event.date);
-                      eventDate.setHours(0, 0, 0, 0);
-                      return eventDate.getTime() === today.getTime();
-                    });
-
-                    if (todayEvents.length > 0) {
-                      return todayEvents.map((event) => (
-                        <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                          <div className="p-3 space-y-1">
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-0.5">
-                                <div className="flex items-center text-white text-sm">
-                                  <span>{event.time}</span>
-                                  <span className="mx-1">•</span>
-                                  <span>{event.location}</span>
-                                </div>
-                                <h3 className="text-white font-bold text-lg">
-                                  {event.name}
-                                </h3>
-                              </div>
-                              <div className="flex flex-col items-end text-sm">
-                                <span className="text-white">{event.organization}</span>
-                                <span className="text-white/80 italic">{event.category}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ));
-                    } else {
-                      return (
-                        <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                          <div className="p-6 text-center">
-                            <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities Today</h3>
-                          </div>
-                        </div>
-                      );
-                    }
-                  } else {
-                    // For other weeks, show all activities of that week
-                    const weekEvents = filteredEvents.filter(event => {
-                      const eventDate = new Date(event.date);
-                      return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-                    });
-
-                    if (weekEvents.length > 0) {
-                      return weekEvents.map((event) => (
-                        <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                          <div className="p-3 space-y-1">
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-0.5">
-                                <div className="flex items-center text-white text-sm">
-                                  <span>{event.time}</span>
-                                  <span className="mx-1">•</span>
-                                  <span>{event.location}</span>
-                                </div>
-                                <h3 className="text-white font-bold text-lg">
-                                  {event.name}
-                                </h3>
-                              </div>
-                              <div className="flex flex-col items-end text-sm">
-                                <span className="text-white">{event.organization}</span>
-                                <span className="text-white/80 italic">{event.category}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ));
-                    } else {
-                      return (
-                        <div className="text-center py-4 text-gray-500">
-                          No activities scheduled for this week
-                        </div>
-                      );
-                    }
-                  }
-                })()}
-              </div>
-            )}
-            <div className="flex justify-center mt-4 border-t pt-4">
-              <Link to="/admin/activities-calendar">
-                <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
-                  See Activities Calendar <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Create Announcement Modal */}
+      <Dialog open={isAnnouncementModalOpen} onOpenChange={setIsAnnouncementModalOpen}>
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#7B1113] flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Write New Announcement
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={newAnnouncement.title}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                placeholder="Enter announcement title"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Content</label>
+              <textarea
+                value={newAnnouncement.content}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
+                placeholder="Write your announcement here..."
+                className="w-full min-h-[150px] p-2 border rounded-md"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAnnouncementModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateAnnouncement}
+              className="bg-[#014421] hover:bg-[#013319] text-white flex items-center gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              Post Announcement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Activity Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
