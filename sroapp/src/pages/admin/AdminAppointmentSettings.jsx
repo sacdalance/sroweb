@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast, Toaster } from "sonner";
 
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
@@ -14,7 +20,11 @@ const AdminAppointmentSettings = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [addingDate, setAddingDate] = useState(false);
   const [appointments, setAppointments] = useState([]);
-  const [showAppointments, setShowAppointments] = useState(false);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [adminComment, setAdminComment] = useState("");
 
   // Load settings and blocked dates/times from the database
   useEffect(() => {
@@ -85,8 +95,6 @@ const AdminAppointmentSettings = () => {
   // Load upcoming appointments
   const loadAppointments = async () => {
     try {
-      setShowAppointments(true);
-      
       // Get current date
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
@@ -110,25 +118,30 @@ const AdminAppointmentSettings = () => {
       if (error) throw error;
       
       setAppointments(data);
+      setLoadingAppointments(false);
     } catch (error) {
       console.error("Error loading appointments:", error);
       setMessage({ 
         text: "Failed to load appointments", 
         type: "error" 
       });
+      setLoadingAppointments(false);
     }
   };
+
+  useEffect(() => {
+    loadAppointments();
+  }, []);
 
   // Handle saving consultation time settings
   const handleSaveSettings = async () => {
     try {
       setSavingSettings(true);
       
-      // Update settings in the database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('appointment_settings')
         .upsert({
-          id: 1, // Use a single row for settings
+          id: 1,
           start_time: startTime + ':00',
           end_time: endTime + ':00',
           interval_minutes: interval
@@ -137,7 +150,6 @@ const AdminAppointmentSettings = () => {
       if (error) throw error;
       
       setMessage({ text: "Settings saved successfully!", type: "success" });
-      setSavingSettings(false);
       
       // Clear message after 3 seconds
       setTimeout(() => {
@@ -149,6 +161,7 @@ const AdminAppointmentSettings = () => {
         text: "Failed to save settings. Please try again.", 
         type: "error" 
       });
+    } finally {
       setSavingSettings(false);
     }
   };
@@ -163,7 +176,7 @@ const AdminAppointmentSettings = () => {
       setAddingDate(true);
       
       // Insert new blocked date into the database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('blocked_dates')
         .insert({ date: newBlockedDate });
       
@@ -194,7 +207,7 @@ const AdminAppointmentSettings = () => {
   const handleRemoveBlockedDate = async (date) => {
     try {
       // Remove blocked date from the database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('blocked_dates')
         .delete()
         .eq('date', date);
@@ -254,7 +267,7 @@ const AdminAppointmentSettings = () => {
       
       if (blockedTimeSlots.includes(slot)) {
         // Unblock the time slot
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('blocked_time_slots')
           .delete()
           .eq('time_slot', formattedTime);
@@ -264,7 +277,7 @@ const AdminAppointmentSettings = () => {
         setBlockedTimeSlots(blockedTimeSlots.filter(s => s !== slot));
       } else {
         // Block the time slot
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('blocked_time_slots')
           .insert({ time_slot: formattedTime });
         
@@ -281,116 +294,93 @@ const AdminAppointmentSettings = () => {
     }
   };
 
-  // Update appointment status
-  const updateAppointmentStatus = async (id, status) => {
+  // Add functions to handle reschedule and cancellation requests
+  const handleAppointmentAction = async (appointmentId, action, type) => {
     try {
-      const { data, error } = await supabase
+      // Get the current appointment data
+      const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
-        .update({ status })
-        .eq('id', id);
-      
+        .select('*')
+        .eq('id', appointmentId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: action === 'approve' ? 
+            (type === 'reschedule' ? 'scheduled' : 'cancelled') : 
+            'scheduled',
+          ...(type === 'reschedule' && action === 'approve' ? {
+            appointment_date: appointment.requested_date,
+            appointment_time: appointment.requested_time_slot,
+            requested_date: null,
+            requested_time_slot: null,
+            reschedule_reason: null,
+            reschedule_requested: false
+          } : type === 'reschedule' ? {
+            requested_date: null,
+            requested_time_slot: null,
+            reschedule_reason: null,
+            reschedule_requested: false
+          } : {
+            cancellation_requested: false
+          })
+        })
+        .eq('id', appointmentId);
+
       if (error) throw error;
-      
-      // Update local state
-      setAppointments(appointments.map(app => 
-        app.id === id ? { ...app, status } : app
-      ));
-      
-      // Show success message
-      setMessage({ text: "Appointment updated successfully!", type: "success" });
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        setMessage({ text: "", type: "" });
-      }, 3000);
+
+      toast.success(`${type === 'reschedule' ? 'Reschedule' : 'Cancellation'} request ${action === 'approve' ? 'approved' : 'rejected'}`);
+      loadAppointments();
     } catch (error) {
-      console.error("Error updating appointment:", error);
-      setMessage({ 
-        text: "Failed to update appointment. Please try again.", 
-        type: "error" 
-      });
+      console.error(`Error ${action}ing ${type} request:`, error);
+      toast.error(`Failed to ${action} ${type} request`);
     }
   };
 
-  // Send a confirmation email to the user
-  const sendConfirmationEmail = async (appointment) => {
+  // Add function to handle appointment confirmation/rejection
+  const handleAppointmentResponse = async (appointmentId, action) => {
+    if (!appointmentId) return;
+
     try {
-      // Get API URL based on current hostname
-      const apiHost = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3001' 
-        : `https://api.${window.location.hostname}`;
-      
-      // Format the appointment time and date for display
-      const time = new Date(`2000-01-01T${appointment.appointment_time}`);
-      const formattedTime = time.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-      });
-      
-      const date = new Date(appointment.appointment_date);
-      const formattedDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-      
-      // Show confirmation dialog with email form
-      const confirmationNote = prompt(
-        `Enter any notes for the confirmation email to ${appointment.account?.email} for ${formattedDate} at ${formattedTime}:`,
-        `Your appointment for ${appointment.reason} has been confirmed.`
-      );
-      
-      if (confirmationNote === null) {
-        // User cancelled the prompt
-        return;
-      }
-      
-      setMessage({ text: "Sending confirmation email...", type: "info" });
-      
-      // Get the auth token for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      if (!token) {
-        throw new Error("Authentication required. Please login again.");
-      }
-      
-      // Make API call to send confirmation email
-      const response = await fetch(`${apiHost}/api/appointments/${appointment.id}/send-confirmation`, {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: action === 'confirm' ? 'confirmed' : 'rejected',
+          admin_notes: adminComment,
+          updated_at: new Date()
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      // Send confirmation email
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appointmentId}/send-confirmation`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          notes: confirmationNote,
-          status: 'confirmed' // Always set status to confirmed
+          notes: adminComment,
+          status: action === 'confirm' ? 'confirmed' : 'rejected'
         })
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send confirmation email');
+        throw new Error('Failed to send confirmation email');
       }
-      
-      // Update local state if the status was changed
-      setAppointments(appointments.map(app => 
-        app.id === appointment.id ? { ...app, status: 'confirmed' } : app
-      ));
-      
-      setMessage({ text: "Confirmation email sent successfully!", type: "success" });
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        setMessage({ text: "", type: "" });
-      }, 3000);
+
+      toast.success(`Appointment ${action === 'confirm' ? 'confirmed' : 'rejected'} successfully`);
+      setShowConfirmDialog(false);
+      setShowRejectDialog(false);
+      setAdminComment("");
+      setSelectedAppointment(null);
+      loadAppointments();
     } catch (error) {
-      console.error("Error sending confirmation email:", error);
-      setMessage({ 
-        text: `Failed to send confirmation email: ${error.message}`, 
-        type: "error" 
-      });
+      console.error(`Error ${action}ing appointment:`, error);
+      toast.error(`Failed to ${action} appointment`);
     }
   };
 
@@ -406,263 +396,333 @@ const AdminAppointmentSettings = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Appointment Settings</h1>
-      
-      {message.text && (
-        <div className={`p-3 mb-4 rounded-md ${
-          message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-        }`}>
-          {message.text}
-        </div>
-      )}
-      
-      <div className="mb-6">
-        <button 
-          className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md mb-6"
-          onClick={loadAppointments}
-        >
-          {showAppointments ? "Refresh" : "View"} Upcoming Appointments
-        </button>
-        
-        {showAppointments && (
-          <div className="bg-white p-4 rounded-md shadow mb-6">
+    <div className="max-w-6xl mx-auto p-6">
+      <Toaster />
+      <h1 className="text-2xl font-bold text-[#7B1113] mb-6">Appointment Management</h1>
+
+      <Tabs defaultValue="appointments" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        {/* Appointments Tab */}
+        <TabsContent value="appointments">
+          <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
-            
-            {appointments.length > 0 ? (
+            {loadingAppointments ? (
+              <div className="flex items-center justify-center py-4">
+                <Spinner className="h-6 w-6 text-[#7B1113]" />
+                <span className="ml-2">Loading appointments...</span>
+              </div>
+            ) : appointments.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full bg-white">
+                <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="py-2 px-3 text-left">Date</th>
                       <th className="py-2 px-3 text-left">Time</th>
-                      <th className="py-2 px-3 text-left">Name</th>
-                      <th className="py-2 px-3 text-left">Email</th>
+                      <th className="py-2 px-3 text-left">Student</th>
                       <th className="py-2 px-3 text-left">Reason</th>
+                      <th className="py-2 px-3 text-left">Mode</th>
+                      <th className="py-2 px-3 text-left">Contact</th>
                       <th className="py-2 px-3 text-left">Status</th>
                       <th className="py-2 px-3 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {appointments.map(appointment => {
-                      // Format time for display
-                      const time = new Date(`2000-01-01T${appointment.appointment_time}`);
-                      const formattedTime = time.toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit', 
-                        hour12: true 
-                      });
-                      
-                      // Format date for display
-                      const date = new Date(appointment.appointment_date);
-                      const formattedDate = date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      });
-                      
-                      return (
-                        <tr key={appointment.id} className="hover:bg-gray-50">
-                          <td className="py-2 px-3">{formattedDate}</td>
-                          <td className="py-2 px-3">{formattedTime}</td>
-                          <td className="py-2 px-3">{appointment.account?.account_name}</td>
-                          <td className="py-2 px-3">{appointment.account?.email}</td>
-                          <td className="py-2 px-3">
-                            {appointment.reason === "Other" 
-                              ? appointment.other_reason 
-                              : appointment.reason}
-                          </td>
-                          <td className="py-2 px-3">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              appointment.status === 'scheduled' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : appointment.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
-                                : appointment.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3">
-                            <div className="flex space-x-2">
-                              {appointment.status === 'scheduled' && (
-                                <>
-                                  <button
-                                    className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                                    onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
-                                  >
-                                    Complete
-                                  </button>
-                                  <button
-                                    className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                                    onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-                                    onClick={() => sendConfirmationEmail(appointment)}
-                                    title="Send confirmation email to user"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 mr-1">
-                                      <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
-                                      <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
-                                    </svg>
-                                    Confirm via Email
-                                  </button>
-                                </>
-                              )}
-                              {appointment.status === 'cancelled' && (
-                                <button
-                                  className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                  onClick={() => updateAppointmentStatus(appointment.id, 'scheduled')}
-                                >
-                                  Reschedule
-                                </button>
-                              )}
+                    {appointments.map((appointment) => (
+                      <tr key={appointment.id} className="hover:bg-gray-50">
+                        <td className="py-2 px-3">{new Date(appointment.appointment_date).toLocaleDateString()}</td>
+                        <td className="py-2 px-3">{appointment.appointment_time}</td>
+                        <td className="py-2 px-3">{appointment.account?.account_name}</td>
+                        <td className="py-2 px-3">{appointment.reason}</td>
+                        <td className="py-2 px-3">{appointment.meeting_mode || "Face-to-face"}</td>
+                        <td className="py-2 px-3">
+                          <div className="space-y-1">
+                            <div>{appointment.contact_number}</div>
+                            <div className="text-sm text-gray-500">{appointment.email}</div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
+                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                            appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                            "bg-gray-100 text-gray-700"
+                          }`}>
+                            {appointment.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {appointment.status === 'scheduled' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedAppointment(appointment);
+                                  setShowConfirmDialog(true);
+                                }}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedAppointment(appointment);
+                                  setShowRejectDialog(true);
+                                }}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                          )}
+                          {appointment.status === 'reschedule-pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'approve', 'reschedule')}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Approve Reschedule
+                              </button>
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'reject', 'reschedule')}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          {appointment.status === 'cancellation-pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'approve', 'cancel')}
+                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                              >
+                                Approve Cancel
+                              </button>
+                              <button
+                                onClick={() => handleAppointmentAction(appointment.id, 'reject', 'cancel')}
+                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="text-gray-500">No upcoming appointments</p>
+              <div className="text-center py-8 text-gray-500">
+                No upcoming appointments scheduled.
+              </div>
             )}
-          </div>
-        )}
-      </div>
+          </Card>
+        </TabsContent>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Consultation Hours Settings */}
-        <div className="bg-white p-4 rounded-md shadow">
-          <h2 className="text-xl font-semibold mb-4">Consultation Hours</h2>
-          
-          <div className="mb-4">
-            <label className="block mb-1">Start Time</label>
-            <input 
-              type="time" 
-              className="w-full p-2 border rounded-md"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+        {/* Settings Tab */}
+        <TabsContent value="settings">
+          <Card className="p-6">
+            <div className="space-y-6">
+              {/* Consultation Hours Settings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Consultation Hours</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Start Time</label>
+                    <input
+                      type="time"
+                      className="w-full p-2 border rounded-md"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">End Time</label>
+                    <input
+                      type="time"
+                      className="w-full p-2 border rounded-md"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Interval (minutes)</label>
+                    <select
+                      className="w-full p-2 border rounded-md"
+                      value={interval}
+                      onChange={(e) => setInterval(Number(e.target.value))}
+                    >
+                      <option value={15}>15 minutes</option>
+                      <option value={30}>30 minutes</option>
+                      <option value={45}>45 minutes</option>
+                      <option value={60}>1 hour</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blocked Dates Settings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Blocked Dates</h3>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input 
+                      type="date" 
+                      className="flex-1 p-2 border rounded-md"
+                      value={newBlockedDate}
+                      onChange={(e) => setNewBlockedDate(e.target.value)}
+                    />
+                    <button 
+                      className="px-4 py-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md whitespace-nowrap"
+                      onClick={handleAddBlockedDate}
+                      disabled={addingDate || !newBlockedDate}
+                    >
+                      {addingDate ? (
+                        <div className="flex items-center">
+                          <Spinner className="h-4 w-4 mr-2" />
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        "Block Date"
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {blockedDates.map((date) => (
+                      <div key={date} className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-md">
+                        <span className="text-red-700">{new Date(date).toLocaleDateString()}</span>
+                        <button
+                          onClick={() => handleRemoveBlockedDate(date)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Slots Settings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Time Slots</h3>
+                <p className="text-gray-600 text-sm mb-4">Click on time slots to block/unblock them globally</p>
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                  {timeSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      className={`p-2 border rounded-md text-sm ${
+                        blockedTimeSlots.includes(slot) 
+                          ? "bg-[#7B1113]/10 text-[#7B1113] border-[#7B1113]/20" 
+                          : "bg-green-100 text-green-700 border-green-300"
+                      }`}
+                      onClick={() => toggleTimeSlot(slot)}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save Settings Button */}
+              <div className="pt-4 border-t">
+                <button
+                  className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] transition-colors"
+                  onClick={handleSaveSettings}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? (
+                    <div className="flex items-center">
+                      <Spinner className="h-4 w-4 mr-2" />
+                      <span>Saving...</span>
+                    </div>
+                  ) : (
+                    "Save All Settings"
+                  )}
+                </button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Appointment</DialogTitle>
+            <DialogDescription>
+              Add any additional comments or instructions for the user.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
+              placeholder="E.g., Please arrive 10 minutes early..."
+              className="min-h-[100px]"
             />
           </div>
-          
-          <div className="mb-4">
-            <label className="block mb-1">End Time</label>
-            <input 
-              type="time" 
-              className="w-full p-2 border rounded-md"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'confirm')}
+              className="bg-[#007749] text-white hover:bg-[#006638]"
+            >
+              Confirm Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Appointment</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this appointment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
+              placeholder="Reason for rejection..."
+              className="min-h-[100px]"
             />
           </div>
-          
-          <div className="mb-4">
-            <label className="block mb-1">Time Slot Interval (minutes)</label>
-            <select 
-              className="w-full p-2 border rounded-md"
-              value={interval}
-              onChange={(e) => setInterval(Number(e.target.value))}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'reject')}
+              variant="destructive"
             >
-              <option value={15}>15 minutes</option>
-              <option value={30}>30 minutes</option>
-              <option value={45}>45 minutes</option>
-              <option value={60}>60 minutes</option>
-            </select>
-          </div>
-          
-          <button 
-            className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md flex items-center"
-            onClick={handleSaveSettings}
-            disabled={savingSettings}
-          >
-            {savingSettings ? (
-              <>
-                <Spinner className="h-4 w-4 mr-2" />
-                Saving...
-              </>
-            ) : (
-              "Save Settings"
-            )}
-          </button>
+              Reject Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message display */}
+      {message.text && (
+        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${
+          message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+        }`}>
+          {message.text}
         </div>
-        
-        {/* Blocked Dates */}
-        <div className="bg-white p-4 rounded-md shadow">
-          <h2 className="text-xl font-semibold mb-4">Blocked Dates</h2>
-          <p className="text-gray-600 mb-4">Block specific dates when no appointments can be booked</p>
-          
-          <div className="flex mb-4">
-            <input 
-              type="date" 
-              className="flex-1 p-2 border rounded-l-md"
-              value={newBlockedDate}
-              onChange={(e) => setNewBlockedDate(e.target.value)}
-            />
-            <button 
-              className="p-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-r-md flex items-center"
-              onClick={handleAddBlockedDate}
-              disabled={addingDate || !newBlockedDate}
-            >
-              {addingDate ? (
-                <>
-                  <Spinner className="h-4 w-4 mr-2" />
-                  Adding...
-                </>
-              ) : (
-                "Add"
-              )}
-            </button>
-          </div>
-          
-          {blockedDates.length > 0 ? (
-            <ul className="space-y-2 max-h-[300px] overflow-y-auto">
-              {blockedDates.map((date) => (
-                <li key={date} className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
-                  {new Date(date).toLocaleDateString()}
-                  <button 
-                    className="text-[#7B1113] hover:text-[#5e0d0e]"
-                    onClick={() => handleRemoveBlockedDate(date)}
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500">No blocked dates</p>
-          )}
-        </div>
-      </div>
-      
-      {/* Time Slot Management */}
-      <div className="mt-6 bg-white p-4 rounded-md shadow">
-        <h2 className="text-xl font-semibold mb-4">Manage Time Slots</h2>
-        <p className="text-gray-600 mb-4">Click on time slots to block/unblock them globally</p>
-        
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-          {timeSlots.map((slot) => (
-            <button
-              key={slot}
-              className={`p-2 border rounded-md ${
-                blockedTimeSlots.includes(slot) 
-                  ? "bg-[#7B1113]/10 text-[#7B1113] border-[#7B1113]/20" 
-                  : "bg-green-100 text-green-700 border-green-300"
-              }`}
-              onClick={() => toggleTimeSlot(slot)}
-            >
-              {slot}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
 
-export default AdminAppointmentSettings; 
+export default AdminAppointmentSettings;
