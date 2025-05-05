@@ -92,12 +92,22 @@ const AdminAppointmentSettings = () => {
     loadData();
   }, []);
 
-  // Load upcoming appointments
+  // Update the appointments query to include all needed fields
   const loadAppointments = async () => {
     try {
       // Get current date
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
+      
+      // Get appointment settings for interval
+      const { data: settings, error: settingsError } = await supabase
+        .from('appointment_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (settingsError) throw settingsError;
       
       // Get upcoming appointments
       const { data, error } = await supabase
@@ -108,8 +118,12 @@ const AdminAppointmentSettings = () => {
           other_reason,
           appointment_date,
           appointment_time,
-          account:account(account_name, email),
-          status
+          meeting_mode,
+          contact_number,
+          email,
+          notes,
+          status,
+          account:account(account_name)
         `)
         .gte('appointment_date', formattedDate)
         .order('appointment_date', { ascending: true })
@@ -117,7 +131,37 @@ const AdminAppointmentSettings = () => {
       
       if (error) throw error;
       
-      setAppointments(data);
+      // Format the appointments with end time based on interval
+      const formattedAppointments = data.map(appointment => {
+        const startTime = new Date(`2000-01-01T${appointment.appointment_time}`);
+        const endTime = new Date(startTime.getTime() + (settings?.interval_minutes || 30) * 60000);
+        
+        const timeRange = `${startTime.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })} - ${endTime.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })}`;
+
+        // Split name into last name and first name
+        const fullName = appointment.account?.account_name || '';
+        const [lastName, ...firstNames] = fullName.split(',').map(part => part.trim());
+        const formattedName = lastName && firstNames.length 
+          ? `${lastName.toUpperCase()}, ${firstNames.join(' ')}` 
+          : fullName;
+        
+        return {
+          ...appointment,
+          timeRange,
+          formattedName,
+          fullDetails: `${appointment.reason}${appointment.notes ? ` - ${appointment.notes}` : ''}`
+        };
+      });
+      
+      setAppointments(formattedAppointments);
       setLoadingAppointments(false);
     } catch (error) {
       console.error("Error loading appointments:", error);
@@ -425,7 +469,8 @@ const AdminAppointmentSettings = () => {
                       <th className="py-2 px-3 text-left">Student</th>
                       <th className="py-2 px-3 text-left">Reason</th>
                       <th className="py-2 px-3 text-left">Mode</th>
-                      <th className="py-2 px-3 text-left">Contact</th>
+                      <th className="py-2 px-3 text-left">Contact No.</th>
+                      <th className="py-2 px-3 text-left">Email</th>
                       <th className="py-2 px-3 text-left">Status</th>
                       <th className="py-2 px-3 text-left">Actions</th>
                     </tr>
@@ -433,22 +478,34 @@ const AdminAppointmentSettings = () => {
                   <tbody className="divide-y divide-gray-200">
                     {appointments.map((appointment) => (
                       <tr key={appointment.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-3">{new Date(appointment.appointment_date).toLocaleDateString()}</td>
-                        <td className="py-2 px-3">{appointment.appointment_time}</td>
-                        <td className="py-2 px-3">{appointment.account?.account_name}</td>
-                        <td className="py-2 px-3">{appointment.reason}</td>
-                        <td className="py-2 px-3">{appointment.meeting_mode || "Face-to-face"}</td>
                         <td className="py-2 px-3">
-                          <div className="space-y-1">
-                            <div>{appointment.contact_number}</div>
-                            <div className="text-sm text-gray-500">{appointment.email}</div>
+                          {new Date(appointment.appointment_date).toLocaleDateString('en-US', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </td>
+                        <td className="py-2 px-3">{appointment.timeRange}</td>
+                        <td className="py-2 px-3">{appointment.formattedName}</td>
+                        <td className="py-2 px-3">
+                          <div className="max-w-xs">
+                            <div className="font-medium">{appointment.reason}</div>
+                            {appointment.notes && (
+                              <div className="text-sm text-gray-500 mt-1">{appointment.notes}</div>
+                            )}
                           </div>
                         </td>
+                        <td className="py-2 px-3">{appointment.meeting_mode || "Face-to-face"}</td>
+                        <td className="py-2 px-3">{appointment.contact_number}</td>
+                        <td className="py-2 px-3">{appointment.email}</td>
                         <td className="py-2 px-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
+                            appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
+                            appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
                             appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
                             appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                            appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
+                            appointment.status === "cancellation-pending" ? "bg-orange-100 text-orange-700" :
                             "bg-gray-100 text-gray-700"
                           }`}>
                             {appointment.status}

@@ -132,7 +132,7 @@ const Sidebar = () => {
               <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
               <hr className="border-t border-[#DBDBDB] my-4" />
               <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
-              <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
+              <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointments</Link></li>
               <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Create Activity</Link></li>
               <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
               <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Activity Summary</Link></li>
