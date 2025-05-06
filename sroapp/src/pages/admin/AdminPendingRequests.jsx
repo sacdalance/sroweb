@@ -652,22 +652,22 @@ const AdminPendingRequests = () => {
   if (!userRole) return null;
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
+    <div className="container mx-auto py-8 max-w-[1600px]">
       <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger 
+        <TabsList className="grid w-[800px] grid-cols-2 h-8 p-0 mx-auto bg-gray-100 rounded-4xl">
+        <TabsTrigger  
           value="submissions" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl"
         >
           Incoming Submissions ({incomingRequests.length})
         </TabsTrigger>
 
         <TabsTrigger 
           value="appeals" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white"
+          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl"
         >
           Appeals and Cancellations ({pendingAppeals.length})
         </TabsTrigger>
@@ -676,7 +676,7 @@ const AdminPendingRequests = () => {
         <TabsContent value="appeals">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#7B1113]">
+              <CardTitle className="text-xl font-bold text-[#000000]">
                 Appeals and Cancellations
               </CardTitle>
             </CardHeader>
@@ -685,15 +685,15 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center ">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Adviser</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center"></th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Submission Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Organization</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Name</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Type</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Venue</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Adviser</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -747,7 +747,7 @@ const AdminPendingRequests = () => {
         <TabsContent value="submissions">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#7B1113]">
+              <CardTitle className="text-xl font-bold text-[#000000]">
                 Incoming Submissions
               </CardTitle>
               {userRole === 3 && (
@@ -761,15 +761,15 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap">Adviser</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center whitespace-nowrap"></th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">

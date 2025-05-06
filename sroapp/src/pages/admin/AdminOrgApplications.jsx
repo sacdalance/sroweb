@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import { Eye, ChevronDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ const AdminOrgApplications = () => {
     organizationType: "Organization Type",
     chairperson: "Chairperson",
     adviser: "Adviser",
+    organizationalEmail: "organization@example.com",
     // Additional details for the modal
     description: "Organization description goes here. This is a sample description of the organization's purpose and activities.",
     members: 50,
@@ -51,30 +53,32 @@ const AdminOrgApplications = () => {
         <Table>
           <TableHeader>
             <TableRow className="border-b-0">
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Submission Date</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Organization</TableHead>
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Organization Type</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Chairperson</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Adviser</TableHead>
-              <TableHead className="w-[100px] text-sm font-semibold text-center py-5">Actions</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-black text-center py-5">Submission Date</TableHead>
+              <TableHead className="w-[200px] text-sm font-semibold text-black text-center py-5">Organization</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-black text-center py-5">Organization Type</TableHead>
+              <TableHead className="w-[200px] text-sm font-semibold text-black text-center py-5">Chairperson</TableHead>
+              <TableHead className="w-[200px] text-sm font-semibold text-black text-center py-5">Adviser</TableHead>
+              <TableHead className="w-[200px] text-sm font-semibold text-black text-center py-5">Organizational Email</TableHead>
+              <TableHead className="w-[100px] text-sm font-semibold text-black text-center py-5"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {applications.map((application) => (
               <TableRow key={application.id} className="border-b border-gray-100">
-                <TableCell className="py-5 text-sm text-center">{application.submissionDate}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{application.organization}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{application.organizationType}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{application.chairperson}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{application.adviser}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.submissionDate}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.organization}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.organizationType}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.chairperson}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.adviser}</TableCell>
+                <TableCell className="py-5 text-sm text-gray-700 text-center">{application.organizationalEmail}</TableCell>
                 <TableCell className="py-5">
                   <div className="flex items-center justify-center">
-                    <Button
-                      onClick={() => handleViewDetails(application)}
-                      className="h-8 text-sm px-6 text-white bg-[#7B1113] hover:bg-[#641113] border-0"
-                    >
-                      Details
-                    </Button>
+                    <button
+                            onClick={() => handleViewDetails(application)}
+                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
                   </div>
                 </TableCell>
               </TableRow>

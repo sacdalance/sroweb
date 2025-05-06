@@ -1,32 +1,28 @@
 import { useState, useEffect } from "react";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Printer, Eye, Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Badge } from "../../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "../../components/ui/dialog";
+} from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
 import { toast } from "sonner";
 
-const AdminActivitiesCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 3)); // April 2025
-  const [viewMode, setViewMode] = useState("month"); // 'month' or 'day'
-  const [selectedDay, setSelectedDay] = useState(new Date(2025, 3, 9)); // April 9, 2025
-  const [filter, setFilter] = useState("all"); // 'all', 'approved', 'pending'
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+const ActivitiesCalendar = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedOrganization, setSelectedOrganization] = useState("all");
   const [events, setEvents] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [error, setError] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Month and year options
   const months = [
@@ -38,9 +34,6 @@ const AdminActivitiesCalendar = () => {
   // Selected values for dropdowns
   const [selectedMonth, setSelectedMonth] = useState(months[currentDate.getMonth()]);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
-
-  // Days of the week
-  const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
   // Fetch organizations
   useEffect(() => {
@@ -88,7 +81,6 @@ const AdminActivitiesCalendar = () => {
           location: activity.venue,
           category: activity.activity_type,
           organization: activity.organization?.org_name,
-          status: 'approved',
           description: activity.activity_description,
           partners: activity.university_partner,
           sdgs: activity.sdg_goals,
@@ -207,16 +199,10 @@ const AdminActivitiesCalendar = () => {
                        event.date.getMonth() === date.getMonth() && 
                        event.date.getFullYear() === date.getFullYear();
       
-      const statusMatch = filter === "all" || event.status === filter;
       const orgMatch = selectedOrganization === "all" || event.organization === selectedOrganization;
       
-      return dateMatch && statusMatch && orgMatch;
+      return dateMatch && orgMatch;
     });
-  };
-
-  // Check if a date has events
-  const hasEvents = (date) => {
-    return getEventsForDate(date).length > 0;
   };
 
   // Navigate to previous month
@@ -235,22 +221,6 @@ const AdminActivitiesCalendar = () => {
     setSelectedYear(newDate.getFullYear().toString());
   };
 
-  // Select a day to view
-  const selectDay = (date) => {
-    setSelectedDay(date);
-    setViewMode("day");
-  };
-
-  // Format date for display
-  const formatMonthYear = (date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
-
-  // Format date for daily view
-  const formatDayMonthYear = (date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  };
-
   // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
     setSelectedMonth(value);
@@ -262,11 +232,6 @@ const AdminActivitiesCalendar = () => {
     setSelectedYear(value);
     const monthIndex = months.indexOf(selectedMonth);
     setCurrentDate(new Date(parseInt(value), monthIndex));
-  };
-
-  // Mock print calendar function
-  const handlePrint = () => {
-    window.print();
   };
 
   // Get color for event based on category
@@ -415,7 +380,7 @@ const AdminActivitiesCalendar = () => {
         
         <Button 
           className="ml-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white" 
-          onClick={handlePrint}
+          onClick={() => window.print()}
         >
           <Printer className="w-4 h-4 mr-2" /> Print Calendar
         </Button>
@@ -492,10 +457,11 @@ const AdminActivitiesCalendar = () => {
                     {day.events.map((event, index) => (
                       <div
                         key={index}
-                        className={`px-1 py-0.5 text-xs rounded truncate ${
+                        className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${
                           getEventColor(event.category)
                         }`}
                         title={event.title}
+                        onClick={() => handleViewEventDetails(event)}
                       >
                         {event.title}
                       </div>
@@ -580,11 +546,9 @@ const AdminActivitiesCalendar = () => {
                       </td>
                       <td className="px-5 py-4 text-sm flex justify-center">
                         <button
-                          onClick={() => {
-                          handleViewEventDetails(event)
-                          }}
+                          onClick={() => handleViewEventDetails(event)}
                           className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                          >
+                        >
                           <Eye className="h-5 w-5" />
                         </button>
                       </td>
@@ -597,7 +561,7 @@ const AdminActivitiesCalendar = () => {
         </CardContent>
       </Card>
 
-      {/* Add the Dialog component */}
+      {/* Event Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
           <DialogHeader className="px-2">
@@ -635,21 +599,6 @@ const AdminActivitiesCalendar = () => {
                 </div>
               </div>
 
-              {/* Schedule */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedEvent.date}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Time:</span>
-                    <span>{selectedEvent.time}</span>
-                  </div>
-                </div>
-              </div>
-
               {/* University Partners */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
@@ -673,21 +622,6 @@ const AdminActivitiesCalendar = () => {
                   )}
                 </div>
               </div>
-
-              {/* Bottom Section with Status and View Form Button */}
-              <div className="flex justify-between items-center">
-                <Button 
-                  className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
-                >
-                  View Scanned Form
-                </Button>
-                <Badge 
-                  variant={selectedEvent.status === 'approved' ? 'success' : 'warning'}
-                  className="text-sm px-4 py-1"
-                >
-                  {selectedEvent.status ? selectedEvent.status.charAt(0).toUpperCase() + selectedEvent.status.slice(1) : 'Unknown'}
-                </Badge>
-              </div>
             </div>
           )}
         </DialogContent>
@@ -696,4 +630,4 @@ const AdminActivitiesCalendar = () => {
   );
 };
 
-export default AdminActivitiesCalendar; 
+export default ActivitiesCalendar; 
