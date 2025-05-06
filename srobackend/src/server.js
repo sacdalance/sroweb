@@ -12,7 +12,8 @@ import organizationRoutes from './routes/organizationRoutes.js';
 
 import annualReportRoutes from './routes/annualReportRoutes.js';
 
-import adminActivitiesRoutes from "./routes/adminActivitiesRoutes.js";
+import adminActivitiesRoutes from "./routes/adminPendingActivitiesRoutes.js";
+import adminActivityRoutes from './routes/adminActivityRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 
 import dotenv from 'dotenv';
@@ -43,6 +44,7 @@ app.use('/api/annual-report', annualReportRoutes);
 
 // Admin
 app.use("/api/activities", adminActivitiesRoutes);
+app.use('/api', adminActivityRoutes);
 
 // Appointments
 app.use("/api/appointments", appointmentRoutes);

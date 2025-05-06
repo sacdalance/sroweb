@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import supabase from "../lib/supabase";
-import { useNavigate } from "react-router-dom";
-import { Spinner } from "@/components/ui/spinner";
-import { ChevronLeft, ChevronRight, Calendar, Clock, Edit, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { format, addMonths, subMonths, getDay, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, isPast } from "date-fns";
 import { toast } from 'sonner';
+import { Spinner } from "@/components/ui/spinner";
 
 const AppointmentBooking = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     reason: "",
     email: "",
@@ -17,12 +15,7 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
-  const [availableTimes, setAvailableTimes] = useState([]);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [blockedDates, setBlockedDates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -30,15 +23,18 @@ const AppointmentBooking = () => {
   const [showExistingAppointments, setShowExistingAppointments] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [rescheduleMode, setRescheduleMode] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [showCancelForm, setShowCancelForm] = useState(false);
-  const [bookedTimeSlots, setBookedTimeSlots] = useState([]);
   const [datesWithAppointments, setDatesWithAppointments] = useState([]);
   const [timeSlotLoading, setTimeSlotLoading] = useState(false);
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedTime, setSelectedTime] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const appointmentReasons = [
     "Select a reason for booking an appointment with the SRO...",
@@ -71,7 +67,7 @@ const AppointmentBooking = () => {
         if (authUser) {
           // First try to get account by supabase_uid if it exists
           console.log("Fetching account data for supabase_uid:", authUser.id);
-          let { data: accountData, error: accountError } = await supabase
+          let { data: accountData } = await supabase
             .from('account')
             .select('*')
             .eq('supabase_uid', authUser.id)
@@ -206,7 +202,7 @@ const AppointmentBooking = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        setTimeSlotLoading(true);
         console.log("Loading appointment settings and blocked dates...");
         
         // Get appointment settings
@@ -252,11 +248,11 @@ const AppointmentBooking = () => {
           setBlockedDates([]);
         }
         
-        setLoading(false);
       } catch (error) {
         console.error("Error loading appointment data:", error);
         toast.error("Failed to load appointment settings");
-        setLoading(false);
+      } finally {
+        setTimeSlotLoading(false);
       }
     };
     
@@ -272,121 +268,83 @@ const AppointmentBooking = () => {
       const formattedDate = format(date, 'yyyy-MM-dd');
       console.log(`Loading time slots for date: ${formattedDate}`);
       
-      // Get appointment settings
-      const { data: settingsData, error: settingsError } = await supabase
+      // Get available slots from the database
+      const { data, error } = await supabase
         .from('appointment_settings')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1);
       
-      let defaultTimeSlots = [];
-      
-      if (settingsError) {
-        console.error("Error fetching settings:", settingsError);
-      } else if (settingsData && settingsData.length > 0) {
-        console.log("Settings found:", settingsData[0]);
-        
-        // Generate time slots based on start_time, end_time, and interval_minutes
-        const settings = settingsData[0];
-        
-        // Parse start and end times
-        const startTimeParts = settings.start_time.split(':');
-        const endTimeParts = settings.end_time.split(':');
-        
-        const startHour = parseInt(startTimeParts[0]);
-        const startMinute = parseInt(startTimeParts[1]);
-        const endHour = parseInt(endTimeParts[0]);
-        const endMinute = parseInt(endTimeParts[1]);
-        
-        const interval = settings.interval_minutes;
-        
-        // Generate time slots
-        let currentHour = startHour;
-        let currentMinute = startMinute;
-        
-        while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-          const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-          defaultTimeSlots.push(timeString);
-          
-          // Increment by interval
-          currentMinute += interval;
-          if (currentMinute >= 60) {
-            currentHour += Math.floor(currentMinute / 60);
-            currentMinute = currentMinute % 60;
-          }
-        }
+      if (error) {
+        throw error;
       }
-      
-      // If no settings or time_slots not defined, use default time slots
-      if (defaultTimeSlots.length === 0) {
-        defaultTimeSlots = [
-          "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
-        ];
-        console.log("Using default time slots:", defaultTimeSlots);
+
+      if (!data || data.length === 0) {
+        throw new Error('No appointment settings found');
       }
+
+      const settings = data[0];
+      const startTime = settings.start_time;
+      const endTime = settings.end_time;
+      const interval = settings.interval_minutes || 30;
+
+      // Generate time slots between start and end time
+      const slots = [];
+      const start = new Date(`2000-01-01T${startTime}`);
+      const end = new Date(`2000-01-01T${endTime}`);
       
-      // Load blocked time slots
-      const { data: blockedTimeSlots, error: blockedTimeSlotsError } = await supabase
+      let current = new Date(start);
+      while (current < end) {
+        slots.push(current.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: true 
+        }));
+        current = new Date(current.getTime() + interval * 60000);
+      }
+
+      // Get blocked slots
+      const { data: blockedSlots } = await supabase
         .from('blocked_time_slots')
-        .select('time_slot');
-      
-      if (blockedTimeSlotsError) {
-        console.error("Error loading blocked time slots:", blockedTimeSlotsError);
-      } else if (blockedTimeSlots && blockedTimeSlots.length > 0) {
-        console.log("Blocked time slots:", blockedTimeSlots);
-        
-        // Filter out blocked time slots
-        const blockedTimes = blockedTimeSlots.map(item => {
-          // Convert time format to match our format (HH:MM)
-          const timeParts = item.time_slot.split(':');
-          return `${timeParts[0]}:${timeParts[1]}`;
-        });
-        
-        defaultTimeSlots = defaultTimeSlots.filter(slot => !blockedTimes.includes(slot));
-      }
-      
-      // Load existing appointments for the selected date to check availability
-      const { data: existingAppointments, error: appointmentsError } = await supabase
+        .select('time_slot')
+        .eq('date', formattedDate);
+
+      // Get existing appointments
+      const { data: existingAppointments } = await supabase
         .from('appointments')
-        .select('*')
-        .eq('appointment_date', formattedDate);
-      
-      if (appointmentsError) {
-        console.error("Error loading existing appointments:", appointmentsError);
-        // Continue with default slots even if there's an error loading appointments
-      }
-      
-      // Filter out slots that are already booked
-      let availableSlots = [...defaultTimeSlots];
-      
-      if (existingAppointments && existingAppointments.length > 0) {
-        console.log("Existing appointments:", existingAppointments);
-        
-        // Get all booked time slots
-        const bookedTimes = existingAppointments.map(appointment => {
-          // Convert time format to match our format (HH:MM)
-          const timeParts = appointment.appointment_time.split(':');
-          return `${timeParts[0]}:${timeParts[1]}`;
+        .select('appointment_time')
+        .eq('appointment_date', formattedDate)
+        .in('status', ['scheduled', 'confirmed']);
+
+      // Filter out blocked and booked slots
+      const availableSlots = slots.filter(slot => {
+        const isBlocked = blockedSlots?.some(blockedSlot => {
+          const blockedTime = new Date(`2000-01-01T${blockedSlot.time_slot}`);
+          return blockedTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+          }) === slot;
         });
-        
-        console.log("Booked times:", bookedTimes);
-        
-        // Remove booked slots
-        availableSlots = availableSlots.filter(slot => !bookedTimes.includes(slot));
-      }
-      
-      console.log("Final available time slots:", availableSlots);
+
+        const isBooked = existingAppointments?.some(appointment => {
+          const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`);
+          return appointmentTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+          }) === slot;
+        });
+
+        return !isBlocked && !isBooked;
+      });
+
       setTimeSlots(availableSlots);
-      setTimeSlotLoading(false);
     } catch (error) {
       console.error("Error loading time slots:", error);
       toast.error("Failed to load available time slots");
-      
-      // Provide default time slots even if there's an error
-      const defaultSlots = [
-        "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"
-      ];
-      setTimeSlots(defaultSlots);
+      setTimeSlots([]);
+    } finally {
       setTimeSlotLoading(false);
     }
   };
@@ -402,12 +360,7 @@ const AppointmentBooking = () => {
   };
 
   // Fetch appointments for the current month to display in calendar
-  useEffect(() => {
-    fetchMonthAppointments();
-  }, [currentMonth]);
-
-  // Extract fetchMonthAppointments to separate function so it can be called elsewhere
-  const fetchMonthAppointments = async () => {
+  const fetchMonthAppointments = useCallback(async () => {
     try {
       const monthStart = startOfMonth(currentMonth);
       const monthEnd = endOfMonth(currentMonth);
@@ -431,7 +384,12 @@ const AppointmentBooking = () => {
     } catch (error) {
       console.error("Error fetching month appointments:", error);
     }
-  };
+  }, [currentMonth]);
+
+  // Update useEffect to use the memoized callback
+  useEffect(() => {
+    fetchMonthAppointments();
+  }, [fetchMonthAppointments]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -524,116 +482,10 @@ const AppointmentBooking = () => {
     setShowExistingAppointments(!showExistingAppointments);
   };
 
-  // Request appointment reschedule
-  const requestReschedule = (appointment) => {
-    setSelectedAppointment(appointment);
-    setRescheduleMode(true);
-    setSelectedDate(null);
-    setFormData({
-      ...formData,
-      date: null,
-      time: "",
-      reason: appointment.reason || ""
-    });
-    setShowExistingAppointments(false);
-  };
-
-  // Submit reschedule request
-  const submitRescheduleRequest = async () => {
-    if (!selectedAppointment || !formData.date || !formData.time) {
-      setError("Please select a new date and time for your appointment");
-      return;
-    }
-    
-    try {
-      setSubmitting(true);
-      
-      const appointmentId = selectedAppointment.id;
-      const newDate = format(formData.date, 'yyyy-MM-dd');
-      
-      // Update the appointment directly in the database
-      const { data, error } = await supabase
-        .from('appointments')
-        .update({
-          appointment_date: newDate,
-          appointment_time: formData.time,
-          notes: formData.notes || "Rescheduled by user"
-        })
-        .eq('id', appointmentId);
-      
-      if (error) {
-        throw new Error(error.message || "Failed to reschedule appointment");
-      }
-      
-      // Success
-      toast.success("Appointment rescheduled successfully!");
-      setSuccess(true);
-      setSubmitting(false);
-      setRescheduleMode(false);
-    } catch (error) {
-      console.error("Error requesting reschedule:", error);
-      setError(error.message || "Failed to reschedule appointment. Please try again later.");
-      setSubmitting(false);
-    }
-  };
-
-  // Request appointment cancellation
-  const showCancelRequest = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowCancelForm(true);
-    setShowExistingAppointments(false);
-  };
-
-  // Submit cancellation request
-  const submitCancellationRequest = async () => {
-    if (!selectedAppointment || !cancelReason) {
-      setError("Please provide a reason for cancellation");
-      return;
-    }
-    
-    try {
-      setSubmitting(true);
-      
-      const appointmentId = selectedAppointment.id;
-      
-      // Update the appointment status directly in the database
-      const { data, error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancelled',
-          notes: cancelReason || "Cancelled by user"
-        })
-        .eq('id', appointmentId);
-      
-      if (error) {
-        throw new Error(error.message || "Failed to cancel appointment");
-      }
-      
-      // Success
-      toast.success("Appointment cancelled successfully!");
-      setSuccess(true);
-      setSubmitting(false);
-      setShowCancelForm(false);
-    } catch (error) {
-      console.error("Error cancelling appointment:", error);
-      setError(error.message || "Failed to cancel appointment. Please try again later.");
-      setSubmitting(false);
-    }
-  };
-
-  // Cancel reschedule/cancel mode
-  const cancelRequestMode = () => {
-    setRescheduleMode(false);
-    setShowCancelForm(false);
-    setSelectedAppointment(null);
-    setCancelReason("");
-    setError("");
-  };
-
-  // Handle form submission
+  // Enhance the existing handleSubmit to use submitRescheduleRequest when in reschedule mode
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    
+
     // Detailed user debugging
     console.log("Current user object:", user);
     console.log("Form submission started with data:", { ...formData, selectedDate, selectedTime });
@@ -751,31 +603,27 @@ const AppointmentBooking = () => {
         );
         
         const responseText = await response.text();
-        console.log("Response status:", response.status);
-        console.log("Response text:", responseText);
-        
         if (!response.ok) {
           let errorMessage = `API error: ${response.status}`;
           try {
             const errorData = JSON.parse(responseText);
             errorMessage += ` - ${JSON.stringify(errorData)}`;
-          } catch (e) {
+          } catch {
+            // Ignore parse error and just include raw response text
             errorMessage += ` - ${responseText}`;
           }
           throw new Error(errorMessage);
         }
         
-        // Parse the response only if it contains JSON
-        let data;
         try {
-          data = JSON.parse(responseText);
+          const data = JSON.parse(responseText);
           console.log("Appointment created successfully:", data);
-        } catch (e) {
+        } catch {
+          // Response wasn't JSON but that's ok
           console.log("Response wasn't JSON, but appointment was created");
         }
         
         toast.success("Appointment booked successfully! You'll receive a confirmation email soon.");
-      setSuccess(true);
       
       // Reset form
       setSelectedDate(null);
@@ -791,6 +639,7 @@ const AppointmentBooking = () => {
         // Reload appointments
         if (user && userAccountId) {
           loadUserAppointments(userAccountId);
+          setShowExistingAppointments(true);
         }
       } catch (fetchError) {
         console.error("Fetch error:", fetchError);
@@ -846,198 +695,109 @@ const AppointmentBooking = () => {
     return classes;
   };
 
-  // Get appointment status display
-  const getStatusDisplay = (status) => {
-    switch(status) {
-      case 'scheduled':
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Scheduled</span>;
-      case 'completed':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Completed</span>;
-      case 'cancelled':
-        return <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Cancelled</span>;
-      default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">{status}</span>;
+  const handleCancelClick = (appointment) => {
+    setSelectedAppointment(appointment);
+    setShowCancelDialog(true);
+  };
+  
+  const handleRescheduleClick = (appointment) => {
+    setSelectedAppointment(appointment);
+    setShowRescheduleDialog(true);
+    // Pre-fill the form with existing appointment data
+    setFormData({
+      reason: appointment.reason,
+      email: appointment.email,
+      contact: appointment.contact_number,
+      mode: appointment.meeting_mode,
+      notes: ""
+    });
+    setSelectedDate(null);
+    setSelectedTime("");
+  };
+  
+  const handleCancelSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancellation-pending',
+          cancellation_requested: true,
+          cancellation_reason: cancelReason || 'No reason provided'
+        })
+        .eq('id', selectedAppointment.id);
+  
+      if (error) throw error;
+  
+      toast.success('Cancellation request submitted successfully');
+      setShowCancelDialog(false);
+      setCancelReason("");
+      setSelectedAppointment(null);
+      
+      // Refresh appointments list
+      if (user?.account_id) {
+        await loadUserAppointments(user.account_id);
+      }
+    } catch (error) {
+      console.error('Error submitting cancellation:', error);
+      toast.error('Failed to submit cancellation request');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // Improved dummy data generation
-  useEffect(() => {
-    const setupData = async () => {
-      // Generate sample data directly
-      const today = new Date();
-      
-      // Generate 10 sample appointments
-      const sampleAppointments = [];
-      
-      for (let i = 0; i < 10; i++) {
-        // Add 1-10 days to today
-        const appointmentDate = new Date(today);
-        appointmentDate.setDate(today.getDate() + Math.floor(Math.random() * 10) + 1);
-        
-        // Skip weekends
-        while (appointmentDate.getDay() === 0 || appointmentDate.getDay() === 6) {
-          appointmentDate.setDate(appointmentDate.getDate() + 1);
-        }
-        
-        // Format date
-        const dateStr = format(appointmentDate, 'yyyy-MM-dd');
-        
-        // Random time slot
-        const hour = 9 + Math.floor(Math.random() * 8);
-        if (hour === 12) continue; // Skip lunch hour
-        const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
-        
-        // Random status (mostly confirmed for visibility)
-        const statuses = ['confirmed', 'confirmed', 'confirmed', 'pending', 'pending'];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        
-        // Get a random reason
-        const reason = appointmentReasons[Math.floor(Math.random() * (appointmentReasons.length - 1)) + 1];
-        
-        // Get a random meeting mode
-        const meetingMode = meetingModes[Math.floor(Math.random() * meetingModes.length)];
-        
-        // Create appointment with proper schema
-        sampleAppointments.push({
-          user_id: user?.account_id || 1,
-          purpose: reason,
-          date: dateStr,
-          time_slot: timeSlot,
-          email: user?.email || 'test@up.edu.ph',
-          contact_number: '09123456789',
-          meeting_mode: meetingMode,
-          status: status,
-          created_at: new Date().toISOString()
-        });
-      }
-      
-      console.log("Sample appointments prepared:", sampleAppointments);
-      
-      // Test database schema by retrieving a sample appointment first
-      const { data: schemaCheck, error: schemaError } = await supabase
+  
+  const handleRescheduleSubmit = async () => {
+    if (!selectedDate || !selectedTime) {
+      toast.error('Please select a new date and time');
+      return;
+    }
+  
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
         .from('appointments')
-        .select('*')
-        .limit(1);
-        
-      if (schemaError) {
-        console.error("Error checking schema:", schemaError);
-        throw new Error(`Schema check failed: ${schemaError.message}`);
-      }
+        .update({
+          status: 'reschedule-pending',
+          reschedule_requested: true,
+          requested_date: format(selectedDate, 'yyyy-MM-dd'),
+          requested_time_slot: selectedTime,
+          reschedule_reason: rescheduleReason || 'No reason provided'
+        })
+        .eq('id', selectedAppointment.id);
+  
+      if (error) throw error;
+  
+      toast.success('Reschedule request submitted successfully');
+      setShowRescheduleDialog(false);
+      setRescheduleReason("");
+      setSelectedAppointment(null);
+      setSelectedDate(null);
+      setSelectedTime("");
       
-      // Log the schema for debugging
-      console.log("Existing appointment schema:", schemaCheck);
-      
-      // Insert directly via Supabase
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert(sampleAppointments);
-        
-      if (error) {
-        console.error("Error inserting sample data:", error);
-        throw error;
-      }
-      
-      toast.success("Sample appointments generated successfully!");
-      
-      // Reload appointments for the current month
-      fetchMonthAppointments();
-      
-      // Reload user appointments if user is logged in
+      // Refresh appointments list
       if (user?.account_id) {
-        loadUserAppointments(user.account_id);
+        await loadUserAppointments(user.account_id);
       }
-    };
-    
-    // Auto-generate test data on page load (remove in production)
-    // Commenting out for now to prevent auto-generation
-    // setupData();
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <Spinner className="h-8 w-8 text-[#7B1113]" />
-        <span className="ml-2">Loading appointment options...</span>
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-green-100 text-green-700 p-4 rounded-md mb-4">
-          <h2 className="text-xl font-semibold mb-2">
-            {rescheduleMode ? "Appointment Reschedule Requested!" : 
-             showCancelForm ? "Appointment Cancellation Requested!" : 
-             "Appointment Request Submitted Successfully!"}
-          </h2>
-          <p className="mb-4">
-            {rescheduleMode ? "Your reschedule request has been submitted and is pending approval. You will receive an email notification once it's processed." :
-             showCancelForm ? "Your cancellation request has been submitted and is pending approval. You will receive an email notification once it's processed." :
-             "Your appointment request has been submitted. An administrator will review your request and send you a confirmation email shortly. Your appointment is not finalized until you receive this confirmation email."}
-          </p>
-          <div className="flex gap-4">
-            <button
-              className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e]"
-              onClick={() => navigate("/")}
-            >
-              Return to Dashboard
-            </button>
-            <button
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
-              onClick={() => {
-                setSuccess(false);
-                setRescheduleMode(false);
-                setShowCancelForm(false);
-                setSelectedAppointment(null);
-                setFormData({
-                  reason: "",
-                  email: user?.email || "",
-                  contact: "",
-                  date: null,
-                  time: "",
-                  mode: "",
-                  notes: ""
-                });
-              }}
-            >
-              Book Another Appointment
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    } catch (error) {
+      console.error('Error submitting reschedule request:', error);
+      toast.error('Failed to submit reschedule request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {rescheduleMode ? "Reschedule Appointment" : 
-           showCancelForm ? "Cancel Appointment" :
-           "Book an Appointment"}
-        </h1>
+        <h1 className="text-2xl font-bold">Book an Appointment</h1>
         
         {/* Toggle between booking and viewing appointments */}
-        {!rescheduleMode && !showCancelForm && (
-          <button 
-            onClick={toggleAppointmentsView}
-            className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
-          >
-            {showExistingAppointments ? "Book New Appointment" : "View My Appointments"}
-          </button>
-        )}
-        
-        {/* Back button for reschedule/cancel modes */}
-        {(rescheduleMode || showCancelForm) && (
-          <button 
-            onClick={cancelRequestMode}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm flex items-center"
-          >
-            <ChevronLeft size={16} />
-            <span>Back to Booking</span>
-          </button>
-        )}
+        <button 
+          onClick={toggleAppointmentsView}
+          className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
+        >
+          {showExistingAppointments ? "Book New Appointment" : "View My Appointments"}
+        </button>
       </div>
 
       {error && (
@@ -1049,7 +809,15 @@ const AppointmentBooking = () => {
       {/* Show existing appointments */}
       {showExistingAppointments ? (
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">My Appointments</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">My Appointments</h2>
+            <button 
+              onClick={toggleAppointmentsView}
+              className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
+            >
+              Book New Appointment
+            </button>
+          </div>
           
           {loadingAppointments ? (
             <div className="flex items-center justify-center py-8">
@@ -1059,7 +827,7 @@ const AppointmentBooking = () => {
           ) : existingAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You don't have any upcoming appointments.</p>
+              <p>You don&apos;t have any upcoming appointments.</p>
               <button 
                 onClick={toggleAppointmentsView}
                 className="mt-4 px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
@@ -1071,98 +839,67 @@ const AppointmentBooking = () => {
             <div className="space-y-4">
               {existingAppointments.map((appointment) => (
                 <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h3 className="font-medium">{appointment.reason}</h3>
-                      <div className="text-sm text-gray-500 mt-1">
-                        <div className="flex items-center">
-                          <Calendar size={14} className="mr-1" />
-                          <span>{new Date(appointment.appointment_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center mt-1">
-                          <Clock size={14} className="mr-1" />
-                          <span>{appointment.appointment_time}</span>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        {getStatusDisplay(appointment.status)}
+                      <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
+                      <div className="space-y-2">
+                        <p><span className="font-medium">Date:</span> {new Date(appointment.appointment_date).toLocaleDateString()}</p>
+                        <p><span className="font-medium">Time:</span> {appointment.appointment_time}</p>
+                        <p><span className="font-medium">Meeting Mode:</span> {appointment.meeting_mode || "Face-to-face"}</p>
+                        <p><span className="font-medium">Status:</span> 
+                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                            appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
+                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                            appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                            "bg-gray-100 text-gray-700"
+                          }`}>
+                            {appointment.status}
+                          </span>
+                        </p>
                       </div>
                     </div>
-                    
-                    {/* Action buttons */}
-                    <div className="flex space-x-2">
-                      {appointment.status === 'scheduled' && (
-                        <>
-                          <button 
-                            onClick={() => requestReschedule(appointment)}
-                            className="p-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 flex items-center"
-                            title="Reschedule"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button 
-                            onClick={() => showCancelRequest(appointment)}
-                            className="p-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 flex items-center"
-                            title="Cancel"
-                          >
-                            <X size={16} />
-                          </button>
-                        </>
-                      )}
+                    <div>
+                      <h3 className="font-semibold mb-2 text-[#7B1113]">Contact Information</h3>
+                      <div className="space-y-2">
+                        <p><span className="font-medium">Email:</span> {appointment.email}</p>
+                        <p><span className="font-medium">Contact Number:</span> {appointment.contact_number}</p>
+                      </div>
+                      <div className="mt-4">
+                        <h3 className="font-semibold mb-2 text-[#7B1113]">Purpose</h3>
+                        <p><span className="font-medium">Reason:</span> {appointment.reason}</p>
+                        {appointment.notes && (
+                          <p className="mt-2">
+                            <span className="font-medium">Additional Notes:</span>
+                            <br />
+                            <span className="text-gray-600">{appointment.notes}</span>
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {appointment.status === "scheduled" && (
+                    <div className="mt-4 pt-4 border-t flex justify-end gap-2">
+                      <button
+                        onClick={() => handleRescheduleClick(appointment)}
+                        className="px-4 py-2 text-[#007749] hover:text-[#005a37] border border-[#007749] rounded hover:bg-green-50 text-sm font-medium"
+                      >
+                        Reschedule
+                      </button>
+                      <button
+                        onClick={() => handleCancelClick(appointment)}
+                        className="px-4 py-2 text-red-600 hover:text-red-800 border border-red-600 rounded hover:bg-red-50 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
-      ) : showCancelForm ? (
-        // Cancellation form
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Cancel Appointment</h2>
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-            <p className="font-medium">Appointment Details:</p>
-            <p className="mt-2"><span className="font-medium">Date:</span> {new Date(selectedAppointment.date).toLocaleDateString()}</p>
-            <p><span className="font-medium">Time:</span> {selectedAppointment.time_slot}</p>
-            <p><span className="font-medium">Purpose:</span> {selectedAppointment.purpose}</p>
-          </div>
-          
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Reason for Cancellation *</label>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              className="w-full p-3 border rounded-md text-sm h-32"
-              placeholder="Please provide a reason for cancelling this appointment..."
-              required
-            ></textarea>
-          </div>
-          
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={cancelRequestMode}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitCancellationRequest}
-              disabled={!cancelReason || submitting}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <div className="flex items-center">
-                  <Spinner className="h-4 w-4 mr-2" />
-                  <span>Submitting...</span>
-                </div>
-              ) : (
-                "Submit Cancellation Request"
-              )}
-            </button>
-          </div>
-        </div>
       ) : (
-        // Booking/Rescheduling form
+        // Booking form
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column - Form Fields */}
           <div className="space-y-6">
@@ -1189,7 +926,6 @@ const AppointmentBooking = () => {
                 value={formData.reason}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded-md text-sm"
-                disabled={rescheduleMode}
               >
                 {appointmentReasons.map((reason, index) => (
                   <option key={index} value={reason}>{reason}</option>
@@ -1238,23 +974,24 @@ const AppointmentBooking = () => {
             
             <div>
               <label className="block text-sm font-medium mb-2">
-                {rescheduleMode ? "Reason for Rescheduling (Optional)" : "Additional Notes (Optional)"}
+                Additional Notes (Optional)
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
                 className="w-full p-2 border rounded-md text-sm h-24"
-                placeholder={rescheduleMode ? "Please provide a reason for rescheduling..." : "Add any additional information that might be helpful..."}
+                placeholder="Add any additional information that might be helpful..."
               ></textarea>
             </div>
           </div>
           
-          {/* Right Column - Date and Time Selection */}
+          {/* Right Column - Calendar and Time Selection */}
           <div className="space-y-6">
+            {/* Calendar component */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                {rescheduleMode ? "Select new date for your appointment" : "Select a date for your appointment"}
+                Select a date for your appointment
               </label>
               
               {/* Calendar Header */}
@@ -1337,46 +1074,44 @@ const AppointmentBooking = () => {
                 </div>
               </div>
             </div>
+
+            {/* Move time slot selection to bottom */}
+            {selectedDate && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700">Select Time Slot</label>
+                {timeSlotLoading ? (
+                  <div className="text-center py-4">
+                    <span className="text-sm text-gray-600">Loading available time slots...</span>
+                  </div>
+                ) : (
+                  timeSlots.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {timeSlots.map((time) => (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setSelectedTime(time)}
+                          className={`py-2 px-3 text-sm font-medium rounded ${
+                            selectedTime === time 
+                              ? 'bg-[#007749] text-white' 
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-red-600">No available time slots for this date</span>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
-      
-      {/* Time slot selection */}
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">Select Time Slot</label>
-        {timeSlotLoading ? (
-          <div className="text-center py-4">
-            <span className="text-sm text-gray-600">Loading available time slots...</span>
-          </div>
-        ) : selectedDate ? (
-          timeSlots.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {timeSlots.map((time) => (
-                <button
-                  key={time}
-                  type="button"
-                  onClick={() => setSelectedTime(time)}
-                  className={`py-2 px-3 text-sm font-medium rounded ${
-                    selectedTime === time 
-                      ? 'bg-[#007749] text-white' 
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <span className="text-sm text-red-600">No available time slots for this date</span>
-            </div>
-          )
-        ) : (
-          <div className="text-center py-4">
-            <span className="text-sm text-gray-600">Please select a date first</span>
-          </div>
-        )}
-      </div>
       
       {/* Book Button */}
       <div className="mt-6 flex justify-end">
@@ -1390,139 +1125,180 @@ const AppointmentBooking = () => {
               <Spinner className="h-4 w-4 mr-2" />
               <span>Processing...</span>
             </div>
-          ) : rescheduleMode ? (
-            "Submit Reschedule Request"
           ) : (
             "Book Appointment"
           )}
         </button>
       </div>
-      
-      {/* Admin-only utility button for seeding appointment data (would be removed in production) */}
-      <div className="mt-8 border-t pt-4">
-        <button
-          onClick={async () => {
-            alert("Generate sample data clicked");
-            try {
-              // Check if user is logged in
-              if (!user || !user.account_id) {
-                toast.error("Please log in to generate sample appointments");
-                return;
-              }
-              
-              // Generate sample data directly
-              const today = new Date();
-              
-              // Generate 5 sample appointments
-              const sampleAppointments = [];
-              
-              for (let i = 0; i < 5; i++) {
-                // Add 1-10 days to today
-                const appointmentDate = new Date(today);
-                appointmentDate.setDate(today.getDate() + Math.floor(Math.random() * 10) + 1);
-                
-                // Skip weekends
-                while (appointmentDate.getDay() === 0 || appointmentDate.getDay() === 6) {
-                  appointmentDate.setDate(appointmentDate.getDate() + 1);
-                }
-                
-                // Format date
-                const dateStr = format(appointmentDate, 'yyyy-MM-dd');
-                
-                // Random time slot
-                const hour = 9 + Math.floor(Math.random() * 8);
-                if (hour === 12) continue; // Skip lunch hour
-                const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
-                
-                // Get a random reason
-                const reason = appointmentReasons[Math.floor(Math.random() * (appointmentReasons.length - 1)) + 1];
-                
-                // Create appointment with proper schema
-                sampleAppointments.push({
-                  account_id: user.account_id,
-                  reason: reason,
-                  appointment_date: dateStr,
-                  appointment_time: timeSlot,
-                  email: user.email || 'test@up.edu.ph',
-                  contact_number: '1234567890', // Exactly 10 digits
-                  notes: "Sample appointment generated for testing",
-                  status: "scheduled"
-                });
-              }
-              
-              console.log("Sample appointments prepared:", sampleAppointments);
-              
-              if (sampleAppointments.length === 0) {
-                toast.error("No sample appointments generated - check your logic");
-                return;
-              }
-              
-              // Try a direct fetch approach for sample data
-              try {
-                // Get the JWT token from supabase
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
-                
-                if (!token) {
-                  throw new Error("No authentication token found. Please login again.");
-                }
-                
-                // Insert each appointment individually to avoid batch issues
-                let successCount = 0;
-                
-                for (const appointment of sampleAppointments) {
-                  // Do a direct REST API call to the Supabase endpoint
-                  const response = await fetch(
-                    `${supabase.supabaseUrl}/rest/v1/appointments`,
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                        'apikey': supabase.supabaseKey,
-                        'Prefer': 'return=representation'
-                      },
-                      body: JSON.stringify(appointment)
-                    }
-                  );
-                  
-                  if (response.ok) {
-                    successCount++;
-                  } else {
-                    const errorData = await response.json();
-                    console.error(`Failed to insert sample appointment: ${JSON.stringify(errorData)}`);
-                  }
-                }
-                
-                if (successCount > 0) {
-                  toast.success(`Successfully created ${successCount} sample appointments!`);
-              
-              // Reload appointments for the current month
-              fetchMonthAppointments();
-              
-              // Reload user appointments if user is logged in
-              if (user?.account_id) {
-                loadUserAppointments(user.account_id);
-                  }
-                } else {
-                  toast.error("Failed to create any sample appointments");
-                }
-              } catch (fetchError) {
-                console.error("Fetch error when creating sample data:", fetchError);
-                toast.error(`Failed to generate sample data: ${fetchError.message}`);
-              }
-            } catch (error) {
-              console.error("Error generating sample appointments:", error);
-              toast.error("Failed to generate sample data: " + (error.message || "Unknown error"));
-            }
-          }}
-          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm"
-        >
-          Generate Sample Appointments (Testing Only)
-        </button>
-      </div>
+
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-semibold">Cancel Appointment</h2>
+              <button 
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  setCancelReason("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <p className="font-medium">Appointment Details:</p>
+              <p className="mt-2"><span className="font-medium">Date:</span> {selectedAppointment && new Date(selectedAppointment.appointment_date).toLocaleDateString()}</p>
+              <p><span className="font-medium">Time:</span> {selectedAppointment?.appointment_time}</p>
+              <p><span className="font-medium">Purpose:</span> {selectedAppointment?.reason}</p>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">
+                Reason for Cancellation (Optional)
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full p-3 border rounded-md text-sm h-32"
+                placeholder="Please provide a reason for cancelling this appointment..."
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  setCancelReason("");
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleCancelSubmit}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <Spinner className="h-4 w-4 mr-2" />
+                    <span>Submitting...</span>
+                  </div>
+                ) : (
+                  "Submit Cancellation"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRescheduleDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-semibold">Reschedule Appointment</h2>
+              <button 
+                onClick={() => {
+                  setShowRescheduleDialog(false);
+                  setRescheduleReason("");
+                  setSelectedDate(null);
+                  setSelectedTime("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <p className="font-medium">Current Appointment:</p>
+              <p className="mt-2"><span className="font-medium">Date:</span> {selectedAppointment && new Date(selectedAppointment.appointment_date).toLocaleDateString()}</p>
+              <p><span className="font-medium">Time:</span> {selectedAppointment?.appointment_time}</p>
+              <p><span className="font-medium">Purpose:</span> {selectedAppointment?.reason}</p>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">
+                Select New Date and Time
+              </label>
+              <div className="space-y-4">
+                <div>
+                  <input
+                    type="date"
+                    value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => handleDateChange(new Date(e.target.value))}
+                    className="w-full p-2 border rounded-md"
+                    min={format(new Date(), 'yyyy-MM-dd')}
+                  />
+                </div>
+                {selectedDate && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {timeSlots.map((time) => (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        className={`py-2 px-3 text-sm font-medium rounded ${
+                          selectedTime === time 
+                            ? 'bg-[#007749] text-white' 
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">
+                Reason for Rescheduling (Required)
+              </label>
+              <textarea
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                className="w-full p-3 border rounded-md text-sm h-32"
+                placeholder="Please provide a reason for rescheduling this appointment..."
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowRescheduleDialog(false);
+                  setRescheduleReason("");
+                  setSelectedDate(null);
+                  setSelectedTime("");
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleRescheduleSubmit}
+                disabled={isSubmitting || !selectedDate || !selectedTime || !rescheduleReason}
+                className="px-4 py-2 bg-[#007749] text-white rounded-md hover:bg-[#006638] disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <Spinner className="h-4 w-4 mr-2" />
+                    <span>Submitting...</span>
+                  </div>
+                ) : (
+                  "Submit Reschedule Request"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default AppointmentBooking; 
+export default AppointmentBooking;
