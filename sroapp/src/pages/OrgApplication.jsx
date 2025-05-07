@@ -332,12 +332,22 @@ const OrgApplication = () => {
             <CardTitle className="text-lg">Required Forms</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {["Revised OSA Form A: Application for Student Organization Recognition", "OSA Form B1: Officer Roster", "OSA Form B2: Member Roster", "OSA Form C: Officer Data", "Revised OSA Form E: Proposed Activities for AY 2025-2026"].map((form, idx) => (
+            {[
+            "Revised OSA Form A: Application for Student Organization Recognition", 
+            "OSA Form B1: Officer Roster", "OSA Form B2: Member Roster", 
+            "OSA Form C: Officer Data", 
+            "Revised OSA Form E: Proposed Activities for AY 2025-2026"
+            ].map((form, idx) => (
               <div key={idx} className="flex justify-between items-center text-sm">
+                
                 <span className="text-muted-foreground">{form}</span>
                 <Button variant="outline" size="sm">Download</Button>
               </div>
             ))}
+
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">Constitution and Bylaws</span>
+          </div>
 
             <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center">
               <label htmlFor="orgAppFileUpload" className="cursor-pointer flex flex-col items-center">
