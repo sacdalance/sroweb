@@ -11,10 +11,31 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, UploadCloud, Loader2 } from "lucide-react";
+import { FileText, UploadCloud, Loader2, ChevronDown, Check } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
 const OrgApplication = () => {
+
+  const categoriesList = [
+    { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
+    { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
+    { id: "fraternity", name: "Fraternity/Sorority/Confraternity" },
+    { id: "performing", name: "Performing Groups" },
+    { id: "political", name: "Political Organizations" },
+    { id: "regional", name: "Regional/Provincial and Socio-Cultural Organizations" },
+    { id: "special", name: "Special Interests Organizations" },
+    { id: "sports", name: "Sports and Recreation Organizations" },
+    { id: "probation", name: "On Probation Organizations" },
+  ]
+  
+  const academicYearsList = ["2024-2025", "2025-2026", "2026-2027", "2027-2028"]
+  
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -22,6 +43,25 @@ const OrgApplication = () => {
   const [showInterviewPrompt, setShowInterviewPrompt] = useState(false);
 
   const [orgName, setOrgName] = useState("");
+  
+  const [orgTypeOpen, setOrgTypeOpen] = useState(false)
+  const [orgType, setOrgType] = useState("")
+  const [selectedOrgTypeName, setSelectedOrgTypeName] = useState("")
+  const [orgTypeSearch, setOrgTypeSearch] = useState("")
+
+  const [yearOpen, setYearOpen] = useState(false)
+  const [academicYear, setAcademicYear] = useState("") // ✅ this is what was missing
+  const [selectedYear, setSelectedYear] = useState("")
+  const [yearSearch, setYearSearch] = useState("")
+  
+  const filteredCategories = categoriesList.filter((cat) =>
+    cat.name.toLowerCase().includes(orgTypeSearch.toLowerCase())
+  )
+
+  const filteredYears = academicYearsList.filter((year) =>
+    year.toLowerCase().includes(yearSearch.toLowerCase())
+  )  
+
   const [orgEmail, setOrgEmail] = useState("");
   const [chairperson, setChairperson] = useState("");
   const [chairpersonEmail, setChairpersonEmail] = useState("");
@@ -109,6 +149,119 @@ const OrgApplication = () => {
               placeholder="Samahan ng Organisasyon UPB (SO - UPB)"
             />
           </div>
+
+          {/* Organization Type */}
+          <div>
+            <h3 className="text-sm font-medium mb-2">
+              Organization Type <span className="text-red-500">*</span>
+            </h3>
+
+            <Popover open={orgTypeOpen} onOpenChange={setOrgTypeOpen}>
+              <PopoverTrigger asChild>
+                <div
+                  role="combobox"
+                  aria-expanded={orgTypeOpen}
+                  className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
+                >
+                  <span className={!selectedOrgTypeName ? "text-muted-foreground" : ""}>
+                    {selectedOrgTypeName || "Select organization type from the list"}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </div>
+              </PopoverTrigger>
+
+              <PopoverContent align="start" className="w-full max-w-md p-0">
+                <Input
+                  placeholder="Search type..."
+                  value={orgTypeSearch}
+                  onChange={(e) => setOrgTypeSearch(e.target.value)}
+                  className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                />
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setOrgType(cat.id)
+                          setSelectedOrgTypeName(cat.name)
+                          setOrgTypeSearch(cat.name)
+                          setOrgTypeOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
+                          orgType === cat.id ? "bg-gray-100 font-medium" : ""
+                        }`}
+                      >
+                        {cat.name}
+                        {orgType === cat.id && (
+                          <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Academic Year */}
+          <div>
+            <h3 className="text-sm font-medium mb-2">
+              Academic Year <span className="text-red-500">*</span>
+            </h3>
+
+            <Popover open={yearOpen} onOpenChange={setYearOpen}>
+              <PopoverTrigger asChild>
+                <div
+                  role="combobox"
+                  aria-expanded={yearOpen}
+                  className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
+                >
+                  <span className={!selectedYear ? "text-muted-foreground" : ""}>
+                    {selectedYear || "Select academic year from the list"}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </div>
+              </PopoverTrigger>
+
+              <PopoverContent align="start" className="w-full max-w-md p-0">
+                <Input
+                  placeholder="Search year..."
+                  value={yearSearch}
+                  onChange={(e) => setYearSearch(e.target.value)}
+                  className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                />
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredYears.length > 0 ? (
+                    filteredYears.map((year) => (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          setAcademicYear(year)
+                          setSelectedYear(year)
+                          setYearSearch(year)
+                          setYearOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
+                          academicYear === year ? "bg-gray-100 font-medium" : ""
+                        }`}
+                      >
+                        {year}
+                        {academicYear === year && (
+                          <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div>
             <label className="text-sm font-medium block mb-1">Organization E-mail</label>
             <Input
