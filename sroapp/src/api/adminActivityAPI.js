@@ -34,3 +34,47 @@ export const submitAdminActivity = async (activity, schedule, file) => {
 
   return result;
 };
+
+// Summary of Activities
+
+export const fetchSummaryActivities = async (filters) => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const params = new URLSearchParams(filters);
+  const res = await fetch(`/api/activities/summary?${params.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || "Failed to fetch summary data.");
+
+  return result;
+};
+
+export const fetchOrganizationNames = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const res = await fetch("/api/activities/organizations", {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch organizations.");
+  return await res.json();
+};
+
+export const fetchAcademicYears = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const res = await fetch("/api/activities/academic-years", {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch academic years");
+  return await res.json();
+};
