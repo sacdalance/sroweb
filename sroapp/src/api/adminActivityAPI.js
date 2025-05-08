@@ -34,3 +34,21 @@ export const submitAdminActivity = async (activity, schedule, file) => {
 
   return result;
 };
+
+// Summary of Activities
+
+export const fetchSummaryActivities = async (filters) => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const params = new URLSearchParams(filters);
+  const res = await fetch(`/api/activities/summary?${params.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || "Failed to fetch summary data.");
+
+  return result;
+};

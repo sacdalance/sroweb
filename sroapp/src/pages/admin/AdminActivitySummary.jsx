@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import { fetchSummaryActivities } from "@/api/adminActivityAPI";
 import {
   Table,
   TableBody,
@@ -37,61 +38,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const activityTypes = [
-  { id: 'A', label: 'A: Charitable', color: 'bg-[#7B1113]' },
-  { id: 'B', label: 'B: Service (within UPB)', color: 'bg-[#7B1113]' },
-  { id: 'C', label: 'C: Service (outside UPB)', color: 'bg-[#7B1113]' },
-  { id: 'D', label: 'D: Contest (within UPB)', color: 'bg-[#7B1113]' },
-  { id: 'E', label: 'E: Contest (outside UPB)', color: 'bg-[#7B1113]' },
-  { id: 'F', label: 'F: Educational', color: 'bg-[#7B1113]' },
-  { id: 'G', label: 'G: Income Generating Project', color: 'bg-[#7B1113]' },
-  { id: 'H', label: 'H: Mass Orientation/GA', color: 'bg-[#7B1113]' },
-  { id: 'I', label: 'I: Booth', color: 'bg-[#7B1113]' },
-  { id: 'J', label: 'J: Rehearsals/Preparation', color: 'bg-[#7B1113]' },
-  { id: 'K', label: 'K: Special Events', color: 'bg-[#7B1113]' },
-  { id: 'L', label: 'L: Others', color: 'bg-[#7B1113]' },
-  { id: 'all', label: 'Show All', color: 'bg-[#7B1113]' }
+const activityTypeOptions = [
+  { id: "charitable", label: "Charitable" },
+  { id: "serviceWithinUPB", label: "Service within UPB" },
+  { id: "serviceOutsideUPB", label: "Service outside UPB" },
+  { id: "contestWithinUPB", label: "Contest within UPB" },
+  { id: "contestOutsideUPB", label: "Contest outside UPB" },
+  { id: "educational", label: "Educational" },
+  { id: "incomeGenerating", label: "IGP" },
+  { id: "massOrientation", label: "Mass Orientation/GA" },
+  { id: "booth", label: "Booth" },
+  { id: "rehearsals", label: "Rehearsals/Preparation" },
+  { id: "specialEvents", label: "Special Events" },
+  { id: "others", label: "Others" },
 ];
 
-// Mock data for the table with multiple categories per activity
-const mockActivities = [
-  {
-    activityID: "0424-2421", 
-    submissionDate: "2024-03-15",
-    organization: "Organization Name",
-    activityName: "Community Outreach Program",
-    activityDescription: "Step into the ultimate coding showdown where developers go head-to-head in a high-intensity coding competition! Participants will tackle real-world problems, optimize code, and flex their debugging skills in a battle of speed and creativity. With thrilling challenges, live leaderboards, and surprise twists, only the most adaptable coders will rise to the top.",
-    activityTypes: ["A", "B"], // Can be both Charitable and Service (within UPB)
-    activityDate: "2024-04-01",
-    venue: "UP Baguio Grounds",
-    adviser: "Steve Magalong",
-    status: "Pending"
-  },
-  {
-    activityID: "0424-2321", 
-    submissionDate: "2024-03-16",
-    organization: "Student Council",
-    activityName: "Leadership Training Workshop",
-    activityDescription: "An intensive workshop designed to develop leadership skills among student organizations through interactive sessions and practical exercises.",
-    activityTypes: ["F", "H"], // Educational and Mass Orientation
-    activityDate: "2024-04-05",
-    venue: "AVR 1",
-    adviser: "Biogesic",
-    status: "Approved"
-  },
-  {   
-    activityID: "0424-1241", 
-    submissionDate: "2024-03-17",
-    organization: "Theater Guild",
-    activityName: "Annual Theater Production",
-    activityDescription: "A showcase of theatrical talent featuring original plays and performances by the Theater Guild members.",
-    activityTypes: ["J", "K"], // Rehearsals and Special Events
-    activityDate: "2024-04-10",
-    venue: "Theater Hall",
-    adviser: "Tung Tung Tung Sahur",
-    status: "Pending"
-  }
+const formatActivityTypeLabel = (id) => {
+  return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
+};
+
+const activityTypes = [
+  { id: 'A', dbValue: 'charitable', label: 'A: Charitable', color: 'bg-[#7B1113]' },
+  { id: 'B', dbValue: 'serviceWithinUPB', label: 'B: Service (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'C: Service (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'D', dbValue: 'contestWithinUPB', label: 'D: Contest (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'E', dbValue: 'contestOutsideUPB', label: 'E: Contest (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'F', dbValue: 'educational', label: 'F: Educational', color: 'bg-[#7B1113]' },
+  { id: 'G', dbValue: 'incomeGenerating', label: 'G: Income Generating Project', color: 'bg-[#7B1113]' },
+  { id: 'H', dbValue: 'massOrientation', label: 'H: Mass Orientation/GA', color: 'bg-[#7B1113]' },
+  { id: 'I', dbValue: 'booth', label: 'I: Booth', color: 'bg-[#7B1113]' },
+  { id: 'J', dbValue: 'rehearsals', label: 'J: Rehearsals/Preparation', color: 'bg-[#7B1113]' },
+  { id: 'K', dbValue: 'specialEvents', label: 'K: Special Events', color: 'bg-[#7B1113]' },
+  { id: 'L', dbValue: 'others', label: 'L: Others', color: 'bg-[#7B1113]' },
+  { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-[#7B1113]' }
 ];
+
 
 const organizations = [
   "All Organizations",
@@ -130,6 +111,30 @@ const AdminActivitySummary = () => {
     year: "All Academic Years"
   });
 
+  const [summaryActivities, setSummaryActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        setLoading(true);
+        const activities = await fetchSummaryActivities({
+          activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
+          status: filter,
+          organization: appliedFilters.organization,
+          month: appliedFilters.month,
+          year: appliedFilters.year
+        });
+        setSummaryActivities(activities);
+      } catch (err) {
+        console.error("Error loading summary:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    loadSummary();
+  }, [selectedType, filter, appliedFilters]);
+
   // Function to check if an activity matches the applied filters
   const matchesFilters = (activity) => {
     // Organization filter
@@ -161,13 +166,11 @@ const AdminActivitySummary = () => {
   };
 
   // Get all activities of the selected type first
-  const activitiesOfSelectedType = mockActivities.filter(activity => 
-    selectedType === 'all' || activity.activityTypes.includes(selectedType)
-  ).filter(activity => matchesFilters(activity));
+  const activitiesOfSelectedType = summaryActivities;
 
   // Get counts from all activities of selected type
-  const approvedCount = activitiesOfSelectedType.filter(a => a.status === 'Approved').length;
-  const pendingCount = activitiesOfSelectedType.filter(a => a.status === 'Pending').length;
+  const approvedCount = activitiesOfSelectedType.filter(a => a.final_status === 'Approved').length;
+  const pendingCount = activitiesOfSelectedType.filter(a => a.final_status === 'Pending').length;
 
   // Then apply status filter for display
   const filteredActivities = activitiesOfSelectedType.filter(activity => 
@@ -395,67 +398,91 @@ const AdminActivitySummary = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredActivities.map((activity, index) => (
-              <TableRow key={index} className="border-b border-gray-100">
-                <TableCell className="py-5 text-sm text-center">{activity.activityID}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.submissionDate}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.organization}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.activityName}</TableCell>
-                <TableCell className="py-5">
-                  <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
-                    {activity.activityTypes.slice(0, 3).map(typeId => (
-                      <Badge 
-                        key={typeId}
-                        variant="secondary"
-                        className={`${
-                          typeId === selectedType 
-                            ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]' 
-                            : ''
-                        } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
-                      >
-                        <span className="inline-block truncate max-w-[200px]">
-                          {activityTypes.find(t => t.id === typeId)?.label.split(': ')[1]}
-                      </span>
-                      </Badge>
-                    ))}
-                    {activity.activityTypes.length > 3 && (
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                          +{activity.activityTypes.length - 3}
-                        </div>
-                        more
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.activityDate}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.venue}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.adviser}</TableCell>
-                <TableCell className="py-5">
-                  <div className="flex items-center justify-center">
-                    <Badge 
-                      variant={activity.status === 'Approved' ? 'success' : 'warning'}
-                      className="text-sm px-4 py-1"
-                    >
-                      {activity.status}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="py-5 px-5">
-                  <div className="flex justify-center">
-                          <button
-                            onClick={() => {
-                              setSelectedActivity(activity);
-                              setIsModalOpen(true);
-                            }}
-                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </button>
-                        </div>
+            {filteredActivities.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
+                  No activities found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredActivities.map((activity, index) => (
+                <TableRow key={index} className="border-b border-gray-100">
+                  <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {new Date(activity.created_at).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
+                    })}
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {activity.activity_name}
+                  </TableCell>
+                  <TableCell className="py-5">
+                    <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
+                      {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
+                        <Badge
+                          key={typeId}
+                          variant="secondary"
+                          className={`${
+                            typeId === selectedType
+                              ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]'
+                              : ''
+                          } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
+                        >
+                          <span className="inline-block truncate max-w-[200px]">
+                            {formatActivityTypeLabel(typeId)}
+                          </span>
+                        </Badge>
+                      ))}
+                      {(activity.activity_type?.split(",") || []).length > 3 && (
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                            +{activity.activity_type.split(",").length - 3}
+                          </div>
+                          more
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {new Date(activity.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
+                    })}
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {activity.organization?.adviser_name || "N/A"}
+                  </TableCell>
+                  <TableCell className="py-5">
+                    <div className="flex items-center justify-center">
+                      <Badge
+                        variant={activity.final_status === 'Approved' ? 'success' : 'warning'}
+                        className="text-sm px-4 py-1"
+                      >
+                        {activity.final_status || "Pending"}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 px-5">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setSelectedActivity(activity);
+                          setIsModalOpen(true);
+                        }}
+                        className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
 
@@ -467,7 +494,7 @@ const AdminActivitySummary = () => {
             activity={selectedActivity}
             setActivity={setSelectedActivity}
             isModalOpen={isModalOpen}
-            readOnly={false}
+            readOnly={true}
           />
         )}
       </Dialog>
