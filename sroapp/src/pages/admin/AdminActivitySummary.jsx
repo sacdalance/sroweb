@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import {
   Table,
   TableBody,
@@ -461,118 +462,14 @@ const AdminActivitySummary = () => {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
-          <DialogHeader className="px-2">
-            <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
-          </DialogHeader>
-          {selectedActivity && (
-            <div className="space-y-6 px-2">
-              {/* Activity Title, Description and Organization */}
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">{selectedActivity.activityName}</h2>
-                <p className="text-sm text-gray-600">{selectedActivity.organization}</p>
-                <p className="text-sm text-gray-700 mt-2">{selectedActivity.activityDescription}</p>
-              </div>
-
-              {/* General Information */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Activity Type:</span>
-                    <span>{selectedActivity.activityType}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Adviser Name:</span>
-                    <span>{selectedActivity.adviser}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Charge Fee:</span>
-                    <span>No</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Adviser Contact:</span>
-                    <span>{selectedActivity.adviserContact || "09123456789"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Specifications */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">Specifications</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue:</span>
-                    <span>{selectedActivity.venue}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Green Monitor:</span>
-                    <span>Monitor</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue Approver:</span>
-                    <span>Approver</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Monitor Contact:</span>
-                    <span>Contact</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue Contact:</span>
-                    <span>Contact</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Schedule */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedActivity.activityDate}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Time:</span>
-                    <span>10:00 AM - 2:00 PM</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* University Partners */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
-                <div className="text-sm">
-                  <p>Department of Mathematics and Computer Science</p>
-                </div>
-              </div>
-
-              {/* List of Sustainable Development Goals */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                <div className="flex gap-2">
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded">No Poverty</span>
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded">Good Health and Well-being</span>
-                </div>
-              </div>
-
-              {/* Bottom Section with Status and View Form Button */}
-              <div className="flex justify-between items-center">
-                <Button 
-                  className="text-sm bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-                >
-                  View Scanned Form
-                </Button>
-                <Badge 
-                  variant={selectedActivity.status === 'Approved' ? 'success' : 'warning'}
-                  className="text-sm px-4 py-1"
-                >
-                  {selectedActivity.status}
-                </Badge>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+        {selectedActivity && (
+          <ActivityDialogContent
+            activity={selectedActivity}
+            setActivity={setSelectedActivity}
+            isModalOpen={isModalOpen}
+            readOnly={false}
+          />
+        )}
       </Dialog>
 
       {/* See Activities Calendar Button */}
