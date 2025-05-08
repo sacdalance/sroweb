@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import supabase from "../lib/supabase";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-import { format, addMonths, subMonths, getDay, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, isPast } from "date-fns";
+import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar } from "lucide-react";
+import CustomCalendar from "@/components/ui/custom-calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -15,280 +20,128 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
-  const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showExistingAppointments, setShowExistingAppointments] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState([]);
-  const [loadingAppointments, setLoadingAppointments] = useState(false);
-  const [datesWithAppointments, setDatesWithAppointments] = useState([]);
-  const [timeSlotLoading, setTimeSlotLoading] = useState(false);
-  const [timeSlots, setTimeSlots] = useState([]);
-  const [selectedTime, setSelectedTime] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [userAccountId, setUserAccountId] = useState(null);
   const [blockedDates, setBlockedDates] = useState([]);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [cancelReason, setCancelReason] = useState("");
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [timeSlotLoading, setTimeSlotLoading] = useState(false);
+  const [datesWithAppointments, setDatesWithAppointments] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState({ date: null, time: "" });
   const [rescheduleReason, setRescheduleReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
 
-  const appointmentReasons = [
-    "Select a reason for booking an appointment with the SRO...",
-    "Consultation",
-    "Organization Registration",
-    "Event Approval",
-    "Other"
-  ];
-
-  const meetingModes = [
-    "Face-to-face",
-    "Online (Google Meet)"
-  ];
-
-  // Load user data
+  // Fetch initial data
   useEffect(() => {
-    const getUser = async () => {
+    const loadInitialData = async () => {
       try {
-        // Log the auth state first
-        console.log("Fetching auth user data...");
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error("Auth error:", authError);
-          return;
-        }
-        
-        console.log("Auth user data:", authUser);
-        
-        if (authUser) {
-          // First try to get account by supabase_uid if it exists
-          console.log("Fetching account data for supabase_uid:", authUser.id);
-          let { data: accountData } = await supabase
+        // Get current user
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          setUser(currentUser);
+
+          // Get user's account details
+          const { data: accountData, error: accountError } = await supabase
             .from('account')
-            .select('*')
-            .eq('supabase_uid', authUser.id)
-            .maybeSingle();
+            .select('account_id')
+            .eq('email', currentUser.email)
+            .single();
+
+          if (accountError) throw accountError;
           
-          // If no account is found by supabase_uid, try to find by email
-          if (!accountData && authUser.email) {
-            console.log("No account found by supabase_uid, trying with email:", authUser.email);
-            const { data: emailAccount, error: emailError } = await supabase
-              .from('account')
-              .select('*')
-              .eq('email', authUser.email)
-              .maybeSingle();
-            
-            if (emailAccount) {
-              console.log("Found account by email:", emailAccount);
-              // Update the account with the supabase_uid for future logins
-              const { data: updatedAccount, error: updateError } = await supabase
-                .from('account')
-                .update({ supabase_uid: authUser.id })
-                .eq('account_id', emailAccount.account_id)
-                .select();
-              
-              if (updateError) {
-                console.error("Failed to update account with supabase_uid:", updateError);
-              } else {
-                console.log("Updated account with supabase_uid:", updatedAccount);
-                accountData = updatedAccount[0];
-              }
-            } else if (emailError) {
-              console.error("Error fetching account by email:", emailError);
-            }
+          if (accountData?.account_id) {
+            setUserAccountId(accountData.account_id);
+            await loadUserAppointments(accountData.account_id);
           }
-          
-          // If still no account found, try to get admin account (fallback)
-          if (!accountData) {
-            console.log("No account found, checking for admin account");
-            const { data: adminData, error: adminError } = await supabase
-              .from('account')
-              .select('*')
-              .eq('role_id', 1)
-              .limit(1);
-            
-            if (!adminError && adminData && adminData.length > 0) {
-              console.log("Found admin account:", adminData[0]);
-              
-              // If user is not linked to an account but we have their email from auth,
-              // we could optionally create an account for them here
-              
-              setUser(adminData[0]);
-              
-              // Pre-fill email if available
-              if (adminData[0]?.email) {
-                setFormData(prev => ({ ...prev, email: adminData[0].email }));
-              } else if (authUser.email) {
-                setFormData(prev => ({ ...prev, email: authUser.email }));
-              }
-              
-              // Load user's appointments
-              loadUserAppointments(adminData[0].account_id);
-              return;
-            }
-          }
-          
-          if (accountData) {
-            console.log("Using account data:", accountData);
-          setUser(accountData);
-          
-          // Pre-fill email if available
-          if (accountData?.email) {
-            setFormData(prev => ({ ...prev, email: accountData.email }));
-            } else if (authUser.email) {
-              setFormData(prev => ({ ...prev, email: authUser.email }));
-          }
-          
-          // Load user's appointments
-          loadUserAppointments(accountData.account_id);
-          } else {
-            console.error("No account found for user:", authUser);
-            toast.error("Account not found. Please contact an administrator.");
-          }
-        } else {
-          console.log("No authenticated user found");
-          toast.error("Please log in to book an appointment");
         }
-      } catch (error) {
-        console.error("Error in getUser:", error);
-        toast.error("Error loading user data");
-      }
-    };
-    
-    getUser();
-  }, []);
 
-  // Load user's existing appointments
-  const loadUserAppointments = async (userId) => {
-    if (!userId) {
-      console.log("No user ID provided, skipping appointment loading");
-      setExistingAppointments([]);
-      setLoadingAppointments(false);
-      return;
-    }
-    
-    try {
-      setLoadingAppointments(true);
-      console.log(`Loading appointments for user ID: ${userId}`);
-      
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('account_id', userId)
-        .order('appointment_date', { ascending: true });
-      
-      if (error) {
-        console.error("Error loading user appointments:", error);
-        toast.error("Failed to load your appointments");
-        setExistingAppointments([]);
-      } else {
-        console.log(`Found ${data.length} appointments for user`);
-      setExistingAppointments(data || []);
-      }
-    } catch (error) {
-      console.error("Error loading user appointments:", error);
-      toast.error("Failed to load your appointments");
-      setExistingAppointments([]);
-    } finally {
-      setLoadingAppointments(false);
-    }
-  };
-
-  // Load blocked dates and appointment settings
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setTimeSlotLoading(true);
-        console.log("Loading appointment settings and blocked dates...");
-        
         // Get appointment settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('appointment_settings')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (settingsError) {
-          console.error("Error fetching settings:", settingsError);
+          .limit(1)
+          .single();
+
+        if (settingsError && settingsError.code !== 'PGRST116') {
           throw settingsError;
         }
-        
-        if (settingsData && settingsData.length > 0) {
-          console.log("Appointment settings loaded:", settingsData[0]);
-          setSettings(settingsData[0]);
-        } else {
-          console.log("No appointment settings found, using defaults");
-          // Set default settings if none found
+
+        if (!settingsData) {
+          // Set default settings if none exist
           setSettings({
-            allowed_days: [1, 2, 3, 4, 5], // Monday to Friday
+            start_time: '08:00',
+            end_time: '16:00',
+            interval_minutes: 30,
+            allowed_days: [1, 2, 3, 4, 5],
             advance_days: 14
           });
+        } else {
+          setSettings(settingsData);
         }
-        
+
         // Get blocked dates
         const { data: blockedDatesData, error: blockedDatesError } = await supabase
           .from('blocked_dates')
           .select('date');
-        
-        if (blockedDatesError) {
-          console.error("Error fetching blocked dates:", blockedDatesError);
-          throw blockedDatesError;
-        }
-        
-        if (blockedDatesData && blockedDatesData.length > 0) {
-          console.log(`Loaded ${blockedDatesData.length} blocked dates`);
+
+        if (blockedDatesError) throw blockedDatesError;
+
+        if (blockedDatesData) {
           const formattedBlockedDates = blockedDatesData.map(item => new Date(item.date));
           setBlockedDates(formattedBlockedDates);
-        } else {
-          console.log("No blocked dates found");
-          setBlockedDates([]);
         }
-        
+
       } catch (error) {
-        console.error("Error loading appointment data:", error);
-        toast.error("Failed to load appointment settings");
-      } finally {
-        setTimeSlotLoading(false);
+        console.error("Error loading initial data:", error);
+        toast.error("Failed to load settings");
       }
     };
-    
-    loadData();
+
+    loadInitialData();
   }, []);
 
-  // Load available time slots based on date and settings
+  useEffect(() => {
+    const loadAppointmentDates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('appointment_date')
+          .in('status', ['scheduled', 'confirmed'])
+          .order('appointment_date');
+
+        if (error) throw error;
+        
+        if (data) {
+          const dates = [...new Set(data.map(item => item.appointment_date))];
+          setDatesWithAppointments(dates.map(date => new Date(date)));
+        }
+      } catch (error) {
+        console.error('Error loading appointment dates:', error);
+      }
+    };
+
+    loadAppointmentDates();
+  }, []);
+
+  // Load time slots for a selected date
   const loadTimeSlots = async (date) => {
     try {
       setTimeSlotLoading(true);
       
-      // Format the date to match the database
       const formattedDate = format(date, 'yyyy-MM-dd');
-      console.log(`Loading time slots for date: ${formattedDate}`);
-      
-      // Get available slots from the database
-      const { data, error } = await supabase
-        .from('appointment_settings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (error) {
-        throw error;
-      }
+      const { startTime, endTime, interval } = {
+        startTime: settings?.start_time || '08:00',
+        endTime: settings?.end_time || '16:00',
+        interval: settings?.interval_minutes || 30
+      };
 
-      if (!data || data.length === 0) {
-        throw new Error('No appointment settings found');
-      }
-
-      const settings = data[0];
-      const startTime = settings.start_time;
-      const endTime = settings.end_time;
-      const interval = settings.interval_minutes || 30;
-
-      // Generate time slots between start and end time
+      // Generate time slots
       const slots = [];
       const start = new Date(`2000-01-01T${startTime}`);
       const end = new Date(`2000-01-01T${endTime}`);
@@ -349,74 +202,7 @@ const AppointmentBooking = () => {
     }
   };
 
-  // Handle date selection
-  const handleDateChange = (date) => {
-    if (isDateAvailable(date)) {
-      setSelectedDate(date);
-      loadTimeSlots(date);
-    } else {
-      toast.error("This date is not available for booking");
-    }
-  };
-
-  // Fetch appointments for the current month to display in calendar
-  const fetchMonthAppointments = useCallback(async () => {
-    try {
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
-      
-      const startDateStr = format(monthStart, 'yyyy-MM-dd');
-      const endDateStr = format(monthEnd, 'yyyy-MM-dd');
-      
-      // Get all confirmed appointments for this month
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('appointment_date')
-        .gte('appointment_date', startDateStr)
-        .lte('appointment_date', endDateStr)
-        .eq('status', 'scheduled');
-      
-      if (error) throw error;
-      
-      // Convert to date objects and store in state
-      const dates = data.map(item => new Date(item.appointment_date));
-      setDatesWithAppointments(dates);
-    } catch (error) {
-      console.error("Error fetching month appointments:", error);
-    }
-  }, [currentMonth]);
-
-  // Update useEffect to use the memoized callback
-  useEffect(() => {
-    fetchMonthAppointments();
-  }, [fetchMonthAppointments]);
-
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle previous month navigation
-  const handlePrevMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1));
-  };
-
-  // Handle next month navigation
-  const handleNextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1));
-  };
-
-  // Generate calendar days
-  const generateCalendarDays = () => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const dateRange = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
-    return dateRange;
-  };
-
-  // Check if date is allowed for booking - improved version
+  // Check if date is allowed for booking
   const isDateAvailable = (date) => {
     // Get today and tomorrow dates
     const today = new Date();
@@ -435,7 +221,7 @@ const AppointmentBooking = () => {
     }
     
     // Get day of week (0-6, where 0 is Sunday)
-    const dayOfWeek = getDay(date);
+    const dayOfWeek = date.getDay();
     
     // Calculate the maximum allowed date (default 14 business days)
     const advanceDays = settings?.advance_days || 14;
@@ -445,7 +231,6 @@ const AppointmentBooking = () => {
     while (businessDaysAhead < advanceDays) {
       maxDate.setDate(maxDate.getDate() + 1);
       const dayOfWeek = maxDate.getDay();
-      // Skip weekends unless specifically allowed in settings
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         businessDaysAhead++;
       }
@@ -469,779 +254,403 @@ const AppointmentBooking = () => {
     }
     
     // Check if date is blocked by admin
-    if (blockedDates.some(blockedDate => isSameDay(date, blockedDate))) {
+    if (blockedDates.some(blockedDate => 
+      blockedDate.getFullYear() === date.getFullYear() &&
+      blockedDate.getMonth() === date.getMonth() &&
+      blockedDate.getDate() === date.getDate()
+    )) {
       return false;
     }
     
-    // If we made it here, the date is available
     return true;
   };
 
-  // Toggle view between booking form and existing appointments
-  const toggleAppointmentsView = () => {
-    setShowExistingAppointments(!showExistingAppointments);
+  // Handle date selection
+  const handleDateSelect = (date) => {
+    if (isDateAvailable(date)) {
+      setSelectedDate(date);
+      loadTimeSlots(date);
+      setFormData(prev => ({ ...prev, date: date }));
+    } else {
+      toast.error("This date is not available for booking");
+    }
   };
 
-  // Enhance the existing handleSubmit to use submitRescheduleRequest when in reschedule mode
-  const handleSubmit = async (e) => {
-    e?.preventDefault();
+  // Add loadUserAppointments function
+  const loadUserAppointments = async (accountId) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('account_id', accountId)
+        .in('status', ['scheduled', 'confirmed', 'reschedule-pending', 'cancellation-pending'])
+        .order('appointment_date', { ascending: true });
 
-    // Detailed user debugging
-    console.log("Current user object:", user);
-    console.log("Form submission started with data:", { ...formData, selectedDate, selectedTime });
-    
-    if (!selectedDate || !selectedTime) {
-      toast.error("Please select a date and time");
+      if (error) throw error;
+      setExistingAppointments(data || []);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      toast.error('Failed to load your appointments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDate || !formData.time) {
+      toast.error("Please select both date and time");
       return;
     }
-    
-    // Check if user exists and has account_id
-    if (!user) {
-      console.error("No user found at all");
-      toast.error("You must be logged in to book an appointment");
-      return;
-    }
-    
-    // Show what's in the user object
-    console.log("User properties:", Object.keys(user));
-    
-    // Determine which ID to use
-    let userAccountId = user.account_id;
-    
-    if (!userAccountId) {
-      console.error("User object is missing account_id:", user);
-      
-      // Fallback: Check if there's a different ID field we could use
-      const possibleIdFields = ['id', 'user_id', 'uid'];
-      
-      for (const field of possibleIdFields) {
-        if (user[field]) {
-          userAccountId = user[field];
-          console.log(`Found alternative ID field: ${field} with value ${userAccountId}`);
-          break;
-        }
-      }
-      
-      if (!userAccountId) {
-        toast.error("User account data is incomplete. Please contact support.");
-        return;
-      }
-      
-      console.log(`Using fallback ID: ${userAccountId} instead of account_id`);
-    }
-    
-    if (!formData.reason || formData.reason === "Select a reason for booking an appointment with the SRO...") {
-      toast.error("Please select a reason for your appointment");
-      return;
-    }
-    
-    if (!formData.mode || formData.mode === "") {
-      toast.error("Please select a meeting mode (online or face-to-face)");
-      return;
-    }
-    
-    if (!formData.contact || formData.contact.length < 11) {
-      toast.error("Please enter a valid contact number (11 digits)");
-      return;
-    }
-    
-    if (!formData.email || !formData.email.includes('@')) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    
+
     try {
       setSubmitting(true);
-      
-      // Ensure contact number is exactly 10 digits (remove any non-digit characters)
-      const formattedContact = formData.contact.replace(/\D/g, '').slice(-10);
-      
-      // Create appointment data that matches the database schema
+
       const appointmentData = {
-        account_id: userAccountId, 
-        reason: formData.reason, 
+        account_id: userAccountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
-        appointment_time: selectedTime,
-        contact_number: formattedContact,
+        appointment_time: formData.time,
+        reason: formData.reason,
+        notes: formData.notes,
+        meeting_mode: formData.mode,
+        contact_number: formData.contact,
         email: formData.email,
-        notes: formData.notes || "",
-        other_reason: formData.reason === "Other" ? formData.notes : null,
-        status: "scheduled",
-        meeting_mode: formData.mode
+        status: 'scheduled'
       };
-      
-      console.log("Submitting final appointment data:", appointmentData);
-      
-      // Try a direct fetch approach
-      try {
-        // Get the JWT token from supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        
-        if (!token) {
-          throw new Error("No authentication token found. Please login again.");
-        }
-        
-        // Log all the details for debugging
-        console.log("Supabase URL:", supabase.supabaseUrl);
-        console.log("Token available:", !!token);
-        console.log("API endpoint:", `${supabase.supabaseUrl}/rest/v1/appointments`);
-        
-        // Do a direct REST API call to the Supabase endpoint
-        const response = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/appointments`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'apikey': supabase.supabaseKey,
-              'Prefer': 'return=representation'
-            },
-            body: JSON.stringify(appointmentData)
-          }
-        );
-        
-        const responseText = await response.text();
-        if (!response.ok) {
-          let errorMessage = `API error: ${response.status}`;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage += ` - ${JSON.stringify(errorData)}`;
-          } catch {
-            // Ignore parse error and just include raw response text
-            errorMessage += ` - ${responseText}`;
-          }
-          throw new Error(errorMessage);
-        }
-        
-        try {
-          const data = JSON.parse(responseText);
-          console.log("Appointment created successfully:", data);
-        } catch {
-          // Response wasn't JSON but that's ok
-          console.log("Response wasn't JSON, but appointment was created");
-        }
-        
-        toast.success("Appointment booked successfully! You'll receive a confirmation email soon.");
+
+      const { error: appointmentError } = await supabase
+        .from('appointments')
+        .insert([appointmentData]);
+
+      if (appointmentError) throw appointmentError;
+
+      toast.success("Appointment booked successfully!");
       
       // Reset form
-      setSelectedDate(null);
-      setSelectedTime("");
       setFormData({
         reason: "",
-        email: user?.email || "",
+        email: "",
         contact: "",
+        date: null,
+        time: "",
         mode: "",
         notes: ""
       });
-        
-        // Reload appointments
-        if (user && userAccountId) {
-          loadUserAppointments(userAccountId);
-          setShowExistingAppointments(true);
-        }
-      } catch (fetchError) {
-        console.error("Fetch error:", fetchError);
-        toast.error(`Failed to book appointment: ${fetchError.message}`);
+      setSelectedDate(null);
+      setTimeSlots([]);
+
+      // Refresh appointments list if user is logged in
+      if (user && userAccountId) {
+        loadUserAppointments(userAccountId);
+        setShowExistingAppointments(true);
       }
-      
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
-      toast.error("An unexpected error occurred. Please try again later.");
+      console.error("Error booking appointment:", error);
+      toast.error("Failed to book appointment");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Get day cell class - Improve contrast for readability
-  const getDayClass = (day) => {
-    let classes = "flex items-center justify-center rounded-full h-10 w-10 mx-auto ";
-    
-    // Check if this date has appointments
-    const hasAppointments = datesWithAppointments.some(appointmentDate => 
-      isSameDay(day, appointmentDate)
-    );
-    
-    // First handle days not in current month
-    if (!isSameMonth(day, currentMonth)) {
-      classes += "text-gray-300 ";
-    } 
-    // Handle selected date
-    else if (selectedDate && isSameDay(day, selectedDate)) {
-      classes += "bg-[#007749] text-white font-bold ";
-    } 
-    // Handle today
-    else if (isToday(day)) {
-      classes += "border-2 border-[#007749] text-[#007749] font-bold ";
-    } 
-    // Handle available dates
-    else if (isDateAvailable(day)) {
-      if (hasAppointments) {
-        classes += "text-blue-800 font-bold hover:text-blue-900 cursor-pointer ";
-      } else {
-        classes += "text-[#007749] font-bold hover:text-[#005a37] cursor-pointer ";
-      }
-    } 
-    // Handle blocked dates (holidays, admin blocked)
-    else if (blockedDates.some(blockedDate => isSameDay(day, blockedDate))) {
-      classes += "text-[#7B1113] font-bold ";
-    } 
-    // Handle strictly unavailable dates (weekends, out of range)
-    else {
-      classes += "text-gray-600 ";
-    }
-    
-    return classes;
-  };
-
-  const handleCancelClick = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowCancelDialog(true);
-  };
-  
-  const handleRescheduleClick = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowRescheduleDialog(true);
-    // Pre-fill the form with existing appointment data
-    setFormData({
-      reason: appointment.reason,
-      email: appointment.email,
-      contact: appointment.contact_number,
-      mode: appointment.meeting_mode,
-      notes: ""
-    });
-    setSelectedDate(null);
-    setSelectedTime("");
-  };
-  
-  const handleCancelSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancellation-pending',
-          cancellation_requested: true,
-          cancellation_reason: cancelReason || 'No reason provided'
-        })
-        .eq('id', selectedAppointment.id);
-  
-      if (error) throw error;
-  
-      toast.success('Cancellation request submitted successfully');
-      setShowCancelDialog(false);
-      setCancelReason("");
-      setSelectedAppointment(null);
-      
-      // Refresh appointments list
-      if (user?.account_id) {
-        await loadUserAppointments(user.account_id);
-      }
-    } catch (error) {
-      console.error('Error submitting cancellation:', error);
-      toast.error('Failed to submit cancellation request');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleRescheduleSubmit = async () => {
-    if (!selectedDate || !selectedTime) {
-      toast.error('Please select a new date and time');
+  // Handle reschedule request
+  const handleRescheduleRequest = async (appointmentId) => {
+    if (!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()) {
+      toast.error("Please select date, time and provide a reason");
       return;
     }
-  
+
     try {
-      setIsSubmitting(true);
       const { error } = await supabase
         .from('appointments')
         .update({
-          status: 'reschedule-pending',
-          reschedule_requested: true,
-          requested_date: format(selectedDate, 'yyyy-MM-dd'),
-          requested_time_slot: selectedTime,
-          reschedule_reason: rescheduleReason || 'No reason provided'
+          requested_date: format(rescheduleData.date, 'yyyy-MM-dd'),
+          requested_time_slot: rescheduleData.time,
+          reschedule_reason: rescheduleReason,
+          status: 'reschedule-pending'
         })
-        .eq('id', selectedAppointment.id);
-  
+        .eq('id', appointmentId);
+
       if (error) throw error;
-  
-      toast.success('Reschedule request submitted successfully');
-      setShowRescheduleDialog(false);
+
+      toast.success("Reschedule request submitted");
+      setReschedulingAppointment(null);
+      setRescheduleData({ date: null, time: "" });
       setRescheduleReason("");
-      setSelectedAppointment(null);
-      setSelectedDate(null);
-      setSelectedTime("");
-      
-      // Refresh appointments list
-      if (user?.account_id) {
-        await loadUserAppointments(user.account_id);
-      }
+      loadUserAppointments(userAccountId);
     } catch (error) {
-      console.error('Error submitting reschedule request:', error);
-      toast.error('Failed to submit reschedule request');
-    } finally {
-      setIsSubmitting(false);
+      console.error("Error requesting reschedule:", error);
+      toast.error("Failed to request reschedule");
+    }
+  };
+
+  // Handle cancel request
+  const handleCancelRequest = async (appointmentId) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancellation-pending'
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast.success("Cancellation request submitted");
+      loadUserAppointments(userAccountId);
+    } catch (error) {
+      console.error("Error requesting cancellation:", error);
+      toast.error("Failed to request cancellation");
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Book an Appointment</h1>
-        
-        {/* Toggle between booking and viewing appointments */}
-        <button 
-          onClick={toggleAppointmentsView}
-          className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
-        >
-          {showExistingAppointments ? "Book New Appointment" : "View My Appointments"}
-        </button>
+    <div className="container mx-auto py-8 max-w-6xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-[#7B1113]">Book an Appointment</h1>
+        {user && (
+          <Button
+            onClick={() => setShowExistingAppointments(true)}
+            className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+          >
+            My Appointments
+          </Button>
+        )}
       </div>
 
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
-          {error}
-        </div>
-      )}
-      
-      {/* Show existing appointments */}
       {showExistingAppointments ? (
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">My Appointments</h2>
-            <button 
-              onClick={toggleAppointmentsView}
-              className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
-            >
-              Book New Appointment
-            </button>
-          </div>
-          
-          {loadingAppointments ? (
+        <div>
+          {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Spinner className="h-6 w-6 text-[#7B1113]" />
+              <Spinner className="h-8 w-8 text-[#7B1113]" />
               <span className="ml-2">Loading your appointments...</span>
             </div>
           ) : existingAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
               <p>You don&apos;t have any upcoming appointments.</p>
-              <button 
-                onClick={toggleAppointmentsView}
-                className="mt-4 px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
+              <Button 
+                onClick={() => setShowExistingAppointments(false)}
+                className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
               >
                 Book an Appointment
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
               {existingAppointments.map((appointment) => (
                 <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
-                      <div className="space-y-2">
-                        <p><span className="font-medium">Date:</span> {new Date(appointment.appointment_date).toLocaleDateString()}</p>
-                        <p><span className="font-medium">Time:</span> {appointment.appointment_time}</p>
-                        <p><span className="font-medium">Meeting Mode:</span> {appointment.meeting_mode || "Face-to-face"}</p>
-                        <p><span className="font-medium">Status:</span> 
-                          <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                            appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
-                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                            appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>
-                            {appointment.status}
-                          </span>
-                        </p>
+                  <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Date:</span> {new Date(appointment.appointment_date).toLocaleDateString()}</p>
+                    <p><span className="font-medium">Time:</span> {appointment.appointment_time}</p>
+                    <p><span className="font-medium">Meeting Mode:</span> {appointment.meeting_mode || "Face-to-face"}</p>
+                    <p><span className="font-medium">Status:</span> 
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                        appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
+                        appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
+                        appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                        appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
+                        appointment.status === "cancellation-pending" ? "bg-orange-100 text-orange-700" :
+                        "bg-gray-100 text-gray-700"
+                      }`}>
+                        {appointment.status}
+                      </span>
+                    </p>
+                    
+                    {appointment.status === 'scheduled' && (
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          onClick={() => {
+                            setReschedulingAppointment(appointment);
+                            setRescheduleData({ date: null, time: "" });
+                            setRescheduleReason("");
+                          }}
+                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm"
+                        >
+                          Reschedule
+                        </Button>
+                        <Button
+                          onClick={() => handleCancelRequest(appointment.id)}
+                          className="bg-red-100 hover:bg-red-200 text-red-700 text-sm"
+                        >
+                          Cancel
+                        </Button>
                       </div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2 text-[#7B1113]">Contact Information</h3>
-                      <div className="space-y-2">
-                        <p><span className="font-medium">Email:</span> {appointment.email}</p>
-                        <p><span className="font-medium">Contact Number:</span> {appointment.contact_number}</p>
-                      </div>
-                      <div className="mt-4">
-                        <h3 className="font-semibold mb-2 text-[#7B1113]">Purpose</h3>
-                        <p><span className="font-medium">Reason:</span> {appointment.reason}</p>
-                        {appointment.notes && (
-                          <p className="mt-2">
-                            <span className="font-medium">Additional Notes:</span>
-                            <br />
-                            <span className="text-gray-600">{appointment.notes}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
-                  {appointment.status === "scheduled" && (
-                    <div className="mt-4 pt-4 border-t flex justify-end gap-2">
-                      <button
-                        onClick={() => handleRescheduleClick(appointment)}
-                        className="px-4 py-2 text-[#007749] hover:text-[#005a37] border border-[#007749] rounded hover:bg-green-50 text-sm font-medium"
-                      >
-                        Reschedule
-                      </button>
-                      <button
-                        onClick={() => handleCancelClick(appointment)}
-                        className="px-4 py-2 text-red-600 hover:text-red-800 border border-red-600 rounded hover:bg-red-50 text-sm font-medium"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))}
+              <Button
+                onClick={() => setShowExistingAppointments(false)}
+                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              >
+                Book Another Appointment
+              </Button>
             </div>
           )}
         </div>
       ) : (
-        // Booking form
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column - Form Fields */}
           <div className="space-y-6">
-            {/* Add an information box about the appointment confirmation process */}
             <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
               <div className="flex items-start">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-blue-500">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <h4 className="font-medium mb-1">Appointment Confirmation Process</h4>
-                  <p className="text-sm">
-                    After submitting your appointment request, an administrator will review it and send you a confirmation email.
-                    Your appointment is not finalized until you receive this confirmation.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Reason for Appointment</label>
-              <select
-                name="reason"
-                value={formData.reason}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md text-sm"
-              >
-                {appointmentReasons.map((reason, index) => (
-                  <option key={index} value={reason}>{reason}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Student/Organizational E-mail</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md text-sm"
-                placeholder="firstmiddlelast@up.edu.ph"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Student/Organizational Contact No.</label>
-              <input
-                type="text"
-                name="contact"
-                value={formData.contact}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md text-sm"
-                placeholder="09123456789"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Appointment Mode</label>
-              <select
-                name="mode"
-                value={formData.mode}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md text-sm"
-              >
-                <option value="">Select a meeting mode...</option>
-                {meetingModes.map((mode, index) => (
-                  <option key={index} value={mode}>{mode}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Additional Notes (Optional)
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded-md text-sm h-24"
-                placeholder="Add any additional information that might be helpful..."
-              ></textarea>
-            </div>
-          </div>
-          
-          {/* Right Column - Calendar and Time Selection */}
-          <div className="space-y-6">
-            {/* Calendar component */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Select a date for your appointment
-              </label>
-              
-              {/* Calendar Header */}
-              <div className="mb-4 flex items-center justify-between">
-                <button 
-                  onClick={handlePrevMonth}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <h2 className="font-bold text-lg">
-                  {format(currentMonth, 'MMMM yyyy').toUpperCase()}
-                </h2>
-                <button 
-                  onClick={handleNextMonth}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-              
-              {/* Calendar Grid */}
-              <div className="w-full">
-                {/* Day headers */}
-                <div className="grid grid-cols-7 mb-2 text-center font-semibold">
-                  <div className="text-sm">SUN</div>
-                  <div className="text-sm">MON</div>
-                  <div className="text-sm">TUE</div>
-                  <div className="text-sm">WED</div>
-                  <div className="text-sm">THU</div>
-                  <div className="text-sm">FRI</div>
-                  <div className="text-sm">SAT</div>
-                </div>
-                
-                {/* Calendar days */}
-                <div className="grid grid-cols-7 gap-2">
-                  {/* Fill in empty slots for the first week */}
-                  {Array.from({ length: getDay(startOfMonth(currentMonth)) }).map((_, index) => (
-                    <div key={`empty-${index}`} className="h-10"></div>
-                  ))}
-                  
-                  {/* Actual days */}
-                  {generateCalendarDays().map((day, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => isDateAvailable(day) && handleDateChange(day)}
-                      className={getDayClass(day)}
-                    >
-                      {format(day, 'd')}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Calendar Legend */}
-              <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-[#007749] rounded-full mr-1"></div>
-                  <span>Selected</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 border border-[#007749] rounded-full mr-1"></div>
-                  <span>Today</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 text-[#007749] mr-1 flex items-center justify-center font-bold">A</div>
-                  <span>Available</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 text-[#7B1113] mr-1 flex items-center justify-center font-bold">B</div>
-                  <span>Holiday/Blocked</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
-                  <span>Unavailable</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 text-blue-800 mr-1 flex items-center justify-center font-bold">A</div>
-                  <span>Has Appointments</span>
+                  <p className="font-medium mb-1">Important Information</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>Appointments must be booked at least one day in advance</li>
+                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead</li>
+                    <li>Available times are shown after selecting a date</li>
+                    <li>Watch out for your email for confirmation</li>
+                  </ul>
                 </div>
               </div>
             </div>
 
-            {/* Move time slot selection to bottom */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Reason for Visit
+                </label>
+                <select
+                  name="reason"
+                  value={formData.reason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">Select a reason</option>
+                  <option value="consultation">General Consultation</option>
+                  <option value="document">Document Processing</option>
+                  <option value="inquiry">General Inquiry</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Meeting Mode
+                </label>
+                <select
+                  name="mode"
+                  value={formData.mode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mode: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">Select mode</option>
+                  <option value="face-to-face">Face-to-face</option>
+                  <option value="online">Online</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Contact Number
+                </label>
+                <input
+                  type="tel"
+                  name="contact"
+                  value={formData.contact}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                  required
+                  pattern="^09\d{9}$"
+                  title="Please enter a valid Philippine mobile number (e.g., 09123456789)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Additional Notes (Optional)
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full p-2 border rounded-md text-sm h-24"
+                  placeholder="Add any additional information that might be helpful..."
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="p-6">
+                <CustomCalendar
+                  mode="appointments"
+                  currentMonth={currentMonth}
+                  selectedDate={selectedDate}
+                  onDateSelect={handleDateSelect}
+                  onMonthChange={setCurrentMonth}
+                  blockedDates={blockedDates}
+                  datesWithAppointments={datesWithAppointments}
+                  isDateAvailable={isDateAvailable}
+                />
+
+                <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-[#007749] rounded-full mr-1"></div>
+                    <span>Selected</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 border border-[#007749] rounded-full mr-1"></div>
+                    <span>Today</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-[#007749] mr-1 flex items-center justify-center font-bold">A</div>
+                    <span>Available</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-[#7B1113] mr-1 flex items-center justify-center font-bold">B</div>
+                    <span>Holiday/Blocked</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
+                    <span>Unavailable</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-blue-800 mr-1 flex items-center justify-center font-bold">A</div>
+                    <span>Has Appointments</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {selectedDate && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700">Select Time Slot</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
                 {timeSlotLoading ? (
                   <div className="text-center py-4">
                     <span className="text-sm text-gray-600">Loading available time slots...</span>
                   </div>
-                ) : (
-                  timeSlots.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {timeSlots.map((time) => (
-                        <button
-                          key={time}
-                          type="button"
-                          onClick={() => setSelectedTime(time)}
-                          className={`py-2 px-3 text-sm font-medium rounded ${
-                            selectedTime === time 
-                              ? 'bg-[#007749] text-white' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          }`}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <span className="text-sm text-red-600">No available time slots for this date</span>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Book Button */}
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !selectedDate || !selectedTime || !formData.reason || !formData.mode}
-          className="bg-[#007749] text-white px-4 py-2 rounded-md hover:bg-[#006638] disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {submitting ? (
-            <div className="flex items-center">
-              <Spinner className="h-4 w-4 mr-2" />
-              <span>Processing...</span>
-            </div>
-          ) : (
-            "Book Appointment"
-          )}
-        </button>
-      </div>
-
-      {showCancelDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-semibold">Cancel Appointment</h2>
-              <button 
-                onClick={() => {
-                  setShowCancelDialog(false);
-                  setCancelReason("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <p className="font-medium">Appointment Details:</p>
-              <p className="mt-2"><span className="font-medium">Date:</span> {selectedAppointment && new Date(selectedAppointment.appointment_date).toLocaleDateString()}</p>
-              <p><span className="font-medium">Time:</span> {selectedAppointment?.appointment_time}</p>
-              <p><span className="font-medium">Purpose:</span> {selectedAppointment?.reason}</p>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Reason for Cancellation (Optional)
-              </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full p-3 border rounded-md text-sm h-32"
-                placeholder="Please provide a reason for cancelling this appointment..."
-              />
-            </div>
-            
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCancelDialog(false);
-                  setCancelReason("");
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleCancelSubmit}
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <Spinner className="h-4 w-4 mr-2" />
-                    <span>Submitting...</span>
-                  </div>
-                ) : (
-                  "Submit Cancellation"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showRescheduleDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-semibold">Reschedule Appointment</h2>
-              <button 
-                onClick={() => {
-                  setShowRescheduleDialog(false);
-                  setRescheduleReason("");
-                  setSelectedDate(null);
-                  setSelectedTime("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <p className="font-medium">Current Appointment:</p>
-              <p className="mt-2"><span className="font-medium">Date:</span> {selectedAppointment && new Date(selectedAppointment.appointment_date).toLocaleDateString()}</p>
-              <p><span className="font-medium">Time:</span> {selectedAppointment?.appointment_time}</p>
-              <p><span className="font-medium">Purpose:</span> {selectedAppointment?.reason}</p>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Select New Date and Time
-              </label>
-              <div className="space-y-4">
-                <div>
-                  <input
-                    type="date"
-                    value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => handleDateChange(new Date(e.target.value))}
-                    className="w-full p-2 border rounded-md"
-                    min={format(new Date(), 'yyyy-MM-dd')}
-                  />
-                </div>
-                {selectedDate && (
+                ) : timeSlots.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2">
                     {timeSlots.map((time) => (
                       <button
                         key={time}
-                        onClick={() => setSelectedTime(time)}
+                        onClick={() => setFormData(prev => ({ ...prev, time }))}
                         className={`py-2 px-3 text-sm font-medium rounded ${
-                          selectedTime === time 
+                          formData.time === time 
                             ? 'bg-[#007749] text-white' 
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                         }`}
@@ -1250,53 +659,112 @@ const AppointmentBooking = () => {
                       </button>
                     ))}
                   </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <span className="text-sm text-red-600">No available time slots for this date</span>
+                  </div>
                 )}
               </div>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Reason for Rescheduling (Required)
-              </label>
-              <textarea
-                value={rescheduleReason}
-                onChange={(e) => setRescheduleReason(e.target.value)}
-                className="w-full p-3 border rounded-md text-sm h-32"
-                placeholder="Please provide a reason for rescheduling this appointment..."
-                required
-              />
-            </div>
-            
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowRescheduleDialog(false);
-                  setRescheduleReason("");
-                  setSelectedDate(null);
-                  setSelectedTime("");
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleRescheduleSubmit}
-                disabled={isSubmitting || !selectedDate || !selectedTime || !rescheduleReason}
-                className="px-4 py-2 bg-[#007749] text-white rounded-md hover:bg-[#006638] disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <Spinner className="h-4 w-4 mr-2" />
-                    <span>Submitting...</span>
-                  </div>
-                ) : (
-                  "Submit Reschedule Request"
-                )}
-              </button>
-            </div>
+            )}
+
+            <Button 
+              type="submit"
+              className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              disabled={submitting || !selectedDate || !formData.time}
+              onClick={handleSubmit}
+            >
+              {submitting ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Booking Appointment...
+                </>
+              ) : (
+                'Book Appointment'
+              )}
+            </Button>
           </div>
         </div>
       )}
+      <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>
+              Please select a new date and time, and provide a reason for rescheduling.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border p-4">
+              <CustomCalendar
+                mode="appointments"
+                currentMonth={currentMonth}
+                selectedDate={rescheduleData.date}
+                onDateSelect={(date) => {
+                  setRescheduleData(prev => ({ ...prev, date }));
+                  loadTimeSlots(date);
+                }}
+                onMonthChange={setCurrentMonth}
+                blockedDates={blockedDates}
+                datesWithAppointments={datesWithAppointments}
+                isDateAvailable={isDateAvailable}
+              />
+            </div>
+
+            {rescheduleData.date && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Select New Time</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {timeSlots.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => setRescheduleData(prev => ({ ...prev, time }))}
+                      className={`py-2 px-3 text-sm font-medium rounded ${
+                        rescheduleData.time === time 
+                          ? 'bg-[#007749] text-white' 
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Reason for Rescheduling</label>
+              <Textarea
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                placeholder="Please provide a reason for rescheduling..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReschedulingAppointment(null);
+                setRescheduleData({ date: null, time: "" });
+                setRescheduleReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
+              className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              disabled={!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()}
+            >
+              Request Reschedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
