@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "sonner";
+import { Check, X } from "lucide-react";
 
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
@@ -108,6 +109,9 @@ const AdminAppointmentSettings = () => {
           other_reason,
           appointment_date,
           appointment_time,
+          contact_number,
+          email,
+          meeting_mode,
           account:account(account_name, email),
           status
         `)
@@ -396,7 +400,7 @@ const AdminAppointmentSettings = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-[90rem] mx-auto p-6">
       <Toaster />
       <h1 className="text-2xl font-bold text-[#7B1113] mb-6">Appointment Management</h1>
 
@@ -417,93 +421,111 @@ const AdminAppointmentSettings = () => {
               </div>
             ) : appointments.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="py-2 px-3 text-left">Date</th>
-                      <th className="py-2 px-3 text-left">Time</th>
-                      <th className="py-2 px-3 text-left">Student</th>
-                      <th className="py-2 px-3 text-left">Reason</th>
-                      <th className="py-2 px-3 text-left">Mode</th>
-                      <th className="py-2 px-3 text-left">Contact</th>
-                      <th className="py-2 px-3 text-left">Status</th>
-                      <th className="py-2 px-3 text-left">Actions</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Time</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[200px]">Student</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Reason</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[140px]">Mode</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Contact</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[180px]">Status</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {appointments.map((appointment) => (
                       <tr key={appointment.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-3">{new Date(appointment.appointment_date).toLocaleDateString()}</td>
-                        <td className="py-2 px-3">{appointment.appointment_time}</td>
-                        <td className="py-2 px-3">{appointment.account?.account_name}</td>
-                        <td className="py-2 px-3">{appointment.reason}</td>
-                        <td className="py-2 px-3">{appointment.meeting_mode || "Face-to-face"}</td>
-                        <td className="py-2 px-3">
-                          <div className="space-y-1">
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{new Date(appointment.appointment_date).toLocaleDateString()}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[200px] whitespace-nowrap">{appointment.account?.account_name}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.reason}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[140px] whitespace-nowrap">{appointment.meeting_mode || "Face-to-face"}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          <div className="flex flex-col items-center">
                             <div>{appointment.contact_number}</div>
                             <div className="text-sm text-gray-500">{appointment.email}</div>
                           </div>
                         </td>
-                        <td className="py-2 px-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
-                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                            appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[180px]">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                            appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
+                            appointment.status === "rejected" ? "bg-red-100 text-red-700" :
+                            appointment.status === "reschedule-pending" ? "bg-blue-100 text-blue-700" :
+                            appointment.status === "cancellation-pending" ? "bg-amber-100 text-amber-700" :
+                            appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
                             "bg-gray-100 text-gray-700"
                           }`}>
-                            {appointment.status}
+                            {appointment.status === "confirmed" ? "Confirmed" :
+                             appointment.status === "rejected" ? "Rejected" :
+                             appointment.status === "reschedule-pending" ? "Reschedule Requested" :
+                             appointment.status === "cancellation-pending" ? "Cancellation Requested" :
+                             appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </span>
                         </td>
-                        <td className="py-2 px-3">
+                        <td className="px-5 py-4 text-sm text-center">
                           {appointment.status === 'scheduled' && (
-                            <div className="flex gap-2">
+                            <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => {
                                   setSelectedAppointment(appointment);
                                   setShowConfirmDialog(true);
                                 }}
-                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                title="Confirm Appointment"
                               >
-                                Confirm
+                                Approve
                               </button>
                               <button
                                 onClick={() => {
                                   setSelectedAppointment(appointment);
                                   setShowRejectDialog(true);
                                 }}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                title="Reject Appointment"
                               >
                                 Reject
                               </button>
                             </div>
                           )}
                           {appointment.status === 'reschedule-pending' && (
-                            <div className="flex gap-2">
+                            <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'approve', 'reschedule')}
-                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                title="Approve Reschedule"
                               >
-                                Approve Reschedule
+                                Approve
                               </button>
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'reject', 'reschedule')}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                title="Reject Reschedule"
                               >
                                 Reject
                               </button>
                             </div>
                           )}
                           {appointment.status === 'cancellation-pending' && (
-                            <div className="flex gap-2">
+                            <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'approve', 'cancel')}
-                                className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs hover:bg-green-200"
+                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                title="Approve Cancellation"
                               >
-                                Approve Cancel
+                                Approve 
                               </button>
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'reject', 'cancel')}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs hover:bg-red-200"
+                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                title="Reject Cancellation"
                               >
                                 Reject
                               </button>
