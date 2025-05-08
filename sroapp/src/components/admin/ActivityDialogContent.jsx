@@ -76,6 +76,7 @@ const ActivityDialogContent = ({
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
+  const [hasViewedScannedForm, setHasViewedScannedForm] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [comment, setComment] = useState(() =>
     userRole === 2 ? activity?.sro_remarks || "" : activity?.odsa_remarks || ""
@@ -108,17 +109,19 @@ const ActivityDialogContent = ({
 
   useEffect(() => {
     if (!isModalOpen || !localActivity?.activity_id) return;
+  
     const actionTaken =
       (isSRO && localActivity?.sro_approval_status !== null) ||
       (isODSA && localActivity?.odsa_approval_status !== null);
-
+  
+    setHasViewedScannedForm(false); // reset on dialog open
     setShowDecisionBox(false);
     setConfirmationOpen(false);
     setDecisionType(null);
     setComment(
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
-
+  
     if (actionTaken) {
       setTimeout(() => {
         setShowDecisionBox(true);
@@ -254,15 +257,18 @@ const ActivityDialogContent = ({
             <p><strong>Status:</strong> {activity.final_status || activity.status || "Pending"}</p>
             {activity.drive_folder_link && (
               <div className="flex items-center gap-2">
-                <a
-                  href={activity.drive_folder_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => !showDecisionBox && setShowDecisionBox(true)}
-                  className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
-                >
-                  View Scanned Form
-                </a>
+              <a
+                href={activity.drive_folder_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  setHasViewedScannedForm(true);
+                  setShowDecisionBox(true);
+                }}
+                className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
+              >
+                View Scanned Form
+              </a>
                 {!readOnly && (
                   <button
                     onClick={() => setShowDecisionBox((prev) => !prev)}
@@ -317,21 +323,26 @@ const ActivityDialogContent = ({
                   </div>
                 ) : (
                   <>
+                  {!hasViewedScannedForm && (
+                    <p className="text-sm text-gray-500 italic">Click “View Scanned Form” to activate approval buttons.</p>
+                  )}
                     <button
+                      disabled={!hasViewedScannedForm}
                       onClick={() => {
                         setDecisionType("approve");
                         setConfirmationOpen(true);
                       }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200"
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
                     >
                       Approve
                     </button>
                     <button
+                      disabled={!hasViewedScannedForm}
                       onClick={() => {
                         setDecisionType("reject");
                         setConfirmationOpen(true);
                       }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer hover:scale-105 transform transition-transform duration-200"
+                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
                     >
                       Reject
                     </button>
