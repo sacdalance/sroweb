@@ -11,7 +11,7 @@ router.get("/incoming", verifyAdminRoles, async (req, res) => {
       *,
       account:account (*),
       organization:organization (*),
-      schedule:activity_schedule (*)
+      schedule:activity_schedule!activity_schedule_activity_id_fkey (start_date)
     `)
     .or("final_status.is.null,final_status.neq.Approved")
     .order("activity_id", { ascending: false });
@@ -30,7 +30,12 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
 
   let query = supabase
     .from("activity")
-    .select(`*, account:account (*), organization:organization (*), schedule:activity_schedule (*)`)
+    .select(`
+      *,
+      account:account (*),
+      organization:organization (*),
+      schedule:activity_schedule (*)
+    `)
     .order("created_at", { ascending: false });
 
     if (activity_type && activity_type !== "all") {
@@ -47,21 +52,21 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
     query = query.eq("organization.org_name", organization);
   }
 
-  if (year && year !== "All Academic Years") {
-    const [start, end] = year.split("-");
-    query = query.gte("schedule.start_date", `${start}-06-01`);
-    query = query.lte("schedule.end_date", `${end}-05-31`);
-  }
+  // if (year && year !== "All Academic Years") {
+  //   const [start, end] = year.split("-");
+  //   query = query.gte("schedule.start_date", `${start}-06-01`);
+  //   query = query.lte("schedule.end_date", `${end}-05-31`);
+  // }
 
-  if (month && month !== "All Months") {
-    const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1; // January = 1
+  // if (month && month !== "All Months") {
+  //   const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1; // January = 1
   
-    // Convert to 2-digit format (e.g. "01", "05", "12")
-    const paddedMonth = String(monthIndex).padStart(2, "0");
+  //   // Convert to 2-digit format (e.g. "01", "05", "12")
+  //   const paddedMonth = String(monthIndex).padStart(2, "0");
   
-    // Use LIKE operator to match YYYY-MM-% (e.g. 2025-05-%)
-    query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
-  }
+  //   // Use LIKE operator to match YYYY-MM-% (e.g. 2025-05-%)
+  //   query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
+  // }
 
   const { data, error } = await query;
 
@@ -73,61 +78,6 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
   return res.status(200).json(data);
 });
 
-router.get("/summary/counts", verifyAdminRoles, async (req, res) => {
-  const { activity_type, organization, year, month } = req.query;
-
-  let query = supabase
-    .from("activity")
-    .select("final_status")
-    .order("created_at", { ascending: false });
-
-  if (activity_type && activity_type !== "all") {
-    query = query.ilike("activity_type", `%${activity_type}%`);
-  }
-
-  if (organization && organization !== "All Organizations") {
-    // Look up the org_id from org_name
-    const { data: orgMatch, error: orgError } = await supabase
-      .from("organization")
-      .select("org_id")
-      .eq("org_name", organization)
-      .single();
-  
-    if (orgError || !orgMatch) {
-      return res.status(400).json({ error: "Organization not found" });
-    }
-  
-    query = query.eq("org_id", orgMatch.org_id); // filter by ID
-  }
-
-  if (year && year !== "All Academic Years") {
-    const [start, end] = year.split("-");
-    query = query.gte("schedule.start_date", `${start}-06-01`);
-    query = query.lte("schedule.end_date", `${end}-05-31`);
-  }
-
-  if (month && month !== "All Months") {
-    const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1;
-    const paddedMonth = String(monthIndex).padStart(2, "0");
-  
-    query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Error fetching summary counts:", error.message);
-    return res.status(500).json({ error: error.message });
-  }
-
-  const approved = data.filter(a => a.final_status === "Approved").length;
-  const pending = data.filter(
-    a => a.final_status === "For Appeal" || a.final_status === null
-  ).length;
-
-  return res.status(200).json({ approved, pending });
-});
-
 router.get("/organizations", verifyAdminRoles, async (req, res) => {
   const { data, error } = await supabase
     .from("organization")
@@ -137,6 +87,26 @@ router.get("/organizations", verifyAdminRoles, async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   const names = data.map((org) => org.org_name);
   res.status(200).json(names);
+});
+
+router.get("/academic-years", verifyAdminRoles, async (req, res) => {
+  const { data, error } = await supabase
+    .from("activity_schedule")
+    .select("start_date");
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const yearsSet = new Set();
+
+  data.forEach((item) => {
+    const year = new Date(item.start_date).getFullYear();
+    yearsSet.add(year);
+  });
+
+  const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+  const academicYears = sortedYears.map((year) => `${year}-${year + 1}`);
+
+  res.json(["All Academic Years", ...academicYears]);
 });
 
 export default router;

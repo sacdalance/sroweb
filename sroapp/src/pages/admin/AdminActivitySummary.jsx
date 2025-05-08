@@ -42,7 +42,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { fetchSummaryActivities, fetchSummaryCounts, fetchOrganizationNames } from "@/api/adminActivityAPI";
+import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
 import {
@@ -102,14 +102,6 @@ const months = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const academicYears = [
-  "All Academic Years",
-  "2023-2024",
-  "2022-2023",
-  "2021-2022",
-  "2020-2021"
-];
-
 const AdminActivitySummary = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [filter, setFilter] = useState('all');
@@ -141,6 +133,7 @@ const AdminActivitySummary = () => {
           year: appliedFilters.year
         });
         setSummaryActivities(activities);
+        console.log("Sample activity:", activities[0]);
       } catch (err) {
         console.error("Error loading summary:", err.message);
       } finally {
@@ -150,26 +143,6 @@ const AdminActivitySummary = () => {
   
     loadSummary();
   }, [selectedType, filter, appliedFilters]);
-
-  const [activityCounts, setActivityCounts] = useState({ approved: 0, pending: 0 });
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const typeValue = activityTypes.find(t => t.id === selectedType)?.dbValue || 'all';
-        const counts = await fetchSummaryCounts({
-          activity_type: typeValue,
-          organization: appliedFilters.organization,
-          month: appliedFilters.month,
-          year: appliedFilters.year,
-        });
-        setActivityCounts(counts);
-      } catch (err) {
-        console.error("Failed to fetch activity counts:", err);
-      }
-    };
-  
-    fetchCounts();
-  }, [selectedType, appliedFilters]);
 
   const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
   useEffect(() => {
@@ -188,72 +161,60 @@ const AdminActivitySummary = () => {
     org.toLowerCase().includes(orgSearchTerm.toLowerCase())
   );
 
-  // Function to check if an activity matches the applied filters
-  const matchesFilters = (activity) => {
-    // Organization filter
+  const [academicYears, setAcademicYears] = useState(["All Academic Years"]);
+  useEffect(() => {
+    const loadYears = async () => {
+      try {
+        const years = await fetchAcademicYears();
+        setAcademicYears(years);
+      } catch (err) {
+        console.error("Failed to load academic years:", err);
+      }
+    };
+  
+    loadYears();
+  }, []);
+
+  // Then apply status filter for display
+  const filteredActivities = summaryActivities.filter((activity) => {
+    const startDateStr = activity.schedule?.[0]?.start_date;
+    if (!startDateStr) return false;
+  
+    const startDate = new Date(startDateStr);
+    const startYear = startDate.getFullYear();
+    const activityMonth = startDate.toLocaleString("default", { month: "long" });
+  
+    //  Filter by academic year
+    if (appliedFilters.year !== "All Academic Years") {
+      const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
+      if (startYear !== selectedStartYear) return false;
+    }
+  
+    //  Filter by month
+    if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
+      return false;
+    }
+  
+    //  Filter by organization
     if (
       appliedFilters.organization !== "All Organizations" &&
       activity.organization?.org_name !== appliedFilters.organization
     ) {
       return false;
     }
-
-    // Month filter
-    if (appliedFilters.month !== "All Months") {
-      const activityDate = new Date(activity.activityDate);
-      const activityMonth = months[activityDate.getMonth() + 1]; // +1 because "All Months" is at index 0
-      if (activityMonth !== appliedFilters.month) {
-        return false;
-      }
-    }
-
-    // Academic year filter
-    if (appliedFilters.year !== "All Academic Years") {
-      const activityDate = new Date(activity.activityDate);
-      const activityYear = activityDate.getFullYear();
-      const [startYear, endYear] = appliedFilters.year.split('-').map(Number);
-      if (activityYear < startYear || activityYear > endYear) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  // Get all activities of the selected type first
-  const activitiesOfSelectedType = summaryActivities.filter((activity) => {
-    const startDate = activity.schedule?.[0]?.start_date;
   
-    // Month filter
-    if (
-      appliedFilters.month !== "All Months" &&
-      startDate &&
-      new Date(startDate).toLocaleString("default", { month: "long" }) !== appliedFilters.month
-    ) return false;
-  
-    // Org filter
-    if (
-      appliedFilters.organization !== "All Organizations" &&
-      activity.organization?.org_name !== appliedFilters.organization
-    ) return false;
+    //  Filter by status
+    const isApproved = activity.final_status === "Approved";
+    const isPending = activity.final_status === "For Appeal" || activity.final_status === null;
+    if (filter === "approved" && !isApproved) return false;
+    if (filter === "pending" && !isPending) return false;
   
     return true;
   });
-
-  const approvedCount = activitiesOfSelectedType.filter(a => a.final_status === "Approved").length;
-  const pendingCount = activitiesOfSelectedType.filter(a =>
+  const approvedCount = filteredActivities.filter(a => a.final_status === "Approved").length;
+  const pendingCount = filteredActivities.filter(a =>
     a.final_status === null || a.final_status === "For Appeal"
   ).length;
-
-  // Then apply status filter for display
-  const filteredActivities = activitiesOfSelectedType.filter(activity => {
-    if (filter === 'all') return true;
-    if (filter === 'approved') return activity.final_status === 'Approved';
-    if (filter === 'pending') return (
-      activity.final_status === null || activity.final_status === 'For Appeal'
-    );
-    return true;
-  });
 
   const handleApplyFilters = () => {
     setAppliedFilters({
@@ -573,11 +534,13 @@ const AdminActivitySummary = () => {
                     </div>
                   </TableCell>
                   <TableCell className="py-5 text-sm text-center">
-                    {new Date(activity.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric"
-                    })}
+                    {activity.schedule?.[0]?.start_date
+                      ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })
+                      : "TBD"}
                   </TableCell>
                   <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
                   <TableCell className="py-5 text-sm text-center">
