@@ -173,11 +173,14 @@ const AdminActivitySummary = () => {
   const pendingCount = activitiesOfSelectedType.filter(a => a.final_status === 'Pending').length;
 
   // Then apply status filter for display
-  const filteredActivities = activitiesOfSelectedType.filter(activity => 
-    filter === 'all' || 
-    (filter === 'approved' && activity.status === 'Approved') ||
-    (filter === 'pending' && activity.status === 'Pending')
-  );
+  const filteredActivities = activitiesOfSelectedType.filter(activity => {
+    if (filter === 'all') return true;
+    if (filter === 'approved') return activity.final_status === 'Approved';
+    if (filter === 'pending') return (
+      activity.final_status === null || activity.final_status === 'For Appeal'
+    );
+    return true;
+  });
 
   const handleApplyFilters = () => {
     setAppliedFilters({

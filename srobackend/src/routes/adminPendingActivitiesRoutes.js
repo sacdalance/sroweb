@@ -37,9 +37,11 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
       query = query.ilike("activity_type", `%${activity_type}%`);
     }
 
-  if (status && status !== "all") {
-    query = query.eq("final_status", status);
-  }
+    if (status === "pending") {
+      query = query.or("final_status.eq.For Appeal,final_status.is.null");
+    } else if (status && status !== "all") {
+      query = query.eq("final_status", status);
+    }
 
   if (organization && organization !== "All Organizations") {
     query = query.eq("organization.org_name", organization);
