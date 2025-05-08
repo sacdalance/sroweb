@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -18,19 +20,22 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
-  const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showExistingAppointments, setShowExistingAppointments] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [userAccountId, setUserAccountId] = useState(null);
   const [blockedDates, setBlockedDates] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [timeSlotLoading, setTimeSlotLoading] = useState(false);
   const [datesWithAppointments, setDatesWithAppointments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState({ date: null, time: "" });
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
 
   // Fetch initial data
   useEffect(() => {
@@ -45,11 +50,15 @@ const AppointmentBooking = () => {
           const { data: accountData, error: accountError } = await supabase
             .from('account')
             .select('account_id')
-            .eq('user_id', currentUser.id)
+            .eq('email', currentUser.email)
             .single();
 
           if (accountError) throw accountError;
-          setUserAccountId(accountData.account_id);
+          
+          if (accountData?.account_id) {
+            setUserAccountId(accountData.account_id);
+            await loadUserAppointments(accountData.account_id);
+          }
         }
 
         // Get appointment settings
@@ -95,6 +104,29 @@ const AppointmentBooking = () => {
     };
 
     loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    const loadAppointmentDates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('appointment_date')
+          .in('status', ['scheduled', 'confirmed'])
+          .order('appointment_date');
+
+        if (error) throw error;
+        
+        if (data) {
+          const dates = [...new Set(data.map(item => item.appointment_date))];
+          setDatesWithAppointments(dates.map(date => new Date(date)));
+        }
+      } catch (error) {
+        console.error('Error loading appointment dates:', error);
+      }
+    };
+
+    loadAppointmentDates();
   }, []);
 
   // Load time slots for a selected date
@@ -244,6 +276,27 @@ const AppointmentBooking = () => {
     }
   };
 
+  // Add loadUserAppointments function
+  const loadUserAppointments = async (accountId) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('account_id', accountId)
+        .in('status', ['scheduled', 'confirmed', 'reschedule-pending', 'cancellation-pending'])
+        .order('appointment_date', { ascending: true });
+
+      if (error) throw error;
+      setExistingAppointments(data || []);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      toast.error('Failed to load your appointments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -301,15 +354,73 @@ const AppointmentBooking = () => {
     }
   };
 
+  // Handle reschedule request
+  const handleRescheduleRequest = async (appointmentId) => {
+    if (!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()) {
+      toast.error("Please select date, time and provide a reason");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          requested_date: format(rescheduleData.date, 'yyyy-MM-dd'),
+          requested_time_slot: rescheduleData.time,
+          reschedule_reason: rescheduleReason,
+          status: 'reschedule-pending'
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast.success("Reschedule request submitted");
+      setReschedulingAppointment(null);
+      setRescheduleData({ date: null, time: "" });
+      setRescheduleReason("");
+      loadUserAppointments(userAccountId);
+    } catch (error) {
+      console.error("Error requesting reschedule:", error);
+      toast.error("Failed to request reschedule");
+    }
+  };
+
+  // Handle cancel request
+  const handleCancelRequest = async (appointmentId) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'cancellation-pending'
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast.success("Cancellation request submitted");
+      loadUserAppointments(userAccountId);
+    } catch (error) {
+      console.error("Error requesting cancellation:", error);
+      toast.error("Failed to request cancellation");
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Book an Appointment</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-[#7B1113]">Book an Appointment</h1>
+        {user && (
+          <Button
+            onClick={() => setShowExistingAppointments(true)}
+            className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+          >
+            My Appointments
+          </Button>
+        )}
+      </div>
 
-      {/* Main Content */}
       {showExistingAppointments ? (
-        // Show existing appointments view
         <div>
-          {/* Loading state */}
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="h-8 w-8 text-[#7B1113]" />
@@ -318,13 +429,13 @@ const AppointmentBooking = () => {
           ) : existingAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You don't have any upcoming appointments.</p>
-              <button 
+              <p>You don&apos;t have any upcoming appointments.</p>
+              <Button 
                 onClick={() => setShowExistingAppointments(false)}
-                className="mt-4 px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] text-sm"
+                className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
               >
                 Book an Appointment
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -337,20 +448,43 @@ const AppointmentBooking = () => {
                     <p><span className="font-medium">Meeting Mode:</span> {appointment.meeting_mode || "Face-to-face"}</p>
                     <p><span className="font-medium">Status:</span> 
                       <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        appointment.status === "scheduled" ? "bg-green-100 text-green-700" :
+                        appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
+                        appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
                         appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                        appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                        appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
+                        appointment.status === "cancellation-pending" ? "bg-orange-100 text-orange-700" :
                         "bg-gray-100 text-gray-700"
                       }`}>
                         {appointment.status}
                       </span>
                     </p>
+                    
+                    {appointment.status === 'scheduled' && (
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          onClick={() => {
+                            setReschedulingAppointment(appointment);
+                            setRescheduleData({ date: null, time: "" });
+                            setRescheduleReason("");
+                          }}
+                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm"
+                        >
+                          Reschedule
+                        </Button>
+                        <Button
+                          onClick={() => handleCancelRequest(appointment.id)}
+                          className="bg-red-100 hover:bg-red-200 text-red-700 text-sm"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
               <Button
                 onClick={() => setShowExistingAppointments(false)}
-                className="w-full mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
               >
                 Book Another Appointment
               </Button>
@@ -358,9 +492,7 @@ const AppointmentBooking = () => {
           )}
         </div>
       ) : (
-        // Booking form
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left Column - Form Fields */}
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
               <div className="flex items-start">
@@ -461,7 +593,6 @@ const AppointmentBooking = () => {
             </form>
           </div>
           
-          {/* Right Column - Calendar and Time Selection */}
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
@@ -476,7 +607,6 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                {/* Calendar Legend */}
                 <div className="mt-4 flex flex-wrap gap-4 text-xs">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-[#007749] rounded-full mr-1"></div>
@@ -506,7 +636,6 @@ const AppointmentBooking = () => {
               </CardContent>
             </Card>
 
-            {/* Time Slots */}
             {selectedDate && (
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
@@ -538,7 +667,6 @@ const AppointmentBooking = () => {
               </div>
             )}
 
-            {/* Submit Button */}
             <Button 
               type="submit"
               className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
@@ -557,6 +685,86 @@ const AppointmentBooking = () => {
           </div>
         </div>
       )}
+      <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>
+              Please select a new date and time, and provide a reason for rescheduling.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border p-4">
+              <CustomCalendar
+                mode="appointments"
+                currentMonth={currentMonth}
+                selectedDate={rescheduleData.date}
+                onDateSelect={(date) => {
+                  setRescheduleData(prev => ({ ...prev, date }));
+                  loadTimeSlots(date);
+                }}
+                onMonthChange={setCurrentMonth}
+                blockedDates={blockedDates}
+                datesWithAppointments={datesWithAppointments}
+                isDateAvailable={isDateAvailable}
+              />
+            </div>
+
+            {rescheduleData.date && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Select New Time</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {timeSlots.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => setRescheduleData(prev => ({ ...prev, time }))}
+                      className={`py-2 px-3 text-sm font-medium rounded ${
+                        rescheduleData.time === time 
+                          ? 'bg-[#007749] text-white' 
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Reason for Rescheduling</label>
+              <Textarea
+                value={rescheduleReason}
+                onChange={(e) => setRescheduleReason(e.target.value)}
+                placeholder="Please provide a reason for rescheduling..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReschedulingAppointment(null);
+                setRescheduleData({ date: null, time: "" });
+                setRescheduleReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
+              className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              disabled={!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()}
+            >
+              Request Reschedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
