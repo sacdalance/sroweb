@@ -222,14 +222,28 @@ const AdminActivitySummary = () => {
 
   // Get all activities of the selected type first
   const activitiesOfSelectedType = summaryActivities.filter((activity) => {
+    const startDate = activity.schedule?.[0]?.start_date;
+  
+    // Month filter
+    if (
+      appliedFilters.month !== "All Months" &&
+      startDate &&
+      new Date(startDate).toLocaleString("default", { month: "long" }) !== appliedFilters.month
+    ) return false;
+  
+    // Org filter
     if (
       appliedFilters.organization !== "All Organizations" &&
       activity.organization?.org_name !== appliedFilters.organization
-    ) {
-      return false;
-    }
+    ) return false;
+  
     return true;
   });
+
+  const approvedCount = activitiesOfSelectedType.filter(a => a.final_status === "Approved").length;
+  const pendingCount = activitiesOfSelectedType.filter(a =>
+    a.final_status === null || a.final_status === "For Appeal"
+  ).length;
 
   // Then apply status filter for display
   const filteredActivities = activitiesOfSelectedType.filter(activity => {
@@ -476,13 +490,13 @@ const AdminActivitySummary = () => {
                 value="approved"
                 className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none"
               >
-                Approved ({activityCounts.approved})
+                Approved ({approvedCount})
               </TabsTrigger>
               <TabsTrigger 
                 value="pending"
                 className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
               >
-                Pending ({activityCounts.pending})
+                Pending ({pendingCount})
               </TabsTrigger>
               </TabsList>
             </Tabs>

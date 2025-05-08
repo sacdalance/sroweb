@@ -54,8 +54,13 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
   }
 
   if (month && month !== "All Months") {
-    const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1;
-    query = query.filter("EXTRACT(MONTH FROM schedule.start_date)", "eq", monthIndex);
+    const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1; // January = 1
+  
+    // Convert to 2-digit format (e.g. "01", "05", "12")
+    const paddedMonth = String(monthIndex).padStart(2, "0");
+  
+    // Use LIKE operator to match YYYY-MM-% (e.g. 2025-05-%)
+    query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
   }
 
   const { data, error } = await query;
@@ -103,7 +108,9 @@ router.get("/summary/counts", verifyAdminRoles, async (req, res) => {
 
   if (month && month !== "All Months") {
     const monthIndex = new Date(`${month} 1, 2000`).getMonth() + 1;
-    query = query.filter("EXTRACT(MONTH FROM schedule.start_date)", "eq", monthIndex);
+    const paddedMonth = String(monthIndex).padStart(2, "0");
+  
+    query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
   }
 
   const { data, error } = await query;
