@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
-import { fetchSummaryActivities } from "@/api/adminActivityAPI";
+import { fetchSummaryActivities, fetchSummaryCounts } from "@/api/adminActivityAPI";
 import {
   Table,
   TableBody,
@@ -119,7 +119,7 @@ const AdminActivitySummary = () => {
         setLoading(true);
         const activities = await fetchSummaryActivities({
           activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
-          status: filter,
+          status: filter === 'approved' ? 'Approved' : filter,
           organization: appliedFilters.organization,
           month: appliedFilters.month,
           year: appliedFilters.year
@@ -134,6 +134,26 @@ const AdminActivitySummary = () => {
   
     loadSummary();
   }, [selectedType, filter, appliedFilters]);
+
+  const [activityCounts, setActivityCounts] = useState({ approved: 0, pending: 0 });
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const typeValue = activityTypes.find(t => t.id === selectedType)?.dbValue || 'all';
+        const counts = await fetchSummaryCounts({
+          activity_type: typeValue,
+          organization: appliedFilters.organization,
+          month: appliedFilters.month,
+          year: appliedFilters.year,
+        });
+        setActivityCounts(counts);
+      } catch (err) {
+        console.error("Failed to fetch activity counts:", err);
+      }
+    };
+  
+    fetchCounts();
+  }, [selectedType, appliedFilters]);
 
   // Function to check if an activity matches the applied filters
   const matchesFilters = (activity) => {
@@ -167,10 +187,6 @@ const AdminActivitySummary = () => {
 
   // Get all activities of the selected type first
   const activitiesOfSelectedType = summaryActivities;
-
-  // Get counts from all activities of selected type
-  const approvedCount = activitiesOfSelectedType.filter(a => a.final_status === 'Approved').length;
-  const pendingCount = activitiesOfSelectedType.filter(a => a.final_status === 'Pending').length;
 
   // Then apply status filter for display
   const filteredActivities = activitiesOfSelectedType.filter(activity => {
@@ -218,7 +234,10 @@ const AdminActivitySummary = () => {
           <Button
             key={type.id}
             variant="ghost"
-            onClick={() => setSelectedType(type.id)}
+            onClick={() => {
+              setSelectedType(type.id);
+              setFilter("all"); // reset tab view to Show All
+            }}
             className={`rounded-full text-sm ${
               selectedType === type.id 
                 ? type.color + ' text-white hover:text-white hover:' + type.color
@@ -373,19 +392,25 @@ const AdminActivitySummary = () => {
                 value="approved"
                 className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none"
               >
-                Approved ({approvedCount})
+                Approved ({activityCounts.approved})
               </TabsTrigger>
               <TabsTrigger 
                 value="pending"
                 className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
               >
-                Pending ({pendingCount})
+                Pending ({activityCounts.pending})
               </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
       {/* Table Section */}
+      {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
+            <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
+            Loading submissions...
+          </div>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow className="border-b-0">
@@ -488,6 +513,7 @@ const AdminActivitySummary = () => {
             )}
           </TableBody>
         </Table>
+      )}
 
       </Card>
 

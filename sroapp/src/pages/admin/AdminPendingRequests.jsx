@@ -308,73 +308,78 @@ const AdminPendingRequests = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                  {loading ? (
-                    <tr>
-                      <td colSpan="8" className="text-center text-gray-500 py-4">Loading incoming submissions...</td>
-                    </tr>
-                  ) : incomingRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="text-center text-gray-500 py-4">No incoming submissions.</td>
-                    </tr>
-                  ) : (
-                      incomingRequests.map((request) => (
-                        <tr key={request.activity_id} className="hover:bg-gray-50">
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {new Date(request.created_at).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
-                            {request.organization?.org_name || "N/A"}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {getActivityTypeLabel(request.activity_type)}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                            {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
-                          <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
-                            {request.organization?.adviser_name || "N/A"}
-                          </td>
-                          <td className="px-5 py-4 text-sm text-center">
-                            <div className="flex justify-center">
-                              <button
-                                onClick={() => handleViewDetails(request)}
-                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </button>
-                            </div>
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
+                    <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
+                    Loading incoming submissions...
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
+                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {incomingRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="text-center text-gray-500 py-10">
+                            No incoming submissions.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        incomingRequests.map((request) => (
+                          <tr key={request.activity_id} className="hover:bg-gray-50">
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                              {new Date(request.created_at).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
+                              {request.organization?.org_name || "N/A"}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                              {getActivityTypeLabel(request.activity_type)}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                              {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
+                            <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
+                              {request.organization?.adviser_name || "N/A"}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-center">
+                              <div className="flex justify-center">
+                                <button
+                                  onClick={() => handleViewDetails(request)}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </CardContent>
           </Card>
