@@ -1,21 +1,4 @@
 /*
-
-export const fetchOrganizations = async () => {
-    try {
-      const response = await fetch("/api/organization/list");
-      if (!response.ok) throw new Error("Failed to fetch organizations");
-      return await response.json();
-    } catch (err) {
-      console.error("fetchOrganizations error:", err);
-      throw err;
-    }
-  };
-  
-  export const submitAnnualReport = async ({
-    org_id,
-    submitted_by,
-    academic_year,
-    files,
   }) => {
     if (files.length !== 2) {
       throw new Error("You must upload exactly 2 PDF files.");

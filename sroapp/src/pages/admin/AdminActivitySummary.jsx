@@ -1,8 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Filter, X } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -11,21 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -33,63 +30,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears } from "@/api/adminActivityAPI";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import { Link } from "react-router-dom";
+import {
+  Filter,
+  X,
+  Eye,
+  ChevronDown,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Calendar,
+  Clock,
+  User,
+  Check,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const activityTypeOptions = [
+  { id: "charitable", label: "Charitable" },
+  { id: "serviceWithinUPB", label: "Service within UPB" },
+  { id: "serviceOutsideUPB", label: "Service outside UPB" },
+  { id: "contestWithinUPB", label: "Contest within UPB" },
+  { id: "contestOutsideUPB", label: "Contest outside UPB" },
+  { id: "educational", label: "Educational" },
+  { id: "incomeGenerating", label: "IGP" },
+  { id: "massOrientation", label: "Mass Orientation/GA" },
+  { id: "booth", label: "Booth" },
+  { id: "rehearsals", label: "Rehearsals/Preparation" },
+  { id: "specialEvents", label: "Special Events" },
+  { id: "others", label: "Others" },
+];
+
+const formatActivityTypeLabel = (id) => {
+  return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
+};
 
 const activityTypes = [
-  { id: 'A', label: 'A: Charitable', color: 'bg-[#014421]' },
-  { id: 'B', label: 'B: Service (within UPB)', color: 'bg-[#014421]' },
-  { id: 'C', label: 'C: Service (outside UPB)', color: 'bg-[#014421]' },
-  { id: 'D', label: 'D: Contest (within UPB)', color: 'bg-[#014421]' },
-  { id: 'E', label: 'E: Contest (outside UPB)', color: 'bg-[#014421]' },
-  { id: 'F', label: 'F: Educational', color: 'bg-[#014421]' },
-  { id: 'G', label: 'G: Income Generating Project', color: 'bg-[#014421]' },
-  { id: 'H', label: 'H: Mass Orientation/GA', color: 'bg-[#014421]' },
-  { id: 'I', label: 'I: Booth', color: 'bg-[#014421]' },
-  { id: 'J', label: 'J: Rehearsals/Preparation', color: 'bg-[#014421]' },
-  { id: 'K', label: 'K: Special Events', color: 'bg-[#014421]' },
-  { id: 'L', label: 'L: Others', color: 'bg-[#014421]' },
-  { id: 'all', label: 'Show All', color: 'bg-[#014421]' }
-];
-
-// Mock data for the table with multiple categories per activity
-const mockActivities = [
-  {
-    submissionDate: "2024-03-15",
-    organization: "Organization Name",
-    activityName: "Community Outreach Program",
-    activityDescription: "Step into the ultimate coding showdown where developers go head-to-head in a high-intensity coding competition! Participants will tackle real-world problems, optimize code, and flex their debugging skills in a battle of speed and creativity. With thrilling challenges, live leaderboards, and surprise twists, only the most adaptable coders will rise to the top.",
-    activityTypes: ["A", "B"], // Can be both Charitable and Service (within UPB)
-    activityDate: "2024-04-01",
-    venue: "UP Baguio Grounds",
-    status: "Pending"
-  },
-  {
-    submissionDate: "2024-03-16",
-    organization: "Student Council",
-    activityName: "Leadership Training Workshop",
-    activityDescription: "An intensive workshop designed to develop leadership skills among student organizations through interactive sessions and practical exercises.",
-    activityTypes: ["F", "H"], // Educational and Mass Orientation
-    activityDate: "2024-04-05",
-    venue: "AVR 1",
-    status: "Approved"
-  },
-  {
-    submissionDate: "2024-03-17",
-    organization: "Theater Guild",
-    activityName: "Annual Theater Production",
-    activityDescription: "A showcase of theatrical talent featuring original plays and performances by the Theater Guild members.",
-    activityTypes: ["J", "K"], // Rehearsals and Special Events
-    activityDate: "2024-04-10",
-    venue: "Theater Hall",
-    status: "Pending"
-  }
-];
-
-const organizations = [
-  "All Organizations",
-  "Computer Science Society",
-  "UP Aguman",
-  "Junior Blockchain Education Consortium of the Philippines",
-  "Samahan ng Organisasyon UPB"
+  { id: 'A', dbValue: 'charitable', label: 'A: Charitable', color: 'bg-[#7B1113]' },
+  { id: 'B', dbValue: 'serviceWithinUPB', label: 'B: Service (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'C: Service (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'D', dbValue: 'contestWithinUPB', label: 'D: Contest (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'E', dbValue: 'contestOutsideUPB', label: 'E: Contest (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'F', dbValue: 'educational', label: 'F: Educational', color: 'bg-[#7B1113]' },
+  { id: 'G', dbValue: 'incomeGenerating', label: 'G: Income Generating Project', color: 'bg-[#7B1113]' },
+  { id: 'H', dbValue: 'massOrientation', label: 'H: Mass Orientation/GA', color: 'bg-[#7B1113]' },
+  { id: 'I', dbValue: 'booth', label: 'I: Booth', color: 'bg-[#7B1113]' },
+  { id: 'J', dbValue: 'rehearsals', label: 'J: Rehearsals/Preparation', color: 'bg-[#7B1113]' },
+  { id: 'K', dbValue: 'specialEvents', label: 'K: Special Events', color: 'bg-[#7B1113]' },
+  { id: 'L', dbValue: 'others', label: 'L: Others', color: 'bg-[#7B1113]' },
+  { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-[#7B1113]' }
 ];
 
 const months = [
@@ -98,16 +102,9 @@ const months = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const academicYears = [
-  "All Academic Years",
-  "2023-2024",
-  "2022-2023",
-  "2021-2022",
-  "2020-2021"
-];
-
 const AdminActivitySummary = () => {
-  const [selectedType, setSelectedType] = useState('A');
+  const [tabCooldown, setTabCooldown] = useState(false);
+  const [selectedType, setSelectedType] = useState('all');
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,57 +112,110 @@ const AdminActivitySummary = () => {
   const [selectedOrg, setSelectedOrg] = useState("All Organizations");
   const [selectedMonth, setSelectedMonth] = useState("All Months");
   const [selectedYear, setSelectedYear] = useState("All Academic Years");
+  const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
+  const [orgSearchTerm, setOrgSearchTerm] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     organization: "All Organizations",
     month: "All Months",
     year: "All Academic Years"
   });
 
-  // Function to check if an activity matches the applied filters
-  const matchesFilters = (activity) => {
-    // Organization filter
-    if (appliedFilters.organization !== "All Organizations" && 
-        activity.organization !== appliedFilters.organization) {
-      return false;
-    }
-
-    // Month filter
-    if (appliedFilters.month !== "All Months") {
-      const activityDate = new Date(activity.activityDate);
-      const activityMonth = months[activityDate.getMonth() + 1]; // +1 because "All Months" is at index 0
-      if (activityMonth !== appliedFilters.month) {
-        return false;
+  const [summaryActivities, setSummaryActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        setLoading(true);
+        const activities = await fetchSummaryActivities({
+          activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
+          status: filter === 'approved' ? 'Approved' : filter,
+          organization: appliedFilters.organization,
+          month: appliedFilters.month,
+          year: appliedFilters.year
+        });
+        setSummaryActivities(activities);
+        console.log("Sample activity:", activities[0]);
+      } catch (err) {
+        console.error("Error loading summary:", err.message);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+  
+    loadSummary();
+  }, [selectedType, filter, appliedFilters]);
 
-    // Academic year filter
-    if (appliedFilters.year !== "All Academic Years") {
-      const activityDate = new Date(activity.activityDate);
-      const activityYear = activityDate.getFullYear();
-      const [startYear, endYear] = appliedFilters.year.split('-').map(Number);
-      if (activityYear < startYear || activityYear > endYear) {
-        return false;
+  const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
+  useEffect(() => {
+    const loadOrgs = async () => {
+      try {
+        const orgs = await fetchOrganizationNames();
+        setOrganizationOptions(["All Organizations", ...orgs]);
+      } catch (err) {
+        console.error("Failed to load organizations:", err);
       }
-    }
+    };
+  
+    loadOrgs();
+  }, []);
+  const filteredOrgOptions = organizationOptions.filter((org) =>
+    org.toLowerCase().includes(orgSearchTerm.toLowerCase())
+  );
 
-    return true;
-  };
-
-  // Get all activities of the selected type first
-  const activitiesOfSelectedType = mockActivities.filter(activity => 
-    selectedType === 'all' || activity.activityTypes.includes(selectedType)
-  ).filter(activity => matchesFilters(activity));
-
-  // Get counts from all activities of selected type
-  const approvedCount = activitiesOfSelectedType.filter(a => a.status === 'Approved').length;
-  const pendingCount = activitiesOfSelectedType.filter(a => a.status === 'Pending').length;
+  const [academicYears, setAcademicYears] = useState(["All Academic Years"]);
+  useEffect(() => {
+    const loadYears = async () => {
+      try {
+        const years = await fetchAcademicYears();
+        setAcademicYears(years);
+      } catch (err) {
+        console.error("Failed to load academic years:", err);
+      }
+    };
+  
+    loadYears();
+  }, []);
 
   // Then apply status filter for display
-  const filteredActivities = activitiesOfSelectedType.filter(activity => 
-    filter === 'all' || 
-    (filter === 'approved' && activity.status === 'Approved') ||
-    (filter === 'pending' && activity.status === 'Pending')
-  );
+  const filteredActivities = summaryActivities.filter((activity) => {
+    const startDateStr = activity.schedule?.[0]?.start_date;
+    if (!startDateStr) return false;
+  
+    const startDate = new Date(startDateStr);
+    const startYear = startDate.getFullYear();
+    const activityMonth = startDate.toLocaleString("default", { month: "long" });
+  
+    //  Filter by academic year
+    if (appliedFilters.year !== "All Academic Years") {
+      const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
+      if (startYear !== selectedStartYear) return false;
+    }
+  
+    //  Filter by month
+    if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
+      return false;
+    }
+  
+    //  Filter by organization
+    if (
+      appliedFilters.organization !== "All Organizations" &&
+      activity.organization?.org_name !== appliedFilters.organization
+    ) {
+      return false;
+    }
+  
+    //  Filter by status
+    const isApproved = activity.final_status === "Approved";
+    const isPending = activity.final_status === "For Appeal" || activity.final_status === null;
+    if (filter === "approved" && !isApproved) return false;
+    if (filter === "pending" && !isPending) return false;
+  
+    return true;
+  });
+  const approvedCount = filteredActivities.filter(a => a.final_status === "Approved").length;
+  const pendingCount = filteredActivities.filter(a =>
+    a.final_status === null || a.final_status === "For Appeal"
+  ).length;
 
   const handleApplyFilters = () => {
     setAppliedFilters({
@@ -194,21 +244,28 @@ const AdminActivitySummary = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-[1600px] mx-auto p-6">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Summary of Activity Requests</h1>
       
       {/* Activity Type Pills using shadcn Button with variant ghost */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap justify-center gap-2 mb-6">
         {activityTypes.map((type) => (
           <Button
             key={type.id}
             variant="ghost"
-            onClick={() => setSelectedType(type.id)}
-            className={`rounded-full text-sm ${
-              selectedType === type.id 
+            disabled={loading || tabCooldown}
+            onClick={() => {
+              if (tabCooldown || loading) return;
+              setSelectedType(type.id);
+              setFilter("all");
+              setTabCooldown(true);
+              setTimeout(() => setTabCooldown(false), 800);
+            }}
+            className={`rounded-full text-sm transition-opacity ${
+              selectedType === type.id
                 ? type.color + ' text-white hover:text-white hover:' + type.color
                 : 'bg-gray-100 hover:bg-gray-200'
-            }`}
+            } ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""}`}
           >
             {type.label}
           </Button>
@@ -283,18 +340,59 @@ const AdminActivitySummary = () => {
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <label className="text-sm font-medium">Organization</label>
-                      <Select value={selectedOrg} onValueChange={setSelectedOrg}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select organization" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {organizations.map((org) => (
-                            <SelectItem key={org} value={org}>
-                              {org}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid gap-2">
+                        <label className="text-sm font-medium">Organization</label>
+                        <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <div
+                              id="orgSelect"
+                              role="combobox"
+                              aria-expanded={orgPopoverOpen}
+                              className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
+                            >
+                              <span className={cn(!selectedOrg && "text-muted-foreground")}>
+                                {selectedOrg || "Type your org name or select from the list"}
+                              </span>
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </div>
+                          </PopoverTrigger>
+
+                          <PopoverContent align="start" className="w-full max-w-md p-0">
+                            <Input
+                              placeholder="Search organization..."
+                              value={orgSearchTerm}
+                              onChange={(e) => setOrgSearchTerm(e.target.value)}
+                              className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {filteredOrgOptions.length > 0 ? (
+                                filteredOrgOptions.map((org) => (
+                                  <button
+                                    key={org}
+                                    onClick={() => {
+                                      setSelectedOrg(org);
+                                      setOrgSearchTerm(org);
+                                      setOrgPopoverOpen(false);
+                                    }}
+                                    className={cn(
+                                      "w-full text-left px-4 py-2 hover:bg-gray-100",
+                                      selectedOrg === org && "bg-gray-100 font-medium"
+                                    )}
+                                  >
+                                    {org}
+                                    {selectedOrg === org && (
+                                      <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                                    )}
+                                  </button>
+                                ))
+                              ) : (
+                                <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
             </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
@@ -346,233 +444,183 @@ const AdminActivitySummary = () => {
           </div>
 
           <div className="flex justify-center px-8">
-            <Tabs value={filter} onValueChange={setFilter} className="w-[400px]">
-              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-md">
-                <TabsTrigger 
-                  value="all"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-md"
-                >
-                  Show All
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="approved"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none"
-                >
-                  Approved ({approvedCount})
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="pending"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-md"
-                >
-                  Pending ({pendingCount})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <Tabs
+          value={filter}
+          onValueChange={(val) => {
+            if (tabCooldown || loading) return;
+
+            setFilter(val);
+            setTabCooldown(true);
+
+            setTimeout(() => {
+              setTabCooldown(false);
+            }, 800); // cooldown in ms
+          }}
+          className="w-[400px]"
+        >
+          <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
+            <TabsTrigger
+              value="all"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Show All
+            </TabsTrigger>
+            <TabsTrigger
+              value="approved"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Approved ({approvedCount})
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Pending ({pendingCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
           </div>
         </div>
-      </Card>
-
       {/* Table Section */}
-      <div className="rounded-lg border">
+      {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
+            <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
+            Loading submissions...
+          </div>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow className="border-b-0">
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Activity ID</TableHead>
               <TableHead className="w-[180px] text-sm font-semibold text-center py-5">Submission Date</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Organization</TableHead>
+              <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Organization</TableHead>
               <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Activity Name</TableHead>
-              <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Categories</TableHead>
+              <TableHead className="w-[250px] text-sm font-semibold text-center py-5">Activity Type</TableHead>
               <TableHead className="w-[180px] text-sm font-semibold text-center py-5">Activity Date</TableHead>
               <TableHead className="w-[200px] text-sm font-semibold text-center py-5">Venue</TableHead>
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Status</TableHead>
-              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Actions</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Adviser</TableHead>
+              <TableHead className="w-[150px] text-sm font-semibold text-center py-5">Status</TableHead>  
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredActivities.map((activity, index) => (
-              <TableRow key={index} className="border-b border-gray-100">
-                <TableCell className="py-5 text-sm text-center">{activity.submissionDate}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.organization}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.activityName}</TableCell>
-                <TableCell className="py-5">
-                  <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
-                    {activity.activityTypes.slice(0, 3).map(typeId => (
-                      <Badge 
-                        key={typeId}
-                        variant="secondary"
-                        className={`${
-                          typeId === selectedType 
-                            ? 'bg-[#014421] text-white hover:bg-[#014421]' 
-                            : ''
-                        } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
-                      >
-                        <span className="inline-block truncate max-w-[200px]">
-                          {activityTypes.find(t => t.id === typeId)?.label.split(': ')[1]}
-                      </span>
-                      </Badge>
-                    ))}
-                    {activity.activityTypes.length > 3 && (
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                          +{activity.activityTypes.length - 3}
-                        </div>
-                        more
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.activityDate}</TableCell>
-                <TableCell className="py-5 text-sm text-center">{activity.venue}</TableCell>
-                <TableCell className="py-5">
-                  <div className="flex items-center justify-center">
-                    <Badge 
-                      variant={activity.status === 'Approved' ? 'success' : 'warning'}
-                      className="text-sm px-4 py-1"
-                    >
-                      {activity.status}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="py-5">
-                  <div className="flex items-center justify-center">
-                      <Button
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-sm px-6 text-white bg-[#7B1113] hover:bg-[#641113] border-0"
-                      onClick={() => {
-                        setSelectedActivity(activity);
-                        setIsModalOpen(true);
-                      }}
-                      >
-                        Details
-                      </Button>
-                  </div>
+            {filteredActivities.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
+                  No activities found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredActivities.map((activity, index) => (
+                <TableRow key={index} className="border-b border-gray-100">
+                  <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {new Date(activity.created_at).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
+                    })}
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {activity.activity_name}
+                  </TableCell>
+                  <TableCell className="py-5">
+                    <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
+                      {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
+                        <Badge
+                          key={typeId}
+                          variant="secondary"
+                          className={`${
+                            typeId === selectedType
+                              ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]'
+                              : ''
+                          } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
+                        >
+                          <span className="inline-block truncate max-w-[200px]">
+                            {formatActivityTypeLabel(typeId)}
+                          </span>
+                        </Badge>
+                      ))}
+                      {(activity.activity_type?.split(",") || []).length > 3 && (
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                            +{activity.activity_type.split(",").length - 3}
+                          </div>
+                          more
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {activity.schedule?.[0]?.start_date
+                      ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })
+                      : "TBD"}
+                  </TableCell>
+                  <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
+                  <TableCell className="py-5 text-sm text-center">
+                    {activity.organization?.adviser_name || "N/A"}
+                  </TableCell>
+                  <TableCell className="py-5">
+                    <div className="flex items-center justify-center">
+                      <Badge
+                        variant={activity.final_status === 'Approved' ? 'success' : 'warning'}
+                        className="text-sm px-4 py-1"
+                      >
+                        {activity.final_status || "Pending"}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 px-5">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setSelectedActivity(activity);
+                          setIsModalOpen(true);
+                        }}
+                        className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
-      </div>
+      )}
+
+      </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
-          <DialogHeader className="px-2">
-            <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
-          </DialogHeader>
-          {selectedActivity && (
-            <div className="space-y-6 px-2">
-              {/* Activity Title, Description and Organization */}
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">{selectedActivity.activityName}</h2>
-                <p className="text-sm text-gray-600">{selectedActivity.organization}</p>
-                <p className="text-sm text-gray-700 mt-2">{selectedActivity.activityDescription}</p>
-              </div>
-
-              {/* General Information */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Activity Type:</span>
-                    <span>{selectedActivity.activityType}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Adviser Name:</span>
-                    <span>{selectedActivity.adviser}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Charge Fee:</span>
-                    <span>No</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Adviser Contact:</span>
-                    <span>{selectedActivity.adviserContact || "09123456789"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Specifications */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">Specifications</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue:</span>
-                    <span>{selectedActivity.venue}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Green Monitor:</span>
-                    <span>Monitor</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue Approver:</span>
-                    <span>Approver</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Monitor Contact:</span>
-                    <span>Contact</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue Contact:</span>
-                    <span>Contact</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Schedule */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedActivity.activityDate}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Time:</span>
-                    <span>10:00 AM - 2:00 PM</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* University Partners */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
-                <div className="text-sm">
-                  <p>Department of Mathematics and Computer Science</p>
-                </div>
-              </div>
-
-              {/* List of Sustainable Development Goals */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                <div className="flex gap-2">
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded">No Poverty</span>
-                  <span className="text-sm bg-gray-100 px-2 py-1 rounded">Good Health and Well-being</span>
-                </div>
-              </div>
-
-              {/* Bottom Section with Status and View Form Button */}
-              <div className="flex justify-between items-center">
-                <Button 
-                  className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
-                >
-                  View Scanned Form
-                </Button>
-                <Badge 
-                  variant={selectedActivity.status === 'Approved' ? 'success' : 'warning'}
-                  className="text-sm px-4 py-1"
-                >
-                  {selectedActivity.status}
-                </Badge>
-              </div>
-            </div>
-          )}
-        </DialogContent>
+        {selectedActivity && (
+          <ActivityDialogContent
+            activity={selectedActivity}
+            setActivity={setSelectedActivity}
+            isModalOpen={isModalOpen}
+            readOnly={true}
+          />
+        )}
       </Dialog>
 
       {/* See Activities Calendar Button */}
       <div className="flex justify-end mt-4">
         <Link to="/admin/activities-calendar">
-          <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm">
-            See Activities Calendar
+          <Button className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm">
+            See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
           </div>

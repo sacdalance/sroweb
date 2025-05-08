@@ -6,12 +6,14 @@ import protectedRoutes from './routes/protectedRoutes.js';
 
 import userActivitiesRoutes from "./routes/userActivitiesRoutes.js";
 import activityRequestRoutes from './routes/activityRequestRoutes.js';
+import activityEditRoutes from './routes/activityEditRoutes.js';
 
 import organizationRoutes from './routes/organizationRoutes.js';
 
 import annualReportRoutes from './routes/annualReportRoutes.js';
 
-import adminActivitiesRoutes from "./routes/adminActivitiesRoutes.js";
+import adminActivitiesRoutes from "./routes/adminPendingActivitiesRoutes.js";
+import adminActivityRoutes from './routes/adminActivityRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 
 import dotenv from 'dotenv';
@@ -33,6 +35,7 @@ app.use('/api', protectedRoutes);
 // Activity Request
 app.use('/activityRequest', activityRequestRoutes);
 app.use('/activities', userActivitiesRoutes);
+app.use('/activityEdit', activityEditRoutes);
 
 // Organizations
 app.use('/api/organization', organizationRoutes);
@@ -41,6 +44,7 @@ app.use('/api/annual-report', annualReportRoutes);
 
 // Admin
 app.use("/api/activities", adminActivitiesRoutes);
+app.use('/api', adminActivityRoutes);
 
 // Appointments
 app.use("/api/appointments", appointmentRoutes);

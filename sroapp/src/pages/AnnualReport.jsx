@@ -8,6 +8,7 @@ import { toast, Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchOrganizations } from "@/api/annualReportAPI";
 import { submitAnnualReport } from "@/api/annualReportAPI";
+import supabase from "@/lib/supabase"; 
 
 const AnnualReport = () => {
   const [files, setFiles] = useState([]);
@@ -29,6 +30,35 @@ const AnnualReport = () => {
 
   const [isDragActive, setIsDragActive] = useState(false);
 
+
+  // For fetching account_id
+  useEffect(() => {
+    const fetchUserAccount = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+  
+      if (error || !user) {
+        console.error("No user session found");
+        return;
+      }
+  
+      const { data, error: fetchErr } = await supabase
+        .from("account")
+        .select("account_id")
+        .eq("email", user.email)
+        .single();
+  
+      if (fetchErr) {
+        console.error("Failed to fetch account_id", fetchErr.message);
+      } else {
+        setUserId(data.account_id);
+      }
+    };
+  
+    fetchUserAccount();
+  }, []);
+  
+  
+  // Fetching org data for autofill
   useEffect(() => {
     const loadOrgs = async () => {
       try {

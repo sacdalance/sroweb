@@ -1,19 +1,16 @@
-import streamifier from 'streamifier';
 import express from 'express';
-import multer from 'multer';
-import cors from 'cors';
 import { supabase } from '../supabaseClient.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import streamifier from 'streamifier';
+import multer from 'multer';
 import { google } from 'googleapis';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.use(cors());
-
-// GOOGLE DRIVE AUTH
+// Google Drive setup
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GDRIVE_CLIENT_EMAIL,
@@ -25,7 +22,6 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
-// Upload to Google Drive function
 async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
   const fileMetadata = {
     name: fileName,
@@ -43,7 +39,6 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
     fields: 'id',
   });
 
-  // Make the file viewable by anyone with the link
   await drive.permissions.create({
     fileId: uploadRes.data.id,
     requestBody: {
@@ -64,15 +59,14 @@ function generateActivityId() {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yy = String(now.getFullYear()).slice(2);
-  const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  const random = Math.floor(1000 + Math.random() * 9000);
   return `${mm}${yy}-${random}`;
 }
 
-// ACTIVITY REQUEST SUBMISSION
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/admin/activity', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     const {
-      account_id, org_id, student_position, student_contact, activity_name, activity_description, activity_type,
+      org_id, student_position, student_contact, activity_name, activity_description, activity_type,
       sdg_goals, charge_fee, university_partner, partner_name, partner_role, venue,
       venue_approver, venue_approver_contact, is_off_campus, green_monitor_name,
       green_monitor_contact, is_recurring, start_date, end_date, start_time, end_time, recurring_days
@@ -93,6 +87,18 @@ router.post('/', upload.single('file'), async (req, res) => {
       );
     }
 
+    const user = req.user;
+    const { data: accountData, error: accountError } = await supabase
+      .from("account")
+      .select("account_id")
+      .eq("email", user.email)
+      .single();
+
+    if (accountError || !accountData) {
+      return res.status(404).json({ message: "User not found in account table." });
+    }
+
+    const account_id = accountData.account_id;
     const activity_id = generateActivityId();
 
     const { data: activityInsertData, error: activityError } = await supabase.from('activity').insert([{
@@ -115,27 +121,30 @@ router.post('/', upload.single('file'), async (req, res) => {
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      drive_folder_link
+      drive_folder_link,
+      sro_approval_status: 'Approved',
+      odsa_approval_status: 'Approved',
+      final_status: 'Approved'
     }]).select();
 
     if (activityError) throw activityError;
 
     const { error: scheduleError } = await supabase.from('activity_schedule').insert([{
       activity_id,
-      is_recurring,
-      start_date,
+      is_recurring: is_recurring || 'one-time',
+      start_date: start_date || new Date().toISOString().split("T")[0],
       end_date: end_date || null,
-      start_time,
-      end_time,
+      start_time: start_time || "00:00",
+      end_time: end_time || "00:00",
       recurring_days: recurring_days || null
     }]);
 
     if (scheduleError) throw scheduleError;
 
-    res.status(201).json({ message: 'Activity submitted!', data: activityInsertData });
+    res.status(201).json({ message: 'Admin activity submitted and auto-approved.', data: activityInsertData });
 
   } catch (error) {
-    console.error('Submission Error:', error.message);
+    console.error('Submission Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

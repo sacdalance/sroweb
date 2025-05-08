@@ -93,12 +93,22 @@ const AdminAppointmentSettings = () => {
     loadData();
   }, []);
 
-  // Load upcoming appointments
+  // Update the appointments query to include all needed fields
   const loadAppointments = async () => {
     try {
       // Get current date
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
+      
+      // Get appointment settings for interval
+      const { data: settings, error: settingsError } = await supabase
+        .from('appointment_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (settingsError) throw settingsError;
       
       // Get upcoming appointments
       const { data, error } = await supabase
@@ -121,7 +131,37 @@ const AdminAppointmentSettings = () => {
       
       if (error) throw error;
       
-      setAppointments(data);
+      // Format the appointments with end time based on interval
+      const formattedAppointments = data.map(appointment => {
+        const startTime = new Date(`2000-01-01T${appointment.appointment_time}`);
+        const endTime = new Date(startTime.getTime() + (settings?.interval_minutes || 30) * 60000);
+        
+        const timeRange = `${startTime.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })} - ${endTime.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })}`;
+
+        // Split name into last name and first name
+        const fullName = appointment.account?.account_name || '';
+        const [lastName, ...firstNames] = fullName.split(',').map(part => part.trim());
+        const formattedName = lastName && firstNames.length 
+          ? `${lastName.toUpperCase()}, ${firstNames.join(' ')}` 
+          : fullName;
+        
+        return {
+          ...appointment,
+          timeRange,
+          formattedName,
+          fullDetails: `${appointment.reason}${appointment.notes ? ` - ${appointment.notes}` : ''}`
+        };
+      });
+      
+      setAppointments(formattedAppointments);
       setLoadingAppointments(false);
     } catch (error) {
       console.error("Error loading appointments:", error);

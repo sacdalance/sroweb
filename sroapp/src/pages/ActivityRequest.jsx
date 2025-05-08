@@ -432,6 +432,7 @@ const ActivityRequest = () => {
                 account_id,
                 org_id: parseInt(selectedValue), //change this    
                 student_position: studentPosition,
+                student_contact: studentContact,
                 activity_name: activityName,
                 activity_description: activityDescription,
                 activity_type: selectedActivityType,
