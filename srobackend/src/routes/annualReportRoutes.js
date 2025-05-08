@@ -4,31 +4,35 @@ import streamifier from 'streamifier';
 import cors from 'cors';
 import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 router.use(cors());
 
-import dotenv from 'dotenv';
-dotenv.config();
+// ✅ Load environment variables
+const parentFolderId = process.env.GDRIVE_ANNUAL_REPORT_FOLDER_ID;
+const serviceAccountEmail = process.env.GDRIVE_CLIENT_EMAIL;
+const privateKey = process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n');
+const projectId = process.env.GDRIVE_PROJECT_ID;
 
-// 🔒 Hardcoded parent folder ID — replace this when migrating to .env
-const parentFolderId = process.env.GDRIVE_ANNUAL_REPORT_FOLDER_ID; // TODO: Move to .env for production
-
-// 🔑 Google Drive service account auth
+// 🔐 Google Drive API client setup
 const auth = new google.auth.GoogleAuth({
   credentials: {
-    client_email: process.env.GDRIVE_CLIENT_EMAIL, // TODO: Move to .env
-    private_key: process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n'), // TODO: Move to .env
+    client_email: serviceAccountEmail,
+    private_key: privateKey,
   },
-  projectId: process.env.GDRIVE_PROJECT_ID, // TODO: Move to .env
+  projectId: projectId,
   scopes: ['https://www.googleapis.com/auth/drive'],
 });
 
 const drive = google.drive({ version: 'v3', auth });
 
 /**
- * ✅ Create Drive folder and share with allowedEmails
+ * ✅ Create a Google Drive folder under the given parent folder
+ * and share it with the submitter and admin accounts (writers/editors)
  */
 async function createDriveFolder(folderName, parentId, allowedEmails = []) {
   console.log("📁 Target Parent Folder ID:", parentId);
@@ -46,22 +50,37 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
 
   const folderId = folder.data.id;
 
-  // 🧪 Confirm parent is correct
+  // 🧪 Check parent and ownership
   const folderDetails = await drive.files.get({
     fileId: folderId,
-    fields: 'id, name, parents, webViewLink',
+    fields: 'id, name, parents, webViewLink, owners',
   });
 
   const actualParents = folderDetails.data.parents;
+  const folderOwner = folderDetails.data.owners?.[0]?.emailAddress;
+
   console.log("📦 Created Folder ID:", folderId);
   console.log("📦 Actual Parent(s):", actualParents);
+  console.log("👤 Folder Owned By:", folderOwner);
 
   if (!actualParents || !actualParents.includes(parentId)) {
     throw new Error(`🚫 Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
   }
 
-  // 🔐 Share folder with allowedEmails
+  // 🔐 Always share with srotest128@gmail.com
+  await drive.permissions.create({
+    fileId: folderId,
+    requestBody: {
+      type: 'user',
+      role: 'writer',
+      emailAddress: 'srotest128@gmail.com',
+    },
+  });
+
+  // 🔐 Share with remaining allowed emails (submitter + admins)
   for (const email of allowedEmails) {
+    if (email === 'srotest128@gmail.com') continue;
+
     await drive.permissions.create({
       fileId: folderId,
       requestBody: {
@@ -76,7 +95,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
 }
 
 /**
- * ✅ Upload file to Google Drive folder
+ * ✅ Upload a file into the created Drive folder
  */
 async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
   const fileMetadata = {
@@ -104,13 +123,14 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
 }
 
 /**
- * ✅ Main route: Upload Annual Report
+ * ✅ POST / - Handles uploading annual report and storing metadata
  */
 router.post('/', upload.array('files', 2), async (req, res) => {
   try {
     const { org_id, submitted_by, academic_year } = req.body;
     const files = req.files;
 
+    // 🚨 Validate required fields
     if (!org_id || !submitted_by || !academic_year) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -125,7 +145,7 @@ router.post('/', upload.array('files', 2), async (req, res) => {
       }
     }
 
-    // 🔎 Get org name
+    // 🔍 Get organization name
     const { data: orgData, error: orgError } = await supabase
       .from('organization')
       .select('org_name')
@@ -134,31 +154,41 @@ router.post('/', upload.array('files', 2), async (req, res) => {
 
     if (orgError || !orgData) throw new Error('Failed to fetch organization name.');
 
-    // 🔎 Get submitter email
-    const { data: accountData, error: accountError } = await supabase
+    // 🔍 Get submitter email
+    const { data: submitterData, error: submitterError } = await supabase
       .from('account')
       .select('email')
       .eq('account_id', submitted_by)
       .single();
 
-    if (accountError || !accountData?.email) {
+    if (submitterError || !submitterData?.email) {
       throw new Error('Failed to fetch submitter email.');
     }
 
-    const folderName = `${orgData.org_name} - Annual Report ${academic_year}`;
-    const allowedEmails = [accountData.email];
+    // 🔍 Get all SRO (2), ODSA (3), and Superadmin (4) emails
+    const { data: adminAccounts, error: adminError } = await supabase
+      .from('account')
+      .select('email')
+      .in('role_id', [2, 3, 4]);
 
-    // 📂 Create folder and upload files
+    if (adminError) throw new Error('Failed to fetch admin emails.');
+
+    const adminEmails = adminAccounts.map(acc => acc.email);
+    const allowedEmails = [submitterData.email, ...adminEmails];
+
+    // 📂 Create Google Drive folder
+    const folderName = `${orgData.org_name} - Annual Report ${academic_year}`;
     const folder = await createDriveFolder(folderName, parentFolderId, allowedEmails);
     const folderId = folder.id;
 
+    // 📄 Upload files to that folder
     const uploadedLinks = await Promise.all(
       files.map(file =>
         uploadToGoogleDrive(file.buffer, file.originalname, file.mimetype, folderId)
       )
     );
 
-    // 📝 Save to Supabase
+    // 📝 Insert record into Supabase
     const { error: insertError } = await supabase.from('org_annual_report').insert([{
       org_id: parseInt(org_id),
       submitted_by: parseInt(submitted_by),
