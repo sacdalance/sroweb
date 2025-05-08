@@ -37,19 +37,19 @@ import {
 } from "@/components/ui/select";
 
 const activityTypes = [
-  { id: 'A', label: 'A: Charitable', color: 'bg-[#014421]' },
-  { id: 'B', label: 'B: Service (within UPB)', color: 'bg-[#014421]' },
-  { id: 'C', label: 'C: Service (outside UPB)', color: 'bg-[#014421]' },
-  { id: 'D', label: 'D: Contest (within UPB)', color: 'bg-[#014421]' },
-  { id: 'E', label: 'E: Contest (outside UPB)', color: 'bg-[#014421]' },
-  { id: 'F', label: 'F: Educational', color: 'bg-[#014421]' },
-  { id: 'G', label: 'G: Income Generating Project', color: 'bg-[#014421]' },
-  { id: 'H', label: 'H: Mass Orientation/GA', color: 'bg-[#014421]' },
-  { id: 'I', label: 'I: Booth', color: 'bg-[#014421]' },
-  { id: 'J', label: 'J: Rehearsals/Preparation', color: 'bg-[#014421]' },
-  { id: 'K', label: 'K: Special Events', color: 'bg-[#014421]' },
-  { id: 'L', label: 'L: Others', color: 'bg-[#014421]' },
-  { id: 'all', label: 'Show All', color: 'bg-[#014421]' }
+  { id: 'A', label: 'A: Charitable', color: 'bg-[#7B1113]' },
+  { id: 'B', label: 'B: Service (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'C', label: 'C: Service (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'D', label: 'D: Contest (within UPB)', color: 'bg-[#7B1113]' },
+  { id: 'E', label: 'E: Contest (outside UPB)', color: 'bg-[#7B1113]' },
+  { id: 'F', label: 'F: Educational', color: 'bg-[#7B1113]' },
+  { id: 'G', label: 'G: Income Generating Project', color: 'bg-[#7B1113]' },
+  { id: 'H', label: 'H: Mass Orientation/GA', color: 'bg-[#7B1113]' },
+  { id: 'I', label: 'I: Booth', color: 'bg-[#7B1113]' },
+  { id: 'J', label: 'J: Rehearsals/Preparation', color: 'bg-[#7B1113]' },
+  { id: 'K', label: 'K: Special Events', color: 'bg-[#7B1113]' },
+  { id: 'L', label: 'L: Others', color: 'bg-[#7B1113]' },
+  { id: 'all', label: 'Show All', color: 'bg-[#7B1113]' }
 ];
 
 // Mock data for the table with multiple categories per activity
@@ -356,24 +356,24 @@ const AdminActivitySummary = () => {
           <div className="flex justify-center px-8">
             <Tabs value={filter} onValueChange={setFilter} className="w-[400px]">
               <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
-                <TabsTrigger 
-                  value="all"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-4xl"
-                >
-                  Show All
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="approved"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none"
-                >
-                  Approved ({approvedCount})
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="pending"
-                  className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-black data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
-                >
-                  Pending ({pendingCount})
-                </TabsTrigger>
+              <TabsTrigger 
+                value="all"
+                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-4xl"
+              >
+                Show All
+              </TabsTrigger>
+              <TabsTrigger 
+                value="approved"
+                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none"
+              >
+                Approved ({approvedCount})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="pending"
+                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
+              >
+                Pending ({pendingCount})
+              </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -408,7 +408,7 @@ const AdminActivitySummary = () => {
                         variant="secondary"
                         className={`${
                           typeId === selectedType 
-                            ? 'bg-[#014421] text-white hover:bg-[#014421]' 
+                            ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]' 
                             : ''
                         } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
                       >
@@ -559,7 +559,7 @@ const AdminActivitySummary = () => {
               {/* Bottom Section with Status and View Form Button */}
               <div className="flex justify-between items-center">
                 <Button 
-                  className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
+                  className="text-sm bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
                 >
                   View Scanned Form
                 </Button>
@@ -578,7 +578,7 @@ const AdminActivitySummary = () => {
       {/* See Activities Calendar Button */}
       <div className="flex justify-end mt-4">
         <Link to="/admin/activities-calendar">
-          <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm">
+          <Button className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm">
             See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
