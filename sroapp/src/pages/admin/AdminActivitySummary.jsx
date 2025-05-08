@@ -191,8 +191,10 @@ const AdminActivitySummary = () => {
   // Function to check if an activity matches the applied filters
   const matchesFilters = (activity) => {
     // Organization filter
-    if (appliedFilters.organization !== "All Organizations" && 
-        activity.organization !== appliedFilters.organization) {
+    if (
+      appliedFilters.organization !== "All Organizations" &&
+      activity.organization?.org_name !== appliedFilters.organization
+    ) {
       return false;
     }
 
@@ -219,7 +221,15 @@ const AdminActivitySummary = () => {
   };
 
   // Get all activities of the selected type first
-  const activitiesOfSelectedType = summaryActivities;
+  const activitiesOfSelectedType = summaryActivities.filter((activity) => {
+    if (
+      appliedFilters.organization !== "All Organizations" &&
+      activity.organization?.org_name !== appliedFilters.organization
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   // Then apply status filter for display
   const filteredActivities = activitiesOfSelectedType.filter(activity => {

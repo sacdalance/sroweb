@@ -81,7 +81,18 @@ router.get("/summary/counts", verifyAdminRoles, async (req, res) => {
   }
 
   if (organization && organization !== "All Organizations") {
-    query = query.eq("organization.org_name", organization);
+    // Look up the org_id from org_name
+    const { data: orgMatch, error: orgError } = await supabase
+      .from("organization")
+      .select("org_id")
+      .eq("org_name", organization)
+      .single();
+  
+    if (orgError || !orgMatch) {
+      return res.status(400).json({ error: "Organization not found" });
+    }
+  
+    query = query.eq("org_id", orgMatch.org_id); // filter by ID
   }
 
   if (year && year !== "All Academic Years") {
