@@ -110,4 +110,15 @@ router.get("/summary/counts", verifyAdminRoles, async (req, res) => {
   return res.status(200).json({ approved, pending });
 });
 
+router.get("/organizations", verifyAdminRoles, async (req, res) => {
+  const { data, error } = await supabase
+    .from("organization")
+    .select("org_name")
+    .order("org_name", { ascending: true });
+
+  if (error) return res.status(500).json({ error: error.message });
+  const names = data.map((org) => org.org_name);
+  res.status(200).json(names);
+});
+
 export default router;

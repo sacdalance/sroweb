@@ -1,10 +1,20 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Filter, X } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
-import { fetchSummaryActivities, fetchSummaryCounts } from "@/api/adminActivityAPI";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -13,23 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Link } from "react-router-dom";
-import { Eye, ChevronDown } from "lucide-react";
-import { ArrowRight, ChevronLeft, ChevronRight, FileText, Calendar, Clock, User } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -37,6 +30,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { fetchSummaryActivities, fetchSummaryCounts, fetchOrganizationNames } from "@/api/adminActivityAPI";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import { Link } from "react-router-dom";
+import {
+  Filter,
+  X,
+  Eye,
+  ChevronDown,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Calendar,
+  Clock,
+  User,
+  Check,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -73,15 +96,6 @@ const activityTypes = [
   { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-[#7B1113]' }
 ];
 
-
-const organizations = [
-  "All Organizations",
-  "Computer Science Society",
-  "UP Aguman",
-  "Junior Blockchain Education Consortium of the Philippines",
-  "Samahan ng Organisasyon UPB"
-];
-
 const months = [
   "All Months",
   "January", "February", "March", "April", "May", "June",
@@ -97,7 +111,7 @@ const academicYears = [
 ];
 
 const AdminActivitySummary = () => {
-  const [selectedType, setSelectedType] = useState('A');
+  const [selectedType, setSelectedType] = useState('all');
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,6 +119,8 @@ const AdminActivitySummary = () => {
   const [selectedOrg, setSelectedOrg] = useState("All Organizations");
   const [selectedMonth, setSelectedMonth] = useState("All Months");
   const [selectedYear, setSelectedYear] = useState("All Academic Years");
+  const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
+  const [orgSearchTerm, setOrgSearchTerm] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     organization: "All Organizations",
     month: "All Months",
@@ -154,6 +170,23 @@ const AdminActivitySummary = () => {
   
     fetchCounts();
   }, [selectedType, appliedFilters]);
+
+  const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
+  useEffect(() => {
+    const loadOrgs = async () => {
+      try {
+        const orgs = await fetchOrganizationNames();
+        setOrganizationOptions(["All Organizations", ...orgs]);
+      } catch (err) {
+        console.error("Failed to load organizations:", err);
+      }
+    };
+  
+    loadOrgs();
+  }, []);
+  const filteredOrgOptions = organizationOptions.filter((org) =>
+    org.toLowerCase().includes(orgSearchTerm.toLowerCase())
+  );
 
   // Function to check if an activity matches the applied filters
   const matchesFilters = (activity) => {
@@ -317,18 +350,59 @@ const AdminActivitySummary = () => {
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <label className="text-sm font-medium">Organization</label>
-                      <Select value={selectedOrg} onValueChange={setSelectedOrg}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select organization" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {organizations.map((org) => (
-                            <SelectItem key={org} value={org}>
-                              {org}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid gap-2">
+                        <label className="text-sm font-medium">Organization</label>
+                        <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <div
+                              id="orgSelect"
+                              role="combobox"
+                              aria-expanded={orgPopoverOpen}
+                              className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
+                            >
+                              <span className={cn(!selectedOrg && "text-muted-foreground")}>
+                                {selectedOrg || "Type your org name or select from the list"}
+                              </span>
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </div>
+                          </PopoverTrigger>
+
+                          <PopoverContent align="start" className="w-full max-w-md p-0">
+                            <Input
+                              placeholder="Search organization..."
+                              value={orgSearchTerm}
+                              onChange={(e) => setOrgSearchTerm(e.target.value)}
+                              className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {filteredOrgOptions.length > 0 ? (
+                                filteredOrgOptions.map((org) => (
+                                  <button
+                                    key={org}
+                                    onClick={() => {
+                                      setSelectedOrg(org);
+                                      setOrgSearchTerm(org);
+                                      setOrgPopoverOpen(false);
+                                    }}
+                                    className={cn(
+                                      "w-full text-left px-4 py-2 hover:bg-gray-100",
+                                      selectedOrg === org && "bg-gray-100 font-medium"
+                                    )}
+                                  >
+                                    {org}
+                                    {selectedOrg === org && (
+                                      <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                                    )}
+                                  </button>
+                                ))
+                              ) : (
+                                <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
             </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">

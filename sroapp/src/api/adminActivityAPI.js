@@ -66,3 +66,16 @@ export const fetchSummaryCounts = async (filters) => {
   if (!res.ok) throw new Error("Failed to fetch summary counts.");
   return await res.json();
 };
+
+export const fetchOrganizationNames = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const res = await fetch("/api/activities/organizations", {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch organizations.");
+  return await res.json();
+};
