@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, ChevronDown } from "lucide-react";
 import supabase from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
+import axios from "axios";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,43 +145,51 @@ const AdminPanel = () => {
   // Fetch incoming activity requests
   useEffect(() => {
     const fetchIncomingRequests = async () => {
-      try {
-        setRequestsLoading(true);
-        const { data, error } = await supabase
-          .from('activity')
-          .select(`
-            activity_id,
-            activity_name,
-            submission_date,
-            organization:organization(org_name),
-            schedule:activity_schedule(start_date),
-            final_status
-          `)
-          .in('final_status', ['Pending', 'Appeal'])
-          .order('submission_date', { ascending: false })
-          .limit(8);
+        try {
+            setRequestsLoading(true);
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            const access_token = sessionData?.session?.access_token;
 
-        if (error) throw error;
+            if (!access_token) {
+                console.error("No access token found");
+                return;
+            }
 
-        // Transform the data
-        const transformedRequests = data.map(request => ({
-          id: request.activity_id,
-          submissionDate: new Date(request.submission_date).toLocaleDateString(),
-          activityName: request.activity_name,
-          organization: request.organization?.org_name || 'N/A',
-          activityDate: request.schedule?.[0]?.start_date 
-            ? new Date(request.schedule[0].start_date).toLocaleDateString()
-            : 'TBD',
-          status: request.final_status
-        }));
+            const res = await axios.get("/api/activities/incoming", {
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                },
+            });
 
-        setIncomingRequests(transformedRequests);
-      } catch (err) {
-        console.error('Error fetching incoming requests:', err);
-        setRequestsError(err.message);
-      } finally {
-        setRequestsLoading(false);
-      }
+            console.log("Fetched incoming requests:", res.data);
+            const allActivities = res.data;
+
+            // Filter requests based on status
+            const filteredRequests = allActivities.filter((request) => {
+                const isAppeal = request.final_status === "For Appeal";
+                const isPending = request.final_status === "Pending" || request.final_status === null; // Include NULL as pending
+                return isAppeal || isPending;
+            });
+
+            // Transform the data for display
+            const transformedRequests = filteredRequests.map((request) => ({
+                id: request.activity_id,
+                submissionDate: new Date(request.created_at).toLocaleDateString(),
+                activityName: request.activity_name,
+                organization: request.organization?.org_name || "N/A",
+                activityDate: request.schedule?.[0]?.start_date
+                    ? new Date(request.schedule[0].start_date).toLocaleDateString()
+                    : "TBD",
+                status: request.final_status || "Pending", // Treat NULL as "Pending"
+            }));
+
+            setIncomingRequests(transformedRequests);
+        } catch (error) {
+            console.error("Error fetching incoming requests:", error);
+            setRequestsError(error.message);
+        } finally {
+            setRequestsLoading(false);
+        }
     };
 
     fetchIncomingRequests();
@@ -309,36 +318,34 @@ const AdminPanel = () => {
                     <table className="w-full">
                       <thead className="bg-white">
                         <tr>
-                          <th className="px-4 py-3 text-left text-s font-medium text-black">Submission Date</th>
-                          <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Name</th>
-                          <th className="px-4 py-3 text-left text-s font-medium text-black">Organization</th>
-                          <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Date</th>
-                          <th className="px-4 py-3 text-left text-s font-medium text-black">Status</th>
-                          <th className="px-2 py-3 text-left text-s font-medium text-black"></th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black">Submission Date</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black">Activity Name</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black">Organization</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black">Activity Date</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black">Status</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {[...Array(5)].map((_, index) => (
                           <tr key={index} className="animate-pulse">
-                            <td className="px-6 py-3">
-                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
                             </td>
-                            <td className="px-6 py-3">
-                              <div className="h-4 bg-gray-200 rounded w-32"></div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
                             </td>
-                            <td className="px-6 py-3">
-                              <div className="h-4 bg-gray-200 rounded w-28"></div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-4 bg-gray-200 rounded w-28 mx-auto"></div>
                             </td>
-                            <td className="px-6 py-3">
-                              <div className="h-4 bg-gray-200 rounded w-24"></div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
                             </td>
-                            <td className="px-6 py-3">
-                              <div className="h-4 bg-gray-200 rounded w-16"></div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-4 bg-gray-200 rounded w-16 mx-auto"></div>
                             </td>
-                            <td className="px-6 py-3">
-                              <div className="flex justify-center">
-                                <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                              </div>
+                            <td className="px-6 py-3 text-center">
+                              <div className="h-5 w-5 bg-gray-200 rounded-full mx-auto"></div>
                             </td>
                           </tr>
                         ))}
@@ -353,37 +360,37 @@ const AdminPanel = () => {
                     Error loading requests: {requestsError}
                   </div>
                 ) : incomingRequests.length > 0 ? (
-                  <table className="w-full">
-                    <thead className="bg-[#f5f5f5]">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-s font-medium text-black">Submission Date</th>
-                        <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Name</th>
-                        <th className="px-4 py-3 text-left text-s font-medium text-black">Organization</th>
-                        <th className="px-4 py-3 text-left text-s font-medium text-black">Activity Date</th>
-                        <th className="px-4 py-3 text-left text-s font-medium text-black">Status</th>
-                        <th className="px-2 py-3 text-left text-s font-medium text-black"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {incomingRequests.map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-3 text-sm text-gray-700">{request.submissionDate}</td>
-                          <td className="px-6 py-3 text-sm text-gray-700">{request.activityName}</td>
-                          <td className="px-6 py-3 text-sm text-gray-700">{request.organization}</td>
-                          <td className="px-6 py-3 text-sm text-gray-700">{request.activityDate}</td>
-                          <td className="px-6 py-3 text-sm">
-                            <Badge 
-                              className={
-                                request.status === 'Appeal' 
-                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-100'
-                              }
-                            >
-                              {request.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-3 text-sm">
-                            <div className="flex justify-center">
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <table className="w-full">
+                      <thead className="bg-[#f5f5f5]">
+                        <tr>
+                          <th className="px-5 py-3 text-center text-sm font-medium text-black">Submission Date</th>
+                          <th className="px-5 py-3 text-center text-sm font-medium text-black">Activity Name</th>
+                          <th className="px-10 py-3 text-center text-sm font-medium text-black">Organization</th>
+                          <th className="px-10 py-3 text-center text-sm font-medium text-black">Activity Date</th>
+                          <th className="px-10 py-3 text-center text-sm font-medium text-black">Status</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-black"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {incomingRequests.slice(0, 5).map((request) => (
+                          <tr key={request.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.submissionDate}</td>
+                            <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.activityName}</td>
+                            <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.organization}</td>
+                            <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.activityDate}</td>
+                            <td className="px-6 py-3 text-sm text-center">
+                              <Badge
+                                className={
+                                  request.status === "Appeal"
+                                    ? "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                                }
+                              >
+                                {request.status}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-3 text-center">
                               <button
                                 onClick={() => {
                                   setSelectedActivity(request);
@@ -393,12 +400,12 @@ const AdminPanel = () => {
                               >
                                 <Eye className="h-5 w-5" />
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No pending or appeal requests
@@ -418,57 +425,6 @@ const AdminPanel = () => {
 
         {/* Right Column - Announcements and Calendar */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Announcements Section */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl font-bold text-[#7B1113]">Announcements</CardTitle>
-                <button
-                  onClick={() => setIsAnnouncementModalOpen(true)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  title="Write Announcement"
-                >
-                  <Pencil className="h-5 w-5 text-[#014421]" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {announcementsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
-                    <span className="ml-2 text-gray-600">Loading announcements...</span>
-                  </div>
-                ) : announcementsError ? (
-                  <div className="text-center py-4 text-red-500">
-                    Error loading announcements: {announcementsError}
-                  </div>
-                ) : announcements.length > 0 ? (
-                  announcements.map((announcement) => (
-                    <div key={announcement.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <div className="flex items-start space-x-3">
-                        <div className="flex-shrink-0">
-                          <div className="w-2 h-2 rounded-full bg-[#7B1113] mt-2"></div>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            Posted: {new Date(announcement.posted_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    No announcements available
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Activities Calendar Section */}
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
@@ -803,4 +759,3 @@ const AdminPanel = () => {
 };
 
 export default AdminPanel;
-  
