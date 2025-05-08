@@ -103,6 +103,7 @@ const months = [
 ];
 
 const AdminActivitySummary = () => {
+  const [tabCooldown, setTabCooldown] = useState(false);
   const [selectedType, setSelectedType] = useState('all');
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -252,15 +253,19 @@ const AdminActivitySummary = () => {
           <Button
             key={type.id}
             variant="ghost"
+            disabled={loading || tabCooldown}
             onClick={() => {
+              if (tabCooldown || loading) return;
               setSelectedType(type.id);
-              setFilter("all"); // reset tab view to Show All
+              setFilter("all");
+              setTabCooldown(true);
+              setTimeout(() => setTabCooldown(false), 800);
             }}
-            className={`rounded-full text-sm ${
-              selectedType === type.id 
+            className={`rounded-full text-sm transition-opacity ${
+              selectedType === type.id
                 ? type.color + ' text-white hover:text-white hover:' + type.color
                 : 'bg-gray-100 hover:bg-gray-200'
-            }`}
+            } ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""}`}
           >
             {type.label}
           </Button>
@@ -439,28 +444,50 @@ const AdminActivitySummary = () => {
           </div>
 
           <div className="flex justify-center px-8">
-            <Tabs value={filter} onValueChange={setFilter} className="w-[400px]">
-              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
-              <TabsTrigger 
-                value="all"
-                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-l-4xl"
-              >
-                Show All
-              </TabsTrigger>
-              <TabsTrigger 
-                value="approved"
-                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none"
-              >
-                Approved ({approvedCount})
-              </TabsTrigger>
-              <TabsTrigger 
-                value="pending"
-                className="text-sm h-8 flex items-center justify-center data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none rounded-r-4xl"
-              >
-                Pending ({pendingCount})
-              </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <Tabs
+          value={filter}
+          onValueChange={(val) => {
+            if (tabCooldown || loading) return;
+
+            setFilter(val);
+            setTabCooldown(true);
+
+            setTimeout(() => {
+              setTabCooldown(false);
+            }, 800); // cooldown in ms
+          }}
+          className="w-[400px]"
+        >
+          <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
+            <TabsTrigger
+              value="all"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Show All
+            </TabsTrigger>
+            <TabsTrigger
+              value="approved"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Approved ({approvedCount})
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              disabled={loading || tabCooldown}
+              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              Pending ({pendingCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
           </div>
         </div>
       {/* Table Section */}
