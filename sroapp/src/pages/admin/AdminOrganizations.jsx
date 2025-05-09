@@ -53,7 +53,9 @@ useEffect(() => {
   //     (organizations[selectedCategory] && organizations[selectedCategory].some(o => o.id === org.id));
   //   return matchesSearch && matchesCategory;
   // });
-  const filteredOrganizations = organizations;
+  const filteredOrganizations = organizations.filter((org) =>
+    org.org_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleGenerateCertificate = (orgId) => {
     console.log(`Generating certificate for: ${orgId}`);
