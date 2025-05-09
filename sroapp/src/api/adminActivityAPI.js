@@ -1,4 +1,5 @@
 import supabase from "@/lib/supabase";
+import axios from "axios";
 
 export const submitAdminActivity = async (activity, schedule, file) => {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -77,4 +78,76 @@ export const fetchAcademicYears = async () => {
 
   if (!res.ok) throw new Error("Failed to fetch academic years");
   return await res.json();
+};
+
+export const fetchIncomingRequests = async (access_token) => {
+  const res = await axios.get("/api/activities/incoming", {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+  return res.data;
+};
+
+export const fetchApprovedActivities = async () => {
+  const { data, error } = await supabase
+    .from("activity")
+    .select(`*, organization:organization(*), schedule:activity_schedule(*)`)
+    .eq("final_status", "Approved");
+
+  if (error) throw error;
+  return data;
+};
+
+export const fetchOrgStats = async () => {
+  const currentYear = new Date().getFullYear();
+
+  const [{ data: annualReports = [] }, { data: pendingApps = [] }] = await Promise.all([
+    supabase
+      .from("org_annual_report")
+      .select("*")
+      .ilike("academic_year", `%${currentYear}`),
+
+    supabase
+      .from("org_recognition")
+      .select("*")
+      .eq("status", "Pending")
+  ]);
+
+  return {
+    annualReportsCount: annualReports.length,
+    pendingApplicationsCount: pendingApps.length,
+  };
+};
+
+export const fetchActivityCounts = async () => {
+  const { data, error } = await supabase.from("activity").select("final_status");
+
+  if (error) throw error;
+
+  let approved = 0, pending = 0, forAppeal = 0;
+  data.forEach(({ final_status }) => {
+    if (final_status === "Approved") approved++;
+    else if (final_status === "For Appeal") forAppeal++;
+    else pending++;
+  });
+
+  return { approved, pending, forAppeal };
+};
+
+export const fetchActivityDetails = async (activityId) => {
+  const { data: sdgData, error: sdgErr } = await supabase
+    .from("activity")
+    .select("sdg_goals")
+    .eq("activity_id", activityId);
+  if (sdgErr) throw sdgErr;
+
+  const { data: partnerData, error: partnerErr } = await supabase
+    .from("activity")
+    .select("partner_name")
+    .eq("activity_id", activityId);
+  if (partnerErr) throw partnerErr;
+
+  return {
+    sdgGoals: sdgData.map((g) => g.goal_name),
+    partners: partnerData.map((p) => p.partner_name),
+  };
 };

@@ -15,7 +15,12 @@ import { useState, useEffect } from "react";
   import { Eye, ChevronDown } from "lucide-react";
   import supabase from "@/lib/supabase";
   import { Input } from "@/components/ui/input";
-  import axios from "axios";
+  import {
+  fetchIncomingRequests,
+  fetchApprovedActivities,
+  fetchOrgStats,
+  fetchActivityDetails,
+} from "@/api/adminActivityAPI";
 
   const AdminPanel = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,6 +78,126 @@ import { useState, useEffect } from "react";
       return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
     };
 
+    useEffect(() => {
+    const getIncoming = async () => {
+      try {
+        setRequestsLoading(true);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const access_token = sessionData?.session?.access_token;
+        const requests = await fetchIncomingRequests(access_token);
+
+        // Calculate counts and map to frontend format
+        let forAppeal = 0, pending = 0;
+        const transformed = requests.map((request) => {
+          const isForAppeal = request.final_status === "For Appeal";
+          const isPending = request.final_status === "Pending" || request.final_status === null;
+          if (isForAppeal) forAppeal++;
+          if (isPending) pending++;
+          return {
+            id: request.activity_id,
+            submissionDate: new Date(request.created_at).toLocaleDateString(),
+            activityName: request.activity_name,
+            organization: request.organization?.org_name || "N/A",
+            activityDate: request.schedule?.[0]?.start_date
+              ? new Date(request.schedule[0].start_date).toLocaleDateString()
+              : "TBD",
+            status: request.final_status || "Pending",
+          };
+        });
+
+        setIncomingRequests(transformed);
+        setRequestsCounts((prev) => ({ ...prev, forAppeal, pending }));
+      } catch (err) {
+        console.error(err);
+        setRequestsError(err.message);
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
+    getIncoming();
+  }, []);
+
+  useEffect(() => {
+    const getApproved = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchApprovedActivities();
+
+        const approvedCount = data.filter(
+          (activity) => activity.final_status?.toLowerCase() === "approved"
+        ).length;
+
+        const transformed = data.map((activity) => {
+          const startTime = activity.schedule[0]?.start_time
+            ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
+                hour: "2-digit", minute: "2-digit",
+              })
+            : "00:00";
+          const endTime = activity.schedule[0]?.end_time
+            ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
+                hour: "2-digit", minute: "2-digit",
+              })
+            : "00:00";
+          return {
+            id: activity.activity_id,
+            name: activity.activity_name,
+            time: `${startTime} to ${endTime}`,
+            location: activity.venue,
+            category: activity.activity_type,
+            organization: activity.organization?.org_name,
+            date: activity.schedule[0]?.start_date,
+          };
+        });
+
+        setEvents(transformed);
+        setRequestsCounts((prev) => ({ ...prev, approved: approvedCount }));
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getApproved();
+  }, []);
+
+  useEffect(() => {
+    const getStats = async () => {
+      try {
+        const { annualReportsCount, pendingApplicationsCount } = await fetchOrgStats();
+        setRequestsCounts((prev) => ({
+          ...prev,
+          annualReports: annualReportsCount,
+          pendingApplications: pendingApplicationsCount,
+        }));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    getStats();
+  }, []);
+
+  useEffect(() => {
+    const getCounts = async () => {
+      try {
+        const activity = await fetchActivityCounts();
+        const orgStats = await fetchOrgStats();
+
+        setRequestsCounts({
+          approved: activity.approved,
+          pending: activity.pending,
+          forAppeal: activity.forAppeal,
+          annualReports: orgStats.annualReportsCount,
+          pendingApplications: orgStats.pendingApplicationsCount,
+        });
+      } catch (err) {
+        console.error("Failed to fetch summary counts", err);
+      }
+    };
+    getCounts();
+  }, []);
+
+
     // Function to get current day of week
     const getCurrentDay = () => {
       const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -101,179 +226,22 @@ import { useState, useEffect } from "react";
       { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
     ];
 
-    // Fetch incoming activity requests
-    useEffect(() => {
-      const fetchIncomingRequests = async () => {
-        try {
-          setRequestsLoading(true);
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-          const access_token = sessionData?.session?.access_token;
-
-          if (!access_token) {
-            console.error("No access token found");
-            return;
-          }
-
-          const res = await axios.get("/api/activities/incoming", {
-            headers: {
-              Authorization: `Bearer ${access_token}`,
-            },
-          });
-
-          console.log("Fetched incoming requests:", res.data);
-          const allActivities = res.data;
-
-          // Initialize counters for "For Appeal" and "Pending" statuses
-          let forAppealCount = 0;
-          let pendingCount = 0;
-
-          // Filter and transform the data
-          const transformedRequests = allActivities.map((request) => {
-            const isForAppeal = request.final_status === "For Appeal";
-            const isPending = request.final_status === "Pending" || request.final_status === null;
-
-            // Increment counters based on status
-            if (isForAppeal) forAppealCount++;
-            if (isPending) pendingCount++;
-
-            return {
-              id: request.activity_id,
-              submissionDate: new Date(request.created_at).toLocaleDateString(),
-              activityName: request.activity_name,
-              organization: request.organization?.org_name || "N/A",
-              activityDate: request.schedule?.[0]?.start_date
-                ? new Date(request.schedule[0].start_date).toLocaleDateString()
-                : "TBD",
-              status: request.final_status || "Pending", // Treat NULL as "Pending"
-            };
-          });
-
-          // Log the counts for debugging
-          console.log("For Appeal Count:", forAppealCount);
-          console.log("Pending Count:", pendingCount);
-
-          // Update state with transformed requests
-          setIncomingRequests(transformedRequests);
-
-          // Update the counts in state without overwriting the approved count
-          setRequestsCounts((prevCounts) => ({
-            ...prevCounts,
-            forAppeal: forAppealCount,
-            pending: pendingCount,
-          }));
-        } catch (error) {
-          console.error("Error fetching incoming requests:", error);
-          setRequestsError(error.message);
-        } finally {
-          setRequestsLoading(false);
-        }
-      };
-
-      fetchIncomingRequests();
-    }, []);
-
-    // Fetch activities from Supabase
-    useEffect(() => {
-      const fetchActivities = async () => {
-        try {
-          setLoading(true);
-          const { data, error } = await supabase
-            .from("activity")
-            .select(`
-              *,
-              organization:organization(*),
-              schedule:activity_schedule(*)
-            `)
-            .eq("final_status", "Approved"); // Fetch only approved activities
-
-          if (error) throw error;
-
-          // Count approved activities
-          const approvedCount = data.filter(
-            (activity) => activity.final_status?.toLowerCase() === "approved"
-          ).length;
-
-          // Transform the data to match our events structure
-          const transformedEvents = data.map((activity) => {
-            // Format time to show only hours and minutes
-            const startTime = activity.schedule[0]?.start_time
-              ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "00:00";
-            const endTime = activity.schedule[0]?.end_time
-              ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "00:00";
-
-            return {
-              id: activity.activity_id,
-              name: activity.activity_name,
-              time: `${startTime} to ${endTime}`,
-              location: activity.venue,
-              category: activity.activity_type,
-              organization: activity.organization?.org_name,
-              date: activity.schedule[0]?.start_date,
-            };
-          });
-
-          // Update state with transformed events
-          setEvents(transformedEvents);
-
-          // Update the approved count in state
-          setRequestsCounts((prevCounts) => ({
-            ...prevCounts,
-            approved: approvedCount, // Update the approved count
-          }));
-        } catch (err) {
-          console.error("Error fetching activities:", err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-    
-      fetchActivities();
-    }, []);
 
     // Filter events for the current week
     const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
 
     const handleViewDetails = async (request) => {
       try {
-        setSelectedActivity(null); // Clear previous activity details
-        setIsModalOpen(true); // Open the modal
-
-        // Fetch additional details for the selected activity
-        const { data: sdgGoalsData, error: sdgGoalsError } = await supabase
-          .from("activity")
-          .select("sdg_goals")
-          .eq("activity_id", request.id); // Match activity ID
-
-        if (sdgGoalsError) throw sdgGoalsError;
-
-        const { data: partnersData, error: partnersError } = await supabase
-          .from("activity")
-          .select("partner_name")
-          .eq("activity_id", request.id); // Match activity ID
-
-        if (partnersError) throw partnersError;
-
-        // Transform the fetched data
-        const sdgGoals = sdgGoalsData.map((goal) => goal.goal_name);
-        const partners = partnersData.map((partner) => partner.partner_name);
-
-        // Update the selected activity with additional details
+        setSelectedActivity(null);
+        setIsModalOpen(true);
+        const { sdgGoals, partners } = await fetchActivityDetails(request.id);
         setSelectedActivity({
           ...request,
           sdgGoals,
           partners,
         });
-      } catch (error) {
-        console.error("Error fetching activity details:", error);
+      } catch (err) {
+        console.error("Error fetching activity details:", err);
       }
     };
 
@@ -299,79 +267,6 @@ import { useState, useEffect } from "react";
     const currentWeekRange = "APRIL 6 - 12";
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     const activeDay = "WED"; // Highlighted day
-
-    // Fetch organization requests (annual reports) for the current academic year
-    const fetchOrganizationRequests = async () => {
-      try {
-        // Get the current year
-        const currentYear = new Date().getFullYear();
-
-        // Fetch and count annual reports where the last 4 digits of academic_year match the current year
-        const { data: annualReportsData, error: annualReportsError } = await supabase
-          .from("org_annual_report")
-          .select("*", { count: "exact" })
-          .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
-
-        if (annualReportsError) throw annualReportsError;
-
-        // Log the count of annual reports
-        console.log(`Annual Reports Count for ${currentYear}:`, annualReportsData.length);
-
-        // Fetch and count pending applications from the org_recognition table
-        const { data: pendingApplicationsData, error: pendingApplicationsError } = await supabase
-          .from("org_recognition")
-          .select("*", { count: "exact" })
-          .eq("status", "Pending"); // Filter for rows where status is "Pending"
-
-        if (pendingApplicationsError) throw pendingApplicationsError;
-
-        // Log the count of pending applications
-        console.log(`Pending Applications Count:`, pendingApplicationsData.length);
-
-        // Update the counts in state
-        setRequestsCounts((prevCounts) => ({
-          ...prevCounts,
-          annualReports: annualReportsData.length, // Update the annualReports count
-          pendingApplications: pendingApplicationsData.length, // Update the pendingApplications count
-        }));
-      } catch (error) {
-        console.error("Error fetching organization requests:", error);
-      }
-    };
-
-    useEffect(() => {
-      const fetchAnnualReports = async () => {
-        try {
-          setRequestsLoading(true); // Optional: Show loading state if needed
-
-          // Get the current year
-          const currentYear = new Date().getFullYear();
-
-          // Fetch and count annual reports where the last 4 digits of academic_year match the current year
-          const { data, error } = await supabase
-            .from("org_annual_report")
-            .select("*", { count: "exact" })
-            .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
-
-          if (error) throw error;
-
-          // Log the count of annual reports
-          console.log(`Annual Reports Count for ${currentYear}:`, data.length);
-
-          // Update the counts in state
-          setRequestsCounts((prevCounts) => ({
-            ...prevCounts,
-            annualReports: data.length, // Update the annualReports count
-          }));
-        } catch (error) {
-          console.error("Error fetching annual reports:", error);
-        } finally {
-          setRequestsLoading(false); // Optional: Hide loading state if needed
-        }
-      };
-
-      fetchAnnualReports();
-    }, []);
 
     return (
       <div className="max-w-[1500px] mx-auto p-6">
