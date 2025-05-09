@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils";
+
+import { submitOrgApplication } from "@/api/orgApplicationAPI";
+import supabase from "@/lib/supabase";
 
 const OrgApplication = () => {
 
@@ -45,6 +48,7 @@ const OrgApplication = () => {
 
   const [orgName, setOrgName] = useState("");
   
+  const [userId, setUserId] = useState(null); 
   const [orgTypeOpen, setOrgTypeOpen] = useState(false)
   const [orgType, setOrgType] = useState("")
   const [selectedOrgTypeName, setSelectedOrgTypeName] = useState("")
@@ -73,6 +77,33 @@ const OrgApplication = () => {
   const [coAdviser, setCoAdviser] = useState("");
   const [coAdviserEmail, setCoAdviserEmail] = useState("");
 
+  useEffect(() => {
+    const fetchUserAccount = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      const user = data?.session?.user;
+  
+      if (!user) {
+        console.error("No user session found");
+        return;
+      }
+  
+      const { data: accountData, error: fetchErr } = await supabase
+        .from("account")
+        .select("account_id")
+        .eq("email", user.email)
+        .single();
+  
+      if (fetchErr || !accountData?.account_id) {
+        console.error("Failed to fetch account_id", fetchErr?.message);
+      } else {
+        setUserId(accountData.account_id);
+      }
+    };
+  
+    fetchUserAccount();
+  }, []);
+  
+
   const handleFileChange = (e) => {
     const incomingFiles = Array.from(e.target.files);
     const pdfFiles = incomingFiles.filter((file) => file.type === "application/pdf");
@@ -96,57 +127,76 @@ const OrgApplication = () => {
     const newFiles = files.filter((_, idx) => idx !== indexToRemove);
     setFiles(newFiles);
   };
-  
-
-  const uploadToGoogleDrive = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "Organization Recognition");
-      formData.append("submissionType", "Organization Application");
-
-      const response = await fetch("/api/upload-to-drive", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to upload file to Google Drive");
-
-      return await response.json();
-    } catch (error) {
-      console.error("Error uploading to Google Drive:", error);
-      throw error;
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate required fields
+  
+    // ✅ Step 1: Validate required fields
+    const requiredFields = [
+      { label: "Organization Name", value: orgName },
+      { label: "Organization Email", value: orgEmail },
+      { label: "Chairperson", value: chairperson },
+      { label: "Chairperson Email", value: chairpersonEmail },
+      { label: "Adviser", value: adviser },
+      { label: "Adviser Email", value: adviserEmail },
+      { label: "Co-Adviser", value: coAdviser },
+      { label: "Co-Adviser Email", value: coAdviserEmail },
+      { label: "Organization Type", value: orgType },
+      { label: "Academic Year", value: academicYear },
+    ];
+  
     const missingFields = requiredFields.filter((field) => !field.value.trim());
     if (missingFields.length > 0) {
-      toast.error(`Please fill in the following fields: ${missingFields.map((f) => f.label).join(", ")}`);
+      toast.error(`Please fill in: ${missingFields.map((f) => f.label).join(", ")}`);
       return;
     }
-
-    // Validate file upload
+  
+    // ✅ Step 2: Validate file upload
     if (files.length !== 6) {
-      toast.error("Please upload exactly 6 files.");
+      toast.error("Please upload exactly 6 PDF files.");
       return;
     }
-
+  
     setIsUploading(true);
-    toast.loading("Uploading your files...");
+    toast.loading("Submitting organization application...");  
 
     try {
-      // Simulate file upload
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast.success("Files uploaded successfully.");
+      // ✅ Step 3: Call API to submit to Supabase and Google Drive
+      await submitOrgApplication({
+        org_name: orgName,
+        academic_year: academicYear,
+        org_email: orgEmail,
+        chairperson,
+        chairperson_email: chairpersonEmail,
+        adviser,
+        adviser_email: adviserEmail,
+        co_adviser: coAdviser,
+        coadviser_email: coAdviserEmail,
+        org_type: orgType,
+        files,
+        submitted_by: userId,
+      });
+  
+      toast.success("Submitted successfully!");
       setShowInterviewPrompt(true);
+  
+      // ✅ Step 4: Clear form after success
       setFiles([]);
+      setOrgName("");
+      setOrgEmail("");
+      setChairperson("");
+      setChairpersonEmail("");
+      setAdviser("");
+      setAdviserEmail("");
+      setCoAdviser("");
+      setCoAdviserEmail("");
+      setAcademicYear("");
+      setSelectedYear("");
+      setOrgType("");
+      setSelectedOrgTypeName("");
     } catch (error) {
-      console.error("Error during upload:", error);
-      toast.error("Error uploading files. Please try again.");
+      console.error("Submission error:", error);
+      toast.error(error.message || "Submission failed. Please try again.");
     } finally {
       toast.dismiss();
       setIsUploading(false);
@@ -478,8 +528,8 @@ const OrgApplication = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-center gap-4">
-            <Button onClick={() => navigate("/appointment-booking")}>Yes</Button>
-            <Button variant="destructive" onClick={() => toast.success("Submission complete.")}>
+            <Button onClick={() => handleInterviewResponse(true)}>Yes</Button>
+            <Button variant="destructive" onClick={() => handleInterviewResponse(false)}>
               No
             </Button>
           </DialogFooter>

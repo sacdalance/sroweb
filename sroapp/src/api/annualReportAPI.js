@@ -28,7 +28,7 @@ export const submitAnnualReport = async ({
   files.forEach((file) => formData.append("files", file)); // send as "files"
 
   try {
-    const response = await fetch("/api/annual-report", {
+    const response = await fetch("/api/annualReport", {
       method: "POST",
       body: formData,
     });
