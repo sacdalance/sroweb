@@ -178,50 +178,58 @@ import { useState, useEffect } from "react";
         try {
           setLoading(true);
           const { data, error } = await supabase
-            .from('activity')
+            .from("activity")
             .select(`
               *,
               organization:organization(*),
               schedule:activity_schedule(*)
             `)
-            .eq('final_status', 'Approved');
-    
+            .eq("final_status", "Approved"); // Fetch only approved activities
+
           if (error) throw error;
-    
-          // Initialize counter for approved activities
-          let approvedCount = 0;
-    
+
+          // Count approved activities
+          const approvedCount = data.filter(
+            (activity) => activity.final_status?.toLowerCase() === "approved"
+          ).length;
+
           // Transform the data to match our events structure
           const transformedEvents = data.map((activity) => {
-            // Increment the approved count
-            if (activity.final_status === "Approved") {
-              approvedCount++;
-            }
-    
+            // Format time to show only hours and minutes
+            const startTime = activity.schedule[0]?.start_time
+              ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "00:00";
+            const endTime = activity.schedule[0]?.end_time
+              ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "00:00";
+
             return {
               id: activity.activity_id,
               name: activity.activity_name,
-              time: `${activity.schedule[0]?.start_time || '00:00'} to ${activity.schedule[0]?.end_time || '00:00'}`,
+              time: `${startTime} to ${endTime}`,
               location: activity.venue,
               category: activity.activity_type,
               organization: activity.organization?.org_name,
               date: activity.schedule[0]?.start_date,
             };
           });
-    
-          // Log the approved count for debugging
-          console.log("Approved Count:", approvedCount);
-    
+
           // Update state with transformed events
           setEvents(transformedEvents);
-    
+
           // Update the approved count in state
           setRequestsCounts((prevCounts) => ({
             ...prevCounts,
-            approved: approvedCount,
+            approved: approvedCount, // Update the approved count
           }));
         } catch (err) {
-          console.error('Error fetching activities:', err);
+          console.error("Error fetching activities:", err);
           setError(err.message);
         } finally {
           setLoading(false);
@@ -480,32 +488,32 @@ import { useState, useEffect } from "react";
           {/* Right Column - Announcements and Calendar */}
           <div className="lg:col-span-1 space-y-6 ">
             {/* Activities Calendar Section */}
-            <Card className="shadow-sm">
+            <Card className="shadow-sm flex flex-col h-full">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-center ">
+                <div className="flex justify-between items-center">
                   <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
-                  <div className="flex items-center space-x-2 ">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                      onClick={() => handleWeekNavigation('prev')}
+                      onClick={() => handleWeekNavigation("prev")}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm font-medium">{getWeekRange(currentWeekStart)}</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                      onClick={() => handleWeekNavigation('next')}
+                      onClick={() => handleWeekNavigation("next")}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-grow">
                 {/* Days of the week with day numbers */}
                 <div className="grid grid-cols-7 gap-2 mb-4">
                   {Array.from({ length: 7 }, (_, i) => {
@@ -635,14 +643,14 @@ import { useState, useEffect } from "react";
                     })()}
                   </div>
                 )}
-                <div className="flex justify-center mt-4 border-t pt-4">
-                  <Link to="/admin/activities-calendar">
-                    <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
-                      See Activities Calendar <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
               </CardContent>
+              <div className="flex justify-center mt-auto border-t pt-4">
+                <Link to="/admin/activities-calendar">
+                  <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+                    See Activities Calendar <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             </Card>
           </div>
         </div>
