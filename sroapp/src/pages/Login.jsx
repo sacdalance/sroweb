@@ -43,9 +43,9 @@ const Login = () => {
                 <CardHeader className="flex flex-col items-center pt-8">
                     {/* SRO Logo */}
                     <img 
-                        src="https://i.imgur.com/DwPUF1G.jpeg" 
+                        src="/sms-logo.png" 
                         alt="SRO Logo" 
-                        className="w-24 h-24 rounded-full mb-4" 
+                        className="w-50 h-50 mb-4" 
                     />
 
                     {/* Welcome Text */}

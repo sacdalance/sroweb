@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Printer, Eye, Loader2 } from "lucide-react";
+import { Printer, Eye, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
 import { toast } from "sonner";
+import CustomCalendar from "@/components/ui/custom-calendar";
+import PropTypes from 'prop-types';
 
 const ActivitiesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,7 +24,7 @@ const ActivitiesCalendar = () => {
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Month and year options
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -60,7 +61,7 @@ const ActivitiesCalendar = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const { data, error: activitiesError } = await supabase
           .from('activity')
           .select(`
@@ -72,7 +73,7 @@ const ActivitiesCalendar = () => {
 
         if (activitiesError) throw activitiesError;
 
-        // Transform the data to match our events structure
+        // Transform the data
         const transformedEvents = data.map(activity => ({
           id: activity.activity_id,
           date: new Date(activity.schedule[0]?.start_date),
@@ -121,106 +122,6 @@ const ActivitiesCalendar = () => {
     fetchActivities();
   }, []);
 
-  // Function to get the first day of the month (0-6 for Sunday-Saturday)
-  const getFirstDayOfMonth = (date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  // Function to get the number of days in a month
-  const getDaysInMonth = (date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  // Function to get the previous month's days that show on calendar
-  const getPreviousMonthDays = (date) => {
-    const firstDayOfMonth = getFirstDayOfMonth(date);
-    const previousMonth = new Date(date.getFullYear(), date.getMonth() - 1);
-    const daysInPreviousMonth = getDaysInMonth(previousMonth);
-    
-    let days = [];
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push({
-        day: daysInPreviousMonth - firstDayOfMonth + i + 1,
-        month: "previous",
-        date: new Date(date.getFullYear(), date.getMonth() - 1, daysInPreviousMonth - firstDayOfMonth + i + 1)
-      });
-    }
-    return days;
-  };
-
-  // Function to get the current month's days
-  const getCurrentMonthDays = (date) => {
-    const daysInMonth = getDaysInMonth(date);
-    
-    let days = [];
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push({
-        day: i,
-        month: "current",
-        date: new Date(date.getFullYear(), date.getMonth(), i)
-      });
-    }
-    return days;
-  };
-
-  // Function to get the next month's days that show on calendar
-  const getNextMonthDays = (date) => {
-    const firstDayOfMonth = getFirstDayOfMonth(date);
-    const daysInMonth = getDaysInMonth(date);
-    const totalCells = 42; // 6 rows of 7 days
-    const remainingCells = totalCells - (firstDayOfMonth + daysInMonth);
-    
-    let days = [];
-    for (let i = 1; i <= remainingCells; i++) {
-      days.push({
-        day: i,
-        month: "next",
-        date: new Date(date.getFullYear(), date.getMonth() + 1, i)
-      });
-    }
-    return days;
-  };
-
-  // Get all days to display on the calendar
-  const getAllDays = () => {
-    const previousMonthDays = getPreviousMonthDays(currentDate);
-    const currentMonthDays = getCurrentMonthDays(currentDate);
-    const nextMonthDays = getNextMonthDays(currentDate);
-    
-    return [...previousMonthDays, ...currentMonthDays, ...nextMonthDays];
-  };
-
-  // Get events for a specific date
-  const getEventsForDate = (date) => {
-    if (!date) return [];
-    
-    return events.filter(event => {
-      const dateMatch = event.date.getDate() === date.getDate() && 
-                       event.date.getMonth() === date.getMonth() && 
-                       event.date.getFullYear() === date.getFullYear();
-      
-      const orgMatch = selectedOrganization === "all" || event.organization === selectedOrganization;
-      
-      return dateMatch && orgMatch;
-    });
-  };
-
-  // Navigate to previous month
-  const handlePreviousMonth = () => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);
-    setCurrentDate(newDate);
-    setSelectedMonth(months[newDate.getMonth()]);
-    setSelectedYear(newDate.getFullYear().toString());
-  };
-
-  // Navigate to next month
-  const handleNextMonth = () => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1);
-    setCurrentDate(newDate);
-    setSelectedMonth(months[newDate.getMonth()]);
-    setSelectedYear(newDate.getFullYear().toString());
-  };
-
   // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
     setSelectedMonth(value);
@@ -252,54 +153,21 @@ const ActivitiesCalendar = () => {
     }
   };
 
-  // Get badge color for event category
-  const getEventBadgeColor = (category) => {
-    switch (category?.toLowerCase()) {
-      case 'academic':
-        return 'bg-green-100 text-[#014421]';
-      case 'cultural':
-        return 'bg-blue-100 text-blue-700';
-      case 'sports':
-        return 'bg-amber-100 text-amber-700';
-      case 'service':
-        return 'bg-purple-100 text-purple-700';
-      case 'educational':
-        return 'bg-green-100 text-[#014421]';
-      default:
-        return 'bg-red-100 text-[#7B1113]';
-    }
-  };
-
-  // Create the calendar grid
-  const generateCalendar = () => {
-    const allDays = getAllDays();
-    const calendar = [];
-    const weeks = Math.ceil(allDays.length / 7);
-    
-    for (let i = 0; i < weeks; i++) {
-      const week = allDays.slice(i * 7, (i + 1) * 7).map(day => {
-        const isToday = new Date().toDateString() === day.date.toDateString();
-        const isCurrentMonth = day.month === "current";
-        
-        return {
-          date: day.day,
-          isToday,
-          isCurrentMonth,
-          events: getEventsForDate(day.date),
-          fullDate: day.date
-        };
+  // Handle event click
+  const handleEventClick = (event) => {
+    // Format the date before setting the event
+    if (event.date instanceof Date) {
+      setSelectedEvent({
+        ...event,
+        formattedDate: event.date.toLocaleDateString('en-US', { 
+          month: 'long', 
+          day: 'numeric', 
+          year: 'numeric' 
+        })
       });
-      calendar.push(week);
+    } else {
+      setSelectedEvent(event);
     }
-    
-    return calendar;
-  };
-
-  const calendar = generateCalendar();
-
-  // Update the handleViewEventDetails function
-  const handleViewEventDetails = (event) => {
-    setSelectedEvent(event);
     setIsDialogOpen(true);
   };
 
@@ -311,19 +179,23 @@ const ActivitiesCalendar = () => {
     </div>
   );
 
-  // Error state component
+  // Error state component with prop validation
   const ErrorState = ({ message }) => (
     <div className="flex flex-col items-center justify-center p-8 text-[#7B1113]">
       <p className="text-lg font-semibold">Something went wrong</p>
       <p className="text-sm text-gray-600">{message}</p>
       <Button 
-        onClick={fetchActivities} 
+        onClick={() => window.location.reload()} 
         className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
       >
         Try Again
       </Button>
     </div>
   );
+
+  ErrorState.propTypes = {
+    message: PropTypes.string.isRequired
+  };
 
   // Empty state component
   const EmptyState = () => (
@@ -387,90 +259,28 @@ const ActivitiesCalendar = () => {
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
-        <CardHeader className="py-4">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-bold text-[#7B1113]">
-              {selectedMonth} {selectedYear}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                onClick={handlePreviousMonth}
-                className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-                size="icon"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                onClick={handleNextMonth}
-                className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-                size="icon"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {loading ? (
             <LoadingState />
           ) : error ? (
             <ErrorState message={error} />
-          ) : events.length === 0 ? (
-            <EmptyState />
           ) : (
-            <div className="grid grid-cols-7 text-sm font-medium text-center bg-gray-50 border-b border-gray-200">
-              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(
-                (day) => (
-                  <div key={day} className="py-3 border-r last:border-r-0 border-gray-200 text-[#014421]">
-                    {day}
-                  </div>
-                )
+            <CustomCalendar
+              mode="activities"
+              currentMonth={currentDate}
+              onDateSelect={handleEventClick}
+              onMonthChange={setCurrentDate}
+              events={events.filter(event => 
+                selectedOrganization === "all" || event.organization === selectedOrganization
               )}
-            </div>
+              getEventColor={getEventColor}
+              monthOptions={months}
+              yearOptions={years}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onYearChange={handleYearChange}
+            />
           )}
-
-          <div className="grid grid-cols-7 text-sm">
-            {calendar.map((week, weekIndex) =>
-              week.map((day, dayIndex) => (
-                <div
-                  key={`${weekIndex}-${dayIndex}`}
-                  className={`min-h-[120px] p-1 border-r border-b last:border-r-0 ${
-                    day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400"
-                  } ${day.isToday ? "border-2 border-[#014421]" : ""}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
-                      day.isToday ? "bg-[#014421] text-white" : ""
-                    }`}>
-                      {day.date}
-                    </span>
-                    {day.events.length > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="bg-[#7B1113] text-white border-transparent hover:bg-[#7B1113]/90"
-                      >
-                        {day.events.length}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mt-1 space-y-1 overflow-y-auto max-h-[80px]">
-                    {day.events.map((event, index) => (
-                      <div
-                        key={index}
-                        className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${
-                          getEventColor(event.category)
-                        }`}
-                        title={event.title}
-                        onClick={() => handleViewEventDetails(event)}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </CardContent>
       </Card>
 
@@ -537,7 +347,7 @@ const ActivitiesCalendar = () => {
                         {event.organization}
                       </td>
                       <td className="px-5 py-4 text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventBadgeColor(event.type)}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}>
                           {event.type}
                         </span>
                       </td>
@@ -546,7 +356,7 @@ const ActivitiesCalendar = () => {
                       </td>
                       <td className="px-5 py-4 text-sm flex justify-center">
                         <button
-                          onClick={() => handleViewEventDetails(event)}
+                          onClick={() => handleEventClick(event)}
                           className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
                         >
                           <Eye className="h-5 w-5" />
@@ -582,11 +392,11 @@ const ActivitiesCalendar = () => {
                 <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
                   <div className="flex">
                     <span className="w-32 text-gray-600">Activity Type:</span>
-                    <span>{selectedEvent.type}</span>
+                    <span>{selectedEvent.category || selectedEvent.type}</span>
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedEvent.date}</span>
+                    <span>{selectedEvent.formattedDate || selectedEvent.date}</span>
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Time:</span>
@@ -594,7 +404,7 @@ const ActivitiesCalendar = () => {
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Venue:</span>
-                    <span>{selectedEvent.venue}</span>
+                    <span>{selectedEvent.venue || selectedEvent.location}</span>
                   </div>
                 </div>
               </div>
@@ -605,20 +415,14 @@ const ActivitiesCalendar = () => {
                 <div className="text-sm">
                   <p>{selectedEvent.partners || "No university partners specified"}</p>
                 </div>
-              </div>
-
-              {/* List of Sustainable Development Goals */}
+              </div>              {/* List of Sustainable Development Goals */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                <div className="flex gap-2">
+                <div className="text-sm">
                   {selectedEvent.sdgs ? (
-                    selectedEvent.sdgs.map((sdg, index) => (
-                      <span key={index} className="text-sm bg-gray-100 px-2 py-1 rounded">
-                        {sdg}
-                      </span>
-                    ))
+                    <p>{selectedEvent.sdgs}</p>
                   ) : (
-                    <span className="text-sm text-gray-500">No SDGs specified</span>
+                    <span className="text-gray-500">No SDGs specified</span>
                   )}
                 </div>
               </div>
@@ -630,4 +434,4 @@ const ActivitiesCalendar = () => {
   );
 };
 
-export default ActivitiesCalendar; 
+export default ActivitiesCalendar;

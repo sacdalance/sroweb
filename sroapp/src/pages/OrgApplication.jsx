@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { cn } from "@/lib/utils";
+
+import { submitOrgApplication } from "@/api/orgApplicationAPI";
+import supabase from "@/lib/supabase";
 
 const OrgApplication = () => {
 
@@ -44,6 +48,7 @@ const OrgApplication = () => {
 
   const [orgName, setOrgName] = useState("");
   
+  const [userId, setUserId] = useState(null); 
   const [orgTypeOpen, setOrgTypeOpen] = useState(false)
   const [orgType, setOrgType] = useState("")
   const [selectedOrgTypeName, setSelectedOrgTypeName] = useState("")
@@ -53,6 +58,8 @@ const OrgApplication = () => {
   const [academicYear, setAcademicYear] = useState("") // ✅ this is what was missing
   const [selectedYear, setSelectedYear] = useState("")
   const [yearSearch, setYearSearch] = useState("")
+
+  const [isDragActive, setIsDragActive] = useState(false);
   
   const filteredCategories = categoriesList.filter((cat) =>
     cat.name.toLowerCase().includes(orgTypeSearch.toLowerCase())
@@ -70,52 +77,126 @@ const OrgApplication = () => {
   const [coAdviser, setCoAdviser] = useState("");
   const [coAdviserEmail, setCoAdviserEmail] = useState("");
 
+  useEffect(() => {
+    const fetchUserAccount = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      const user = data?.session?.user;
+  
+      if (!user) {
+        console.error("No user session found");
+        return;
+      }
+  
+      const { data: accountData, error: fetchErr } = await supabase
+        .from("account")
+        .select("account_id")
+        .eq("email", user.email)
+        .single();
+  
+      if (fetchErr || !accountData?.account_id) {
+        console.error("Failed to fetch account_id", fetchErr?.message);
+      } else {
+        setUserId(accountData.account_id);
+      }
+    };
+  
+    fetchUserAccount();
+  }, []);
+  
+
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
-    setUploadStatus(null);
-  };
-
-  const uploadToGoogleDrive = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "Organization Recognition");
-      formData.append("submissionType", "Organization Application");
-
-      const response = await fetch("/api/upload-to-drive", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to upload file to Google Drive");
-
-      return await response.json();
-    } catch (error) {
-      console.error("Error uploading to Google Drive:", error);
-      throw error;
+    const incomingFiles = Array.from(e.target.files);
+    const pdfFiles = incomingFiles.filter((file) => file.type === "application/pdf");
+  
+    if (pdfFiles.length === 0) {
+      toast.error("Only PDF files are allowed.");
+      return;
     }
+  
+    const combinedFiles = [...files, ...pdfFiles];
+  
+    if (combinedFiles.length > 6) {
+      toast.error("You can only upload up to 6 PDF files.");
+      return;
+    }
+  
+    setFiles(combinedFiles);
+  };
+  
+  const handleRemoveFile = (indexToRemove) => {
+    const newFiles = files.filter((_, idx) => idx !== indexToRemove);
+    setFiles(newFiles);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (files.length === 0) {
-      toast.error("Please upload at least one file.");
+  
+    // ✅ Step 1: Validate required fields
+    const requiredFields = [
+      { label: "Organization Name", value: orgName },
+      { label: "Organization Email", value: orgEmail },
+      { label: "Chairperson", value: chairperson },
+      { label: "Chairperson Email", value: chairpersonEmail },
+      { label: "Adviser", value: adviser },
+      { label: "Adviser Email", value: adviserEmail },
+      { label: "Co-Adviser", value: coAdviser },
+      { label: "Co-Adviser Email", value: coAdviserEmail },
+      { label: "Organization Type", value: orgType },
+      { label: "Academic Year", value: academicYear },
+    ];
+  
+    const missingFields = requiredFields.filter((field) => !field.value.trim());
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in: ${missingFields.map((f) => f.label).join(", ")}`);
       return;
     }
+  
+    // ✅ Step 2: Validate file upload
+    if (files.length !== 6) {
+      toast.error("Please upload exactly 6 PDF files.");
+      return;
+    }
+  
     setIsUploading(true);
-    toast.loading("Uploading your files...");
+    toast.loading("Submitting organization application...");  
 
     try {
-      const uploadPromises = files.map((file) => uploadToGoogleDrive(file));
-      await Promise.all(uploadPromises);
-      toast.success("Files uploaded successfully.");
+      // ✅ Step 3: Call API to submit to Supabase and Google Drive
+      await submitOrgApplication({
+        org_name: orgName,
+        academic_year: academicYear,
+        org_email: orgEmail,
+        chairperson,
+        chairperson_email: chairpersonEmail,
+        adviser,
+        adviser_email: adviserEmail,
+        co_adviser: coAdviser,
+        coadviser_email: coAdviserEmail,
+        org_type: orgType,
+        files,
+        submitted_by: userId,
+      });
+  
+      toast.success("Submitted successfully!");
       setShowInterviewPrompt(true);
+  
+      // ✅ Step 4: Clear form after success
       setFiles([]);
+      setOrgName("");
+      setOrgEmail("");
+      setChairperson("");
+      setChairpersonEmail("");
+      setAdviser("");
+      setAdviserEmail("");
+      setCoAdviser("");
+      setCoAdviserEmail("");
+      setAcademicYear("");
+      setSelectedYear("");
+      setOrgType("");
+      setSelectedOrgTypeName("");
     } catch (error) {
-      console.error("Error during upload:", error);
-      toast.error("Error uploading files. Please try again.");
-      setUploadStatus("Error uploading files. Please try again.");
+      console.error("Submission error:", error);
+      toast.error(error.message || "Submission failed. Please try again.");
     } finally {
       toast.dismiss();
       setIsUploading(false);
@@ -349,40 +430,81 @@ const OrgApplication = () => {
             <span className="text-muted-foreground">Constitution and Bylaws</span>
           </div>
 
-            <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center">
-              <label htmlFor="orgAppFileUpload" className="cursor-pointer flex flex-col items-center">
-                <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm">Drag and Drop or Upload File</p>
-                <input
-                  id="orgAppFileUpload"
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isUploading}
-                />
-              </label>
-            </div>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsDragActive(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragActive(false);
 
-            {files.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-1">Selected Files</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {files.map((file, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-red-500" />
-                      {file.name}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              const dataTransferEvent = {
+                target: {
+                  files: e.dataTransfer.files,
+                },
+              };
+
+              handleFileChange(dataTransferEvent);
+            }}
+            className={cn(
+              "border-2 border-dashed p-4 rounded-md text-center transition-colors",
+              isDragActive
+                ? "border-green-600 bg-green-50"
+                : "border-gray-300 hover:border-gray-400 hover:bg-muted"
             )}
+          >
+            <label htmlFor="orgAppFileUpload" className="cursor-pointer flex flex-col items-center">
+              <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+              <p className="text-sm">
+                {isDragActive ? "Drop the file here" : "Drag and Drop or Upload Files (6 required)"}
+              </p>
+              <input
+                id="orgAppFileUpload"
+                type="file"
+                accept=".pdf"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+                disabled={isUploading}
+              />
+            </label>
+          </div>
+
+          {files.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium mb-1">Selected Files ({files.length}/6)</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {files.map((file, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-center justify-between bg-muted px-3 py-2 rounded-md"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-red-500" />
+                      <span className="truncate max-w-[200px]">{file.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(idx)}
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      &times;
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
             <Button
               type="submit"
               className="w-full"
-              disabled={files.length === 0 || isUploading}
+              disabled={files.length !== 6 || isUploading}
             >
               {isUploading ? (
                 <span className="flex items-center gap-2">
@@ -407,7 +529,9 @@ const OrgApplication = () => {
           </DialogHeader>
           <DialogFooter className="flex justify-center gap-4">
             <Button onClick={() => handleInterviewResponse(true)}>Yes</Button>
-            <Button variant="destructive" onClick={() => handleInterviewResponse(false)}>No</Button>
+            <Button variant="destructive" onClick={() => handleInterviewResponse(false)}>
+              No
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
