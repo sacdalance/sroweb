@@ -196,7 +196,7 @@ const router = createBrowserRouter([
             { 2: <AdminCreateActivity />, 3: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} /> },
           { path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
             { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} /> },
-
+            
           { path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
             { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} /> },
           { path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
