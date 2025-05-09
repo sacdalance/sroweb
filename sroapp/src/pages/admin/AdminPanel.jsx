@@ -15,15 +15,7 @@ import { useState, useEffect } from "react";
   import { Eye, ChevronDown } from "lucide-react";
   import supabase from "@/lib/supabase";
   import { Input } from "@/components/ui/input";
-  import {
-  fetchIncomingRequests,
-  fetchApprovedActivities,
-  fetchOrgStats,
-  fetchActivityCounts,
-} from "@/api/adminActivityAPI";
-import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
-import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
-
+  import axios from "axios";
 
   const AdminPanel = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,29 +34,9 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
     const [announcementsError, setAnnouncementsError] = useState(null);
     const [requestsCounts, setRequestsCounts] = useState({
       approved: 0,
+      forAppeal: 0,
       pending: 0,
-      annualReports: 0,
-      pendingApplications: 0,
     });
-    const [userRole, setUserRole] = useState(null);
-    
-    useEffect(() => {
-    const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: account, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      if (!error) {
-        setUserRole(account?.role_id);
-      }
-    };
-
-    fetchRole();
-  }, []);
-
 
     // State for filtered events
     const [filteredEvents, setFilteredEvents] = useState([]);
@@ -134,47 +106,64 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 
     // Fetch incoming activity requests
     useEffect(() => {
-      const getIncoming = async () => {
+      const fetchIncomingRequests = async () => {
         try {
           setRequestsLoading(true);
-          const { data: sessionData } = await supabase.auth.getSession();
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
           const access_token = sessionData?.session?.access_token;
-          const res = await fetchIncomingRequests(access_token);
 
-          const filtered = res.filter((request) => {
-            if (userRole === 3) {
-              return (
-                request.sro_approval_status === "Approved" &&
-                request.odsa_approval_status === null
-              );
-            }
-            return true;
+          if (!access_token) {
+            console.error("No access token found");
+            return;
+          }
+
+          const res = await axios.get("/api/activities/incoming", {
+            headers: {
+              Authorization: `Bearer ${access_token}`,
+            },
           });
 
-          // Now count after filtering
-          let forAppeal = 0;
-          let pending = 0;
+          console.log("Fetched incoming requests:", res.data);
+          const allActivities = res.data;
 
-          filtered.forEach((request) => {
-            if (request.final_status === "For Appeal") forAppeal++;
-            if (
-              request.final_status === "Pending" ||
-              request.final_status === null
-            )
-              pending++;
+          // Initialize counters for "For Appeal" and "Pending" statuses
+          let forAppealCount = 0;
+          let pendingCount = 0;
+
+          // Filter and transform the data
+          const transformedRequests = allActivities.map((request) => {
+            const isForAppeal = request.final_status === "For Appeal";
+            const isPending = request.final_status === "Pending" || request.final_status === null;
+
+            // Increment counters based on status
+            if (isForAppeal) forAppealCount++;
+            if (isPending) pendingCount++;
+
+            return {
+              id: request.activity_id,
+              submissionDate: new Date(request.created_at).toLocaleDateString(),
+              activityName: request.activity_name,
+              organization: request.organization?.org_name || "N/A",
+              activityDate: request.schedule?.[0]?.start_date
+                ? new Date(request.schedule[0].start_date).toLocaleDateString()
+                : "TBD",
+              status: request.final_status || "Pending", // Treat NULL as "Pending"
+            };
           });
 
-          const transformed = filtered.map((request) => ({
-            id: request.activity_id,
-            submissionDate: new Date(request.created_at).toLocaleDateString(),
-            activityName: request.activity_name,
-            organization: request.organization?.org_name || "N/A",
-            activityDate: request.schedule?.[0]?.start_date
-              ? new Date(request.schedule[0].start_date).toLocaleDateString()
-              : "TBD",
-            status: request.final_status || "Pending",
+          // Log the counts for debugging
+          console.log("For Appeal Count:", forAppealCount);
+          console.log("Pending Count:", pendingCount);
+
+          // Update state with transformed requests
+          setIncomingRequests(transformedRequests);
+
+          // Update the counts in state without overwriting the approved count
+          setRequestsCounts((prevCounts) => ({
+            ...prevCounts,
+            forAppeal: forAppealCount,
+            pending: pendingCount,
           }));
-
         } catch (error) {
           console.error("Error fetching incoming requests:", error);
           setRequestsError(error.message);
@@ -240,15 +229,19 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
           // Update state with transformed events
           setEvents(transformedEvents);
 
-          setIncomingRequests(transformed);
+          // Update the approved count in state
+          setRequestsCounts((prevCounts) => ({
+            ...prevCounts,
+            approved: approvedCount, // Update the approved count
+          }));
         } catch (err) {
-          console.error(err);
-          setRequestsError(err.message);
+          console.error("Error fetching activities:", err);
+          setError(err.message);
         } finally {
-          setRequestsLoading(false);
+          setLoading(false);
         }
       };
-
+    
       fetchActivities();
     }, []);
 
@@ -287,99 +280,75 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
         setSelectedActivity(null); // Clear previous activity details
         setIsModalOpen(true); // Open the modal
 
+        // Fetch additional details for the selected activity
+        const { data: sdgGoalsData, error: sdgGoalsError } = await supabase
+          .from("activity")
+          .select("sdg_goals")
+          .eq("activity_id", request.id); // Match activity ID
 
-      if (userRole) getIncoming();
-    }, [userRole]);
+        if (sdgGoalsError) throw sdgGoalsError;
 
+        const { data: partnersData, error: partnersError } = await supabase
+          .from("activity")
+          .select("partner_name")
+          .eq("activity_id", request.id); // Match activity ID
 
-  const refreshSelectedActivity = async (id) => {
-  const { data, error } = await supabase
-    .from("activity")
-    .select(`*, account:account(*), schedule:activity_schedule(*), organization:organization(*)`)
-    .eq("activity_id", id)
-    .single();
+        if (partnersError) throw partnersError;
 
-  if (!error) setSelectedActivity(data);
-};
+        // Transform the fetched data
+        const sdgGoals = sdgGoalsData.map((goal) => goal.goal_name);
+        const partners = partnersData.map((partner) => partner.partner_name);
 
-  useEffect(() => {
-    const getApproved = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchApprovedActivities();
-
-        const approvedCount = data.filter(
-          (activity) => activity.final_status?.toLowerCase() === "approved"
-        ).length;
-
-        const transformed = data.map((activity) => {
-          const startTime = activity.schedule[0]?.start_time
-            ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
-                hour: "2-digit", minute: "2-digit",
-              })
-            : "00:00";
-          const endTime = activity.schedule[0]?.end_time
-            ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
-                hour: "2-digit", minute: "2-digit",
-              })
-            : "00:00";
-          return {
-            id: activity.activity_id,
-            name: activity.activity_name,
-            time: `${startTime} to ${endTime}`,
-            location: activity.venue,
-            category: activity.activity_type,
-            organization: activity.organization?.org_name,
-            date: activity.schedule[0]?.start_date,
-          };
+        // Update the selected activity with additional details
+        setSelectedActivity({
+          ...request,
+          sdgGoals,
+          partners,
         });
-
-        setEvents(transformed);
-        setRequestsCounts((prev) => ({ ...prev, approved: approvedCount }));
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching activity details:", error);
       }
     };
-    getApproved();
-  }, []);
 
-  useEffect(() => {
-    const getStats = async () => {
+    const handleApprove = async () => {
       try {
-        const { annualReportsCount, pendingApplicationsCount } = await fetchOrgStats();
-        setRequestsCounts((prev) => ({
-          ...prev,
-          annualReports: annualReportsCount,
-          pendingApplications: pendingApplicationsCount,
-        }));
-      } catch (err) {
-        console.error(err);
+        // API call to approve activity
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error("Error approving activity:", error);
       }
     };
-    getStats();
-  }, []);
 
-  useEffect(() => {
-    if (!userRole) return;
+    const handleReject = async () => {
+      try {
+        // API call to reject activity
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error("Error rejecting activity:", error);
+      }
+    };
+
+    // Current week range for the calendar (e.g., April 6 - 12)
+    const currentWeekRange = "APRIL 6 - 12";
+    const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const activeDay = "WED"; // Highlighted day
 
     // Fetch organization requests (annual reports, pending applications, and approved applications)
     const fetchOrganizationRequests = async () => {
       try {
-        const counts = await fetchActivityCounts();
-        console.log("Counts received in AdminPanel:", counts);
-        setRequestsCounts(counts);
-      } catch (err) {
-        console.error("Failed to fetch summary counts", err);
-      }
-    };
+        // Get the current year
+        const currentYear = new Date().getFullYear();
 
-    getCounts();
-  }, [userRole]);
+        // Fetch and count annual reports where the last 4 digits of academic_year match the current year
+        const { data: annualReportsData, error: annualReportsError } = await supabase
+          .from("org_annual_report")
+          .select("*", { count: "exact" })
+          .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
 
+        if (annualReportsError) throw annualReportsError;
 
+        // Log the count of annual reports
+        console.log(`Annual Reports Count for ${currentYear}:`, annualReportsData.length);
 
         // Fetch and count pending applications from the org_application table
         const { data: pendingApplicationsData, error: pendingApplicationsError } = await supabase
@@ -387,11 +356,10 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
           .select("*", { count: "exact" })
           .eq("final_status", "Pending"); // Filter for rows where final_status is "Pending"
 
-    // Function to get current day of week
-    const getCurrentDay = () => {
-      const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-      return days[new Date().getDay()];
-    };
+        if (pendingApplicationsError) throw pendingApplicationsError;
+
+        // Log the count of pending applications
+        console.log(`Pending Applications Count:`, pendingApplicationsData.length);
 
         // Fetch and count approved applications from the org_application table
         const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
@@ -414,98 +382,41 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
       } catch (error) {
         console.error("Error fetching organization requests:", error);
       }
-      newDate.setDate(newDate.getDate() - newDate.getDay());
-      setCurrentWeekStart(newDate);
     };
 
-    // Stats data for the summary section
-    const statsSummary = [
-      {
-        title: "Total Submissions",
-        count:
-          requestsCounts.pending + requestsCounts.approved || 0,
-        path: "/admin/all-submissions",
-      },
-      {
-        title: "Pending Activity Requests",
-        count: requestsCounts.pending || 0,
-        path: "/admin/pending-requests",
-      },
-      {
-        title: "Approved Activity Requests",
-        count: requestsCounts.approved || 0,
-      },
-      {
-        title: "Pending Applications",
-        count: requestsCounts.pendingApplications || 0,
-        path: "/admin/org-applications",
-      },
-      {
-        title: "Approved Applications",
-        count: requestsCounts.annualReports || 0,
-      },
-      {
-        title: "Annual Reports",
-        count: requestsCounts.annualReports || 0,
-        path: "/admin/annual-reports",
-      },
-    ];
+    useEffect(() => {
+      const fetchAnnualReports = async () => {
+        try {
+          setRequestsLoading(true); // Optional: Show loading state if needed
 
+          // Get the current year
+          const currentYear = new Date().getFullYear();
 
+          // Fetch and count annual reports where the last 4 digits of academic_year match the current year
+          const { data, error } = await supabase
+            .from("org_annual_report")
+            .select("*", { count: "exact" })
+            .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
 
-    // Filter events for the current week
-    const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
+          if (error) throw error;
 
-    const handleViewDetails = async (request) => {
-  try {
-    const { data, error } = await supabase
-      .from("activity")
-      .select(`
-        *,
-        account:account (*),
-        schedule:activity_schedule(*),
-        organization:organization(*)
-      `)
-      .eq("activity_id", request.id)
-      .single();
+          // Log the count of annual reports
+          console.log(`Annual Reports Count for ${currentYear}:`, data.length);
 
-    if (error) {
-      console.error("Failed to fetch full activity:", error);
-      return;
-    }
+          // Update the counts in state
+          setRequestsCounts((prevCounts) => ({
+            ...prevCounts,
+            annualReports: data.length, // Update the annualReports count
+          }));
+        } catch (error) {
+          console.error("Error fetching annual reports:", error);
+        } finally {
+          setRequestsLoading(false); // Optional: Hide loading state if needed
+        }
+      };
 
-    setSelectedActivity(data);
-    setIsModalOpen(true);
-  } catch (err) {
-    console.error("Error fetching full activity details:", err);
-  }
-    };
-
-
-    const handleApprove = async (comment, activityId) => {
-      if (!activityId || !userRole) {
-        console.error("Missing activityId or userRole.");
-        throw new Error("Activity or role not ready.");
-      }
-    
-      await approveActivity(activityId, comment, userRole);
-      await refreshSelectedActivity(activityId);
-    };
-    
-    const handleReject = async (comment, activityId) => {
-      if (!activityId || !userRole) {
-        console.error("Missing activityId or userRole.");
-        throw new Error("Activity or role not ready.");
-      }
-    
-      await rejectActivity(activityId, comment, userRole);
-      await refreshSelectedActivity(activityId);
-    };
-
-    // Current week range for the calendar (e.g., April 6 - 12)
-    const currentWeekRange = "APRIL 6 - 12";
-    const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    const activeDay = "WED"; // Highlighted day
+      fetchAnnualReports();
+    }, []);
 
     // Fetch approved organization requests
     const fetchApprovedOrganizationRequests = async () => {
@@ -589,11 +500,6 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
                 <CardTitle className="text-xl font-bold text-[#7B1113] flex items-center gap-2">
                   Incoming Activity Requests
                 </CardTitle>
-                {userRole === 3 && (
-                  <p className="text-sm text-gray-600 italic mt-1">
-                    You are viewing only activities approved by the SRO.
-                  </p>
-                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-hidden">
@@ -637,7 +543,10 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
                                 </td>
                                 <td className="px-6 py-3 text-center">
                                   <button
-                                    onClick={() => handleViewDetails(request)}
+                                    onClick={() => {
+                                      setSelectedActivity(request);
+                                      setIsModalOpen(true);
+                                    }}
                                     className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
                                   >
                                     <Eye className="h-5 w-5" />
