@@ -66,6 +66,9 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
   }, []);
 
 
+    // State for filtered events
+    const [filteredEvents, setFilteredEvents] = useState([]);
+
     // Function to check if a date falls within the current week
     const isDateInCurrentWeek = (dateString) => {
       const eventDate = new Date(dateString);
@@ -101,6 +104,35 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
       return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
     };
 
+    // Function to get current day of week
+    const getCurrentDay = () => {
+      const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      return days[new Date().getDay()];
+    };
+
+    // Function to handle week navigation
+    const handleWeekNavigation = (direction) => {
+      const newDate = new Date(currentWeekStart);
+      if (direction === 'prev') {
+        newDate.setDate(newDate.getDate() - 7);
+      } else {
+        newDate.setDate(newDate.getDate() + 7);
+      }
+      newDate.setDate(newDate.getDate() - newDate.getDay());
+      setCurrentWeekStart(newDate);
+    };
+
+    // Stats data for the summary section
+    const statsSummary = [
+      { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
+      { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
+      { title: "Approved Activity Requests", count: requestsCounts.approved || 0 },
+      { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
+      { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
+      { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
+    ];
+
+    // Fetch incoming activity requests
     useEffect(() => {
       const getIncoming = async () => {
         try {
@@ -143,6 +175,71 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
             status: request.final_status || "Pending",
           }));
 
+        } catch (error) {
+          console.error("Error fetching incoming requests:", error);
+          setRequestsError(error.message);
+        } finally {
+          setRequestsLoading(false);
+        }
+      };
+
+      fetchIncomingRequests();
+    }, []);
+
+    // Fetch activities from Supabase
+    useEffect(() => {
+      const fetchActivities = async () => {
+        try {
+          setLoading(true);
+          const { data, error } = await supabase
+            .from("activity")
+            .select(`
+              *,
+              organization:organization(*),
+              schedule:activity_schedule(*)
+            `)
+            .eq("final_status", "Approved"); // Fetch only approved activities
+
+          if (error) throw error;
+
+          // Count approved activities
+          const approvedCount = data.filter(
+            (activity) => activity.final_status?.toLowerCase() === "approved"
+          ).length;
+
+          // Transform the data to match our events structure
+          const transformedEvents = data.map((activity) => {
+            // Format time to show only hours and minutes
+            const startTime = activity.schedule[0]?.start_time
+              ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "00:00";
+            const endTime = activity.schedule[0]?.end_time
+              ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "00:00";
+
+            // Map category to user-friendly label
+            const categoryLabel = categoryMap[activity.activity_type] || "Others";
+
+            return {
+              id: activity.activity_id,
+              name: activity.activity_name,
+              time: `${startTime} to ${endTime}`,
+              location: activity.venue,
+              category: categoryLabel, // Use the mapped label
+              organization: activity.organization?.org_name,
+              date: activity.schedule[0]?.start_date,
+            };
+          });
+
+          // Update state with transformed events
+          setEvents(transformedEvents);
+
           setIncomingRequests(transformed);
         } catch (err) {
           console.error(err);
@@ -151,6 +248,44 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
           setRequestsLoading(false);
         }
       };
+
+      fetchActivities();
+    }, []);
+
+    // Recalculate filtered events whenever `events` or `currentWeekStart` changes
+    useEffect(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize time to start of the day
+
+      const currentWeekStartDate = new Date(currentWeekStart);
+      const currentWeekEndDate = new Date(currentWeekStart);
+      currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6); // End of the week
+
+      const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
+
+      const newFilteredEvents = events.filter((event) => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0); // Normalize time to start of the day
+
+        if (isCurrentWeek) {
+          // Show only today's events for the current week
+          return eventDate.getTime() === today.getTime();
+        } else {
+          // Show all events for the selected week
+          return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
+        }
+      });
+
+      setFilteredEvents(newFilteredEvents);
+    }, [events, currentWeekStart]);
+
+    // Filter events for the current week
+    const filteredEventsForCurrentWeek = events.filter(event => isDateInCurrentWeek(event.date));
+
+    const handleViewDetails = async (request) => {
+      try {
+        setSelectedActivity(null); // Clear previous activity details
+        setIsModalOpen(true); // Open the modal
 
 
       if (userRole) getIncoming();
@@ -230,8 +365,8 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
   useEffect(() => {
     if (!userRole) return;
 
-    const getCounts = async () => {
-      console.log("Calling getCounts for userRole:", userRole);
+    // Fetch organization requests (annual reports, pending applications, and approved applications)
+    const fetchOrganizationRequests = async () => {
       try {
         const counts = await fetchActivityCounts();
         console.log("Counts received in AdminPanel:", counts);
@@ -246,7 +381,11 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 
 
 
-
+        // Fetch and count pending applications from the org_application table
+        const { data: pendingApplicationsData, error: pendingApplicationsError } = await supabase
+          .from("org_application")
+          .select("*", { count: "exact" })
+          .eq("final_status", "Pending"); // Filter for rows where final_status is "Pending"
 
     // Function to get current day of week
     const getCurrentDay = () => {
@@ -254,13 +393,26 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
       return days[new Date().getDay()];
     };
 
-    // Function to handle week navigation
-    const handleWeekNavigation = (direction) => {
-      const newDate = new Date(currentWeekStart);
-      if (direction === 'prev') {
-        newDate.setDate(newDate.getDate() - 7);
-      } else {
-        newDate.setDate(newDate.getDate() + 7);
+        // Fetch and count approved applications from the org_application table
+        const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
+          .from("org_application")
+          .select("*", { count: "exact" })
+          .eq("final_status", "Approved"); // Filter for rows where final_status is "Approved"
+
+        if (approvedApplicationsError) throw approvedApplicationsError;
+
+        // Log the count of approved applications
+        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
+
+        // Update the counts in state
+        setRequestsCounts((prevCounts) => ({
+          ...prevCounts,
+          annualReports: annualReportsData.length, // Update the annualReports count
+          pendingApplications: pendingApplicationsData.length, // Update the pendingApplications count
+          approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
+        }));
+      } catch (error) {
+        console.error("Error fetching organization requests:", error);
       }
       newDate.setDate(newDate.getDate() - newDate.getDay());
       setCurrentWeekStart(newDate);
@@ -354,6 +506,52 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
     const currentWeekRange = "APRIL 6 - 12";
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     const activeDay = "WED"; // Highlighted day
+
+    // Fetch approved organization requests
+    const fetchApprovedOrganizationRequests = async () => {
+      try {
+        // Get the current year
+        const currentYear = new Date().getFullYear();
+
+        // Fetch and count approved applications from the org_recognition table
+        const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
+          .from("org_recognition")
+          .select("*", { count: "exact" })
+          .eq("status", "Approved"); // Filter for rows where status is "Approved"
+
+        if (approvedApplicationsError) throw approvedApplicationsError;
+
+        // Log the count of approved applications
+        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
+
+        // Update the counts in state
+        setRequestsCounts((prevCounts) => ({
+          ...prevCounts,
+          approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
+        }));
+      } catch (error) {
+        console.error("Error fetching approved organization requests:", error);
+      }
+    };
+
+    useEffect(() => {
+      fetchApprovedOrganizationRequests();
+    }, []);
+
+    const categoryMap = {
+      charitable: "Charitable",
+      serviceWithinUPB: "Service (within UPB)",
+      serviceOutsideUPB: "Service (outside UPB)",
+      contestWithinUPB: "Contest (within UPB)",
+      contestOutsideUPB: "Contest (outside UPB)",
+      educational: "Educational",
+      incomeGenerating: "Income-Generating Project",
+      massOrientation: "Mass Orientation/General Assembly",
+      booth: "Booth",
+      rehearsals: "Rehearsals/Preparation",
+      specialEvents: "Special Event",
+      others: "Others",
+    };
 
     return (
       <div className="max-w-[1500px] mx-auto p-6">
@@ -571,7 +769,7 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
                                   </div>
                                   <div className="flex flex-col items-end text-sm">
                                     <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span>
+                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
                                   </div>
                                 </div>
                               </div>
@@ -610,7 +808,7 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
                                   </div>
                                   <div className="flex flex-col items-end text-sm">
                                     <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span>
+                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
                                   </div>
                                 </div>
                               </div>
@@ -639,21 +837,135 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
           </div>
         </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        {selectedActivity && (
-          <ActivityDialogContent
-            activity={selectedActivity}
-            setActivity={setSelectedActivity}
-            isModalOpen={isModalOpen}
-            userRole={userRole}
-            handleApprove={handleApprove}
-            handleReject={handleReject}
-            readOnly={false}
-          />
-        )}
-      </Dialog>
+        {/* Activity Details Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
+            <DialogHeader className="px-2">
+              <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
+            </DialogHeader>
+            {selectedActivity && (
+              <div className="space-y-6 px-2">
+                {/* Activity Title, Description and Organization */}
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold">{selectedActivity.activityName}</h2>
+                  <p className="text-sm text-gray-600">{selectedActivity.organization}</p>
+                  <p className="text-sm text-gray-700 mt-2">{selectedActivity.activityDescription}</p>
+                </div>
+
+                {/* General Information */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Activity Type:</span>
+                      <span>{selectedActivity.activityType}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Adviser Name:</span>
+                      <span>{selectedActivity.adviser}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Charge Fee:</span>
+                      <span>No</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Adviser Contact:</span>
+                      <span>{selectedActivity.adviserContact || "09123456789"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Specifications */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#7B1113]">Specifications</h3>
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Venue:</span>
+                      <span>{selectedActivity.venue}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Green Monitor:</span>
+                      <span>Monitor</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Venue Approver:</span>
+                      <span>Approver</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Monitor Contact:</span>
+                      <span>Contact</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Venue Contact:</span>
+                      <span>Contact</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Date:</span>
+                      <span>{selectedActivity.activityDate}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-32 text-gray-600">Time:</span>
+                      <span>10:00 AM - 2:00 PM</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* University Partners */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
+                  <div className="text-sm">
+                    {selectedActivity?.partners?.length > 0 ? (
+                      selectedActivity.partners.map((partner, index) => (
+                        <p key={index}>{partner}</p>
+                      ))
+                    ) : (
+                      <p>No partners listed</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* List of Sustainable Development Goals */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
+                  <div className="flex gap-2">
+                    {selectedActivity?.sdgGoals?.length > 0 ? (
+                      selectedActivity.sdgGoals.map((goal, index) => (
+                        <span key={index} className="text-sm bg-gray-100 px-2 py-1 rounded">
+                          {goal}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-gray-500">No SDG goals listed</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Section with Status and View Form Button */}
+                <div className="flex justify-between items-center">
+                  <Button 
+                    className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
+                  >
+                    View Scanned Form
+                  </Button>
+                  <Badge 
+                    variant={selectedActivity.status === 'Approved' ? 'success' : 'warning'}
+                    className="text-sm px-4 py-1"
+                  >
+                    {selectedActivity.status}
+                  </Badge>
+                </div>
+              </div>  
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
-    );
-  };
+  )};
 
   export default AdminPanel;
