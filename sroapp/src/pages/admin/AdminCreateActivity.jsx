@@ -564,7 +564,7 @@ const AdminCreateActivity = () => {
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
-                <h1 className="text-2xl font-bold mb-6 text-left">Admin: Create Activity</h1>
+                <h1 className="text-2xl font-bold mb-6 text-left">Admin: Add Activity</h1>
                 <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
                     
                     {/* Sonner, side pop up */}
@@ -1273,7 +1273,7 @@ const AdminCreateActivity = () => {
                                     }}
                                     type="submit"
                                     className="w-relative"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || !selectedFile}
                                     >
                                     {isSubmitting ? (
                                         <span className="flex items-center gap-2">
