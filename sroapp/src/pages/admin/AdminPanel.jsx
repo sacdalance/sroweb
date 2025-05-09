@@ -19,7 +19,7 @@ import { useState, useEffect } from "react";
   fetchIncomingRequests,
   fetchApprovedActivities,
   fetchOrgStats,
-  fetchActivityDetails,
+  fetchActivityCounts,
 } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
@@ -42,8 +42,9 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
     const [announcementsError, setAnnouncementsError] = useState(null);
     const [requestsCounts, setRequestsCounts] = useState({
       approved: 0,
-      forAppeal: 0,
       pending: 0,
+      annualReports: 0,
+      pendingApplications: 0,
     });
     const [userRole, setUserRole] = useState(null);
     
@@ -101,21 +102,37 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
     };
 
     useEffect(() => {
-    const getIncoming = async () => {
-      try {
-        setRequestsLoading(true);
-        const { data: sessionData } = await supabase.auth.getSession();
-        const access_token = sessionData?.session?.access_token;
-        const requests = await fetchIncomingRequests(access_token);
+      const getIncoming = async () => {
+        try {
+          setRequestsLoading(true);
+          const { data: sessionData } = await supabase.auth.getSession();
+          const access_token = sessionData?.session?.access_token;
+          const res = await fetchIncomingRequests(access_token);
 
-        // Calculate counts and map to frontend format
-        let forAppeal = 0, pending = 0;
-        const transformed = requests.map((request) => {
-          const isForAppeal = request.final_status === "For Appeal";
-          const isPending = request.final_status === "Pending" || request.final_status === null;
-          if (isForAppeal) forAppeal++;
-          if (isPending) pending++;
-          return {
+          const filtered = res.filter((request) => {
+            if (userRole === 3) {
+              return (
+                request.sro_approval_status === "Approved" &&
+                request.odsa_approval_status === null
+              );
+            }
+            return true;
+          });
+
+          // Now count after filtering
+          let forAppeal = 0;
+          let pending = 0;
+
+          filtered.forEach((request) => {
+            if (request.final_status === "For Appeal") forAppeal++;
+            if (
+              request.final_status === "Pending" ||
+              request.final_status === null
+            )
+              pending++;
+          });
+
+          const transformed = filtered.map((request) => ({
             id: request.activity_id,
             submissionDate: new Date(request.created_at).toLocaleDateString(),
             activityName: request.activity_name,
@@ -124,20 +141,21 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
               ? new Date(request.schedule[0].start_date).toLocaleDateString()
               : "TBD",
             status: request.final_status || "Pending",
-          };
-        });
+          }));
 
-        setIncomingRequests(transformed);
-        setRequestsCounts((prev) => ({ ...prev, forAppeal, pending }));
-      } catch (err) {
-        console.error(err);
-        setRequestsError(err.message);
-      } finally {
-        setRequestsLoading(false);
-      }
-    };
-    getIncoming();
-  }, []);
+          setIncomingRequests(transformed);
+        } catch (err) {
+          console.error(err);
+          setRequestsError(err.message);
+        } finally {
+          setRequestsLoading(false);
+        }
+      };
+
+
+      if (userRole) getIncoming();
+    }, [userRole]);
+
 
   const refreshSelectedActivity = async (id) => {
   const { data, error } = await supabase
@@ -210,24 +228,24 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
   }, []);
 
   useEffect(() => {
-    const getCounts = async () => {
-      try {
-        const activity = await fetchActivityCounts();
-        const orgStats = await fetchOrgStats();
+    if (!userRole) return;
 
-        setRequestsCounts({
-          approved: activity.approved,
-          pending: activity.pending,
-          forAppeal: activity.forAppeal,
-          annualReports: orgStats.annualReportsCount,
-          pendingApplications: orgStats.pendingApplicationsCount,
-        });
+    const getCounts = async () => {
+      console.log("Calling getCounts for userRole:", userRole);
+      try {
+        const counts = await fetchActivityCounts();
+        console.log("Counts received in AdminPanel:", counts);
+        setRequestsCounts(counts);
       } catch (err) {
         console.error("Failed to fetch summary counts", err);
       }
     };
+
     getCounts();
-  }, []);
+  }, [userRole]);
+
+
+
 
 
     // Function to get current day of week
@@ -250,13 +268,37 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 
     // Stats data for the summary section
     const statsSummary = [
-      { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
-      { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
-      { title: "Approved Activity Requests", count: requestsCounts.approved || 0 },
-      { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
-      { title: "Approved Applications", count: requestsCounts.annualReports || 0 },
-      { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
+      {
+        title: "Total Submissions",
+        count:
+          requestsCounts.pending + requestsCounts.approved || 0,
+        path: "/admin/all-submissions",
+      },
+      {
+        title: "Pending Activity Requests",
+        count: requestsCounts.pending || 0,
+        path: "/admin/pending-requests",
+      },
+      {
+        title: "Approved Activity Requests",
+        count: requestsCounts.approved || 0,
+      },
+      {
+        title: "Pending Applications",
+        count: requestsCounts.pendingApplications || 0,
+        path: "/admin/org-applications",
+      },
+      {
+        title: "Approved Applications",
+        count: requestsCounts.annualReports || 0,
+      },
+      {
+        title: "Annual Reports",
+        count: requestsCounts.annualReports || 0,
+        path: "/admin/annual-reports",
+      },
     ];
+
 
 
     // Filter events for the current week
@@ -349,6 +391,11 @@ import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
                 <CardTitle className="text-xl font-bold text-[#7B1113] flex items-center gap-2">
                   Incoming Activity Requests
                 </CardTitle>
+                {userRole === 3 && (
+                  <p className="text-sm text-gray-600 italic mt-1">
+                    You are viewing only activities approved by the SRO.
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-hidden">

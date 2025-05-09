@@ -100,21 +100,22 @@ export const fetchApprovedActivities = async () => {
 export const fetchOrgStats = async () => {
   const currentYear = new Date().getFullYear();
 
-  const [{ data: annualReports = [] }, { data: pendingApps = [] }] = await Promise.all([
-    supabase
-      .from("org_annual_report")
-      .select("*")
-      .ilike("academic_year", `%${currentYear}`),
+  const [{ data: annualReports, error: annualError }, { data: pendingApps, error: appError }] =
+    await Promise.all([
+      supabase
+        .from("org_annual_report")
+        .select("*")
+        .ilike("academic_year", `%${currentYear}`),
 
-    supabase
-      .from("org_recognition")
-      .select("*")
-      .eq("status", "Pending")
-  ]);
+      supabase
+        .from("org_recognition")
+        .select("*")
+        .eq("status", "Pending"),
+    ]);
 
   return {
-    annualReportsCount: annualReports.length,
-    pendingApplicationsCount: pendingApps.length,
+    annualReportsCount: Array.isArray(annualReports) ? annualReports.length : 0,
+    pendingApplicationsCount: Array.isArray(pendingApps) ? pendingApps.length : 0,
   };
 };
 
@@ -123,14 +124,27 @@ export const fetchActivityCounts = async () => {
 
   if (error) throw error;
 
-  let approved = 0, pending = 0, forAppeal = 0;
+  let approved = 0;
+  let pending = 0;
+
   data.forEach(({ final_status }) => {
-    if (final_status === "Approved") approved++;
-    else if (final_status === "For Appeal") forAppeal++;
-    else pending++;
+    if (final_status === "Approved") {
+      approved++;
+    } else if (final_status === null || final_status === "For Appeal") {
+      pending++;
+    }
   });
 
-  return { approved, pending, forAppeal };
+  const { annualReportsCount, pendingApplicationsCount } = await fetchOrgStats();
+
+  console.log("Counts from DB:", { approved, pending, annualReportsCount, pendingApplicationsCount });
+
+  return {
+    approved,
+    pending,
+    annualReports: annualReportsCount,
+    pendingApplications: pendingApplicationsCount
+  };
 };
 
 export const fetchActivityDetails = async (activityId) => {
