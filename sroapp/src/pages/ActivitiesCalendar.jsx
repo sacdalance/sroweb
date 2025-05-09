@@ -155,7 +155,19 @@ const ActivitiesCalendar = () => {
 
   // Handle event click
   const handleEventClick = (event) => {
-    setSelectedEvent(event);
+    // Format the date before setting the event
+    if (event.date instanceof Date) {
+      setSelectedEvent({
+        ...event,
+        formattedDate: event.date.toLocaleDateString('en-US', { 
+          month: 'long', 
+          day: 'numeric', 
+          year: 'numeric' 
+        })
+      });
+    } else {
+      setSelectedEvent(event);
+    }
     setIsDialogOpen(true);
   };
 
@@ -380,11 +392,11 @@ const ActivitiesCalendar = () => {
                 <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
                   <div className="flex">
                     <span className="w-32 text-gray-600">Activity Type:</span>
-                    <span>{selectedEvent.type}</span>
+                    <span>{selectedEvent.category || selectedEvent.type}</span>
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedEvent.date}</span>
+                    <span>{selectedEvent.formattedDate || selectedEvent.date}</span>
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Time:</span>
@@ -392,7 +404,7 @@ const ActivitiesCalendar = () => {
                   </div>
                   <div className="flex">
                     <span className="w-32 text-gray-600">Venue:</span>
-                    <span>{selectedEvent.venue}</span>
+                    <span>{selectedEvent.venue || selectedEvent.location}</span>
                   </div>
                 </div>
               </div>
@@ -403,20 +415,14 @@ const ActivitiesCalendar = () => {
                 <div className="text-sm">
                   <p>{selectedEvent.partners || "No university partners specified"}</p>
                 </div>
-              </div>
-
-              {/* List of Sustainable Development Goals */}
+              </div>              {/* List of Sustainable Development Goals */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                <div className="flex gap-2">
+                <div className="text-sm">
                   {selectedEvent.sdgs ? (
-                    selectedEvent.sdgs.map((sdg, index) => (
-                      <span key={index} className="text-sm bg-gray-100 px-2 py-1 rounded">
-                        {sdg}
-                      </span>
-                    ))
+                    <p>{selectedEvent.sdgs}</p>
                   ) : (
-                    <span className="text-sm text-gray-500">No SDGs specified</span>
+                    <span className="text-gray-500">No SDGs specified</span>
                   )}
                 </div>
               </div>

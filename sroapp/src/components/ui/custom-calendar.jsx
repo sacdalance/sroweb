@@ -4,7 +4,7 @@ import { Badge } from "./badge";
 import PropTypes from 'prop-types';
 
 const CustomCalendar = ({
-  mode = 'activities', // 'activities' or 'appointments'
+  mode = 'activities',
   currentMonth,
   selectedDate,
   onDateSelect,
@@ -18,65 +18,44 @@ const CustomCalendar = ({
   yearOptions,
   selectedMonth,
   selectedYear,
-  onYearChange
+  onYearChange,
+  confirmedDates = []
 }) => {
-  // Handle previous month navigation
-  const handlePrevMonth = () => {
-    onMonthChange(subMonths(currentMonth, 1));
-  };
+  const handlePrevMonth = () => onMonthChange(subMonths(currentMonth, 1));
+  const handleNextMonth = () => onMonthChange(addMonths(currentMonth, 1));
 
-  // Handle next month navigation
-  const handleNextMonth = () => {
-    onMonthChange(addMonths(currentMonth, 1));
-  };
-
-  // Generate calendar days
   const generateCalendarDays = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
-    const dateRange = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
-    return dateRange;
+    return eachDayOfInterval({ start: monthStart, end: monthEnd });
   };
 
-  // Get day cell class for appointments mode
   const getAppointmentDayClass = (day) => {
-    let classes = "flex items-center justify-center rounded-full h-10 w-10 mx-auto ";
+    let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
     
-    // Check if this date has appointments
-    const hasAppointments = datesWithAppointments.some(appointmentDate => 
-      isSameDay(day, appointmentDate)
-    );
-    
-    // First handle selected date
     if (selectedDate && isSameDay(day, selectedDate)) {
-      classes += "bg-[#007749] text-white font-bold ";
+      classes += "bg-[#7B1113] text-white font-bold ";
     } 
-    // Handle today
     else if (isToday(day)) {
-      classes += "border-2 border-[#007749] text-[#007749] font-bold ";
+      classes += "border-2 border-[#014421] text-[#014421] font-bold ";
     } 
-    // Handle available dates
     else if (isDateAvailable && isDateAvailable(day)) {
-      if (hasAppointments) {
-        classes += "text-blue-800 font-bold hover:text-blue-900 cursor-pointer ";
+      if (datesWithAppointments.some(date => isSameDay(date, day))) {
+        classes += "text-[#FFD700] font-bold hover:bg-gray-100 ";
       } else {
-        classes += "text-[#007749] font-bold hover:text-[#005a37] cursor-pointer ";
+        classes += "text-[#014421] font-bold hover:bg-gray-100 ";
       }
     } 
-    // Handle blocked dates
-    else if (blockedDates.some(blockedDate => isSameDay(day, blockedDate))) {
+    else if (blockedDates.some(date => isSameDay(day, date))) {
       classes += "text-[#7B1113] font-bold ";
     } 
-    // Handle unavailable dates
     else {
-      classes += "text-gray-600 ";
+      classes += "text-gray-400 ";
     }
     
     return classes;
   };
 
-  // Get day cell class for activities mode
   const getActivityDayClass = (day) => {
     const dayEvents = events.filter(event => isSameDay(new Date(event.date), day));
     let classes = "min-h-[100px] p-2 relative ";
@@ -99,14 +78,13 @@ const CustomCalendar = ({
   };
 
   return (
-    <div className="w-full">
-      {/* Calendar Header */}
+    <div className="p-4 bg-white rounded-lg shadow">
       <div className="mb-4 flex items-center justify-between">
         <button 
           onClick={handlePrevMonth}
-          className="p-1 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
         
         <div className="flex gap-4">
@@ -115,7 +93,7 @@ const CustomCalendar = ({
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange(e.target.value)}
-                className="p-1 border rounded"
+                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
               >
                 {monthOptions.map((month) => (
                   <option key={month} value={month}>
@@ -126,7 +104,7 @@ const CustomCalendar = ({
               <select
                 value={selectedYear}
                 onChange={(e) => onYearChange(e.target.value)}
-                className="p-1 border rounded"
+                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
@@ -136,7 +114,7 @@ const CustomCalendar = ({
               </select>
             </>
           ) : (
-            <h2 className="font-bold text-lg">
+            <h2 className="text-lg font-semibold text-[#014421]">
               {format(currentMonth, 'MMMM yyyy')}
             </h2>
           )}
@@ -144,84 +122,70 @@ const CustomCalendar = ({
 
         <button 
           onClick={handleNextMonth}
-          className="p-1 rounded-full hover:bg-gray-100"
+          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="w-full">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 mb-2 text-center">
-          <div className="text-sm font-semibold">SUN</div>
-          <div className="text-sm font-semibold">MON</div>
-          <div className="text-sm font-semibold">TUE</div>
-          <div className="text-sm font-semibold">WED</div>
-          <div className="text-sm font-semibold">THU</div>
-          <div className="text-sm font-semibold">FRI</div>
-          <div className="text-sm font-semibold">SAT</div>
-        </div>
+      <div className="grid grid-cols-7 mb-2">
+        {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
+          <div key={day} className="text-sm font-medium text-[#014421] py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
+          <div key={`empty-${index}`} className="h-10"></div>
+        ))}
         
-        {/* Calendar days */}
-        <div className="grid grid-cols-7 gap-1 border rounded-lg bg-gray-100">
-          {/* Fill in empty slots for the first week */}
-          {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
-            <div key={`empty-${index}`} className="h-10"></div>
-          ))}
-          
-          {/* Actual days */}
-          {generateCalendarDays().map((day, i) => (
-            mode === 'appointments' ? (
-              // Appointment booking mode
-              <div 
-                key={i}
-                onClick={() => onDateSelect && onDateSelect(day)}
-                className="p-1 hover:bg-gray-50 cursor-pointer"
-              >
-                <div className={getAppointmentDayClass(day)}>
-                  {format(day, 'd')}
-                </div>
+        {generateCalendarDays().map((day, i) => (
+          mode === 'appointments' ? (
+            <div 
+              key={i}
+              onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
+              className="p-1"
+            >
+              <div className={getAppointmentDayClass(day)}>
+                {format(day, 'd')}
               </div>
-            ) : (
-              // Activities display mode
-              <div 
-                key={i}
-                className={getActivityDayClass(day).containerClass}
-              >
-                <div className="flex justify-between items-start">
-                  <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
-                    isToday(day) ? "bg-[#014421] text-white" : ""
-                  }`}>
-                    {format(day, 'd')}
-                  </span>
-                  {getActivityDayClass(day).hasEvents && (
-                    <Badge 
-                      variant="destructive" 
-                      className="bg-[#7B1113] text-white border-transparent hover:bg-[#7B1113]/90"
-                    >
-                      {getActivityDayClass(day).events.length}
-                    </Badge>
-                  )}
-                </div>
+            </div>
+          ) : (
+            <div 
+              key={i}
+              className={getActivityDayClass(day).containerClass}
+            >
+              <div className="flex justify-between items-start">
+                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
+                  isToday(day) ? "bg-[#014421] text-white" : ""
+                }`}>
+                  {format(day, 'd')}
+                </span>
                 {getActivityDayClass(day).hasEvents && (
-                  <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px]">
-                    {getActivityDayClass(day).events.map((event, index) => (
-                      <div
-                        key={index}
-                        className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category)}`}
-                        onClick={() => onDateSelect && onDateSelect(event)}
-                        title={event.title}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
-                  </div>
+                  <Badge className="bg-[#7B1113] hover:bg-[#7B1113]/90 text-white border-0">
+                    {getActivityDayClass(day).events.length}
+                  </Badge>
                 )}
               </div>
-            )
-          ))}
-        </div>
+              {getActivityDayClass(day).hasEvents && (
+                <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px]">
+                  {getActivityDayClass(day).events.map((event, index) => (
+                    <div
+                      key={index}
+                      className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category)}`}
+                      onClick={() => onDateSelect && onDateSelect(event)}
+                      title={event.title}
+                    >
+                      {event.title}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        ))}
       </div>
     </div>
   );
@@ -240,6 +204,7 @@ CustomCalendar.propTypes = {
   })),
   blockedDates: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
   datesWithAppointments: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
+  confirmedDates: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
   isDateAvailable: PropTypes.func,
   getEventColor: PropTypes.func,
   monthOptions: PropTypes.arrayOf(PropTypes.string),

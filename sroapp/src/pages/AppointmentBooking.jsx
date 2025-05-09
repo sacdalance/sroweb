@@ -148,11 +148,14 @@ const AppointmentBooking = () => {
       
       let current = new Date(start);
       while (current < end) {
-        slots.push(current.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          hour12: true 
-        }));
+        slots.push({
+          time: current.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+          }),
+          available: true
+        });
         current = new Date(current.getTime() + interval * 60000);
       }
 
@@ -169,30 +172,37 @@ const AppointmentBooking = () => {
         .eq('appointment_date', formattedDate)
         .in('status', ['scheduled', 'confirmed']);
 
-      // Filter out blocked and booked slots
-      const availableSlots = slots.filter(slot => {
+      // Mark blocked and booked slots
+      const processedSlots = slots.map(slot => {
+        // Check if slot is blocked
         const isBlocked = blockedSlots?.some(blockedSlot => {
           const blockedTime = new Date(`2000-01-01T${blockedSlot.time_slot}`);
           return blockedTime.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit', 
             hour12: true 
-          }) === slot;
+          }) === slot.time;
         });
 
+        // Check if slot is booked
         const isBooked = existingAppointments?.some(appointment => {
           const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`);
           return appointmentTime.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit', 
             hour12: true 
-          }) === slot;
+          }) === slot.time;
         });
 
-        return !isBlocked && !isBooked;
+        return {
+          ...slot,
+          available: !isBlocked && !isBooked,
+          booked: isBooked,
+          blocked: isBlocked
+        };
       });
 
-      setTimeSlots(availableSlots);
+      setTimeSlots(processedSlots);
     } catch (error) {
       console.error("Error loading time slots:", error);
       toast.error("Failed to load available time slots");
@@ -443,10 +453,24 @@ const AppointmentBooking = () => {
                 <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
                   <div className="space-y-2">
-                    <p><span className="font-medium">Date:</span> {new Date(appointment.appointment_date).toLocaleDateString()}</p>
-                    <p><span className="font-medium">Time:</span> {appointment.appointment_time}</p>
-                    <p><span className="font-medium">Meeting Mode:</span> {appointment.meeting_mode || "Face-to-face"}</p>
-                    <p><span className="font-medium">Status:</span> 
+                    <p>
+                      <span className="font-medium">Date:</span>{' '}
+                      {new Date(appointment.appointment_date).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <span className="font-medium">Time:</span>{' '}
+                      {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
+                    <p>
+                      <span className="font-medium">Meeting Mode:</span>{' '}
+                      {appointment.meeting_mode || "Face-to-face"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Status:</span>{' '}
                       <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
                         appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
                         appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
@@ -645,23 +669,29 @@ const AppointmentBooking = () => {
                   </div>
                 ) : timeSlots.length > 0 ? (
                   <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map((time) => (
+                    {timeSlots.map((slot) => (
                       <button
-                        key={time}
-                        onClick={() => setFormData(prev => ({ ...prev, time }))}
+                        key={slot.time}
+                        onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
                         className={`py-2 px-3 text-sm font-medium rounded ${
-                          formData.time === time 
+                          formData.time === slot.time 
                             ? 'bg-[#007749] text-white' 
+                            : slot.booked
+                            ? 'bg-red-100 text-red-700 cursor-not-allowed'
+                            : slot.blocked
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                         }`}
+                        disabled={!slot.available}
                       >
-                        {time}
+                        {slot.time}
+                        {slot.booked && <span className="block text-xs">(Booked)</span>}
                       </button>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-4">
-                    <span className="text-sm text-red-600">No available time slots for this date</span>
+                    <span className="text-sm text-red-600">No time slots available for this date</span>
                   </div>
                 )}
               </div>
@@ -715,18 +745,21 @@ const AppointmentBooking = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Select New Time</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {timeSlots.map((time) => (
+                  {timeSlots.map((slot) => (
                     <button
-                      key={time}
+                      key={slot.time}
                       type="button"
-                      onClick={() => setRescheduleData(prev => ({ ...prev, time }))}
+                      onClick={() => setRescheduleData(prev => ({ ...prev, time: slot.time }))}
                       className={`py-2 px-3 text-sm font-medium rounded ${
-                        rescheduleData.time === time 
+                        rescheduleData.time === slot.time 
                           ? 'bg-[#007749] text-white' 
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : slot.available
+                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
+                      disabled={!slot.available}
                     >
-                      {time}
+                      {slot.time}
                     </button>
                   ))}
                 </div>
