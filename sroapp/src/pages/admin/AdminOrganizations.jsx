@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -14,6 +14,21 @@ import {
 const AdminOrganizations = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [organizations, setOrganizations] = useState([]);
+useEffect(() => {
+  const fetchOrganizations = async () => {
+    try {
+      const res = await fetch('/api/organization/list');
+      const data = await res.json();
+      setOrganizations(data);
+    } catch (err) {
+      console.error("Failed to fetch organizations:", err);
+    }
+  };
+
+  fetchOrganizations();
+}, []);
+
 
   // Mock data for organization categories
   const categories = [
@@ -28,173 +43,17 @@ const AdminOrganizations = () => {
     { id: "probation", name: "On Probation Organizations" }
   ];
 
-  // Mock data for organizations by category
-  const organizations = {
-    "academic": [
-      {
-        id: "org-1",
-        name: "Organization Name",
-        category: "Academic & Socio-Academic Student Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More academic organizations...
-    ],
-    "socio-civic": [
-      {
-        id: "org-5",
-        name: "Organization Name",
-        category: "Socio-Civic/Cause-Oriented Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More socio-civic organizations...
-    ],
-    "fraternity": [
-      {
-        id: "org-9",
-        name: "Organization Name",
-        category: "Fraternity/Sorority/Confraternity",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More fraternity organizations...
-    ],
-    "performing": [
-      {
-        id: "org-13",
-        name: "Organization Name",
-        category: "Performing Groups",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More performing organizations...
-    ],
-    "political": [
-      {
-        id: "org-17",
-        name: "Organization Name",
-        category: "Political Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More political organizations...
-    ],
-    "regional": [
-      {
-        id: "org-21",
-        name: "Organization Name",
-        category: "Regional/Provincial and Socio-Cultural Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More regional organizations...
-    ],
-    "special": [
-      {
-        id: "org-25",
-        name: "Organization Name",
-        category: "Special Interests Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More special interest organizations...
-    ],
-    "sports": [
-      {
-        id: "org-29",
-        name: "Organization Name",
-        category: "Sports and Recreation Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More sports organizations...
-    ],
-    "probation": [
-      {
-        id: "org-33",
-        name: "Organization Name",
-        category: "On Probation Organizations",
-        chairperson: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        adviser: {
-          name: "First Name M. Last",
-          email: "fmlast@up.edu.ph"
-        },
-        email: "organization@gmail.com"
-      },
-      // More organizations on probation...
-    ]
-  };
-
   // Get all organizations in a flat array
   const allOrganizations = Object.values(organizations).flat();
 
   // Filter organizations based on search query and selected category
-  const filteredOrganizations = allOrganizations.filter(org => {
-    const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || 
-      (organizations[selectedCategory] && organizations[selectedCategory].some(o => o.id === org.id));
-    return matchesSearch && matchesCategory;
-  });
+  // const filteredOrganizations = allOrganizations.filter(org => {
+  //   const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase());
+  //   const matchesCategory = selectedCategory === "all" || 
+  //     (organizations[selectedCategory] && organizations[selectedCategory].some(o => o.id === org.id));
+  //   return matchesSearch && matchesCategory;
+  // });
+  const filteredOrganizations = organizations;
 
   const handleGenerateCertificate = (orgId) => {
     console.log(`Generating certificate for: ${orgId}`);
@@ -248,49 +107,49 @@ const AdminOrganizations = () => {
       {/* Organizations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredOrganizations.map((org) => (
-          <Card key={org.id} className="rounded-lg overflow-hidden shadow-md">
-            <CardHeader className="py-4">
-              <CardTitle className="text-lg font-bold text-[#7B1113]">{org.name}</CardTitle>
-              <p className="text-xs text-gray-600 mt-1">{org.category}</p>
+          <Card key={org.org_id} className="rounded-lg overflow-hidden shadow-md">
+            <CardHeader className="py-1">
+              <CardTitle className="text-lg font-bold text-[#7B1113]">{org.org_name}</CardTitle>
+              <p className="text-xs text-gray-600 mt-1">Org Category</p> {/* Placeholder category */}
             </CardHeader>
             <CardContent className="p-4">
-              <div className="space-y-3">
+              <div className="space-y-3 text-sm">
                 <div>
-                  <p className="text-sm font-semibold text-[#014421]">Chairperson</p>
-                  <div className="flex justify-between text-sm">
-                    <span>{org.chairperson.name}</span>
-                    <span className="text-gray-500">{org.chairperson.email}</span>
+                  <p className="font-semibold text-[#014421]">Chairperson</p>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                    <span>{org.chairperson_name}</span>
+                    <span className="text-gray-500">{org.chairperson_email}</span>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-[#014421]">Adviser</p>
-                  <div className="flex justify-between text-sm">
-                    <span>{org.adviser.name}</span>
-                    <span className="text-gray-500">{org.adviser.email}</span>
+                  <p className="font-semibold text-[#014421]">Adviser</p>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                    <span>{org.adviser_name}</span>
+                    <span className="text-gray-500">{org.adviser_email}</span>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-[#014421]">Email</p>
-                  <p className="text-sm text-gray-500">{org.email}</p>
+                  <p className="font-semibold text-[#014421]">Email</p>
+                  <p className="text-gray-500">{org.org_email}</p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-4">
                   <Button 
-                    onClick={() => handleGenerateCertificate(org.id)}
+                    onClick={() => handleGenerateCertificate(org.org_id)}
                     className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
                   >
                     Generate Certificate
                   </Button>
                   <Button 
-                    onClick={() => handleViewSummary(org.id)}
+                    onClick={() => handleViewSummary(org.org_id)}
                     className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
                   >
                     Summary of Events
                   </Button>
                   <Button 
-                    onClick={() => handleViewAnnualReport(org.id)}
+                    onClick={() => handleViewAnnualReport(org.org_id)}
                     className="px-3 py-1 h-8 bg-[#014421] hover:bg-[#013319] text-white text-xs"
                   >
                     View Annual Report
