@@ -229,7 +229,7 @@ const ActivityDialogContent = ({
             </div>
           </div>
 
-          {activity.university_partner && (
+          {activity.university_partner === "true" && activity.partner_name?.trim() && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
