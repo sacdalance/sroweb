@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 const AdminCreateActivity = () => {
     const [selectedValue, setSelectedValue] = useState("");
+    const [isDragActive, setIsDragActive] = useState(false);
     const [studentPosition, setStudentPosition] = useState("");
     const [studentContact, setStudentContact] = useState("");
     const [activityName, setActivityName] = useState("");
@@ -1227,24 +1228,54 @@ const AdminCreateActivity = () => {
                                                 ))}
                                             </ul>
                                         </div>
-                                        <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-gray-400 hover:bg-muted transition-colors">
-                                            <label
-                                            htmlFor="activityRequestFileUpload"
-                                            className="cursor-pointer flex flex-col items-center"
-                                            >
+                                        <div
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDragActive(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDragActive(false);
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            setIsDragActive(false);
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (!file || file.type !== "application/pdf") {
+                                            toast.error("Only one PDF file is allowed.");
+                                            return;
+                                            }
+                                            setSelectedFile(file);
+                                        }}
+                                        className={cn(
+                                            "border-2 border-dashed p-4 rounded-md text-center transition-colors",
+                                            isDragActive
+                                            ? "border-green-600 bg-green-50"
+                                            : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+                                        )}
+                                        >
+                                        <label htmlFor="activityRequestFileUpload" className="cursor-pointer flex flex-col items-center">
                                             <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                                            <p className="text-sm">Drag and Drop or Click to Upload File</p>
+                                            <p className="text-sm">
+                                            {isDragActive ? "Drop the file here" : "Drag and Drop or Upload File (PDF only)"}
+                                            </p>
                                             <input
-                                                id="activityRequestFileUpload"
-                                                type="file"
-                                                accept=".pdf"
-                                                onChange={handleFileChange}
-                                                className="hidden"
-                                                disabled={isSubmitting}
+                                            id="activityRequestFileUpload"
+                                            type="file"
+                                            accept=".pdf"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file || file.type !== "application/pdf") {
+                                                toast.error("Only one PDF file is allowed.");
+                                                return;
+                                                }
+                                                setSelectedFile(file);
+                                            }}
+                                            className="hidden"
+                                            disabled={isSubmitting}
                                             />
-                                            </label>
+                                        </label>
                                         </div>
-
                                             {selectedFile && (
                                                 <div>
                                                 <h4 className="text-sm font-medium mb-1">Selected File</h4>
