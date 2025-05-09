@@ -126,7 +126,7 @@ const Sidebar = () => {
           </>
         )}
 
-        {(isSRO || isODSA || isSuperAdmin) && (
+        {(isSRO || isSuperAdmin) && (
           <div className="mb-6">
             <ul className="space-y-2 text-[15px] font-medium">
               <hr className="border-t border-[#DBDBDB] my-4" />
@@ -144,6 +144,24 @@ const Sidebar = () => {
             </ul>
             <hr className="border-t border-[#DBDBDB] my-4" />
           </div>
+        )}
+
+        {(isODSA) && (
+          <div className="mb-6">
+          <ul className="space-y-2 text-[15px] font-medium">
+            <hr className="border-t border-[#DBDBDB] my-4" />
+            <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
+            <hr className="border-t border-[#DBDBDB] my-4" />
+            <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
+            <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
+            <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
+            <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
+            <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Organization Applications</Link></li>
+            <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>
+            <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Annual Reports</Link></li>
+          </ul>
+          <hr className="border-t border-[#DBDBDB] my-4" />
+        </div>
         )}
       </ScrollArea>
 
