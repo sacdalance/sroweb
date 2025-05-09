@@ -38,6 +38,9 @@ import { useState, useEffect } from "react";
       pending: 0,
     });
 
+    // State for filtered events
+    const [filteredEvents, setFilteredEvents] = useState([]);
+
     // Function to check if a date falls within the current week
     const isDateInCurrentWeek = (dateString) => {
       const eventDate = new Date(dateString);
@@ -97,7 +100,7 @@ import { useState, useEffect } from "react";
       { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
       { title: "Approved Activity Requests", count: requestsCounts.approved || 0 },
       { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
-      { title: "Approved Applications", count: requestsCounts.annualReports || 0 },
+      { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
       { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
     ];
 
@@ -209,12 +212,15 @@ import { useState, useEffect } from "react";
                 })
               : "00:00";
 
+            // Map category to user-friendly label
+            const categoryLabel = categoryMap[activity.activity_type] || "Others";
+
             return {
               id: activity.activity_id,
               name: activity.activity_name,
               time: `${startTime} to ${endTime}`,
               location: activity.venue,
-              category: activity.activity_type,
+              category: categoryLabel, // Use the mapped label
               organization: activity.organization?.org_name,
               date: activity.schedule[0]?.start_date,
             };
@@ -239,8 +245,35 @@ import { useState, useEffect } from "react";
       fetchActivities();
     }, []);
 
+    // Recalculate filtered events whenever `events` or `currentWeekStart` changes
+    useEffect(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize time to start of the day
+
+      const currentWeekStartDate = new Date(currentWeekStart);
+      const currentWeekEndDate = new Date(currentWeekStart);
+      currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6); // End of the week
+
+      const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
+
+      const newFilteredEvents = events.filter((event) => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0); // Normalize time to start of the day
+
+        if (isCurrentWeek) {
+          // Show only today's events for the current week
+          return eventDate.getTime() === today.getTime();
+        } else {
+          // Show all events for the selected week
+          return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
+        }
+      });
+
+      setFilteredEvents(newFilteredEvents);
+    }, [events, currentWeekStart]);
+
     // Filter events for the current week
-    const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
+    const filteredEventsForCurrentWeek = events.filter(event => isDateInCurrentWeek(event.date));
 
     const handleViewDetails = async (request) => {
       try {
@@ -300,7 +333,7 @@ import { useState, useEffect } from "react";
     const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     const activeDay = "WED"; // Highlighted day
 
-    // Fetch organization requests (annual reports) for the current academic year
+    // Fetch organization requests (annual reports, pending applications, and approved applications)
     const fetchOrganizationRequests = async () => {
       try {
         // Get the current year
@@ -317,22 +350,34 @@ import { useState, useEffect } from "react";
         // Log the count of annual reports
         console.log(`Annual Reports Count for ${currentYear}:`, annualReportsData.length);
 
-        // Fetch and count pending applications from the org_recognition table
+        // Fetch and count pending applications from the org_application table
         const { data: pendingApplicationsData, error: pendingApplicationsError } = await supabase
-          .from("org_recognition")
+          .from("org_application")
           .select("*", { count: "exact" })
-          .eq("status", "Pending"); // Filter for rows where status is "Pending"
+          .eq("final_status", "Pending"); // Filter for rows where final_status is "Pending"
 
         if (pendingApplicationsError) throw pendingApplicationsError;
 
         // Log the count of pending applications
         console.log(`Pending Applications Count:`, pendingApplicationsData.length);
 
+        // Fetch and count approved applications from the org_application table
+        const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
+          .from("org_application")
+          .select("*", { count: "exact" })
+          .eq("final_status", "Approved"); // Filter for rows where final_status is "Approved"
+
+        if (approvedApplicationsError) throw approvedApplicationsError;
+
+        // Log the count of approved applications
+        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
+
         // Update the counts in state
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
           annualReports: annualReportsData.length, // Update the annualReports count
           pendingApplications: pendingApplicationsData.length, // Update the pendingApplications count
+          approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
         }));
       } catch (error) {
         console.error("Error fetching organization requests:", error);
@@ -372,6 +417,52 @@ import { useState, useEffect } from "react";
 
       fetchAnnualReports();
     }, []);
+
+    // Fetch approved organization requests
+    const fetchApprovedOrganizationRequests = async () => {
+      try {
+        // Get the current year
+        const currentYear = new Date().getFullYear();
+
+        // Fetch and count approved applications from the org_recognition table
+        const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
+          .from("org_recognition")
+          .select("*", { count: "exact" })
+          .eq("status", "Approved"); // Filter for rows where status is "Approved"
+
+        if (approvedApplicationsError) throw approvedApplicationsError;
+
+        // Log the count of approved applications
+        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
+
+        // Update the counts in state
+        setRequestsCounts((prevCounts) => ({
+          ...prevCounts,
+          approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
+        }));
+      } catch (error) {
+        console.error("Error fetching approved organization requests:", error);
+      }
+    };
+
+    useEffect(() => {
+      fetchApprovedOrganizationRequests();
+    }, []);
+
+    const categoryMap = {
+      charitable: "Charitable",
+      serviceWithinUPB: "Service (within UPB)",
+      serviceOutsideUPB: "Service (outside UPB)",
+      contestWithinUPB: "Contest (within UPB)",
+      contestOutsideUPB: "Contest (outside UPB)",
+      educational: "Educational",
+      incomeGenerating: "Income-Generating Project",
+      massOrientation: "Mass Orientation/General Assembly",
+      booth: "Booth",
+      rehearsals: "Rehearsals/Preparation",
+      specialEvents: "Special Event",
+      others: "Others",
+    };
 
     return (
       <div className="max-w-[1500px] mx-auto p-6">
@@ -587,7 +678,7 @@ import { useState, useEffect } from "react";
                                   </div>
                                   <div className="flex flex-col items-end text-sm">
                                     <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span>
+                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
                                   </div>
                                 </div>
                               </div>
@@ -626,7 +717,7 @@ import { useState, useEffect } from "react";
                                   </div>
                                   <div className="flex flex-col items-end text-sm">
                                     <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span>
+                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
                                   </div>
                                 </div>
                               </div>
@@ -779,12 +870,11 @@ import { useState, useEffect } from "react";
                     {selectedActivity.status}
                   </Badge>
                 </div>
-              </div>
+              </div>  
             )}
           </DialogContent>
         </Dialog>
       </div>
-    );
-  };
+  )};
 
   export default AdminPanel;
