@@ -21,6 +21,9 @@ import { useState, useEffect } from "react";
   fetchOrgStats,
   fetchActivityDetails,
 } from "@/api/adminActivityAPI";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
+
 
   const AdminPanel = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,6 +45,25 @@ import { useState, useEffect } from "react";
       forAppeal: 0,
       pending: 0,
     });
+    const [userRole, setUserRole] = useState(null);
+    
+    useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: account, error } = await supabase
+        .from("account")
+        .select("role_id")
+        .eq("email", user.email)
+        .single();
+
+      if (!error) {
+        setUserRole(account?.role_id);
+      }
+    };
+
+    fetchRole();
+  }, []);
+
 
     // Function to check if a date falls within the current week
     const isDateInCurrentWeek = (dateString) => {
@@ -116,6 +138,16 @@ import { useState, useEffect } from "react";
     };
     getIncoming();
   }, []);
+
+  const refreshSelectedActivity = async (id) => {
+  const { data, error } = await supabase
+    .from("activity")
+    .select(`*, account:account(*), schedule:activity_schedule(*), organization:organization(*)`)
+    .eq("activity_id", id)
+    .single();
+
+  if (!error) setSelectedActivity(data);
+};
 
   useEffect(() => {
     const getApproved = async () => {
@@ -231,36 +263,49 @@ import { useState, useEffect } from "react";
     const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
 
     const handleViewDetails = async (request) => {
-      try {
-        setSelectedActivity(null);
-        setIsModalOpen(true);
-        const { sdgGoals, partners } = await fetchActivityDetails(request.id);
-        setSelectedActivity({
-          ...request,
-          sdgGoals,
-          partners,
-        });
-      } catch (err) {
-        console.error("Error fetching activity details:", err);
-      }
+  try {
+    const { data, error } = await supabase
+      .from("activity")
+      .select(`
+        *,
+        account:account (*),
+        schedule:activity_schedule(*),
+        organization:organization(*)
+      `)
+      .eq("activity_id", request.id)
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch full activity:", error);
+      return;
+    }
+
+    setSelectedActivity(data);
+    setIsModalOpen(true);
+  } catch (err) {
+    console.error("Error fetching full activity details:", err);
+  }
     };
 
-    const handleApprove = async () => {
-      try {
-        // API call to approve activity
-        setIsModalOpen(false);
-      } catch (error) {
-        console.error("Error approving activity:", error);
-      }
-    };
 
-    const handleReject = async () => {
-      try {
-        // API call to reject activity
-        setIsModalOpen(false);
-      } catch (error) {
-        console.error("Error rejecting activity:", error);
+    const handleApprove = async (comment, activityId) => {
+      if (!activityId || !userRole) {
+        console.error("Missing activityId or userRole.");
+        throw new Error("Activity or role not ready.");
       }
+    
+      await approveActivity(activityId, comment, userRole);
+      await refreshSelectedActivity(activityId);
+    };
+    
+    const handleReject = async (comment, activityId) => {
+      if (!activityId || !userRole) {
+        console.error("Missing activityId or userRole.");
+        throw new Error("Activity or role not ready.");
+      }
+    
+      await rejectActivity(activityId, comment, userRole);
+      await refreshSelectedActivity(activityId);
     };
 
     // Current week range for the calendar (e.g., April 6 - 12)
@@ -347,10 +392,7 @@ import { useState, useEffect } from "react";
                                 </td>
                                 <td className="px-6 py-3 text-center">
                                   <button
-                                    onClick={() => {
-                                      setSelectedActivity(request);
-                                      setIsModalOpen(true);
-                                    }}
+                                    onClick={() => handleViewDetails(request)}
                                     className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
                                   >
                                     <Eye className="h-5 w-5" />
@@ -550,134 +592,19 @@ import { useState, useEffect } from "react";
           </div>
         </div>
 
-        {/* Activity Details Modal */}
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
-            <DialogHeader className="px-2">
-              <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
-            </DialogHeader>
-            {selectedActivity && (
-              <div className="space-y-6 px-2">
-                {/* Activity Title, Description and Organization */}
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold">{selectedActivity.activityName}</h2>
-                  <p className="text-sm text-gray-600">{selectedActivity.organization}</p>
-                  <p className="text-sm text-gray-700 mt-2">{selectedActivity.activityDescription}</p>
-                </div>
-
-                {/* General Information */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Activity Type:</span>
-                      <span>{selectedActivity.activityType}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Adviser Name:</span>
-                      <span>{selectedActivity.adviser}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Charge Fee:</span>
-                      <span>No</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Adviser Contact:</span>
-                      <span>{selectedActivity.adviserContact || "09123456789"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Specifications */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-[#7B1113]">Specifications</h3>
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Venue:</span>
-                      <span>{selectedActivity.venue}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Green Monitor:</span>
-                      <span>Monitor</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Venue Approver:</span>
-                      <span>Approver</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Monitor Contact:</span>
-                      <span>Contact</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Venue Contact:</span>
-                      <span>Contact</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Schedule */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-[#7B1113]">Schedule</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Date:</span>
-                      <span>{selectedActivity.activityDate}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-32 text-gray-600">Time:</span>
-                      <span>10:00 AM - 2:00 PM</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* University Partners */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
-                  <div className="text-sm">
-                    {selectedActivity?.partners?.length > 0 ? (
-                      selectedActivity.partners.map((partner, index) => (
-                        <p key={index}>{partner}</p>
-                      ))
-                    ) : (
-                      <p>No partners listed</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* List of Sustainable Development Goals */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                  <div className="flex gap-2">
-                    {selectedActivity?.sdgGoals?.length > 0 ? (
-                      selectedActivity.sdgGoals.map((goal, index) => (
-                        <span key={index} className="text-sm bg-gray-100 px-2 py-1 rounded">
-                          {goal}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-500">No SDG goals listed</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Bottom Section with Status and View Form Button */}
-                <div className="flex justify-between items-center">
-                  <Button 
-                    className="text-sm bg-[#014421] hover:bg-[#013319] text-white"
-                  >
-                    View Scanned Form
-                  </Button>
-                  <Badge 
-                    variant={selectedActivity.status === 'Approved' ? 'success' : 'warning'}
-                    className="text-sm px-4 py-1"
-                  >
-                    {selectedActivity.status}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {selectedActivity && (
+          <ActivityDialogContent
+            activity={selectedActivity}
+            setActivity={setSelectedActivity}
+            isModalOpen={isModalOpen}
+            userRole={userRole}
+            handleApprove={handleApprove}
+            handleReject={handleReject}
+            readOnly={false}
+          />
+        )}
+      </Dialog>
       </div>
     );
   };
