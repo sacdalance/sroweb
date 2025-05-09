@@ -14,7 +14,7 @@ import { Search, Download, Eye } from "lucide-react";
 
 const AdminAnnualReports = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [yearFilter, setYearFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("2024-2025");
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,40 +65,36 @@ const AdminAnnualReports = () => {
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Organization Annual Reports</h1>
 
       {/* Filters */}
-      <Card className="rounded-lg shadow-md mb-8">
-        <CardHeader className="py-4">
-          <CardTitle className="text-xl font-bold text-[#7B1113]">Report Filters</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <Input
-                type="search"
-                placeholder="Search organizations..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      <div className="flex flex-col md:flex-row gap-2 mb-6">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
             </div>
+            <Input
+              type="search"
+              placeholder="Search organizations..."
+              className="pl-10 h-9 text-sm w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
+          <div className="w-full md:w-[200px]">
             <Select value={yearFilter} onValueChange={setYearFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filter by academic year" />
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                <SelectItem value="2027-2028">2027-2028</SelectItem>
-                <SelectItem value="2026-2027">2026-2027</SelectItem>
-                <SelectItem value="2025-2026">2025-2026</SelectItem>
                 <SelectItem value="2024-2025">2024-2025</SelectItem>
+                <SelectItem value="2025-2026">2025-2026</SelectItem>
+                <SelectItem value="2026-2027">2026-2027</SelectItem>
+                <SelectItem value="2027-2028">2027-2028</SelectItem>
+                <SelectItem value="all">All years</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
 
       {/* Table */}
       <Card className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -131,8 +127,7 @@ const AdminAnnualReports = () => {
                             <Button
                               key={i}
                               asChild
-                              variant="outline"
-                              className="text-xs"
+                              className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs flex items-center gap-1"
                             >
                               <a href={url} target="_blank" rel="noopener noreferrer">
                                 <Eye className="h-3 w-3 inline mr-1" />
