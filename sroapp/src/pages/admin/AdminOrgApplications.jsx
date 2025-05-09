@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 
 const AdminOrgApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -44,6 +44,22 @@ const AdminOrgApplications = () => {
     setDialogOpen(true);
   };
 
+  const categoriesList = [
+    { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
+    { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
+    { id: "fraternity", name: "Fraternity/Sorority/Confraternity" },
+    { id: "performing", name: "Performing Groups" },
+    { id: "political", name: "Political Organizations" },
+    { id: "regional", name: "Regional/Provincial and Socio-Cultural Organizations" },
+    { id: "special", name: "Special Interests Organizations" },
+    { id: "sports", name: "Sports and Recreation Organizations" },
+    { id: "probation", name: "On Probation Organizations" },
+  ];
+
+  const getCategoryName = (id) => {
+    return categoriesList.find((cat) => cat.id === id)?.name || id;
+  };
+
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Organization Recognition Applications</h1>
@@ -68,7 +84,7 @@ const AdminOrgApplications = () => {
                   {new Date(application.submitted_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-center">{application.org_name}</TableCell>
-                <TableCell className="text-center">{application.organization_type}</TableCell>
+                <TableCell className="text-center">{getCategoryName(application.organization_type)}</TableCell> 
                 <TableCell className="text-center">{application.org_chairperson}</TableCell>
                 <TableCell className="text-center">{application.org_adviser}</TableCell>
                 <TableCell className="text-center">{application.org_email}</TableCell>
@@ -101,58 +117,58 @@ const AdminOrgApplications = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Type</p>
-                <p>{selectedApplication.organization_type}</p>
+                <p>{getCategoryName(selectedApplication.organization_type)}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Name</p>
                 <p>{selectedApplication.org_name}</p>
               </div>
               <div>
+                <p className="font-medium text-gray-600">Organization Email</p>
+                <p>{selectedApplication.org_email}</p>
+              </div>
+              <div>
                 <p className="font-medium text-gray-600">Chairperson</p>
                 <p>{selectedApplication.org_chairperson}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Adviser</p>
-                <p>{selectedApplication.org_adviser}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Co-Adviser</p>
-                <p>{selectedApplication.org_coadviser}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Email</p>
-                <p>{selectedApplication.org_email}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Chairperson Email</p>
                 <p>{selectedApplication.chairperson_email}</p>
               </div>
               <div>
+                <p className="font-medium text-gray-600">Adviser</p>
+                <p>{selectedApplication.org_adviser}</p>
+              </div>
+              <div>
                 <p className="font-medium text-gray-600">Adviser Email</p>
                 <p>{selectedApplication.adviser_email}</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-600">Co-Adviser</p>
+                <p>{selectedApplication.org_coadviser}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Co-Adviser Email</p>
                 <p>{selectedApplication.coadviser_email}</p>
               </div>
 
-              {/* Documents */}
+              {/* Google Drive Folder Link */}
               <div className="md:col-span-2 pt-4">
-                <p className="font-medium text-gray-600 mb-2">Documents</p>
-                <div className="flex flex-wrap gap-2">
-                  {(JSON.parse(selectedApplication.submission_file_url) || []).map((file, i) => (
-                    <Button
-                      key={i}
-                      variant="outline"
-                      size="sm"
-                      asChild
+                <p className="font-medium text-gray-600 mb-2">Drive Folder</p>
+                  <Button
+                    className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
+                    asChild
+                  >
+                    <a
+                      href={selectedApplication.drive_folder_id}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
                     >
-                      <a href={file} target="_blank" rel="noopener noreferrer">
-                        View File {i + 1}
-                      </a>
-                    </Button>
-                  ))}
-                </div>
+                      <Download className="h-4 w-4" />
+                      Drive Folder
+                    </a>
+                  </Button>
               </div>
             </div>
           )}
