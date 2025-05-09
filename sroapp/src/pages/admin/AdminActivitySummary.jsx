@@ -339,7 +339,6 @@ const AdminActivitySummary = () => {
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <label className="text-sm font-medium">Organization</label>
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">Organization</label>
                         <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
