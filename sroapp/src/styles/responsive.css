@@ -1,0 +1,91 @@
+/* Base responsive utilities */
+.responsive-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Typography scaling */
+@media (min-width: 480px) {
+  .text-responsive {
+    font-size: calc(14px + 0.25vw);
+  }
+}
+
+/* Container padding adjustments */
+@media (min-width: 768px) {
+  .responsive-container {
+    padding: 0 2rem;
+  }
+  .text-responsive {
+    font-size: calc(14px + 0.35vw);
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding: 0 4rem;
+  }
+  .text-responsive {
+    font-size: calc(14px + 0.4vw);
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1536px) {
+  .responsive-container {
+    max-width: 1536px;
+  }
+  .text-responsive {
+    font-size: calc(16px + 0.4vw);
+  }
+}
+
+/* 4K display optimizations */
+@media (min-width: 2160px) {
+  .responsive-container {
+    max-width: 2048px;
+  }
+  .text-responsive {
+    font-size: calc(18px + 0.4vw);
+  }
+}
+
+/* Utility classes for responsive layouts */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Hide scrollbar for cleaner look */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Responsive form elements */
+@media (max-width: 640px) {
+  .responsive-form {
+    width: 100%;
+  }
+  .responsive-form input,
+  .responsive-form select,
+  .responsive-form textarea {
+    font-size: 16px; /* Prevents zoom on mobile */
+  }
+}
+
+/* Responsive table adjustments */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
