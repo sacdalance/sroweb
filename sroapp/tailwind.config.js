@@ -14,6 +14,8 @@ export default {
         'xl': '1280px',   // Extra large devices
         '2xl': '1536px',  // 2K and above
         '4k': '2160px',   // 4K displays
+        // Max-width breakpoints
+        'max-xl': {'max': '1280px'},  // 1280px and below
       },
     },
   },

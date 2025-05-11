@@ -12,8 +12,12 @@ const Layout = () => {
 
   return (
     <div className="flex relative">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <div className="flex-1 w-full md:ml-80">
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        className="xl:flex"
+      />
+      <div className="flex-1 w-full">
         <Navbar onMenuClick={toggleSidebar} />
         <main className="pt-20 p-4 min-h-screen">
           <Outlet />
