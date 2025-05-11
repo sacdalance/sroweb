@@ -16,6 +16,7 @@ export default {
         '4k': '2160px',   // 4K displays
         // Max-width breakpoints
         'max-xl': {'max': '1280px'},  // 1280px and below
+        'max-2xl': {'max': '1600px'}, // 1600px and below
       },
     },
   },

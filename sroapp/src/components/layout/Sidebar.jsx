@@ -75,8 +75,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       
       <aside className={`
         fixed top-0 left-0 z-30
-        w-80 h-screen bg-[#F3F4F6] text-black
-        transform transition-transform duration-300 ease-in-out
+        max-2xl:w-64 w-80 h-screen bg-[#F3F4F6] text-black
+        transform transition-all duration-300 ease-in-out
         flex flex-col
         ${isOpen ? 'translate-x-0' : 'max-xl:-translate-x-full'}
         shadow-lg
