@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2, ArrowRight } from "lucide-react";
@@ -124,6 +124,38 @@ const Dashboard = () => {
     // Filter events for the current week
     const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const currentWeekStartDate = new Date(currentWeekStart);
+    currentWeekStartDate.setHours(0, 0, 0, 0);
+    const currentWeekEndDate = new Date(currentWeekStart);
+    currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
+    currentWeekEndDate.setHours(23, 59, 59, 999);
+
+    const isCurrentWeek =
+      today >= currentWeekStartDate && today <= currentWeekEndDate;
+
+    // Always filter events for the current week
+    const weekEvents = useMemo(
+      () =>
+        events.filter((event) => {
+          const eventDate = new Date(event.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
+        }),
+      [events, currentWeekStart]
+    );
+
+    // Then, for current week, filter for today only
+    const eventsToShow = isCurrentWeek
+      ? weekEvents.filter((event) => {
+          const eventDate = new Date(event.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate.getTime() === today.getTime();
+        })
+      : weekEvents;
+
     return (
         <div className="max-w-[1500px] mx-auto p-6">
             <Card className="shadow-sm px-6 py-4 mb-6">
@@ -170,27 +202,41 @@ const Dashboard = () => {
                     <CardContent className="flex-grow">
                         {/* Days of the week with day numbers */}
                         <div className="grid grid-cols-7 gap-2 mb-4">
-                            {Array.from({ length: 7 }, (_, i) => {
-                                const date = new Date(currentWeekStart);
-                                date.setDate(date.getDate() - date.getDay() + i);
-                                const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                                const isToday = new Date().toDateString() === date.toDateString();
+                          {Array.from({ length: 7 }, (_, i) => {
+                            const date = new Date(currentWeekStart);
+                            date.setDate(date.getDate() - date.getDay() + i);
+                            const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
+                            const isToday = new Date().toDateString() === date.toDateString();
 
-                                return (
-                                    <div key={i} className="flex flex-col items-center">
-                                        <div
-                                            className={`text-sm font-medium py-1 ${
-                                                isToday ? "text-[#7B1113] font-bold" : "text-gray-600"
-                                            }`}
-                                        >
-                                            {day}
-                                        </div>
-                                        <div className={`text-sm ${isToday ? "text-[#7B1113] font-bold" : "text-gray-500"}`}>
-                                            {date.getDate()}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            return (
+                              <div key={i} className="flex flex-col items-center">
+                                {isToday ? (
+                                  <div
+                                    className="flex flex-col items-center justify-center"
+                                    style={{
+                                      background: '#F3AA2C',
+                                      color: '#7B1113',
+                                      fontWeight: 'bold',
+                                      borderRadius: '12px',
+                                      width: 44,
+                                      height: 44,
+                                      border: '2px solid #F3AA2C',
+                                      boxSizing: 'border-box',
+                                      boxShadow: '0 1px 4px 0 rgba(243,170,44,0.10)',
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '0.8rem', lineHeight: 1 }}>{day}</span>
+                                    <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{date.getDate()}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center" style={{ width: 44, height: 44 }}>
+                                    <span className="text-xs text-gray-600">{day}</span>
+                                    <span className="text-sm text-gray-500">{date.getDate()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {/* Calendar Events */}
@@ -204,16 +250,6 @@ const Dashboard = () => {
                         ) : (
                             <div className="space-y-2">
                                 {(() => {
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
-
-                                    // Check if we're viewing the current week
-                                    const currentWeekStartDate = new Date(currentWeekStart);
-                                    const currentWeekEndDate = new Date(currentWeekStart);
-                                    currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
-
-                                    const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
-
                                     if (isCurrentWeek) {
                                         // For current week, show activities only for today with filler if none
                                         const todayEvents = filteredEvents.filter((event) => {
