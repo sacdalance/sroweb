@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
   import { Link } from "react-router-dom";
   import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
   import { Button } from "../../components/ui/button";
@@ -197,36 +197,31 @@ import { useState, useEffect } from "react";
           ).length;
 
           // Transform the data to match our events structure
-          const transformedEvents = data.map((activity) => {
-            // Format time to show only hours and minutes
-            const startTime = activity.schedule[0]?.start_time
-              ? new Date(`1970-01-01T${activity.schedule[0].start_time}`).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "00:00";
-            const endTime = activity.schedule[0]?.end_time
-              ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "00:00";
-
-            // Map category to user-friendly label
-            const categoryLabel = categoryMap[activity.activity_type] || "Others";
-
-            return {
-              id: activity.activity_id,
-              name: activity.activity_name,
-              time: `${startTime} to ${endTime}`,
-              location: activity.venue,
-              category: categoryLabel, // Use the mapped label
-              organization: activity.organization?.org_name,
-              date: activity.schedule[0]?.start_date,
-            };
+          const transformedEvents = [];
+          data.forEach((activity) => {
+            if (Array.isArray(activity.schedule)) {
+              activity.schedule.forEach((sched) => {
+                if (sched.start_date) {
+                  const startTime = sched.start_time
+                    ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "00:00";
+                  const endTime = sched.end_time
+                    ? new Date(`1970-01-01T${sched.end_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "00:00";
+                  const categoryLabel = categoryMap[activity.activity_type] || "Others";
+                  transformedEvents.push({
+                    id: activity.activity_id + "_" + sched.activity_schedule_id,
+                    name: activity.activity_name,
+                    time: `${startTime} to ${endTime}`,
+                    location: activity.venue,
+                    category: categoryLabel,
+                    organization: activity.organization?.org_name,
+                    date: sched.start_date,
+                  });
+                }
+              });
+            }
           });
-
-          // Update state with transformed events
           setEvents(transformedEvents);
 
           // Update the approved count in state
@@ -464,6 +459,39 @@ import { useState, useEffect } from "react";
       others: "Others",
     };
 
+    // --- Activities Calendar Filtering Logic (same as Dashboard.jsx fix) ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const currentWeekStartDate = new Date(currentWeekStart);
+    currentWeekStartDate.setHours(0, 0, 0, 0);
+    const currentWeekEndDate = new Date(currentWeekStart);
+    currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
+    currentWeekEndDate.setHours(23, 59, 59, 999);
+
+    const isCurrentWeek =
+      today >= currentWeekStartDate && today <= currentWeekEndDate;
+
+    // Always filter events for the current week
+    const weekEvents = useMemo(
+      () =>
+        events.filter((event) => {
+          const eventDate = new Date(event.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
+        }),
+      [events, currentWeekStart]
+    );
+
+    // Then, for current week, filter for today only
+    const eventsToShow = isCurrentWeek
+      ? weekEvents.filter((event) => {
+          const eventDate = new Date(event.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate.getTime() === today.getTime();
+        })
+      : weekEvents;
+
     return (
       <div className="max-w-[1500px] mx-auto p-6">
         
@@ -510,53 +538,52 @@ import { useState, useEffect } from "react";
                       Error loading requests: {requestsError}
                     </div>
                   ) : incomingRequests.length > 0 ? (
+                    // Make table responsive and prevent horizontal scroll
                     <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-                      <div className="overflow-x-auto">
-                        <table className="w-full table-auto">
-                          <thead className="bg-[#f5f5f5]">
-                            <tr>
-                              <th className="px-5 py-3 text-center text-sm font-medium text-black">Submission Date</th>
-                              <th className="px-5 py-3 text-center text-sm font-medium text-black">Activity Name</th>
-                              <th className="px-10 py-3 text-center text-sm font-medium text-black">Organization</th>
-                              <th className="px-10 py-3 text-center text-sm font-medium text-black">Activity Date</th>
-                              <th className="px-10 py-3 text-center text-sm font-medium text-black">Status</th>
-                              <th className="px-4 py-3 text-center text-sm font-medium text-black">Actions</th>
+                      <table className="min-w-full border-separate border-spacing-0">
+                        <thead className="bg-[#f5f5f5]">
+                          <tr>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Submission<br />Date</th>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Activity<br />Name</th>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Organization</th>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Activity<br />Date</th>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-20">Status</th>
+                            <th className="px-1 py-2 text-center text-xs font-medium text-black w-14">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {incomingRequests.map((request) => (
+                            <tr key={request.id} className="hover:bg-gray-50">
+                              <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.submissionDate}</td>
+                              <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityName}</td>
+                              <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.organization}</td>
+                              <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityDate}</td>
+                              <td className="px-1 py-2 text-xs text-center">
+                                <Badge
+                                  className={
+                                    request.status === "For Appeal"
+                                      ? "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                                  }
+                                >
+                                  {request.status}
+                                </Badge>
+                              </td>
+                              <td className="px-1 py-2 text-center">
+                                <button
+                                  onClick={() => {
+                                    setSelectedActivity(request);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </button>
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {incomingRequests.map((request) => (
-                              <tr key={request.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.submissionDate}</td>
-                                <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.activityName}</td>
-                                <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.organization}</td>
-                                <td className="px-6 py-3 text-sm text-gray-700 text-center">{request.activityDate}</td>
-                                <td className="px-6 py-3 text-sm text-center">
-                                  <Badge
-                                    className={
-                                      request.status === "For Appeal"
-                                        ? "bg-gray-100 text-gray-700 hover:bg-gray-100"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-100"
-                                    }
-                                  >
-                                    {request.status}
-                                  </Badge>
-                                </td>
-                                <td className="px-6 py-3 text-center">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedActivity(request);
-                                      setIsModalOpen(true);
-                                    }}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                  >
-                                    <Eye className="h-5 w-5" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -612,19 +639,33 @@ import { useState, useEffect } from "react";
                     date.setDate(date.getDate() - date.getDay() + i);
                     const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
                     const isToday = new Date().toDateString() === date.toDateString();
-                    
+
                     return (
                       <div key={i} className="flex flex-col items-center">
-                        <div 
-                          className={`text-sm font-medium py-1
-                            ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-600'}
-                          `}
-                        >
-                          {day}
-                        </div>
-                        <div className={`text-sm ${isToday ? 'text-[#7B1113] font-bold' : 'text-gray-500'}`}>
-                          {date.getDate()}
-                        </div>
+                        {isToday ? (
+                          <div
+                            className="flex flex-col items-center justify-center"
+                            style={{
+                              background: '#F3AA2C',
+                              color: '#7B1113',
+                              fontWeight: 'bold',
+                              borderRadius: '12px',
+                              width: 44,
+                              height: 44,
+                              border: '2px solid #F3AA2C',
+                              boxSizing: 'border-box',
+                              boxShadow: '0 1px 4px 0 rgba(243,170,44,0.10)',
+                            }}
+                          >
+                            <span style={{ fontSize: '0.8rem', lineHeight: 1 }}>{day}</span>
+                            <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{date.getDate()}</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center" style={{ width: 44, height: 44 }}>
+                            <span className="text-xs text-gray-600">{day}</span>
+                            <span className="text-sm text-gray-500">{date.getDate()}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -642,96 +683,38 @@ import { useState, useEffect } from "react";
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {(() => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-
-                      // Check if we're viewing the current week
-                      const currentWeekStartDate = new Date(currentWeekStart);
-                      const currentWeekEndDate = new Date(currentWeekStart);
-                      currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
-                      
-                      const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
-
-                      if (isCurrentWeek) {
-                        // For current week, show activities only for today with filler if none
-                        const todayEvents = filteredEvents.filter(event => {
-                          const eventDate = new Date(event.date);
-                          eventDate.setHours(0, 0, 0, 0);
-                          return eventDate.getTime() === today.getTime();
-                        });
-
-                        if (todayEvents.length > 0) {
-                          return todayEvents.map((event) => (
-                            <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                              <div className="p-3 space-y-1">
-                                <div className="flex justify-between items-start">
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center text-white text-sm">
-                                      <span>{event.time}</span>
-                                      <span className="mx-1">•</span>
-                                      <span>{event.location}</span>
-                                    </div>
-                                    <h3 className="text-white font-bold text-lg">
-                                      {event.name}
-                                    </h3>
-                                  </div>
-                                  <div className="flex flex-col items-end text-sm">
-                                    <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
-                                  </div>
+                    {eventsToShow.length > 0 ? (
+                      eventsToShow.map((event) => (
+                        <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
+                          <div className="p-3 space-y-1">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center text-white text-sm">
+                                  <span>{event.time}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{event.location}</span>
                                 </div>
+                                <h3 className="text-white font-bold text-lg">
+                                  {event.name}
+                                </h3>
+                              </div>
+                              <div className="flex flex-col items-end text-sm">
+                                <span className="text-white">{event.organization}</span>
+                                <span className="text-white/80 italic">{event.category}</span>
                               </div>
                             </div>
-                          ));
-                        } else {
-                          return (
-                            <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                              <div className="p-6 text-center">
-                                <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities Today</h3>
-                              </div>
-                            </div>
-                          );
-                        }
-                      } else {
-                        // For other weeks, show all activities of that week
-                        const weekEvents = filteredEvents.filter(event => {
-                          const eventDate = new Date(event.date);
-                          return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-                        });
-
-                        if (weekEvents.length > 0) {
-                          return weekEvents.map((event) => (
-                            <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                              <div className="p-3 space-y-1">
-                                <div className="flex justify-between items-start">
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center text-white text-sm">
-                                      <span>{event.time}</span>
-                                      <span className="mx-1">•</span>
-                                      <span>{event.location}</span>
-                                    </div>
-                                    <h3 className="text-white font-bold text-lg">
-                                      {event.name}
-                                    </h3>
-                                  </div>
-                                  <div className="flex flex-col items-end text-sm">
-                                    <span className="text-white">{event.organization}</span>
-                                    <span className="text-white/80 italic">{event.category}</span> {/* Render transformed category */}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ));
-                        } else {
-                          return (
-                            <div className="text-center py-4 text-gray-500">
-                              No activities scheduled for this week
-                            </div>
-                          );
-                        }
-                      }
-                    })()}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                        <div className="p-6 text-center">
+                          <h3 className="text-gray-500 text-lg font-medium mb-1">
+                            {isCurrentWeek ? "No Activities Today" : "No Activities This Week"}
+                          </h3>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
