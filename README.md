@@ -10,7 +10,7 @@ A centralized web application for the UP Baguio Student Relations Office (SRO) t
 - **Deidrick Jethro Nisay** – Frontend Developer, UI/UX Designer
 - **Lea Angeli Cuadra** – UI/UX Designer, Documentation
 - **Clarence Kyle Pagunsan** – Backend Developer
-- **Lance Gabriel Sacdalan** – Backend Developer, Project Manager
+- **Lance Gabriel Sacdalan** – Full Stack Developer, Project Manager
 
 ---
 
