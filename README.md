@@ -77,7 +77,7 @@ SuperAdmin	Full access to all tools and data
 ```bash
 touch CMSC128
 cd CMSC128
-git clone https://github.com/your-username/sro-web-app.git
+git clone https://github.com/"your-username"/srowebapp.git
 cd srowebapp
 
 
