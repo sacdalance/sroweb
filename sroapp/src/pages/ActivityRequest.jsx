@@ -511,7 +511,35 @@ const ActivityRequest = () => {
             
                 if (!result.valid) {
                     toast.dismiss();
-                    toast.error(result.message);
+                    toast.error(
+                        result.field === "studentPosition"
+                            ? (studentPosition.trim().length < 10
+                                ? "Student Position is empty!"
+                                : "Student Position must be between 10 and 50 characters.")
+                        : result.field === "venueApprover"
+                            ? (venueApprover.trim().length < 10
+                                ? "Venue Approver is empty!"
+                                : "Venue Approver must be between 10 and 50 characters.")
+                        : result.field === "greenCampusMonitor"
+                            ? (greenCampusMonitor.trim().length < 10
+                                ? "Green Campus Monitor is empty!"
+                                : "Green Campus Monitor must be between 10 and 50 characters.")
+                        : result.field === "activityName"
+                            ? (activityName.trim().length < 3
+                                ? "Activity Name is too short!"
+                                : "Activity Name must not exceed 100 characters.")
+                        : result.field === "activityDescription"
+                            ? "Activity Description must be at least 20 characters."
+                        : result.field === "partnerDescription"
+                            ? "Partner Role Description must be at least 10 characters."
+                        : result.field === "studentContact"
+                            ? "Student Contact must contain only numbers."
+                        : result.field === "venue"
+                            ? "Venue must not exceed 100 characters."
+                        : result.field === "organization_id"
+                        ? "Organization Name is required!"
+                        : "Please fill out this field correctly."
+                        );
     setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
@@ -574,7 +602,33 @@ const ActivityRequest = () => {
             
                 if (!result.valid) {
                     toast.dismiss();
-                    toast.error(result.message);
+                    toast.error(
+                        result.field === "studentPosition"
+                            ? (studentPosition.trim().length < 10
+                                ? "Student Position is empty!"
+                                : "Student Position must be between 10 and 50 characters.")
+                        : result.field === "venueApprover"
+                            ? (venueApprover.trim().length < 10
+                                ? "Venue Approver is empty!"
+                                : "Venue Approver must be between 10 and 50 characters.")
+                        : result.field === "greenCampusMonitor"
+                            ? (greenCampusMonitor.trim().length < 10
+                                ? "Green Campus Monitor is empty!"
+                                : "Green Campus Monitor must be between 10 and 50 characters.")
+                        : result.field === "activityName"
+                            ? (activityName.trim().length < 3
+                                ? "Activity Name is too short!"
+                                : "Activity Name must not exceed 100 characters.")
+                        : result.field === "activityDescription"
+                            ? "Activity Description must be at least 20 characters."
+                        : result.field === "partnerDescription"
+                            ? "Partner Role Description must be at least 10 characters."
+                        : result.field === "studentContact"
+                            ? "Student Contact must contain only numbers."
+                        : result.field === "venue"
+                            ? "Venue must not exceed 100 characters."
+                        : "Please fill out this field correctly."
+                        );
     setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
@@ -739,24 +793,33 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="studentPosition"
-                                                onBlur={() => setFieldError("studentPosition", studentPosition.trim() === "")}
-                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
+                                                onBlur={() => setFieldError("studentPosition", studentPosition.trim().length < 10 || studentPosition.length > 50)}                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Chairperson, Secretary, etc.)"
                                                 value={studentPosition}
                                                 onChange={(e) => {
-                                                    setStudentPosition(e.target.value);
-                                                    if (e.target.value.trim() !== "") setFieldError("studentPosition", false);
+                                                setStudentPosition(e.target.value);
+                                                if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                    setFieldError("studentPosition", false);
+                                                }
                                                 }}
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="studentContact" onBlur={() => setFieldError("studentContact", !/^09\d{9}$/.test(studentContact))} className={fieldErrors.studentContact ? "border-red-300 bg-red-50" : ""}
+                                                id="studentContact"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
                                                 placeholder="(09XXXXXXXXX)"
+                                                onBlur={() => setFieldError("studentContact", !/^\d+$/.test(studentContact))}
                                                 value={studentContact}
-                                                onChange={(e) => { setStudentContact(e.target.value); if (/^09\d{9}$/.test(e.target.value)) setFieldError("studentContact", false); }}
-                                            />
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, "");
+                                                    setStudentContact(value);
+                                                    if (/^\d+$/.test(value)) setFieldError("studentContact", false);
+                                                }}
+                                                className={fieldErrors.studentContact ? "border-red-300 bg-red-50" : ""}
+                                                />
                                         </div>
                                     </div>
 
@@ -765,23 +828,26 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="activityName" onBlur={() => setFieldError("activityName", activityName.trim() === "")} className={fieldErrors.activityName ? "border-red-300 bg-red-50" : ""}
+                                                id="activityName" onBlur={() => setFieldError("activityName", activityName.trim().length < 3 || activityName.length > 100)} className={fieldErrors.activityName ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Mass Orientation, Welcome Party, etc.)"
                                                 value={activityName}
-                                                onChange={(e) => { setActivityName(e.target.value); if (e.target.value.trim() !== "") setFieldError("activityName", false); }}
+                                                onChange={(e) => {
+                                                    setActivityName(e.target.value);
+                                                    if (e.target.value.trim().length >= 3 && e.target.value.length <= 100) setFieldError("activityName", false);
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Description <span className="text-red-500">*</span></h3>
                                             <Textarea
                                                 id="activityDescription"
-                                                onBlur={() => setFieldError("activityDescription", activityDescription.trim() === "")}
+                                                onBlur={() => setFieldError("activityDescription", activityDescription.trim().length < 20)}
                                                 className={`${fieldErrors.activityDescription ? "border-red-300 bg-red-50" : ""} min-h-[100px]`}
                                                 placeholder="Enter activity description"
                                                 value={activityDescription}
                                                 onChange={(e) => {
-                                                    setActivityDescription(e.target.value);
-                                                    if (e.target.value.trim() !== "") setFieldError("activityDescription", false);
+                                                setActivityDescription(e.target.value);
+                                                if (e.target.value.trim().length >= 20) setFieldError("activityDescription", false);
                                                 }}
                                             />
                                         </div>
@@ -1069,11 +1135,14 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="venue" onBlur={() => setFieldError("venue", venue.trim() === "")} className={fieldErrors.venue ? "border-red-300 bg-red-50" : ""}
+                                                id="venue" onBlur={() => setFieldError("venue", venue.trim() === "" || venue.length > 100)} className={fieldErrors.venue ? "border-red-300 bg-red-50" : ""}
                                                 type="text"
                                                 placeholder="(Teatro Amianan, CS AVR, etc.)"
                                                 value={venue}
-                                                onChange={(e) => { setVenue(e.target.value); if (e.target.value.trim() !== "") setFieldError("venue", false); }}
+                                                onChange={(e) => {
+                                                setVenue(e.target.value);
+                                                if (e.target.value.trim() !== "" && e.target.value.length <= 100) setFieldError("venue", false);
+                                                }}
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1081,15 +1150,17 @@ const ActivityRequest = () => {
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                                                 <Input
                                                 id="venueApprover"
-                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim() === "")}
+                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim().length < 10 || venueApprover.length > 50)}
                                                 className={`${fieldErrors.venueApprover ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                                 type="text"
                                                 placeholder="Provide their name"
                                                 value={isOffCampus === "yes" ? "N/A" : venueApprover}
                                                 disabled={isOffCampus === "yes"}
                                                 onChange={(e) => {
-                                                    setVenueApprover(e.target.value);
-                                                    if (e.target.value.trim() !== "") setFieldError("venueApprover", false);
+                                                setVenueApprover(e.target.value);
+                                                if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                    setFieldError("venueApprover", false);
+                                                }
                                                 }}
                                                 />
                                             </div>
@@ -1100,7 +1171,7 @@ const ActivityRequest = () => {
                                                 onBlur={() =>
                                                     setFieldError(
                                                     "venueApproverContact",
-                                                    !/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact)
+                                                    !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact)
                                                     )
                                                 }
                                                 className={`${fieldErrors.venueApproverContact ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
@@ -1238,10 +1309,10 @@ const ActivityRequest = () => {
                                                 type="text"
                                                 placeholder="Describe the role of the partner"
                                                 value={partnerDescription}
-                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim() === "")}
+                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim().length < 10)}
                                                 onChange={(e) => {
-                                                    setPartnerDescription(e.target.value);
-                                                    if (e.target.value.trim() !== "") setFieldError("partnerDescription", false);
+                                                setPartnerDescription(e.target.value);
+                                                if (e.target.value.trim().length >= 10) setFieldError("partnerDescription", false);
                                                 }}
                                                 className={`${fieldErrors.partnerDescription ? "border-red-300 bg-red-50" : ""}`}
                                                 />
@@ -1253,17 +1324,22 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim() === "")} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
+                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim().length < 10 || greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="Ex. Clarence Kyle Pagunsan"
                                                     value={greenCampusMonitor}
-                                                    onChange={(e) => { setGreenCampusMonitor(e.target.value); if (e.target.value.trim() !== "") setFieldError("greenCampusMonitor", false); }}
+                                                    onChange={(e) => {
+                                                    setGreenCampusMonitor(e.target.value);
+                                                    if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                        setFieldError("greenCampusMonitor", false);
+                                                    }
+                                                    }}
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitorContact" onBlur={() => setFieldError("greenCampusMonitorContact", !/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))} className={fieldErrors.greenCampusMonitorContact ? "border-red-300 bg-red-50" : ""}
+                                                    id="greenCampusMonitorContact" onBlur={() => setFieldError("greenCampusMonitorContact", !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))} className={fieldErrors.greenCampusMonitorContact ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                                                     value={greenCampusMonitorContact}
