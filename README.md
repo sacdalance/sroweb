@@ -79,20 +79,36 @@ touch CMSC128
 cd CMSC128
 git clone https://github.com/"your-username"/srowebapp.git
 cd srowebapp
+```
 
+### 🔧 2. Install necessary node modules
 
-# For frontend
+```bash
+# For sroapp
 cd sroapp
 npm install
 
+# For srobackend
+cd srobackend
+npm install
+```
+### 🔧 3. Create and configure .env files per folder
+
+```bash
+# For sroapp
+cd sroapp
+touch .env
+
+# Write inside .env in sroapp
 VITE_BACKEND_URL=http://localhost:3000
 VITE_SUPABASE_URL="fill"
 VITE_SUPABASE_ANON_KEY="fill"
 
-# For backend
-cd srobackend
-npm install
+# For srobackend
+cd sroapp
+touch .env
 
+# Write inside .env in srobackend
 PORT=3000
 VITE_SUPABASE_URL="fill"
 VITE_SUPABASE_SERVICE_ROLE_KEY="fill"
@@ -102,3 +118,18 @@ GDRIVE_ORG_APP_FOLDER_ID="fill"
 GDRIVE_CLIENT_EMAIL="fill"
 GDRIVE_PROJECT_ID="fill"
 GDRIVE_PRIVATE_KEY="fill"
+```
+### 🔧 4. Make sure you are connected to WiFi to fetch Supabase DB 
+
+### 🔧 5. Split two terminals and run development
+
+```bash
+# For sroapp
+cd sroapp
+npm run dev
+
+# For srobackend
+cd srobackend
+npm run start
+```
+
