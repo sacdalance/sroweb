@@ -34,9 +34,9 @@ A centralized web application for the UP Baguio Student Relations Office (SRO) t
 - **Virtual Machine** (for final on-prem deployment by UPB)
 
 ### File Management
-- /frontend     → React + Tailwind + ShadCN UI
-- /backend      → Express routes, Supabase, DB logic
-- /docs         → Documentation (Proposal, User Manual, etc.)
+- /sroapp       → React + Tailwind + ShadCN UI
+- /srobackend   → Express routes, Supabase, DB logic
+- /documents    → Documentation (Proposal, User Manual, etc.)
 - /database     → SQL schema or migrations
 ---
 
