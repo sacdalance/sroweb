@@ -169,174 +169,172 @@ const Dashboard = () => {
                 </div>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* FAQ Section */}
                 <FAQCard />
 
                 {/* Activities Calendar Section */}
                 <Card className="shadow-sm flex flex-col h-full">
-                    <CardHeader className="pb-3">
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                                    onClick={() => handleWeekNavigation("prev")}
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                </Button>
-                                <span className="text-sm font-medium">{getWeekRange(currentWeekStart)}</span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 border-[#014421] text-[#014421]"
-                                    onClick={() => handleWeekNavigation("next")}
-                                >
-                                    <ChevronRight className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                        {/* Days of the week with day numbers */}
-                        <div className="grid grid-cols-7 gap-2 mb-4">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 p-0 border-[#014421] text-[#014421] rounded-md"
+                          onClick={() => handleWeekNavigation("prev")}
+                        >
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                        <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
+                          {getWeekRange(currentWeekStart)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-6 w-6 p-0 border-[#014421] text-[#014421] rounded-md"
+                          onClick={() => handleWeekNavigation("next")}
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow min-w-0">
+                    <div className="w-full">
+                      {/* Desktop/tablet: Days left, cards right (vertical) */}
+                      <div className="hidden sm:grid grid-cols-[70px_1fr] gap-2">
+                        {/* Days of the week */}
+                        <div className="flex flex-col gap-2 h-full">
                           {Array.from({ length: 7 }, (_, i) => {
                             const date = new Date(currentWeekStart);
                             date.setDate(date.getDate() - date.getDay() + i);
                             const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
                             const isToday = new Date().toDateString() === date.toDateString();
+                            return (
+                              <div
+                                key={i}
+                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
+                                  ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                `}
+                              >
+                                <span className="text-xs">{day}</span>
+                                <span className="text-base">{date.getDate()}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {/* Activity cards in vertical stack */}
+                        <div className="flex flex-col gap-2 h-full min-w-0">
+                          {Array.from({ length: 7 }, (_, i) => {
+                            const date = new Date(currentWeekStart);
+                            date.setDate(date.getDate() - date.getDay() + i);
+                            date.setHours(0, 0, 0, 0);
+
+                            const dayEvents = events.filter(event => {
+                              const eventDate = new Date(event.date);
+                              eventDate.setHours(0, 0, 0, 0);
+                              return eventDate.getTime() === date.getTime();
+                            });
 
                             return (
-                              <div key={i} className="flex flex-col items-center">
-                                {isToday ? (
+                              <div key={i} className="flex-1 min-w-0">
+                                {dayEvents.length > 0 ? (
                                   <div
-                                    className="flex flex-col items-center justify-center"
-                                    style={{
-                                      background: '#F3AA2C',
-                                      color: '#7B1113',
-                                      fontWeight: 'bold',
-                                      borderRadius: '12px',
-                                      width: 44,
-                                      height: 44,
-                                      border: '2px solid #F3AA2C',
-                                      boxSizing: 'border-box',
-                                      boxShadow: '0 1px 4px 0 rgba(243,170,44,0.10)',
-                                    }}
+                                    key={dayEvents[0].id}
+                                    className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto justify-between"
+                                    style={{ width: "100%", maxWidth: "100%" }}
                                   >
-                                    <span style={{ fontSize: '0.8rem', lineHeight: 1 }}>{day}</span>
-                                    <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{date.getDate()}</span>
+                                    {/* Top Row: Location + Time Slot */}
+                                    <div className="flex items-center mb-1 min-w-0">
+                                      <span className="text-white text-xs truncate flex-1 min-w-0">{dayEvents[0].location}</span>
+                                      <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{dayEvents[0].time}</span>
+                                    </div>
+                                    {/* Activity Name */}
+                                    <h3 className="text-white font-bold text-base mb-1 truncate">{dayEvents[0].name}</h3>
+                                    {/* Organization and Category */}
+                                    <div className="flex flex-row items-start gap-2 min-w-0 w-full">
+                                      <span className="text-white text-sm truncate flex-1 min-w-0">{dayEvents[0].organization}</span>
+                                      <span className="text-white/80 italic text-xs sm:text-sm text-right flex-shrink-0">{dayEvents[0].category}</span>
+                                    </div>
                                   </div>
                                 ) : (
-                                  <div className="flex flex-col items-center justify-center" style={{ width: 44, height: 44 }}>
-                                    <span className="text-xs text-gray-600">{day}</span>
-                                    <span className="text-sm text-gray-500">{date.getDate()}</span>
+                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] w-full max-w-full mx-auto flex items-center justify-center">
+                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
                                   </div>
                                 )}
                               </div>
                             );
                           })}
                         </div>
+                      </div>
+                      {/* Mobile: Days left, cards horizontally aligned with no scroll */}
+                      <div className="sm:hidden flex flex-col gap-2">
+                        {Array.from({ length: 7 }, (_, i) => {
+                          const date = new Date(currentWeekStart);
+                          date.setDate(date.getDate() - date.getDay() + i);
+                          date.setHours(0, 0, 0, 0);
 
-                        {/* Calendar Events */}
-                        {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
-                                <span className="ml-2 text-gray-600">Loading activities...</span>
+                          const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
+                          const isToday = new Date().toDateString() === date.toDateString();
+
+                          const dayEvents = events.filter(event => {
+                            const eventDate = new Date(event.date);
+                            eventDate.setHours(0, 0, 0, 0);
+                            return eventDate.getTime() === date.getTime();
+                          });
+
+                          return (
+                            <div key={i} className="flex flex-row items-center gap-2 w-full">
+                              {/* Day label aligned with cards */}
+                              <div
+                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
+                                  ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                `}
+                              >
+                                <span className="text-xs">{day}</span>
+                                <span className="text-base">{date.getDate()}</span>
+                              </div>
+                              {/* Cards for this day (no horizontal scroll) */}
+                              <div className="flex flex-row flex-wrap gap-2 w-full min-w-0">
+                                {dayEvents.length > 0 ? (
+                                  dayEvents.map(event => (
+                                    <div
+                                      key={event.id}
+                                      className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between"
+                                      style={{ minWidth: 0 }}
+                                    >
+                                      <div className="flex items-center mb-1 min-w-0">
+                                        <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
+                                        <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
+                                      </div>
+                                      <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
+                                      <div className="flex flex-row items-start gap-2 min-w-0 w-full">
+                                        <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
+                                        <span className="text-white/80 italic text-xs sm:text-sm text-right flex-shrink-0">{event.category}</span>
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] flex-1 basis-[220px] max-w-full flex items-center justify-center min-w-0">
+                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                        ) : error ? (
-                            <div className="text-center py-4 text-red-500">Error loading activities: {error}</div>
-                        ) : (
-                            <div className="space-y-2">
-                                {(() => {
-                                    if (isCurrentWeek) {
-                                        // For current week, show activities only for today with filler if none
-                                        const todayEvents = filteredEvents.filter((event) => {
-                                            const eventDate = new Date(event.date);
-                                            eventDate.setHours(0, 0, 0, 0);
-                                            return eventDate.getTime() === today.getTime();
-                                        });
-
-                                        if (todayEvents.length > 0) {
-                                            return todayEvents.map((event) => (
-                                                <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                                                    <div className="p-3 space-y-1">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="space-y-0.5">
-                                                                <div className="flex items-center text-white text-sm">
-                                                                    <span>{event.time}</span>
-                                                                    <span className="mx-1">•</span>
-                                                                    <span>{event.location}</span>
-                                                                </div>
-                                                                <h3 className="text-white font-bold text-lg">{event.name}</h3>
-                                                            </div>
-                                                            <div className="flex flex-col items-end text-sm">
-                                                                <span className="text-white">{event.organization}</span>
-                                                                <span className="text-white/80 italic">{event.category}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ));
-                                        } else {
-                                            return (
-                                                <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                                    <div className="p-6 text-center">
-                                                        <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities Today</h3>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                    } else {
-                                        // For other weeks, show all activities of that week
-                                        const weekEvents = filteredEvents.filter((event) => {
-                                            const eventDate = new Date(event.date);
-                                            return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-                                        });
-
-                                        if (weekEvents.length > 0) {
-                                            return weekEvents.map((event) => (
-                                                <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                                                    <div className="p-3 space-y-1">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="space-y-0.5">
-                                                                <div className="flex items-center text-white text-sm">
-                                                                    <span>{event.time}</span>
-                                                                    <span className="mx-1">•</span>
-                                                                    <span>{event.location}</span>
-                                                                </div>
-                                                                <h3 className="text-white font-bold text-lg">{event.name}</h3>
-                                                            </div>
-                                                            <div className="flex flex-col items-end text-sm">
-                                                                <span className="text-white">{event.organization}</span>
-                                                                <span className="text-white/80 italic">{event.category}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ));
-                                        } else {
-                                            return (
-                                                <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                                    <div className="p-6 text-center">
-                                                        <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities This Week</h3>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                    }
-                                })()}
-                            </div>
-                        )}
-                    </CardContent>
-                    <div className="flex justify-center mt-auto border-t pt-4">
-                        <Link to="/activities-calendar">
-                            <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
-                                See Activities Calendar <ArrowRight className="w-4 h-4" />
-                            </Button>
-                        </Link>
+                          );
+                        })}
+                      </div>
                     </div>
+                  </CardContent>
+                  <div className="flex justify-center mt-auto border-t pt-4">
+                    <Link to="/activities-calendar">
+                      <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+                        See Activities Calendar <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </Card>
             </div>
         </div>
