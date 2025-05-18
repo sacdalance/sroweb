@@ -67,6 +67,10 @@ const ActivityRequest = () => {
     const [greenCampusMonitor, setGreenCampusMonitor] = useState("");
     const [greenCampusMonitorContact, setGreenCampusMonitorContact] = useState("");
     const [selectedFile, setSelectedFile] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const setFieldError = (field, hasError) => {
+        setFieldErrors(prev => ({ ...prev, [field]: hasError }));
+    };
     const [recurringDays, setRecurringDays] = useState({
         Monday: false,
         Tuesday: false,
@@ -508,6 +512,7 @@ const ActivityRequest = () => {
                 if (!result.valid) {
                     toast.dismiss();
                     toast.error(result.message);
+    setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
                     if (el) {
@@ -570,6 +575,7 @@ const ActivityRequest = () => {
                 if (!result.valid) {
                     toast.dismiss();
                     toast.error(result.message);
+    setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
                     if (el) {
@@ -733,18 +739,23 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="studentPosition"
+                                                onBlur={() => setFieldError("studentPosition", studentPosition.trim() === "")}
+                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Chairperson, Secretary, etc.)"
                                                 value={studentPosition}
-                                                onChange={(e) => setStudentPosition(e.target.value)}
+                                                onChange={(e) => {
+                                                    setStudentPosition(e.target.value);
+                                                    if (e.target.value.trim() !== "") setFieldError("studentPosition", false);
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="studentContact"
+                                                id="studentContact" onBlur={() => setFieldError("studentContact", !/^09\d{9}$/.test(studentContact))} className={fieldErrors.studentContact ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(09XXXXXXXXX)"
                                                 value={studentContact}
-                                                onChange={(e) => setStudentContact(e.target.value)}
+                                                onChange={(e) => { setStudentContact(e.target.value); if (/^09\d{9}$/.test(e.target.value)) setFieldError("studentContact", false); }}
                                             />
                                         </div>
                                     </div>
@@ -754,20 +765,24 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="activityName"
+                                                id="activityName" onBlur={() => setFieldError("activityName", activityName.trim() === "")} className={fieldErrors.activityName ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Mass Orientation, Welcome Party, etc.)"
                                                 value={activityName}
-                                                onChange={(e) => setActivityName(e.target.value)}
+                                                onChange={(e) => { setActivityName(e.target.value); if (e.target.value.trim() !== "") setFieldError("activityName", false); }}
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Description <span className="text-red-500">*</span></h3>
                                             <Textarea
                                                 id="activityDescription"
+                                                onBlur={() => setFieldError("activityDescription", activityDescription.trim() === "")}
+                                                className={`${fieldErrors.activityDescription ? "border-red-300 bg-red-50" : ""} min-h-[100px]`}
                                                 placeholder="Enter activity description"
                                                 value={activityDescription}
-                                                onChange={(e) => setActivityDescription(e.target.value)}
-                                                className="min-h-[100px]"
+                                                onChange={(e) => {
+                                                    setActivityDescription(e.target.value);
+                                                    if (e.target.value.trim() !== "") setFieldError("activityDescription", false);
+                                                }}
                                             />
                                         </div>
                                     </div>
@@ -776,7 +791,7 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Activity Type <span className="text-red-500">*</span></h3>
                                         <Select value={selectedActivityType} onValueChange={setSelectedActivityType}>
-                                            <SelectTrigger id="activityType" className="w-full">
+                                            <SelectTrigger id="activityType" onBlur={() => setFieldError("activityType", selectedActivityType.trim() === "")} className={fieldErrors.activityType ? "border-red-300 bg-red-50 w-full" : "w-full"}>
                                                 <SelectValue placeholder="Select activity type" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -802,7 +817,7 @@ const ActivityRequest = () => {
                                     <div>
                                     <h3 className="text-sm font-medium mb-2">Sustainable Development Goals <span className="text-red-500">*</span></h3>
                                     <div className="mb-4 border border-gray-200 rounded-md">
-                                        <details id="sdgGoals" open>
+                                        <details id="sdgGoals" className={fieldErrors.sdgGoals ? "border-red-300 bg-red-50" : ""} open>
                                         <summary className="cursor-pointer px-4 py-2 bg-gray-100 font-medium capitalize">
                                             SDG List
                                         </summary>
@@ -828,10 +843,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Charging Fees? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="chargingFees"
-                                            value={chargingFees1}
-                                            onValueChange={setChargingFees1}
-                                            className="space-y-3"
+                                        id="chargingFees"
+                                        onBlur={() => setFieldError("chargingFees", chargingFees1.trim() === "")}
+                                        value={chargingFees1}
+                                        onValueChange={setChargingFees1}
+                                        className={`${fieldErrors.chargingFees ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="fees-yes" />
@@ -852,10 +868,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="partnering"
-                                            value={partnering}
-                                            onValueChange={setPartnering}
-                                            className="space-y-3"
+                                        id="partnering"
+                                        onBlur={() => setFieldError("partnering", partnering.trim() === "")}
+                                        value={partnering}
+                                        onValueChange={(val) => { setPartnering(val); if (val.trim() !== "") setFieldError("partnering", false); }}
+                                        className={`${fieldErrors.partnering ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="partnering-yes" />
@@ -899,10 +916,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Recurring? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="recurring"
-                                            value={recurring}
-                                            onValueChange={setRecurring}
-                                            className="space-y-3"
+                                        id="recurring"
+                                        onBlur={() => setFieldError("recurring", recurring.trim() === "")}
+                                        value={recurring}
+                                        onValueChange={setRecurring}
+                                        className={`${fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="one-time" id="one-time" />
@@ -911,7 +929,7 @@ const ActivityRequest = () => {
                                                 </label>
                                             </div>
                                             <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="recurring" id="recurring" />
+                                                <RadioGroupItem value="recurring" id="recurring" onBlur={() => setFieldError("recurring", recurring.trim() === "")} className={fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} />
                                                 <label htmlFor="recurring" className="text-sm font-medium leading-none">
                                                     Recurring
                                                 </label>
@@ -924,22 +942,22 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="startDate"
+                                                id="startDate" onBlur={() => setFieldError("startDate", !startDate)} className={fieldErrors.startDate ? "border-red-300 bg-red-50" : ""}
                                                 type="date"
                                                 min={new Date().toISOString().split("T")[0]}
                                                 value={startDate}
-                                                onChange={(e) => setStartDate(e.target.value)}
+                                                onChange={(e) => { setStartDate(e.target.value); if (e.target.value !== "") setFieldError("startDate", false); }}
                                             />
                                         </div>
                                         {recurring === "recurring" && (
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Activity End Date <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="endDate"
+                                                    id="endDate" onBlur={() => setFieldError("endDate", !endDate)} className={fieldErrors.endDate ? "border-red-300 bg-red-50" : ""}
                                                     type="date"
                                                     min={new Date().toISOString().split("T")[0]}
                                                     value={endDate}
-                                                    onChange={(e) => setEndDate(e.target.value)}
+                                                    onChange={(e) => { setEndDate(e.target.value); if (e.target.value !== "") setFieldError("endDate", false); }}
                                                 />
                                             </div>
                                         )}
@@ -950,10 +968,10 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Activity Start Time <span className="text-red-500">*</span> </h3>
                                             
                                             <Input
-                                                id="startTime"
+                                                id="startTime" onBlur={() => setFieldError("startTime", !startTime)} className={fieldErrors.startTime ? "border-red-300 bg-red-50" : ""}
                                                 type="time"
                                                 value={startTime}
-                                                onChange={(e) => setStartTime(e.target.value)}
+                                                onChange={(e) => { setStartTime(e.target.value); if (e.target.value !== "") setFieldError("startTime", false); }}
                                             />
                                             <p className="text-xs text-muted-foreground mt-1">
                                             NOTE: Official curfew in the campus is at 9:00PM.
@@ -962,10 +980,10 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity End Time <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="endTime"
+                                                id="endTime" onBlur={() => setFieldError("endTime", !endTime)} className={fieldErrors.endTime ? "border-red-300 bg-red-50" : ""}
                                                 type="time"
                                                 value={endTime}
-                                                onChange={(e) => setEndTime(e.target.value)}
+                                                onChange={(e) => { setEndTime(e.target.value); if (e.target.value !== "") setFieldError("endTime", false); }}
                                             />
                                         </div>
                                     </div>
@@ -1026,10 +1044,10 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Off-Campus? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="offcampus"
-                                            value={isOffCampus}
-                                            onValueChange={setIsOffCampus}
-                                            className="space-y-3"
+                                        id="offcampus"
+                                        value={isOffCampus}
+                                        onValueChange={(val) => { setIsOffCampus(val); if (val.trim() !== "") setFieldError("offcampus", false); }}
+                                        className={`${fieldErrors.offcampus ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="offcampus-yes" />
@@ -1051,36 +1069,53 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="venue"
+                                                id="venue" onBlur={() => setFieldError("venue", venue.trim() === "")} className={fieldErrors.venue ? "border-red-300 bg-red-50" : ""}
                                                 type="text"
                                                 placeholder="(Teatro Amianan, CS AVR, etc.)"
                                                 value={venue}
-                                                onChange={(e) => setVenue(e.target.value)}
+                                                onChange={(e) => { setVenue(e.target.value); if (e.target.value.trim() !== "") setFieldError("venue", false); }}
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="venueApprover"
-                                                    type="text"
-                                                    placeholder="Provide their name"
-                                                    value={isOffCampus === "yes" ? "N/A" : venueApprover}
-                                                    disabled={isOffCampus === "yes"}
-                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
-                                                    onChange={(e) => setVenueApprover(e.target.value)}
+                                                id="venueApprover"
+                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim() === "")}
+                                                className={`${fieldErrors.venueApprover ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                type="text"
+                                                placeholder="Provide their name"
+                                                value={isOffCampus === "yes" ? "N/A" : venueApprover}
+                                                disabled={isOffCampus === "yes"}
+                                                onChange={(e) => {
+                                                    setVenueApprover(e.target.value);
+                                                    if (e.target.value.trim() !== "") setFieldError("venueApprover", false);
+                                                }}
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="venueApproverContact"
-                                                    type="text"
-                                                    placeholder="09XXXXXXXXX or XXX@up.edu.ph"
-                                                    value={isOffCampus === "yes" ? "N/A" : venueApproverContact}
-                                                    disabled={isOffCampus === "yes"}
-                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
-                                                    onChange={(e) => setVenueApproverContact(e.target.value)}
+                                                id="venueApproverContact"
+                                                onBlur={() =>
+                                                    setFieldError(
+                                                    "venueApproverContact",
+                                                    !/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact)
+                                                    )
+                                                }
+                                                className={`${fieldErrors.venueApproverContact ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                type="text"
+                                                placeholder="09XXXXXXXXX or XXX@up.edu.ph"
+                                                value={isOffCampus === "yes" ? "N/A" : venueApproverContact}
+                                                disabled={isOffCampus === "yes"}
+                                                onChange={(e) => {
+                                                    setVenueApproverContact(e.target.value);
+                                                    if (
+                                                    /^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(e.target.value)
+                                                    ) {
+                                                    setFieldError("venueApproverContact", false);
+                                                    }
+                                                }}
                                                 />
                                             </div>
                                         </div>
@@ -1199,10 +1234,16 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Description of Partner’s Role in the Activity <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    type="text"
-                                                    placeholder="Provide their role"
-                                                    value={partnerDescription}
-                                                    onChange={(e) => setPartnerDescription(e.target.value)}
+                                                id="partnerDescription"
+                                                type="text"
+                                                placeholder="Describe the role of the partner"
+                                                value={partnerDescription}
+                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim() === "")}
+                                                onChange={(e) => {
+                                                    setPartnerDescription(e.target.value);
+                                                    if (e.target.value.trim() !== "") setFieldError("partnerDescription", false);
+                                                }}
+                                                className={`${fieldErrors.partnerDescription ? "border-red-300 bg-red-50" : ""}`}
                                                 />
                                             </div>
                                         </div>
@@ -1212,21 +1253,21 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitor"
+                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim() === "")} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="Ex. Clarence Kyle Pagunsan"
                                                     value={greenCampusMonitor}
-                                                    onChange={(e) => setGreenCampusMonitor(e.target.value)}
+                                                    onChange={(e) => { setGreenCampusMonitor(e.target.value); if (e.target.value.trim() !== "") setFieldError("greenCampusMonitor", false); }}
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitorContact"
+                                                    id="greenCampusMonitorContact" onBlur={() => setFieldError("greenCampusMonitorContact", !/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))} className={fieldErrors.greenCampusMonitorContact ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                                                     value={greenCampusMonitorContact}
-                                                    onChange={(e) => setGreenCampusMonitorContact(e.target.value)}
+                                                    onChange={(e) => { setGreenCampusMonitorContact(e.target.value); if (/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(e.target.value)) setFieldError("greenCampusMonitorContact", false); }}
                                                 />
                                             </div>
                                         </div>
@@ -1312,19 +1353,19 @@ const ActivityRequest = () => {
                                             {isDragActive ? "Drop the file here" : "Drag and Drop or Upload File (PDF only)"}
                                             </p>
                                             <input
-                                            id="activityRequestFileUpload"
-                                            type="file"
-                                            accept=".pdf"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file || file.type !== "application/pdf") {
-                                                toast.error("Only one PDF file is allowed.");
-                                                return;
-                                                }
-                                                setSelectedFile(file);
-                                            }}
-                                            className="hidden"
-                                            disabled={isSubmitting}
+                                                id="activityRequestFileUpload"
+                                                type="file"
+                                                accept=".pdf"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file || file.type !== "application/pdf") {
+                                                    toast.error("Only one PDF file is allowed.");
+                                                    return;
+                                                    }
+                                                    setSelectedFile(file);
+                                                }}
+                                                className={`${fieldErrors.activityRequestFileUpload ? "border-red-300 bg-red-50" : ""} hidden`}
+                                                disabled={isSubmitting}
                                             />
                                         </label>
                                         </div>
