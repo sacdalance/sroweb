@@ -248,83 +248,51 @@ const Dashboard = () => {
                         ) : error ? (
                             <div className="text-center py-4 text-red-500">Error loading activities: {error}</div>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {(() => {
-                                    if (isCurrentWeek) {
-                                        // For current week, show activities only for today with filler if none
-                                        const todayEvents = filteredEvents.filter((event) => {
+                                    // Use the same flexible card layout as AdminPanel
+                                    const eventsToDisplay = isCurrentWeek
+                                        ? filteredEvents.filter((event) => {
                                             const eventDate = new Date(event.date);
                                             eventDate.setHours(0, 0, 0, 0);
                                             return eventDate.getTime() === today.getTime();
-                                        });
-
-                                        if (todayEvents.length > 0) {
-                                            return todayEvents.map((event) => (
-                                                <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                                                    <div className="p-3 space-y-1">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="space-y-0.5">
-                                                                <div className="flex items-center text-white text-sm">
-                                                                    <span>{event.time}</span>
-                                                                    <span className="mx-1">•</span>
-                                                                    <span>{event.location}</span>
-                                                                </div>
-                                                                <h3 className="text-white font-bold text-lg">{event.name}</h3>
-                                                            </div>
-                                                            <div className="flex flex-col items-end text-sm">
-                                                                <span className="text-white">{event.organization}</span>
-                                                                <span className="text-white/80 italic">{event.category}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ));
-                                        } else {
-                                            return (
-                                                <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                                    <div className="p-6 text-center">
-                                                        <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities Today</h3>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                    } else {
-                                        // For other weeks, show all activities of that week
-                                        const weekEvents = filteredEvents.filter((event) => {
+                                        })
+                                        : filteredEvents.filter((event) => {
                                             const eventDate = new Date(event.date);
                                             return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
                                         });
 
-                                        if (weekEvents.length > 0) {
-                                            return weekEvents.map((event) => (
-                                                <div key={event.id} className="bg-[#7B1113] rounded-lg overflow-hidden">
-                                                    <div className="p-3 space-y-1">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="space-y-0.5">
-                                                                <div className="flex items-center text-white text-sm">
-                                                                    <span>{event.time}</span>
-                                                                    <span className="mx-1">•</span>
-                                                                    <span>{event.location}</span>
-                                                                </div>
-                                                                <h3 className="text-white font-bold text-lg">{event.name}</h3>
-                                                            </div>
-                                                            <div className="flex flex-col items-end text-sm">
-                                                                <span className="text-white">{event.organization}</span>
-                                                                <span className="text-white/80 italic">{event.category}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                    if (eventsToDisplay.length > 0) {
+                                        return eventsToDisplay.map((event) => (
+                                            <div
+                                                key={event.id}
+                                                className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0"
+                                            >
+                                                {/* Time & Venue */}
+                                                <div className="text-white text-xs mb-1 break-words">
+                                                    {event.time}
+                                                    <br />
+                                                    {event.location}
                                                 </div>
-                                            ));
-                                        } else {
-                                            return (
-                                                <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                                    <div className="p-6 text-center">
-                                                        <h3 className="text-gray-500 text-lg font-medium mb-1">No Activities This Week</h3>
-                                                    </div>
+                                                {/* Activity Name */}
+                                                <h3 className="text-white font-bold text-base break-words mb-1">{event.name}</h3>
+                                                {/* Organization and Category */}
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 min-w-0">
+                                                    <span className="text-white text-sm break-words flex-1 min-w-0">{event.organization}</span>
+                                                    <span className="text-white/80 italic text-xs sm:text-sm break-words text-right flex-shrink-0">{event.category}</span>
                                                 </div>
-                                            );
-                                        }
+                                            </div>
+                                        ));
+                                    } else {
+                                        return (
+                                            <div className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                                                <div className="p-6 text-center">
+                                                    <h3 className="text-gray-500 text-lg font-medium mb-1">
+                                                        {isCurrentWeek ? "No Activities Today" : "No Activities This Week"}
+                                                    </h3>
+                                                </div>
+                                            </div>
+                                        );
                                     }
                                 })()}
                             </div>
