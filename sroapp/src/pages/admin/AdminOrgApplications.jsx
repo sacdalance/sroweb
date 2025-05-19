@@ -84,7 +84,7 @@ const AdminOrgApplications = () => {
                   {new Date(application.submitted_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-center">{application.org_name}</TableCell>
-                <TableCell className="text-center">{getCategoryName(application.organization_type)}</TableCell> 
+                <TableCell className="text-center">{getCategoryName(application.org_type)}</TableCell> 
                 <TableCell className="text-center">{application.org_chairperson}</TableCell>
                 <TableCell className="text-center">{application.org_adviser}</TableCell>
                 <TableCell className="text-center">{application.org_email}</TableCell>
@@ -117,7 +117,7 @@ const AdminOrgApplications = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Type</p>
-                <p>{getCategoryName(selectedApplication.organization_type)}</p>
+                <p>{getCategoryName(selectedApplication.org_type)}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Name</p>
@@ -160,7 +160,7 @@ const AdminOrgApplications = () => {
                     asChild
                   >
                     <a
-                      href={selectedApplication.drive_folder_id}
+                      href={selectedApplication.drive_folder_link}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2"
