@@ -202,25 +202,38 @@ const AdminPendingRequests = () => {
   if (!userRole) return null;
 
   return (
-    <div className="container mx-auto py-8 max-w-[1600px]">
+    <div className="container mx-auto py-8 max-w-[1350px]">
       <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
-        <TabsList className="grid w-[800px] grid-cols-2 h-8 p-0 mx-auto bg-gray-100 rounded-4xl">
-        <TabsTrigger  
-          value="submissions" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl"
+        <TabsList
+          className="
+            grid 
+            w-full 
+            max-w-[400px] 
+            grid-cols-2 
+            h-8 
+            p-0 
+            mx-auto 
+            bg-gray-100 
+            rounded-4xl
+            sm:max-w-[800px]
+          "
         >
-          Incoming Submissions ({incomingRequests.length})
-        </TabsTrigger>
+          <TabsTrigger  
+            value="submissions" 
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base"
+          >
+            Incoming Submissions ({incomingRequests.length})
+          </TabsTrigger>
 
-        <TabsTrigger 
-          value="appeals" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl"
-        >
-          Appeals and Cancellations ({pendingAppeals.length})
-        </TabsTrigger>
+          <TabsTrigger 
+            value="appeals" 
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base"
+          >
+            Appeals and Cancellations ({pendingAppeals.length})
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="appeals">
@@ -231,8 +244,8 @@ const AdminPendingRequests = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="w-full">
-                <table className="w-full">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full min-w-[900px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity ID</th>
@@ -404,4 +417,4 @@ const AdminPendingRequests = () => {
   );
 };
 
-export default AdminPendingRequests; 
+export default AdminPendingRequests;

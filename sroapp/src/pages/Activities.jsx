@@ -307,51 +307,126 @@ const Activities = () => {
         {/* Requested Activities */}
         <section>
           <h2 className="text-lg font-semibold mb-2">Requested Activities</h2>
-          <Card className="w-full">
-            <CardContent className="overflow-x-auto">
-              <table className="w-full table-fixed text-sm text-left">
-                <thead className="border-b">
-                  <tr>
-                    <th className="py-2 px-4">Organization</th>
-                    <th className="py-2 px-4">Title</th>
-                    <th className="py-2 px-4">Date Range</th>
-                    <th className="py-2 px-4">Venue</th>
-                    <th className="py-2 px-4">Status</th>
-                    <th className="py-2 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requested.length > 0 ? (
-                    requested.map((act) => (
-                      <tr key={act.activity_id} className="border-b">
-                        <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
-                        <td className="py-2 px-4">{act.activity_name}</td>
-                        <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
-                        <td className="py-2 px-4">{act.venue}</td>
-                        <td className="py-2 px-4 text-[#7B1113] font-medium">
-                          {act.final_status || "Pending"}
+          <Card className="w-full relative">
+            <CardContent className="overflow-x-auto p-0">
+              <div className="w-full min-w-[700px]">
+                <table className="w-full table-fixed text-sm text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="py-2 px-4">Organization</th>
+                      <th className="py-2 px-4">Title</th>
+                      <th className="py-2 px-4">Date Range</th>
+                      <th className="py-2 px-4">Venue</th>
+                      <th className="py-2 px-4">Status</th>
+                      <th className="py-2 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requested.length > 0 ? (
+                      requested.map((act) => (
+                        <tr key={act.activity_id} className="border-b">
+                          <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
+                          <td className="py-2 px-4">{act.activity_name}</td>
+                          <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
+                          <td className="py-2 px-4">{act.venue}</td>
+                          <td className="py-2 px-4 text-[#7B1113] font-medium">
+                            {act.final_status || "Pending"}
+                          </td>
+                          <td className="py-2 px-4 text-right">
+                            <div className="flex justify-end space-x-2">
+                              <DialogTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    axios
+                                    .get(`/activities/user/${accountId}`)
+                                      .then((res) => {
+                                        const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                        setSelectedActivity(fullActivity);
+                                      })
+                                      .catch((err) => {
+                                        console.error("Error fetching activity with account info:", err);
+                                      });
+                                  }}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </button>
+                              </DialogTrigger>
+                              {act.final_status !== "For Appeal" && (
+                                <button
+                                  onClick={() => {
+                                    setEditingActivity(act);
+                                    setIsAppealOpen(true);
+                                  }}
+                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                >
+                                  <Pencil className="h-5 w-5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
+                          No requested activities found.
                         </td>
-                        <td className="py-2 px-4 text-right">
-                          <div className="flex justify-end space-x-2">
-                            <DialogTrigger asChild>
-                              <button
-                                onClick={() => {
-                                  axios
-                                  .get(`/activities/user/${accountId}`)
-                                    .then((res) => {
-                                      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                                      setSelectedActivity(fullActivity);
-                                    })
-                                    .catch((err) => {
-                                      console.error("Error fetching activity with account info:", err);
-                                    });
-                                }}
-                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </button>
-                            </DialogTrigger>
-                            {act.final_status !== "For Appeal" && (
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Approved Activities */}
+        <section>
+          <h2 className="text-lg font-semibold mb-2">Approved Activities</h2>
+          <Card className="w-full relative">
+            <CardContent className="overflow-x-auto p-0">
+              <div className="w-full min-w-[700px]">
+                <table className="w-full table-fixed text-sm text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="py-2 px-4">Organization</th>
+                      <th className="py-2 px-4">Title</th>
+                      <th className="py-2 px-4">Date Range</th>
+                      <th className="py-2 px-4">Venue</th>
+                      <th className="py-2 px-4">Activity ID</th>
+                      <th className="py-2 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approved.length > 0 ? (
+                      approved.map((act) => (
+                        <tr key={act.activity_id} className="border-b">
+                          <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
+                          <td className="py-2 px-4">{act.activity_name}</td>
+                          <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
+                          <td className="py-2 px-4">{act.venue}</td>
+                          <td className="py-2 px-4">{act.activity_id}</td>
+                          <td className="py-2 px-4 text-right">
+                            <div className="flex justify-end space-x-2">
+                              <DialogTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    axios
+                                      .get(`/activities/user/${accountId}`)
+                                      .then((res) => {
+                                        const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                        setSelectedActivity(fullActivity);
+                                      })
+                                      .catch((err) => {
+                                        console.error("Error fetching activity with account info:", err);
+                                      });
+                                  }}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </button>
+                              </DialogTrigger>
                               <button
                                 onClick={() => {
                                   setEditingActivity(act);
@@ -361,91 +436,20 @@ const Activities = () => {
                               >
                                 <Pencil className="h-5 w-5" />
                               </button>
-                            )}
-                          </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
+                          No approved activities found.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
-                        No requested activities found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Approved Activities */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2">Approved Activities</h2>
-          <Card className="w-full">
-            <CardContent className="overflow-x-auto">
-              <table className="w-full table-fixed text-sm text-left">
-                <thead className="border-b">
-                  <tr>
-                    <th className="py-2 px-4">Organization</th>
-                    <th className="py-2 px-4">Title</th>
-                    <th className="py-2 px-4">Date Range</th>
-                    <th className="py-2 px-4">Venue</th>
-                    <th className="py-2 px-4">Activity ID</th>
-                    <th className="py-2 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {approved.length > 0 ? (
-                    approved.map((act) => (
-                      <tr key={act.activity_id} className="border-b">
-                        <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
-                        <td className="py-2 px-4">{act.activity_name}</td>
-                        <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
-                        <td className="py-2 px-4">{act.venue}</td>
-                        <td className="py-2 px-4">{act.activity_id}</td>
-                        <td className="py-2 px-4 text-right">
-                          <div className="flex justify-end space-x-2">
-                            <DialogTrigger asChild>
-                              <button
-                                onClick={() => {
-                                  axios
-                                    .get(`/activities/user/${accountId}`)
-                                    .then((res) => {
-                                      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                                      setSelectedActivity(fullActivity);
-                                    })
-                                    .catch((err) => {
-                                      console.error("Error fetching activity with account info:", err);
-                                    });
-                                }}
-                                className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                              >
-                                <Eye className="h-5 w-5" />
-                              </button>
-                            </DialogTrigger>
-                            <button
-                              onClick={() => {
-                                setEditingActivity(act);
-                                setIsAppealOpen(true);
-                              }}
-                              className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                            >
-                              <Pencil className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
-                        No approved activities found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </section>
