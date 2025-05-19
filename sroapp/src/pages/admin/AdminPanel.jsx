@@ -413,7 +413,7 @@ const AdminPanel = () => {
       const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
         .from("org_recognition")
         .select("*", { count: "exact" })
-        .eq("status", "Approved"); // Filter for rows where status is "Approved"
+        .eq("is_recognized", true) // Filter for rows where status is "Approved"
 
       if (approvedApplicationsError) throw approvedApplicationsError;
 
