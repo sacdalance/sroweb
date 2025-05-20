@@ -189,18 +189,7 @@ const Dashboard = () => {
                           <ChevronLeft className="h-3 w-3" />
                         </Button>
                         <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
-                          {(() => {
-                            const range = getWeekRange(currentWeekStart);
-                            const [start, end] = range.split(" - ");
-                            return (
-                              <span className="flex flex-col items-center">
-                                <span>
-                                  {start} <span className="font-bold">-</span>
-                                </span>
-                                <span>{end}</span>
-                              </span>
-                            );
-                          })()}
+                          {getWeekRange(currentWeekStart)}
                         </span>
                         <Button
                           variant="outline"
