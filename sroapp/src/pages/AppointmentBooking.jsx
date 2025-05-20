@@ -41,7 +41,6 @@ const AppointmentBooking = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Get current user
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (currentUser) {
           setUser(currentUser);
@@ -73,7 +72,6 @@ const AppointmentBooking = () => {
         }
 
         if (!settingsData) {
-          // Set default settings if none exist
           setSettings({
             start_time: '08:00',
             end_time: '16:00',
@@ -86,14 +84,15 @@ const AppointmentBooking = () => {
         }
 
         // Get blocked dates
-        const { data: blockedDatesData, error: blockedDatesError } = await supabase
-          .from('blocked_dates')
-          .select('date');
+        const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
+          .from('blocked_slots')
+          .select('block_date')
+          .not('block_date', 'is', null);
 
-        if (blockedDatesError) throw blockedDatesError;
+        if (blockedSlotsError) throw blockedSlotsError;
 
-        if (blockedDatesData) {
-          const formattedBlockedDates = blockedDatesData.map(item => new Date(item.date));
+        if (blockedSlotsData) {
+          const formattedBlockedDates = blockedSlotsData.map(item => new Date(item.block_date));
           setBlockedDates(formattedBlockedDates);
         }
 
@@ -159,29 +158,39 @@ const AppointmentBooking = () => {
         current = new Date(current.getTime() + interval * 60000);
       }
 
-      // Get blocked slots
-      const { data: blockedSlots } = await supabase
-        .from('blocked_time_slots')
-        .select('time_slot')
-        .eq('date', formattedDate);
+      // Get blocked time slots and specific date blocks
+      const { data: blockedSlots, error: blockedError } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .or(`block_date.eq.${formattedDate},block_time.not.is.null`);
+
+      if (blockedError) throw blockedError;
 
       // Get existing appointments
-      const { data: existingAppointments } = await supabase
+      const { data: existingAppointments, error: appointmentsError } = await supabase
         .from('appointments')
         .select('appointment_time')
         .eq('appointment_date', formattedDate)
         .in('status', ['scheduled', 'confirmed']);
 
-      // Mark blocked and booked slots
+      if (appointmentsError) throw appointmentsError;
+
+      // Process slots with blocked and booked information
       const processedSlots = slots.map(slot => {
-        // Check if slot is blocked
+        // Check if slot is blocked (either by time or date)
         const isBlocked = blockedSlots?.some(blockedSlot => {
-          const blockedTime = new Date(`2000-01-01T${blockedSlot.time_slot}`);
-          return blockedTime.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
-          }) === slot.time;
+          if (blockedSlot.block_date === formattedDate) return true;
+          
+          if (blockedSlot.block_time) {
+            const blockedTime = new Date(`2000-01-01T${blockedSlot.block_time}`);
+            return blockedTime.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: true 
+            }) === slot.time;
+          }
+          
+          return false;
         });
 
         // Check if slot is booked
@@ -582,6 +591,7 @@ const AppointmentBooking = () => {
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full p-2 border rounded-md"
+                  placeholder="youremail@example.com"
                   required
                 />
               </div>
@@ -596,6 +606,7 @@ const AppointmentBooking = () => {
                   value={formData.contact}
                   onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
                   className="w-full p-2 border rounded-md"
+                  placeholder="09XXXXXXXXX"
                   required
                   pattern="^09\d{9}$"
                   title="Please enter a valid Philippine mobile number (e.g., 09123456789)"
@@ -631,29 +642,27 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-[#007749] rounded-full mr-1"></div>
+                <div className="mt-4 flex flex-wrap gap-4 text-xs">                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-[#014421] rounded-full mr-1"></div>
                     <span>Selected</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 border border-[#007749] rounded-full mr-1"></div>
+                    <div className="w-3 h-3 border-2 border-[#014421] rounded-full mr-1"></div>
                     <span>Today</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 text-[#007749] mr-1 flex items-center justify-center font-bold">A</div>
+                    <div className="w-3 h-3 bg-[#014421]/20 mr-1 flex items-center justify-center font-bold text-[#014421]">A</div>
                     <span>Available</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 text-[#7B1113] mr-1 flex items-center justify-center font-bold">B</div>
-                    <span>Holiday/Blocked</span>
+                    <span>Blocked</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
                     <span>Unavailable</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-blue-800 mr-1 flex items-center justify-center font-bold">A</div>
+                  </div>                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
                     <span>Has Appointments</span>
                   </div>
                 </div>

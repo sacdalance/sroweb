@@ -26,8 +26,9 @@ const AdminAppointmentSettings = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [adminComment, setAdminComment] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Load settings and blocked dates/times from the database
+  // Load settings and blocked slots from the database
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -52,33 +53,31 @@ const AdminAppointmentSettings = () => {
           setInterval(settingsData.interval_minutes);
         }
         
-        // Get blocked dates
-        const { data: blockedDatesData, error: blockedDatesError } = await supabase
-          .from('blocked_dates')
-          .select('*');
-        
-        if (blockedDatesError) throw blockedDatesError;
-        
-        const formattedDates = blockedDatesData.map(item => item.date);
-        setBlockedDates(formattedDates);
-        
-        // Get blocked time slots
+        // Get blocked dates and times
         const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
-          .from('blocked_time_slots')
+          .from('blocked_slots')
           .select('*');
         
         if (blockedSlotsError) throw blockedSlotsError;
         
-        const formattedSlots = blockedSlotsData.map(item => {
-          const time = new Date(`2000-01-01T${item.time_slot}`);
-          return time.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
-          });
-        });
+        // Separate dates and times
+        const dates = blockedSlotsData
+          .filter(slot => slot.block_date)
+          .map(slot => slot.block_date);
         
-        setBlockedTimeSlots(formattedSlots);
+        const times = blockedSlotsData
+          .filter(slot => slot.block_time)
+          .map(slot => {
+            const time = new Date(`2000-01-01T${slot.block_time}`);
+            return time.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              hour12: true 
+            });
+          });
+        
+        setBlockedDates(dates);
+        setBlockedTimeSlots(times);
         setLoading(false);
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -91,6 +90,30 @@ const AdminAppointmentSettings = () => {
     };
     
     loadData();
+  }, []);
+
+  // Add useEffect to get current user
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: accountData } = await supabase
+            .from('account')
+            .select('account_id')
+            .eq('email', user.email)
+            .single();
+          
+          if (accountData) {
+            setCurrentUser(accountData);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error);
+      }
+    };
+
+    getCurrentUser();
   }, []);
 
   // Update the appointments query to include all needed fields
@@ -179,6 +202,11 @@ const AdminAppointmentSettings = () => {
 
   // Handle saving consultation time settings
   const handleSaveSettings = async () => {
+    if (!currentUser?.account_id) {
+      toast.error("You must be logged in to save settings");
+      return;
+    }
+
     try {
       setSavingSettings(true);
       
@@ -188,7 +216,9 @@ const AdminAppointmentSettings = () => {
           id: 1,
           start_time: startTime + ':00',
           end_time: endTime + ':00',
-          interval_minutes: interval
+          interval_minutes: interval,
+          updated_by: currentUser.account_id,
+          created_by: currentUser.account_id // Only set on insert
         });
       
       if (error) throw error;
@@ -212,6 +242,11 @@ const AdminAppointmentSettings = () => {
 
   // Add a blocked date
   const handleAddBlockedDate = async () => {
+    if (!currentUser?.account_id) {
+      toast.error("You must be logged in to block dates");
+      return;
+    }
+
     if (!newBlockedDate || blockedDates.includes(newBlockedDate)) {
       return;
     }
@@ -221,28 +256,26 @@ const AdminAppointmentSettings = () => {
       
       // Insert new blocked date into the database
       const { error } = await supabase
-        .from('blocked_dates')
-        .insert({ date: newBlockedDate });
+        .from('blocked_slots')
+        .insert({ 
+          block_date: newBlockedDate,
+          created_by: currentUser.account_id 
+        });
       
       if (error) throw error;
       
       setBlockedDates([...blockedDates, newBlockedDate]);
       setNewBlockedDate("");
-      setAddingDate(false);
-      
-      // Show success message
       setMessage({ text: "Date blocked successfully!", type: "success" });
       
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        setMessage({ text: "", type: "" });
-      }, 3000);
+      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       console.error("Error adding blocked date:", error);
       setMessage({ 
         text: "Failed to block date. Please try again.", 
         type: "error" 
       });
+    } finally {
       setAddingDate(false);
     }
   };
@@ -250,23 +283,17 @@ const AdminAppointmentSettings = () => {
   // Remove a blocked date
   const handleRemoveBlockedDate = async (date) => {
     try {
-      // Remove blocked date from the database
       const { error } = await supabase
-        .from('blocked_dates')
+        .from('blocked_slots')
         .delete()
-        .eq('date', date);
+        .eq('block_date', date);
       
       if (error) throw error;
       
       setBlockedDates(blockedDates.filter(d => d !== date));
-      
-      // Show success message
       setMessage({ text: "Date unblocked successfully!", type: "success" });
       
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        setMessage({ text: "", type: "" });
-      }, 3000);
+      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       console.error("Error removing blocked date:", error);
       setMessage({ 
@@ -297,6 +324,11 @@ const AdminAppointmentSettings = () => {
 
   // Toggle a time slot as blocked/unblocked
   const toggleTimeSlot = async (slot) => {
+    if (!currentUser?.account_id) {
+      toast.error("You must be logged in to modify time slots");
+      return;
+    }
+
     try {
       // Format time for database
       const timeStr = slot;
@@ -312,9 +344,9 @@ const AdminAppointmentSettings = () => {
       if (blockedTimeSlots.includes(slot)) {
         // Unblock the time slot
         const { error } = await supabase
-          .from('blocked_time_slots')
+          .from('blocked_slots')
           .delete()
-          .eq('time_slot', formattedTime);
+          .eq('block_time', formattedTime);
         
         if (error) throw error;
         
@@ -322,8 +354,11 @@ const AdminAppointmentSettings = () => {
       } else {
         // Block the time slot
         const { error } = await supabase
-          .from('blocked_time_slots')
-          .insert({ time_slot: formattedTime });
+          .from('blocked_slots')
+          .insert({ 
+            block_time: formattedTime,
+            created_by: currentUser.account_id 
+          });
         
         if (error) throw error;
         

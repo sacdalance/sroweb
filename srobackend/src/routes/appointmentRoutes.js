@@ -18,7 +18,11 @@ router.get('/settings', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('appointment_settings')
-      .select('*')
+      .select(`
+        *,
+        created_by:account!created_by(account_name),
+        updated_by:account!updated_by(account_name)
+      `)
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -39,8 +43,13 @@ router.post('/settings', async (req, res) => {
       start_time, 
       end_time, 
       appointment_duration, 
-      max_appointments_per_day 
+      max_appointments_per_day,
+      account_id 
     } = req.body;
+
+    if (!account_id) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
 
     // Validate required fields
     if (!allowed_days || !start_time || !end_time || !appointment_duration) {
@@ -55,9 +64,15 @@ router.post('/settings', async (req, res) => {
         end_time,
         appointment_duration,
         max_appointments_per_day,
+        updated_by: account_id,
+        created_by: account_id, // Only set on insert
         updated_at: new Date()
       })
-      .select();
+      .select(`
+        *,
+        created_by:account!created_by(account_name),
+        updated_by:account!updated_by(account_name)
+      `);
 
     if (error) throw error;
     
@@ -68,120 +83,221 @@ router.post('/settings', async (req, res) => {
   }
 });
 
-// Get all blocked dates
-router.get('/blocked-dates', async (req, res) => {
+// Get all blocked slots
+router.get('/blocked-slots', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('blocked_dates')
-      .select('*')
-      .order('date', { ascending: true });
+      .from('blocked_slots')
+      .select(`
+        *,
+        created_by:account!created_by(account_name),
+        updated_by:account!updated_by(account_name)
+      `)
+      .order('created_at', { ascending: true });
 
     if (error) throw error;
     
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching blocked dates:', error);
+    console.error('Error fetching blocked slots:', error);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// Add a new blocked date
-router.post('/blocked-dates', async (req, res) => {
+// Block a date or time slot
+router.post('/blocked-slots', async (req, res) => {
   try {
-    const { date, reason } = req.body;
+    const { block_date, block_time, reason, account_id } = req.body;
 
+    if (!block_date && !block_time) {
+      return res.status(400).json({ error: 'Either date or time must be provided' });
+    }
+
+    if (!account_id) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('blocked_slots')
+      .insert({ 
+        block_date, 
+        block_time, 
+        reason,
+        created_by: account_id 
+      })
+      .select(`
+        *,
+        created_by:account!created_by(account_name)
+      `);
+
+    if (error) throw error;
+    
+    return res.status(201).json(data[0]);
+  } catch (error) {
+    console.error('Error adding blocked slot:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove a blocked slot
+router.delete('/blocked-slots/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { account_id } = req.body;
+
+    if (!account_id) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+
+    // First update the record to track who deleted it
+    await supabase
+      .from('blocked_slots')
+      .update({ updated_by: account_id })
+      .eq('id', id);
+
+    // Then delete it
+    const { error } = await supabase
+      .from('blocked_slots')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    
+    return res.status(200).json({ message: 'Blocked slot removed successfully' });
+  } catch (error) {
+    console.error('Error removing blocked slot:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available time slots for a specific date
+router.get('/available-slots', async (req, res) => {
+  try {
+    const { date } = req.query;
+    
     if (!date) {
       return res.status(400).json({ error: 'Date is required' });
     }
 
-    const { data, error } = await supabase
-      .from('blocked_dates')
-      .insert({ date, reason })
-      .select();
-
-    if (error) throw error;
-    
-    return res.status(201).json(data[0]);
-  } catch (error) {
-    console.error('Error adding blocked date:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a blocked date
-router.delete('/blocked-dates/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const { error } = await supabase
-      .from('blocked_dates')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-    
-    return res.status(200).json({ message: 'Blocked date deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting blocked date:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Get all blocked time slots
-router.get('/blocked-time-slots', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('blocked_time_slots')
+    // Get appointment settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('appointment_settings')
       .select('*')
-      .order('date', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    if (error) throw error;
+    if (settingsError) throw settingsError;
     
-    return res.status(200).json(data);
-  } catch (error) {
-    console.error('Error fetching blocked time slots:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
+    if (!settings) {
+      return res.status(400).json({ error: 'Appointment settings not configured' });
+    }
+    
+    // Check if date is in allowed days
+    const dayOfWeek = new Date(date).getDay();
+    const allowedDays = settings.allowed_days || [];
 
-// Add a new blocked time slot
-router.post('/blocked-time-slots', async (req, res) => {
-  try {
-    const { date, start_time, end_time, reason } = req.body;
+    if (!allowedDays.includes(dayOfWeek)) {
+      return res.status(400).json({ error: 'Appointments are not available on this day' });
+    }
+    
+    // Check if date is blocked
+    const { data: blockedSlot, error: blockedSlotError } = await supabase
+      .from('blocked_slots')
+      .select('*')
+      .eq('block_date', date)
+      .single();
 
-    if (!date || !start_time || !end_time) {
-      return res.status(400).json({ error: 'Date, start time, and end time are required' });
+    if (blockedSlotError && blockedSlotError.code !== 'PGRST116') {
+      throw blockedSlotError;
     }
 
-    const { data, error } = await supabase
-      .from('blocked_time_slots')
-      .insert({ date, start_time, end_time, reason })
-      .select();
-
-    if (error) throw error;
+    if (blockedSlot) {
+      return res.status(400).json({ 
+        error: 'This date is blocked for appointments',
+        reason: blockedSlot.reason
+      });
+    }
     
-    return res.status(201).json(data[0]);
-  } catch (error) {
-    console.error('Error adding blocked time slot:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a blocked time slot
-router.delete('/blocked-time-slots/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const { error } = await supabase
-      .from('blocked_time_slots')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
+    // Generate all possible time slots based on settings
+    const { start_time, end_time, appointment_duration } = settings;
     
-    return res.status(200).json({ message: 'Blocked time slot deleted successfully' });
+    const startHour = parseInt(start_time.split(':')[0]);
+    const startMinute = parseInt(start_time.split(':')[1]);
+    const endHour = parseInt(end_time.split(':')[0]);
+    const endMinute = parseInt(end_time.split(':')[1]);
+    
+    let allSlots = [];
+    let currentHour = startHour;
+    let currentMinute = startMinute;
+    
+    while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
+      const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+      allSlots.push(timeString);
+      
+      // Add duration to current time
+      currentMinute += appointment_duration;
+      if (currentMinute >= 60) {
+        currentHour += Math.floor(currentMinute / 60);
+        currentMinute = currentMinute % 60;
+      }
+    }
+    
+    // Get all confirmed appointments for this date
+    const { data: bookedAppointments, error: bookedError } = await supabase
+      .from('appointments')
+      .select('time_slot')
+      .eq('date', date)
+      .in('status', ['confirmed', 'pending']);
+      
+    if (bookedError) throw bookedError;
+    
+    const bookedSlots = bookedAppointments.map(app => app.time_slot);
+    
+    // Get all blocked time slots for this date
+    const { data: blockedTimes, error: blockedTimesError } = await supabase
+      .from('blocked_slots')
+      .select('block_time')
+      .not('block_time', 'is', null);
+      
+    if (blockedTimesError) throw blockedTimesError;
+    
+    // Filter out booked and blocked slots
+    const availableSlots = allSlots.filter(slot => {
+      // Check if slot is already booked
+      if (bookedSlots.includes(slot)) return false;
+      
+      // Check if slot falls within any blocked time range
+      for (const blockedTime of blockedTimes) {
+        if (slot === blockedTime.block_time) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    // Count total confirmed appointments for the day
+    const { count, error: countError } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', date)
+      .eq('status', 'confirmed');
+      
+    if (countError) throw countError;
+    
+    // Check if max appointments for the day is reached
+    const maxReached = settings.max_appointments_per_day && count >= settings.max_appointments_per_day;
+    
+    return res.status(200).json({
+      availableSlots,
+      bookedSlots,
+      blockedSlots: blockedTimes.map(b => ({ time: b.block_time })),
+      maxAppointmentsReached: maxReached
+    });
+    
   } catch (error) {
-    console.error('Error deleting blocked time slot:', error);
+    console.error('Error fetching available time slots:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -252,74 +368,56 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { 
-      user_id, 
-      date, 
-      time_slot, 
-      purpose,
-      details 
+      account_id,
+      appointment_date, 
+      appointment_time, 
+      reason,
+      notes,
+      meeting_mode,
+      contact_number,
+      email 
     } = req.body;
 
     // Validate required fields
-    if (!user_id || !date || !time_slot || !purpose) {
+    if (!account_id || !appointment_date || !appointment_time || !reason) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if date is blocked
-    const { data: blockedDate, error: blockedDateError } = await supabase
-      .from('blocked_dates')
+    // Check if date or time is blocked
+    const { data: blockedSlots, error: blockedError } = await supabase
+      .from('blocked_slots')
       .select('*')
-      .eq('date', date)
-      .single();
+      .or(`block_date.eq.${appointment_date},block_time.eq.${appointment_time}`);
 
-    if (blockedDateError && blockedDateError.code !== 'PGRST116') {
-      throw blockedDateError;
-    }
+    if (blockedError) throw blockedError;
 
-    if (blockedDate) {
+    if (blockedSlots && blockedSlots.length > 0) {
       return res.status(400).json({ 
-        error: 'This date is blocked for appointments',
-        reason: blockedDate.reason
+        error: blockedSlots.some(slot => slot.block_date) 
+          ? 'This date is blocked for appointments'
+          : 'This time slot is blocked',
+        reason: blockedSlots[0].reason
       });
     }
 
-    // Check if time slot is blocked
-    const { data: blockedTimeSlot, error: blockedTimeSlotError } = await supabase
-      .from('blocked_time_slots')
-      .select('*')
-      .eq('date', date)
-      .lte('start_time', time_slot)
-      .gte('end_time', time_slot)
-      .single();
-
-    if (blockedTimeSlotError && blockedTimeSlotError.code !== 'PGRST116') {
-      throw blockedTimeSlotError;
-    }
-
-    if (blockedTimeSlot) {
-      return res.status(400).json({ 
-        error: 'This time slot is blocked',
-        reason: blockedTimeSlot.reason
-      });
-    }
-
-    // Check if there's already an appointment at this time
-    const { data: existingAppointment, error: existingAppointmentError } = await supabase
+    // Check for existing appointments at the same time
+    const { data: existingAppointment, error: existingError } = await supabase
       .from('appointments')
       .select('*')
-      .eq('date', date)
-      .eq('time_slot', time_slot)
-      .eq('status', 'confirmed')
+      .eq('appointment_date', appointment_date)
+      .eq('appointment_time', appointment_time)
+      .in('status', ['scheduled', 'confirmed'])
       .single();
 
-    if (existingAppointmentError && existingAppointmentError.code !== 'PGRST116') {
-      throw existingAppointmentError;
+    if (existingError && existingError.code !== 'PGRST116') {
+      throw existingError;
     }
 
     if (existingAppointment) {
       return res.status(400).json({ error: 'This time slot is already booked' });
     }
 
-    // Count appointments for this day to enforce max_appointments_per_day
+    // Get settings for max appointments check
     const { data: settings, error: settingsError } = await supabase
       .from('appointment_settings')
       .select('max_appointments_per_day')
@@ -329,12 +427,12 @@ router.post('/', async (req, res) => {
 
     if (settingsError) throw settingsError;
 
-    if (settings && settings.max_appointments_per_day) {
+    if (settings?.max_appointments_per_day) {
       const { count, error: countError } = await supabase
         .from('appointments')
         .select('*', { count: 'exact', head: true })
-        .eq('date', date)
-        .eq('status', 'confirmed');
+        .eq('appointment_date', appointment_date)
+        .in('status', ['scheduled', 'confirmed']);
 
       if (countError) throw countError;
 
@@ -347,58 +445,51 @@ router.post('/', async (req, res) => {
     const { data, error } = await supabase
       .from('appointments')
       .insert({
-        user_id,
-        date,
-        time_slot,
-        purpose,
-        details,
-        status: 'pending' // Default status
+        account_id,
+        appointment_date,
+        appointment_time,
+        reason,
+        notes,
+        meeting_mode,
+        contact_number,
+        email,
+        status: 'scheduled'
       })
       .select();
 
     if (error) throw error;
-    
-    // Get user information for email
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('first_name, last_name, email')
-      .eq('id', user_id)
-      .single();
-    
-    if (userError) {
-      console.error('Error fetching user data for email:', userError);
-    } else if (user) {
-      // Send email confirmation to user
-      const userEmailData = {
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: 'Your Appointment Request Confirmation',
-        text: `
-          Thank you for scheduling an appointment.
-          
-          Date: ${date}
-          Time: ${time_slot}
-          Purpose: ${purpose}
-          
-          Your appointment is currently pending approval. You will receive another email once it has been confirmed.
-        `,
-        html: `
-          <h2>Your Appointment Request Confirmation</h2>
-          <p>Thank you for scheduling an appointment.</p>
-          <p><strong>Date:</strong> ${date}</p>
-          <p><strong>Time:</strong> ${time_slot}</p>
-          <p><strong>Purpose:</strong> ${purpose}</p>
-          <p>Your appointment is currently pending approval. You will receive another email once it has been confirmed.</p>
-        `
-      };
-      
-      try {
+
+    // Send confirmation emails
+    try {
+      // Send to user
+      if (email) {
+        const userEmailData = {
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: 'Your Appointment Request Confirmation',
+          text: `
+            Thank you for scheduling an appointment.
+            
+            Date: ${appointment_date}
+            Time: ${appointment_time}
+            Purpose: ${reason}
+            
+            Your appointment is currently pending approval. You will receive another email once it has been confirmed.
+          `,
+          html: `
+            <h2>Your Appointment Request Confirmation</h2>
+            <p>Thank you for scheduling an appointment.</p>
+            <p><strong>Date:</strong> ${appointment_date}</p>
+            <p><strong>Time:</strong> ${appointment_time}</p>
+            <p><strong>Purpose:</strong> ${reason}</p>
+            <p>Your appointment is currently pending approval. You will receive another email once it has been confirmed.</p>
+          `
+        };
+        
         await transporter.sendMail(userEmailData);
-      } catch (emailError) {
-        console.error('Error sending user confirmation email:', emailError);
       }
-      
-      // Send notification to admin
+
+      // Send to admin
       const adminEmailData = {
         from: process.env.EMAIL_USER,
         to: process.env.ADMIN_EMAIL,
@@ -406,31 +497,27 @@ router.post('/', async (req, res) => {
         text: `
           A new appointment request has been submitted.
           
-          User: ${user.first_name} ${user.last_name} (${user.email})
-          Date: ${date}
-          Time: ${time_slot}
-          Purpose: ${purpose}
+          Date: ${appointment_date}
+          Time: ${appointment_time}
+          Purpose: ${reason}
           
           Please review this request in the admin dashboard.
         `,
         html: `
           <h2>New Appointment Request</h2>
           <p>A new appointment request has been submitted.</p>
-          <p><strong>User:</strong> ${user.first_name} ${user.last_name} (${user.email})</p>
-          <p><strong>Date:</strong> ${date}</p>
-          <p><strong>Time:</strong> ${time_slot}</p>
-          <p><strong>Purpose:</strong> ${purpose}</p>
+          <p><strong>Date:</strong> ${appointment_date}</p>
+          <p><strong>Time:</strong> ${appointment_time}</p>
+          <p><strong>Purpose:</strong> ${reason}</p>
           <p>Please review this request in the admin dashboard.</p>
         `
       };
       
-      try {
-        await transporter.sendMail(adminEmailData);
-      } catch (emailError) {
-        console.error('Error sending admin notification email:', emailError);
-      }
+      await transporter.sendMail(adminEmailData);
+    } catch (emailError) {
+      console.error('Error sending confirmation emails:', emailError);
     }
-    
+
     return res.status(201).json(data[0]);
   } catch (error) {
     console.error('Error creating appointment:', error);
@@ -560,150 +647,22 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// Get available time slots for a specific date
-router.get('/available-slots', async (req, res) => {
-  try {
-    const { date } = req.query;
-    
-    if (!date) {
-      return res.status(400).json({ error: 'Date is required' });
-    }
-
-    // Get appointment settings
-    const { data: settings, error: settingsError } = await supabase
-      .from('appointment_settings')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (settingsError) throw settingsError;
-    
-    if (!settings) {
-      return res.status(400).json({ error: 'Appointment settings not configured' });
-    }
-    
-    // Check if date is in allowed days
-    const dayOfWeek = new Date(date).getDay();
-    const allowedDays = settings.allowed_days || [];
-
-    if (!allowedDays.includes(dayOfWeek)) {
-      return res.status(400).json({ error: 'Appointments are not available on this day' });
-    }
-    
-    // Check if date is blocked
-    const { data: blockedDate, error: blockedDateError } = await supabase
-      .from('blocked_dates')
-      .select('*')
-      .eq('date', date)
-      .single();
-
-    if (blockedDate) {
-      return res.status(400).json({ 
-        error: 'This date is blocked for appointments',
-        reason: blockedDate.reason
-      });
-    }
-    
-    // Generate all possible time slots based on settings
-    const { start_time, end_time, appointment_duration } = settings;
-    
-    const startHour = parseInt(start_time.split(':')[0]);
-    const startMinute = parseInt(start_time.split(':')[1]);
-    const endHour = parseInt(end_time.split(':')[0]);
-    const endMinute = parseInt(end_time.split(':')[1]);
-    
-    let allSlots = [];
-    let currentHour = startHour;
-    let currentMinute = startMinute;
-    
-    while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-      const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-      allSlots.push(timeString);
-      
-      // Add duration to current time
-      currentMinute += appointment_duration;
-      if (currentMinute >= 60) {
-        currentHour += Math.floor(currentMinute / 60);
-        currentMinute = currentMinute % 60;
-      }
-    }
-    
-    // Get all confirmed appointments for this date
-    const { data: bookedAppointments, error: bookedError } = await supabase
-      .from('appointments')
-      .select('time_slot')
-      .eq('date', date)
-      .in('status', ['confirmed', 'pending']);
-      
-    if (bookedError) throw bookedError;
-    
-    const bookedSlots = bookedAppointments.map(app => app.time_slot);
-    
-    // Get all blocked time slots for this date
-    const { data: blockedSlots, error: blockedSlotsError } = await supabase
-      .from('blocked_time_slots')
-      .select('*')
-      .eq('date', date);
-      
-    if (blockedSlotsError) throw blockedSlotsError;
-    
-    // Filter out booked and blocked slots
-    const availableSlots = allSlots.filter(slot => {
-      // Check if slot is already booked
-      if (bookedSlots.includes(slot)) return false;
-      
-      // Check if slot falls within any blocked time range
-      for (const blockedSlot of blockedSlots) {
-        if (slot >= blockedSlot.start_time && slot <= blockedSlot.end_time) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-    
-    // Count total confirmed appointments for the day
-    const { count, error: countError } = await supabase
-      .from('appointments')
-      .select('*', { count: 'exact', head: true })
-      .eq('date', date)
-      .eq('status', 'confirmed');
-      
-    if (countError) throw countError;
-    
-    // Check if max appointments for the day is reached
-    const maxReached = settings.max_appointments_per_day && count >= settings.max_appointments_per_day;
-    
-    return res.status(200).json({
-      availableSlots,
-      bookedSlots,
-      blockedSlots: blockedSlots.map(b => ({ start: b.start_time, end: b.end_time, reason: b.reason })),
-      maxAppointmentsReached: maxReached
-    });
-    
-  } catch (error) {
-    console.error('Error fetching available time slots:', error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
 // Request to reschedule an appointment
 router.post('/:id/reschedule-request', async (req, res) => {
   try {
     const { id } = req.params;
-    const { new_date, new_time_slot, reason } = req.body;
+    const { new_date, new_time, reason } = req.body;
     
-    if (!new_date || !new_time_slot) {
-      return res.status(400).json({ error: 'New date and time slot are required' });
+    if (!new_date || !new_time) {
+      return res.status(400).json({ error: 'New date and time are required' });
     }
-    
-    // Check if the appointment exists and belongs to the user
+
+    // Check if the appointment exists and can be rescheduled
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
       .select(`
         *,
-        users (id, first_name, last_name, email)
+        account:account(*)
       `)
       .eq('id', id)
       .single();
@@ -714,52 +673,43 @@ router.post('/:id/reschedule-request', async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
     
-    // Check if appointment is already cancelled or completed
+    // Check if appointment is in a state that allows rescheduling
     if (['cancelled', 'completed', 'no-show'].includes(appointment.status)) {
       return res.status(400).json({ 
         error: `Cannot reschedule an appointment with status: ${appointment.status}` 
       });
     }
-    
-    // Check if new date is blocked
-    const { data: blockedDate } = await supabase
-      .from('blocked_dates')
+
+    // Check if new date/time is blocked
+    const { data: blockedSlots, error: blockedError } = await supabase
+      .from('blocked_slots')
       .select('*')
-      .eq('date', new_date)
-      .single();
-      
-    if (blockedDate) {
+      .or(`block_date.eq.${new_date},block_time.eq.${new_time}`);
+
+    if (blockedError) throw blockedError;
+
+    if (blockedSlots && blockedSlots.length > 0) {
       return res.status(400).json({ 
-        error: 'The requested date is blocked for appointments',
-        reason: blockedDate.reason
-      });
-    }
-    
-    // Check if new time slot is blocked
-    const { data: blockedTimeSlot } = await supabase
-      .from('blocked_time_slots')
-      .select('*')
-      .eq('date', new_date)
-      .lte('start_time', new_time_slot)
-      .gte('end_time', new_time_slot)
-      .single();
-      
-    if (blockedTimeSlot) {
-      return res.status(400).json({ 
-        error: 'The requested time slot is blocked',
-        reason: blockedTimeSlot.reason
+        error: blockedSlots.some(slot => slot.block_date) 
+          ? 'The requested date is blocked for appointments'
+          : 'The requested time slot is blocked',
+        reason: blockedSlots[0].reason
       });
     }
     
     // Check if there's already an appointment at this time
-    const { data: existingAppointment } = await supabase
+    const { data: existingAppointment, error: existingError } = await supabase
       .from('appointments')
       .select('*')
-      .eq('date', new_date)
-      .eq('time_slot', new_time_slot)
-      .eq('status', 'confirmed')
+      .eq('appointment_date', new_date)
+      .eq('appointment_time', new_time)
+      .in('status', ['scheduled', 'confirmed'])
       .single();
-      
+
+    if (existingError && existingError.code !== 'PGRST116') {
+      throw existingError;
+    }
+
     if (existingAppointment) {
       return res.status(400).json({ error: 'This time slot is already booked' });
     }
@@ -768,9 +718,8 @@ router.post('/:id/reschedule-request', async (req, res) => {
     const { data, error } = await supabase
       .from('appointments')
       .update({
-        reschedule_requested: true,
         requested_date: new_date,
-        requested_time_slot: new_time_slot,
+        requested_time: new_time,
         reschedule_reason: reason,
         status: 'reschedule-pending',
         updated_at: new Date()
@@ -780,80 +729,53 @@ router.post('/:id/reschedule-request', async (req, res) => {
       
     if (error) throw error;
     
-    // Send email notification to admin
-    const adminEmailData = {
-      from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL,
-      subject: 'Appointment Reschedule Request',
-      text: `
-        An appointment reschedule has been requested.
-        
-        User: ${appointment.users.first_name} ${appointment.users.last_name} (${appointment.users.email})
-        Original Date: ${appointment.date}
-        Original Time: ${appointment.time_slot}
-        Requested Date: ${new_date}
-        Requested Time: ${new_time_slot}
-        Reason: ${reason || 'No reason provided'}
-        
-        Please review this request in the admin dashboard.
-      `,
-      html: `
-        <h2>Appointment Reschedule Request</h2>
-        <p><strong>User:</strong> ${appointment.users.first_name} ${appointment.users.last_name} (${appointment.users.email})</p>
-        <p><strong>Original Date:</strong> ${appointment.date}</p>
-        <p><strong>Original Time:</strong> ${appointment.time_slot}</p>
-        <p><strong>Requested Date:</strong> ${new_date}</p>
-        <p><strong>Requested Time:</strong> ${new_time_slot}</p>
-        <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
-        <p>Please review this request in the admin dashboard.</p>
-      `
-    };
-    
+    // Send email notifications
     try {
-      await transporter.sendMail(adminEmailData);
-    } catch (emailError) {
-      console.error('Error sending admin email notification:', emailError);
-      // Continue with the response even if email fails
-    }
-    
-    // Send confirmation email to user
-    if (appointment.users && appointment.users.email) {
-      const userEmailData = {
+      // Notify admin
+      const adminEmailData = {
         from: process.env.EMAIL_USER,
-        to: appointment.users.email,
-        subject: 'Your Appointment Reschedule Request',
-        text: `
-          Your appointment reschedule request has been received and is pending approval.
-          
-          Original Date: ${appointment.date}
-          Original Time: ${appointment.time_slot}
-          Requested Date: ${new_date}
-          Requested Time: ${new_time_slot}
-          
-          You will receive another email once your request has been processed.
-        `,
+        to: process.env.ADMIN_EMAIL,
+        subject: 'Appointment Reschedule Request',
         html: `
-          <h2>Your Appointment Reschedule Request</h2>
-          <p>Your appointment reschedule request has been received and is pending approval.</p>
-          <p><strong>Original Date:</strong> ${appointment.date}</p>
-          <p><strong>Original Time:</strong> ${appointment.time_slot}</p>
+          <h2>Appointment Reschedule Request</h2>
+          <p><strong>User:</strong> ${appointment.account.account_name}</p>
+          <p><strong>Original Date:</strong> ${appointment.appointment_date}</p>
+          <p><strong>Original Time:</strong> ${appointment.appointment_time}</p>
           <p><strong>Requested Date:</strong> ${new_date}</p>
-          <p><strong>Requested Time:</strong> ${new_time_slot}</p>
-          <p>You will receive another email once your request has been processed.</p>
+          <p><strong>Requested Time:</strong> ${new_time}</p>
+          <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+          <p>Please review this request in the admin dashboard.</p>
         `
       };
       
-      try {
+      await transporter.sendMail(adminEmailData);
+
+      // Notify user
+      if (appointment.email) {
+        const userEmailData = {
+          from: process.env.EMAIL_USER,
+          to: appointment.email,
+          subject: 'Your Appointment Reschedule Request',
+          html: `
+            <h2>Your Appointment Reschedule Request</h2>
+            <p>Your request to reschedule your appointment has been submitted.</p>
+            <p><strong>Original Date:</strong> ${appointment.appointment_date}</p>
+            <p><strong>Original Time:</strong> ${appointment.appointment_time}</p>
+            <p><strong>Requested Date:</strong> ${new_date}</p>
+            <p><strong>Requested Time:</strong> ${new_time}</p>
+            <p>You will receive another email once your request has been processed.</p>
+          `
+        };
+        
         await transporter.sendMail(userEmailData);
-      } catch (emailError) {
-        console.error('Error sending user email notification:', emailError);
-        // Continue with the response even if email fails
       }
+    } catch (emailError) {
+      console.error('Error sending notifications:', emailError);
     }
-    
+
     return res.status(200).json(data[0]);
   } catch (error) {
-    console.error('Error requesting appointment reschedule:', error);
+    console.error('Error processing reschedule request:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -1320,4 +1242,4 @@ The Student Relations Office
   }
 });
 
-export default router; 
+export default router;
