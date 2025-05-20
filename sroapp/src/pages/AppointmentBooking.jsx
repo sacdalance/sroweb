@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
     reason: "",
+    subject: "",
     email: "",
     contact: "",
     date: null,
@@ -20,6 +21,64 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
+  
+  const [errors, setErrors] = useState({
+    email: "",
+    contact: "",
+    reason: "",
+    subject: "",
+    mode: ""
+  });
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!email) return "Email is required";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validateContact = (contact) => {
+    const contactRegex = /^09[0-9]{9}$/;
+    if (!contact) return "Contact number is required";
+    if (!contactRegex.test(contact)) return "Please enter a valid Philippine mobile number (e.g., 09123456789)";
+    return "";
+  };
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case "email":
+        return validateEmail(value);
+      case "contact":
+        return validateContact(value);
+      case "reason":
+        return !value ? "Please select a reason" : "";
+      case "subject":
+        return !value ? "Subject is required" : "";
+      case "mode":
+        return !value ? "Please select a meeting mode" : "";
+      default:
+        return "";
+    }
+  };
+
+  // Handle form field changes with validation
+  const handleFieldChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    const error = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  // Check if form is valid
+  const isFormValid = () => {
+    return (
+      !Object.values(errors).some(error => error) && // no validation errors
+      Object.keys(errors).every(field => formData[field]) && // all required fields filled
+      formData.date && 
+      formData.time
+    );
+  };
+
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -319,19 +378,35 @@ const AppointmentBooking = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields first
+    const newErrors = {
+      email: validateField("email", formData.email),
+      contact: validateField("contact", formData.contact),
+      reason: validateField("reason", formData.reason),
+      subject: validateField("subject", formData.subject),
+      mode: validateField("mode", formData.mode)
+    };
+    setErrors(newErrors);
+
+    // Check if there are any errors
+    if (Object.values(newErrors).some(error => error)) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     if (!selectedDate || !formData.time) {
       toast.error("Please select both date and time");
       return;
     }
 
     try {
-      setSubmitting(true);
-
-      const appointmentData = {
+      setSubmitting(true);      const appointmentData = {
         account_id: userAccountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
         reason: formData.reason,
+        specified_reason: formData.subject,
         notes: formData.notes,
         meeting_mode: formData.mode,
         contact_number: formData.contact,
@@ -350,6 +425,7 @@ const AppointmentBooking = () => {
       // Reset form
       setFormData({
         reason: "",
+        subject: "",
         email: "",
         contact: "",
         date: null,
@@ -359,6 +435,13 @@ const AppointmentBooking = () => {
       });
       setSelectedDate(null);
       setTimeSlots([]);
+      setErrors({
+        email: "",
+        contact: "",
+        reason: "",
+        subject: "",
+        mode: ""
+      });
 
       // Refresh appointments list if user is logged in
       if (user && userAccountId) {
@@ -524,16 +607,37 @@ const AppointmentBooking = () => {
                 <select
                   name="reason"
                   value={formData.reason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("reason", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   required
                 >
                   <option value="">Select a reason</option>
-                  <option value="consultation">General Consultation</option>
+                  <option value="consultation">Consultation</option>
                   <option value="document">Document Processing</option>
-                  <option value="inquiry">General Inquiry</option>
+                  <option value="inquiry">Org Recognition Interview</option>
                   <option value="other">Other</option>
                 </select>
+                {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={(e) => handleFieldChange("subject", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
+                  placeholder="Specify the reason for visit..."
+                  required
+                />
+                {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
               </div>
 
               <div>
@@ -543,14 +647,17 @@ const AppointmentBooking = () => {
                 <select
                   name="mode"
                   value={formData.mode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, mode: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("mode", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   required
                 >
                   <option value="">Select mode</option>
                   <option value="face-to-face">Face-to-face</option>
                   <option value="online">Online</option>
                 </select>
+                {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
               </div>
 
               <div>
@@ -561,28 +668,41 @@ const AppointmentBooking = () => {
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("email", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   placeholder="youremail@example.com"
                   required
                 />
+                {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Contact Number
                 </label>
-                <input
-                  type="tel"
-                  name="contact"
-                  value={formData.contact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="09XXXXXXXXX"
-                  required
-                  pattern="^09\d{9}$"
-                  title="Please enter a valid Philippine mobile number (e.g., 09123456789)"
-                />
+                <div className="space-y-1">
+                  <input
+                    type="tel"
+                    name="contact"
+                    value={formData.contact}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 11) {
+                        handleFieldChange("contact", value);
+                      }
+                    }}
+                    className={`w-full p-2 border rounded-md ${
+                      errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
+                    placeholder="09XXXXXXXXX"
+                    maxLength="11"
+                    required
+                  />
+                  {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
+                  <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
+                </div>
               </div>
 
               <div>
@@ -682,8 +802,12 @@ const AppointmentBooking = () => {
 
             <Button 
               type="submit"
-              className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-              disabled={submitting || !selectedDate || !formData.time}
+              className={`w-full text-white ${
+                isFormValid() 
+                  ? 'bg-[#7B1113] hover:bg-[#5e0d0e]' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+              disabled={submitting || !isFormValid()}
               onClick={handleSubmit}
             >
               {submitting ? (

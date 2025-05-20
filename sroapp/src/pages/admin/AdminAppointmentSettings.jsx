@@ -7,8 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "sonner";
-import { Check, X } from "lucide-react";
-
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("16:00");
@@ -26,7 +24,6 @@ const AdminAppointmentSettings = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [adminComment, setAdminComment] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
 
   // Load settings and blocked slots from the database
   useEffect(() => {
@@ -92,38 +89,13 @@ const AdminAppointmentSettings = () => {
     loadData();
   }, []);
 
-  // Add useEffect to get current user
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: accountData } = await supabase
-            .from('account')
-            .select('account_id')
-            .eq('email', user.email)
-            .single();
-          
-          if (accountData) {
-            setCurrentUser(accountData);
-          }
-        }
-      } catch (error) {
-        console.error('Error getting current user:', error);
-      }
-    };
-
-    getCurrentUser();
-  }, []);
-
   // Update the appointments query to include all needed fields
   const loadAppointments = async () => {
     try {
       // Get current date
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
-      
-      // Get appointment settings for interval
+        // Get appointment settings for interval
       const { data: settings, error: settingsError } = await supabase
         .from('appointment_settings')
         .select('*')
@@ -138,8 +110,9 @@ const AdminAppointmentSettings = () => {
         .from('appointments')
         .select(`
           id,
+          created_at,
           reason,
-          other_reason,
+          specified_reason,
           appointment_date,
           appointment_time,
           contact_number,
@@ -202,11 +175,6 @@ const AdminAppointmentSettings = () => {
 
   // Handle saving consultation time settings
   const handleSaveSettings = async () => {
-    if (!currentUser?.account_id) {
-      toast.error("You must be logged in to save settings");
-      return;
-    }
-
     try {
       setSavingSettings(true);
       
@@ -216,9 +184,7 @@ const AdminAppointmentSettings = () => {
           id: 1,
           start_time: startTime + ':00',
           end_time: endTime + ':00',
-          interval_minutes: interval,
-          updated_by: currentUser.account_id,
-          created_by: currentUser.account_id // Only set on insert
+          interval_minutes: interval
         });
       
       if (error) throw error;
@@ -242,11 +208,6 @@ const AdminAppointmentSettings = () => {
 
   // Add a blocked date
   const handleAddBlockedDate = async () => {
-    if (!currentUser?.account_id) {
-      toast.error("You must be logged in to block dates");
-      return;
-    }
-
     if (!newBlockedDate || blockedDates.includes(newBlockedDate)) {
       return;
     }
@@ -257,10 +218,7 @@ const AdminAppointmentSettings = () => {
       // Insert new blocked date into the database
       const { error } = await supabase
         .from('blocked_slots')
-        .insert({ 
-          block_date: newBlockedDate,
-          created_by: currentUser.account_id 
-        });
+        .insert({ block_date: newBlockedDate });
       
       if (error) throw error;
       
@@ -324,11 +282,6 @@ const AdminAppointmentSettings = () => {
 
   // Toggle a time slot as blocked/unblocked
   const toggleTimeSlot = async (slot) => {
-    if (!currentUser?.account_id) {
-      toast.error("You must be logged in to modify time slots");
-      return;
-    }
-
     try {
       // Format time for database
       const timeStr = slot;
@@ -355,10 +308,7 @@ const AdminAppointmentSettings = () => {
         // Block the time slot
         const { error } = await supabase
           .from('blocked_slots')
-          .insert({ 
-            block_time: formattedTime,
-            created_by: currentUser.account_id 
-          });
+          .insert({ block_time: formattedTime });
         
         if (error) throw error;
         
@@ -499,11 +449,13 @@ const AdminAppointmentSettings = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Time</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[200px]">Student</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Timestamp</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Student</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Meeting Type</th>
                       <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Reason</th>
-                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[140px]">Mode</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[140px]">Meeting Mode</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Requested Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Requested Time</th>
                       <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Contact</th>
                       <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center w-[180px]">Status</th>
                       <th className="px-5 py-3 text-sm font-medium text-[#014421] text-center">Actions</th>
@@ -512,29 +464,49 @@ const AdminAppointmentSettings = () => {
                   <tbody className="divide-y divide-gray-200">
                     {appointments.map((appointment) => (
                       <tr key={appointment.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{new Date(appointment.appointment_date).toLocaleDateString()}</td>
                         <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                          {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
+                          {new Date(appointment.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          }).replace(/\//g, '/')}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[200px] whitespace-nowrap">{appointment.formattedName}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {(() => {
+                            switch(appointment.reason) {
+                              case 'consultation': return 'General Consultation';
+                              case 'document': return 'Document Processing';
+                              case 'inquiry': return 'General Inquiry';
+                              case 'other': return 'Other';
+                              default: return appointment.reason;
+                            }
+                          })()}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.specified_reason}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[140px] whitespace-nowrap">
+                          {appointment.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(appointment.appointment_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                           })}
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[200px] whitespace-nowrap">{appointment.account?.account_name}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.reason}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[140px] whitespace-nowrap">{appointment.meeting_mode || "Face-to-face"}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{appointment.timeRange}</td>
                         <td className="px-5 py-4 text-sm text-gray-700 text-center">
                           <div className="flex flex-col items-center">
                             <div>{appointment.contact_number}</div>
                             <div className="text-sm text-gray-500">{appointment.email}</div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center w-[180px]">
+                        <td className="px-5 py-4 text-sm text-center w-[180px]">
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                            appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
-                            appointment.status === "rejected" ? "bg-red-100 text-red-700" :
-                            appointment.status === "reschedule-pending" ? "bg-blue-100 text-blue-700" :
-                            appointment.status === "cancellation-pending" ? "bg-amber-100 text-amber-700" :
+                            appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                            appointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
+                            appointment.status === "reschedule-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+                            appointment.status === "cancellation-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
                             appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
                             "bg-gray-100 text-gray-700"
                           }`}>
@@ -553,7 +525,7 @@ const AdminAppointmentSettings = () => {
                                   setSelectedAppointment(appointment);
                                   setShowConfirmDialog(true);
                                 }}
-                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#014421]/10 text-[#014421] hover:bg-[#014421]/20 rounded-lg text-sm font-medium"
                                 title="Confirm Appointment"
                               >
                                 Approve
@@ -563,7 +535,7 @@ const AdminAppointmentSettings = () => {
                                   setSelectedAppointment(appointment);
                                   setShowRejectDialog(true);
                                 }}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#7B1113]/10 text-[#7B1113] hover:bg-[#7B1113]/20 rounded-lg text-sm font-medium"
                                 title="Reject Appointment"
                               >
                                 Reject
@@ -574,14 +546,14 @@ const AdminAppointmentSettings = () => {
                             <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'approve', 'reschedule')}
-                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#014421]/10 text-[#014421] hover:bg-[#014421]/20 rounded-lg text-sm font-medium"
                                 title="Approve Reschedule"
                               >
                                 Approve
                               </button>
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'reject', 'reschedule')}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#7B1113]/10 text-[#7B1113] hover:bg-[#7B1113]/20 rounded-lg text-sm font-medium"
                                 title="Reject Reschedule"
                               >
                                 Reject
@@ -592,14 +564,14 @@ const AdminAppointmentSettings = () => {
                             <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'approve', 'cancel')}
-                                className="px-3 py-1.5 bg-green-50 text-green-600 hover:text-green-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#014421]/10 text-[#014421] hover:bg-[#014421]/20 rounded-lg text-sm font-medium"
                                 title="Approve Cancellation"
                               >
                                 Approve 
                               </button>
                               <button
                                 onClick={() => handleAppointmentAction(appointment.id, 'reject', 'cancel')}
-                                className="px-3 py-1.5 bg-red-50 text-red-600 hover:text-red-800 rounded-lg text-sm font-medium"
+                                className="px-3 py-1.5 bg-[#7B1113]/10 text-[#7B1113] hover:bg-[#7B1113]/20 rounded-lg text-sm font-medium"
                                 title="Reject Cancellation"
                               >
                                 Reject
@@ -610,6 +582,13 @@ const AdminAppointmentSettings = () => {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="bg-gray-50 border-t border-gray-200">
+                    <tr>
+                      <td colSpan="9" className="px-5 py-3 text-sm text-gray-500 text-center">
+                        Showing {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             ) : (
