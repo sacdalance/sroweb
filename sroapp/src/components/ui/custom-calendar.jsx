@@ -32,18 +32,15 @@ const CustomCalendar = ({
 
   const getAppointmentDayClass = (day) => {
     let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
-    
-    if (selectedDate && isSameDay(day, selectedDate)) {
-      classes += "bg-[#7B1113] text-white font-bold ";
+      if (selectedDate && isSameDay(day, selectedDate)) {
+      classes += "bg-[#014421] text-white font-bold ";
     } 
     else if (isToday(day)) {
-      classes += "border-2 border-[#014421] text-[#014421] font-bold ";
-    } 
-    else if (isDateAvailable && isDateAvailable(day)) {
+      classes += "border-2 border-[#014421] text-[#014421] font-bold ";    }    else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
-        classes += "text-[#FFD700] font-bold hover:bg-gray-100 ";
+        classes += "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 ";
       } else {
-        classes += "text-[#014421] font-bold hover:bg-gray-100 ";
+        classes += "bg-[#014421]/20 text-[#014421] font-bold hover:bg-[#014421]/30 ";
       }
     } 
     else if (blockedDates.some(date => isSameDay(day, date))) {
@@ -80,16 +77,9 @@ const CustomCalendar = ({
   return (
     <div className="p-4 bg-white rounded-lg shadow">
       <div className="mb-4 flex items-center justify-between">
-        <button 
-          onClick={handlePrevMonth}
-          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        
-        <div className="flex gap-4">
+        <div className="flex-1">
           {monthOptions && yearOptions ? (
-            <>
+            <div className="flex gap-4">
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange(e.target.value)}
@@ -112,20 +102,27 @@ const CustomCalendar = ({
                   </option>
                 ))}
               </select>
-            </>
-          ) : (
-            <h2 className="text-lg font-semibold text-[#014421]">
+            </div>
+          ) : (            <h2 className="text-2xl font-bold text-[#7B1113]">
               {format(currentMonth, 'MMMM yyyy')}
             </h2>
           )}
         </div>
 
-        <button 
-          onClick={handleNextMonth}
-          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handlePrevMonth}
+            className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={handleNextMonth}
+            className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 mb-2">
