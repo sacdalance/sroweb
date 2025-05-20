@@ -521,38 +521,36 @@ const AppointmentBooking = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {existingAppointments.map((appointment) => (
-                <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Date:</span>{' '}
-                      {new Date(appointment.appointment_date).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Time:</span>{' '}
-                      {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </p>
-                    <p>
-                      <span className="font-medium">Meeting Mode:</span>{' '}
-                      {appointment.meeting_mode || "Face-to-face"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Status:</span>{' '}
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        appointment.status === "scheduled" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+              {existingAppointments.map((appointment) => (                <div key={appointment.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-start gap-4">
+                      <div>
+                        <div className="text-sm text-gray-500">{new Date(appointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div className="text-sm font-medium">{new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{(() => {
+                          switch(appointment.reason) {
+                            case 'consultation': return 'General Consultation';
+                            case 'document': return 'Document Processing';
+                            case 'inquiry': return 'Org Recognition Interview';
+                            case 'other': return 'Other';
+                            default: return appointment.reason;
+                          }
+                        })()}</div>
+                        <div className="text-sm text-gray-500">{appointment.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
                         appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
                         appointment.status === "cancelled" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                        appointment.status === "reschedule-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+                        appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                         "bg-gray-100 text-gray-700"
                       }`}>
                         {appointment.status}
                       </span>
-                    </p>
+                    </div>
                     
                     {appointment.status === 'scheduled' && (
                       <div className="flex gap-2 mt-4">                        <Button
@@ -569,13 +567,20 @@ const AppointmentBooking = () => {
                     )}
                   </div>
                 </div>
-              ))}
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-              >
-                Book Another Appointment
-              </Button>
+              ))}              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={() => setShowExistingAppointments(false)}
+                  className="flex-1 bg-[#014421] hover:bg-[#014421]/90 text-white"
+                >
+                  ← Back to Booking
+                </Button>
+                <Button
+                  onClick={() => setShowExistingAppointments(false)}
+                  className="flex-1 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                >
+                  Book Another Appointment
+                </Button>
+              </div>
             </div>
           )}
         </div>
