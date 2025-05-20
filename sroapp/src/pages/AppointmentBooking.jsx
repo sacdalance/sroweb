@@ -550,7 +550,7 @@ const AppointmentBooking = () => {
                       }`}>
                         {appointment.status}
                       </span>
-                    </p>
+                    </div>
                     
                     {appointment.status === 'scheduled' && (
                       <div className="flex gap-2 mt-4">                        <Button
