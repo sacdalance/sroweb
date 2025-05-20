@@ -537,7 +537,7 @@ const AdminPanel = () => {
                     ) : (
                       <div className="max-h-[800px] overflow-y-auto custom-scrollbar">
                         <table className="min-w-full border-separate border-spacing-0">
-                          <thead className="bg-[#ffffff]">
+                          <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Submission<br />Date</th>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Activity<br />Name</th>
@@ -561,10 +561,10 @@ const AdminPanel = () => {
                                   <Badge
                                     className={
                                       request.status === "Pending"
-                                        ? "bg-[#F3AA2C] text-[#7B1113] hover:bg-[#F3AA2C]" // Gold fill, maroon text
+                                        ? "bg-[#FFF7D6] text-[#A05A00] pointer-events-none" // Light yellow fill, brown text, no hover
                                         : request.status === "For Appeal"
-                                        ? "bg-[#7B1113] text-white hover:bg-[#7B1113]"      // Maroon fill, white text
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-100"     // Default
+                                        ? "bg-[#7B1113] text-white pointer-events-none"
+                                        : "bg-gray-100 text-gray-700 pointer-events-none"
                                     }
                                   >
                                     {request.status}
