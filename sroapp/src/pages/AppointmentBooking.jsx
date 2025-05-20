@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
     reason: "",
+    subject: "",
     email: "",
     contact: "",
     date: null,
@@ -20,6 +21,64 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
+  
+  const [errors, setErrors] = useState({
+    email: "",
+    contact: "",
+    reason: "",
+    subject: "",
+    mode: ""
+  });
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!email) return "Email is required";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validateContact = (contact) => {
+    const contactRegex = /^09[0-9]{9}$/;
+    if (!contact) return "Contact number is required";
+    if (!contactRegex.test(contact)) return "Please enter a valid Philippine mobile number (e.g., 09123456789)";
+    return "";
+  };
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case "email":
+        return validateEmail(value);
+      case "contact":
+        return validateContact(value);
+      case "reason":
+        return !value ? "Please select a reason" : "";
+      case "subject":
+        return !value ? "Subject is required" : "";
+      case "mode":
+        return !value ? "Please select a meeting mode" : "";
+      default:
+        return "";
+    }
+  };
+
+  // Handle form field changes with validation
+  const handleFieldChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    const error = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  // Check if form is valid
+  const isFormValid = () => {
+    return (
+      !Object.values(errors).some(error => error) && // no validation errors
+      Object.keys(errors).every(field => formData[field]) && // all required fields filled
+      formData.date && 
+      formData.time
+    );
+  };
+
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -303,7 +362,7 @@ const AppointmentBooking = () => {
         .from('appointments')
         .select('*')
         .eq('account_id', accountId)
-        .in('status', ['scheduled', 'confirmed', 'reschedule-pending', 'cancellation-pending'])
+        .in('status', ['scheduled', 'confirmed', 'reschedule-pending'])
         .order('appointment_date', { ascending: true });
 
       if (error) throw error;
@@ -319,19 +378,35 @@ const AppointmentBooking = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields first
+    const newErrors = {
+      email: validateField("email", formData.email),
+      contact: validateField("contact", formData.contact),
+      reason: validateField("reason", formData.reason),
+      subject: validateField("subject", formData.subject),
+      mode: validateField("mode", formData.mode)
+    };
+    setErrors(newErrors);
+
+    // Check if there are any errors
+    if (Object.values(newErrors).some(error => error)) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+
     if (!selectedDate || !formData.time) {
       toast.error("Please select both date and time");
       return;
     }
 
     try {
-      setSubmitting(true);
-
-      const appointmentData = {
+      setSubmitting(true);      const appointmentData = {
         account_id: userAccountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
         reason: formData.reason,
+        specified_reason: formData.subject,
         notes: formData.notes,
         meeting_mode: formData.mode,
         contact_number: formData.contact,
@@ -350,6 +425,7 @@ const AppointmentBooking = () => {
       // Reset form
       setFormData({
         reason: "",
+        subject: "",
         email: "",
         contact: "",
         date: null,
@@ -359,6 +435,13 @@ const AppointmentBooking = () => {
       });
       setSelectedDate(null);
       setTimeSlots([]);
+      setErrors({
+        email: "",
+        contact: "",
+        reason: "",
+        subject: "",
+        mode: ""
+      });
 
       // Refresh appointments list if user is logged in
       if (user && userAccountId) {
@@ -404,26 +487,6 @@ const AppointmentBooking = () => {
     }
   };
 
-  // Handle cancel request
-  const handleCancelRequest = async (appointmentId) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancellation-pending'
-        })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast.success("Cancellation request submitted");
-      loadUserAppointments(userAccountId);
-    } catch (error) {
-      console.error("Error requesting cancellation:", error);
-      toast.error("Failed to request cancellation");
-    }
-  };
-
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
@@ -458,34 +521,31 @@ const AppointmentBooking = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {existingAppointments.map((appointment) => (
-                <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <h3 className="font-semibold mb-2 text-[#7B1113]">Appointment Details</h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Date:</span>{' '}
-                      {new Date(appointment.appointment_date).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Time:</span>{' '}
-                      {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </p>
-                    <p>
-                      <span className="font-medium">Meeting Mode:</span>{' '}
-                      {appointment.meeting_mode || "Face-to-face"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Status:</span>{' '}
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
-                        appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
-                        appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                        appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
-                        appointment.status === "cancellation-pending" ? "bg-orange-100 text-orange-700" :
+              {existingAppointments.map((appointment) => (                <div key={appointment.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-start gap-4">
+                      <div>
+                        <div className="text-sm text-gray-500">{new Date(appointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div className="text-sm font-medium">{new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{(() => {
+                          switch(appointment.reason) {
+                            case 'consultation': return 'General Consultation';
+                            case 'document': return 'Document Processing';
+                            case 'inquiry': return 'Org Recognition Interview';
+                            case 'other': return 'Other';
+                            default: return appointment.reason;
+                          }
+                        })()}</div>
+                        <div className="text-sm text-gray-500">{appointment.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
+                        appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                        appointment.status === "cancelled" ? "bg-[#7B1113]/20 text-[#7B1113]" :
+                        appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                         "bg-gray-100 text-gray-700"
                       }`}>
                         {appointment.status}
@@ -493,52 +553,52 @@ const AppointmentBooking = () => {
                     </p>
                     
                     {appointment.status === 'scheduled' && (
-                      <div className="flex gap-2 mt-4">
-                        <Button
+                      <div className="flex gap-2 mt-4">                        <Button
                           onClick={() => {
                             setReschedulingAppointment(appointment);
                             setRescheduleData({ date: null, time: "" });
                             setRescheduleReason("");
                           }}
-                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm"
+                          className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm"
                         >
                           Reschedule
-                        </Button>
-                        <Button
-                          onClick={() => handleCancelRequest(appointment.id)}
-                          className="bg-red-100 hover:bg-red-200 text-red-700 text-sm"
-                        >
-                          Cancel
                         </Button>
                       </div>
                     )}
                   </div>
                 </div>
-              ))}
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-              >
-                Book Another Appointment
-              </Button>
+              ))}              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={() => setShowExistingAppointments(false)}
+                  className="flex-1 bg-[#014421] hover:bg-[#014421]/90 text-white"
+                >
+                  ← Back to Booking
+                </Button>
+                <Button
+                  onClick={() => setShowExistingAppointments(false)}
+                  className="flex-1 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                >
+                  Book Another Appointment
+                </Button>
+              </div>
             </div>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
+            <div className="bg-[#014421]/10 border border-[#014421]/20 text-[#014421] rounded-md p-4 mb-6">
               <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-[#014421]">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="font-medium mb-1">Important Information</p>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    <li>Appointments must be booked at least one day in advance</li>
-                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead</li>
-                    <li>Available times are shown after selecting a date</li>
-                    <li>Watch out for your email for confirmation</li>
+                  <p className="font-medium mb-1 text-[#014421]">Important Information</p>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-[#014421]/90">
+                    <li>Appointments must be booked at least one day in advance.</li>
+                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
+                    <li>Available times are shown after selecting a date.</li>
+                    <li>Your booking will be confirmed by the SRO via E-mail.</li>
                   </ul>
                 </div>
               </div>
@@ -552,16 +612,37 @@ const AppointmentBooking = () => {
                 <select
                   name="reason"
                   value={formData.reason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("reason", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   required
                 >
                   <option value="">Select a reason</option>
-                  <option value="consultation">General Consultation</option>
+                  <option value="consultation">Consultation</option>
                   <option value="document">Document Processing</option>
-                  <option value="inquiry">General Inquiry</option>
+                  <option value="inquiry">Org Recognition Interview</option>
                   <option value="other">Other</option>
                 </select>
+                {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={(e) => handleFieldChange("subject", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
+                  placeholder="Specify the reason for visit..."
+                  required
+                />
+                {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
               </div>
 
               <div>
@@ -571,14 +652,17 @@ const AppointmentBooking = () => {
                 <select
                   name="mode"
                   value={formData.mode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, mode: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("mode", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   required
                 >
                   <option value="">Select mode</option>
                   <option value="face-to-face">Face-to-face</option>
                   <option value="online">Online</option>
                 </select>
+                {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
               </div>
 
               <div>
@@ -589,28 +673,41 @@ const AppointmentBooking = () => {
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
+                  onChange={(e) => handleFieldChange("email", e.target.value)}
+                  className={`w-full p-2 border rounded-md ${
+                    errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  }`}
                   placeholder="youremail@example.com"
                   required
                 />
+                {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Contact Number
                 </label>
-                <input
-                  type="tel"
-                  name="contact"
-                  value={formData.contact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
-                  placeholder="09XXXXXXXXX"
-                  required
-                  pattern="^09\d{9}$"
-                  title="Please enter a valid Philippine mobile number (e.g., 09123456789)"
-                />
+                <div className="space-y-1">
+                  <input
+                    type="tel"
+                    name="contact"
+                    value={formData.contact}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 11) {
+                        handleFieldChange("contact", value);
+                      }
+                    }}
+                    className={`w-full p-2 border rounded-md ${
+                      errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
+                    placeholder="09XXXXXXXXX"
+                    maxLength="11"
+                    required
+                  />
+                  {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
+                  <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
+                </div>
               </div>
 
               <div>
@@ -642,7 +739,8 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">                  <div className="flex items-center">
+                <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center">
                     <div className="w-3 h-3 bg-[#014421] rounded-full mr-1"></div>
                     <span>Selected</span>
                   </div>
@@ -661,7 +759,8 @@ const AppointmentBooking = () => {
                   <div className="flex items-center">
                     <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
                     <span>Unavailable</span>
-                  </div>                  <div className="flex items-center">
+                  </div>
+                  <div className="flex items-center">
                     <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
                     <span>Has Appointments</span>
                   </div>
@@ -684,9 +783,9 @@ const AppointmentBooking = () => {
                         onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
                         className={`py-2 px-3 text-sm font-medium rounded ${
                           formData.time === slot.time 
-                            ? 'bg-[#007749] text-white' 
+                            ? 'bg-[#014421] text-white' 
                             : slot.booked
-                            ? 'bg-red-100 text-red-700 cursor-not-allowed'
+                            ? 'bg-[#7B1113] text-white cursor-not-allowed'
                             : slot.blocked
                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -708,8 +807,12 @@ const AppointmentBooking = () => {
 
             <Button 
               type="submit"
-              className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-              disabled={submitting || !selectedDate || !formData.time}
+              className={`w-full text-white ${
+                isFormValid() 
+                  ? 'bg-[#7B1113] hover:bg-[#5e0d0e]' 
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+              disabled={submitting || !isFormValid()}
               onClick={handleSubmit}
             >
               {submitting ? (
@@ -761,7 +864,7 @@ const AppointmentBooking = () => {
                       onClick={() => setRescheduleData(prev => ({ ...prev, time: slot.time }))}
                       className={`py-2 px-3 text-sm font-medium rounded ${
                         rescheduleData.time === slot.time 
-                          ? 'bg-[#007749] text-white' 
+                          ? 'bg-[#014421] text-white' 
                           : slot.available
                           ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -787,16 +890,6 @@ const AppointmentBooking = () => {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setReschedulingAppointment(null);
-                setRescheduleData({ date: null, time: "" });
-                setRescheduleReason("");
-              }}
-            >
-              Cancel
-            </Button>
             <Button
               onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
               className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
