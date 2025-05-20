@@ -508,8 +508,7 @@ const AdminAppointmentSettings = () => {
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${
                             appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
                             appointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                            appointment.status === "reschedule-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
-                            appointment.status === "cancellation-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+                            appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                             appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
                             "bg-gray-100 text-gray-700"
                           }`}>
@@ -693,8 +692,7 @@ const AdminAppointmentSettings = () => {
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                       selectedAppointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
                       selectedAppointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                      selectedAppointment.status === "reschedule-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
-                      selectedAppointment.status === "cancellation-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+                      selectedAppointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                       "bg-gray-100 text-gray-700"
                     }`}>
                       {selectedAppointment.status === "confirmed" ? "Confirmed" :
