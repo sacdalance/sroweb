@@ -202,7 +202,10 @@ const AdminPendingRequests = () => {
   if (!userRole) return null;
 
   return (
-    <div className="container mx-auto py-8 max-w-[1350px]">
+    <div
+      className="container mx-auto py-8 max-w-[1800px]"
+      style={{ transform: "scale(0.85)", transformOrigin: "top center" }}
+    >
       <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
@@ -248,57 +251,50 @@ const AdminPendingRequests = () => {
                 <table className="w-full min-w-[900px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Adviser</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center"></th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {pendingAppeals.map((request) => (
-                      <tr key={request.activity_id} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {new Date(request.created_at).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
-                        {request.organization?.org_name || "N/A"}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {getActivityTypeLabel(request.activity_type)}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
-                        {request.organization?.adviser_name || "N/A"}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-center">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => handleViewDetails(request)}
-                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      <tr
+                        key={request.activity_id}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleViewDetails(request)}
+                      >
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(request.created_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
+                          {request.organization?.org_name || "N/A"}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {getActivityTypeLabel(request.activity_type)}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
+                          {request.organization?.adviser_name || "N/A"}
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -330,27 +326,30 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap"></th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity ID</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Submission Date</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Organization</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Name</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Type</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Date</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Venue</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Adviser</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {incomingRequests.length === 0 ? (
                         <tr>
-                          <td colSpan="9" className="text-center text-gray-500 py-10">
+                          <td colSpan="8" className="text-center text-gray-500 py-10">
                             No incoming submissions.
                           </td>
                         </tr>
                       ) : (
                         incomingRequests.map((request) => (
-                          <tr key={request.activity_id} className="hover:bg-gray-50">
+                          <tr
+                            key={request.activity_id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleViewDetails(request)}
+                          >
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">
                               {new Date(request.created_at).toLocaleDateString(undefined, {
@@ -376,16 +375,6 @@ const AdminPendingRequests = () => {
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
                             <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
                               {request.organization?.adviser_name || "N/A"}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-center">
-                              <div className="flex justify-center">
-                                <button
-                                  onClick={() => handleViewDetails(request)}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                >
-                                  <Eye className="h-5 w-5" />
-                                </button>
-                              </div>
                             </td>
                           </tr>
                         ))
