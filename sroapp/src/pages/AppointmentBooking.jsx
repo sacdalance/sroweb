@@ -461,10 +461,10 @@ const AppointmentBooking = () => {
                     <p>
                       <span className="font-medium">Status:</span>{' '}
                       <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                        appointment.status === "scheduled" ? "bg-yellow-100 text-yellow-700" :
-                        appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
-                        appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                        appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
+                        appointment.status === "scheduled" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
+                        appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                        appointment.status === "cancelled" ? "bg-[#7B1113]/20 text-[#7B1113]" :
+                        appointment.status === "reschedule-pending" ? "bg-[#FFB81C]/20 text-[#FFB81C]" :
                         "bg-gray-100 text-gray-700"
                       }`}>
                         {appointment.status}
@@ -472,14 +472,13 @@ const AppointmentBooking = () => {
                     </p>
                     
                     {appointment.status === 'scheduled' && (
-                      <div className="flex gap-2 mt-4">
-                        <Button
+                      <div className="flex gap-2 mt-4">                        <Button
                           onClick={() => {
                             setReschedulingAppointment(appointment);
                             setRescheduleData({ date: null, time: "" });
                             setRescheduleReason("");
                           }}
-                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm"
+                          className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm"
                         >
                           Reschedule
                         </Button>
@@ -615,7 +614,8 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">                  <div className="flex items-center">
+                <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center">
                     <div className="w-3 h-3 bg-[#014421] rounded-full mr-1"></div>
                     <span>Selected</span>
                   </div>
@@ -634,7 +634,8 @@ const AppointmentBooking = () => {
                   <div className="flex items-center">
                     <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
                     <span>Unavailable</span>
-                  </div>                  <div className="flex items-center">
+                  </div>
+                  <div className="flex items-center">
                     <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
                     <span>Has Appointments</span>
                   </div>
@@ -657,7 +658,7 @@ const AppointmentBooking = () => {
                         onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
                         className={`py-2 px-3 text-sm font-medium rounded ${
                           formData.time === slot.time 
-                            ? 'bg-[#007749] text-white' 
+                            ? 'bg-[#014421] text-white' 
                             : slot.booked
                             ? 'bg-[#7B1113] text-white cursor-not-allowed'
                             : slot.blocked
@@ -734,17 +735,14 @@ const AppointmentBooking = () => {
                       onClick={() => setRescheduleData(prev => ({ ...prev, time: slot.time }))}
                       className={`py-2 px-3 text-sm font-medium rounded ${
                         rescheduleData.time === slot.time 
-                          ? 'bg-[#007749] text-white' 
-                          : slot.booked
-                          ? 'bg-[#7B1113] text-white cursor-not-allowed'
-                          : slot.blocked
-                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          ? 'bg-[#014421] text-white' 
+                          : slot.available
+                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                       disabled={!slot.available}
                     >
                       {slot.time}
-                      {slot.booked && <span className="block text-xs">(Booked)</span>}
                     </button>
                   ))}
                 </div>

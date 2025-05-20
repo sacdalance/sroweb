@@ -32,11 +32,14 @@ const CustomCalendar = ({
 
   const getAppointmentDayClass = (day) => {
     let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
-      if (selectedDate && isSameDay(day, selectedDate)) {
+    
+    if (selectedDate && isSameDay(day, selectedDate)) {
       classes += "bg-[#014421] text-white font-bold ";
     } 
     else if (isToday(day)) {
-      classes += "border-2 border-[#014421] text-[#014421] font-bold ";    }    else if (isDateAvailable && isDateAvailable(day)) {
+      classes += "border-2 border-[#014421] text-[#014421] font-bold ";
+    }
+    else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
         classes += "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 ";
       } else {
