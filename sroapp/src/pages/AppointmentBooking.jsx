@@ -490,13 +490,15 @@ const AppointmentBooking = () => {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-[#7B1113]">Book an Appointment</h1>
+        <h1 className="text-3xl font-bold text-[#7B1113]">
+          {showExistingAppointments ? "My Appointments" : "Book an Appointment"}
+        </h1>
         {user && (
           <Button
-            onClick={() => setShowExistingAppointments(true)}
+            onClick={() => setShowExistingAppointments(!showExistingAppointments)}
             className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
           >
-            My Appointments
+            {showExistingAppointments ? "← Back" : "My Appointments"}
           </Button>
         )}
       </div>
@@ -511,7 +513,7 @@ const AppointmentBooking = () => {
           ) : existingAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You don&apos;t have any upcoming appointments.</p>
+              <p>You don't have any upcoming appointments.</p>
               <Button 
                 onClick={() => setShowExistingAppointments(false)}
                 className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
@@ -521,66 +523,68 @@ const AppointmentBooking = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {existingAppointments.map((appointment) => (                <div key={appointment.id} className="border rounded-lg p-3 hover:bg-gray-50">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-start gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">{new Date(appointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                        <div className="text-sm font-medium">{new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+              {existingAppointments.map((appointment) => (
+                <Card key={appointment.id} className="shadow-sm">
+                  <CardContent className="py-2 px-4">
+                    <div className="flex justify-between items-center gap-4">
+                      <div className="py-0.5">
+                        <h3 className="font-medium text-[#7B1113] capitalize">
+                          {appointment.reason || "Not Specified"}
+                        </h3>
+                        <div className="text-sm text-gray-600">
+                          <span>{new Date(appointment.appointment_date).toLocaleDateString()}</span>
+                          <span className="mx-2">|</span>
+                          <span>
+                            {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </span>
+                          <span className="mx-2">|</span>
+                          <span>{appointment.meeting_mode || "Face-to-face"}</span>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {appointment.specified_reason || "No Specified Reason"}
+                        </p>
                       </div>
-                      <div>
-                        <div className="text-sm font-medium">{(() => {
-                          switch(appointment.reason) {
-                            case 'consultation': return 'General Consultation';
-                            case 'document': return 'Document Processing';
-                            case 'inquiry': return 'Org Recognition Interview';
-                            case 'other': return 'Other';
-                            default: return appointment.reason;
-                          }
-                        })()}</div>
-                        <div className="text-sm text-gray-500">{appointment.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
-                        appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
-                        appointment.status === "cancelled" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                        appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                        "bg-gray-100 text-gray-700"
-                      }`}>
-                        {appointment.status}
-                      </span>
-                    </div>
-                    
-                    {appointment.status === 'scheduled' && (
-                      <div className="flex gap-2 mt-4">                        <Button
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                          appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
+                          appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                          appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                          appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
+                          "bg-gray-100 text-gray-700"
+                        }`}>
+                          {appointment.status}
+                        </span>
+                        <Button
                           onClick={() => {
                             setReschedulingAppointment(appointment);
                             setRescheduleData({ date: null, time: "" });
                             setRescheduleReason("");
                           }}
-                          className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm"
+                          disabled={appointment.status !== 'scheduled'}
+                          size="sm"
+                          className={`text-xs ${
+                            appointment.status === 'scheduled'
+                              ? 'bg-[#7b1113] hover:bg-[#5e0d0e] text-white'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
+                          }`}
                         >
                           Reschedule
                         </Button>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={() => setShowExistingAppointments(false)}
-                  className="flex-1 bg-[#014421] hover:bg-[#014421]/90 text-white"
-                >
-                  ← Back to Booking
-                </Button>
-                <Button
-                  onClick={() => setShowExistingAppointments(false)}
-                  className="flex-1 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-                >
-                  Book Another Appointment
-                </Button>
-              </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              <Button
+                onClick={() => setShowExistingAppointments(false)}
+                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              >
+                Book Another Appointment
+              </Button>
             </div>
           )}
         </div>
@@ -619,10 +623,10 @@ const AppointmentBooking = () => {
                   required
                 >
                   <option value="">Select a reason</option>
-                  <option value="consultation">Consultation</option>
-                  <option value="document">Document Processing</option>
-                  <option value="inquiry">Org Recognition Interview</option>
-                  <option value="other">Other</option>
+                  <option value="Consultation">Consultation</option>
+                  <option value="Document Processing">Document Processing</option>
+                  <option value="Org Recognition Interview">Org Recognition Interview</option>
+                  <option value="Other">Other</option>
                 </select>
                 {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
               </div>
