@@ -303,7 +303,7 @@ const AppointmentBooking = () => {
         .from('appointments')
         .select('*')
         .eq('account_id', accountId)
-        .in('status', ['scheduled', 'confirmed', 'reschedule-pending', 'cancellation-pending'])
+        .in('status', ['scheduled', 'confirmed', 'reschedule-pending'])
         .order('appointment_date', { ascending: true });
 
       if (error) throw error;
@@ -404,26 +404,6 @@ const AppointmentBooking = () => {
     }
   };
 
-  // Handle cancel request
-  const handleCancelRequest = async (appointmentId) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          status: 'cancellation-pending'
-        })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast.success("Cancellation request submitted");
-      loadUserAppointments(userAccountId);
-    } catch (error) {
-      console.error("Error requesting cancellation:", error);
-      toast.error("Failed to request cancellation");
-    }
-  };
-
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
@@ -485,7 +465,6 @@ const AppointmentBooking = () => {
                         appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
                         appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
                         appointment.status === "reschedule-pending" ? "bg-purple-100 text-purple-700" :
-                        appointment.status === "cancellation-pending" ? "bg-orange-100 text-orange-700" :
                         "bg-gray-100 text-gray-700"
                       }`}>
                         {appointment.status}
@@ -504,12 +483,6 @@ const AppointmentBooking = () => {
                         >
                           Reschedule
                         </Button>
-                        <Button
-                          onClick={() => handleCancelRequest(appointment.id)}
-                          className="bg-red-100 hover:bg-red-200 text-red-700 text-sm"
-                        >
-                          Cancel
-                        </Button>
                       </div>
                     )}
                   </div>
@@ -527,18 +500,18 @@ const AppointmentBooking = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
+            <div className="bg-[#014421]/10 border border-[#014421]/20 text-[#014421] rounded-md p-4 mb-6">
               <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-[#014421]">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="font-medium mb-1">Important Information</p>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    <li>Appointments must be booked at least one day in advance</li>
-                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead</li>
-                    <li>Available times are shown after selecting a date</li>
-                    <li>Watch out for your email for confirmation</li>
+                  <p className="font-medium mb-1 text-[#014421]">Important Information</p>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-[#014421]/90">
+                    <li>Appointments must be booked at least one day in advance.</li>
+                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
+                    <li>Available times are shown after selecting a date.</li>
+                    <li>Your booking will be confirmed by the SRO via E-mail.</li>
                   </ul>
                 </div>
               </div>
@@ -686,7 +659,7 @@ const AppointmentBooking = () => {
                           formData.time === slot.time 
                             ? 'bg-[#007749] text-white' 
                             : slot.booked
-                            ? 'bg-red-100 text-red-700 cursor-not-allowed'
+                            ? 'bg-[#7B1113] text-white cursor-not-allowed'
                             : slot.blocked
                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                             : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -762,13 +735,16 @@ const AppointmentBooking = () => {
                       className={`py-2 px-3 text-sm font-medium rounded ${
                         rescheduleData.time === slot.time 
                           ? 'bg-[#007749] text-white' 
-                          : slot.available
-                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : slot.booked
+                          ? 'bg-[#7B1113] text-white cursor-not-allowed'
+                          : slot.blocked
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       }`}
                       disabled={!slot.available}
                     >
                       {slot.time}
+                      {slot.booked && <span className="block text-xs">(Booked)</span>}
                     </button>
                   ))}
                 </div>
@@ -787,16 +763,6 @@ const AppointmentBooking = () => {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setReschedulingAppointment(null);
-                setRescheduleData({ date: null, time: "" });
-                setRescheduleReason("");
-              }}
-            >
-              Cancel
-            </Button>
             <Button
               onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
               className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
