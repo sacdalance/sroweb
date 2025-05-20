@@ -544,12 +544,15 @@ const AdminPanel = () => {
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Organization</th>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Activity<br />Date</th>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-20">Status</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-14">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {incomingRequests.map((request) => (
-                              <tr key={request.id} className="hover:bg-gray-50">
+                              <tr
+                                key={request.id}
+                                className="hover:bg-gray-100 cursor-pointer"
+                                onClick={() => handleViewDetails(request)}
+                              >
                                 <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.submissionDate}</td>
                                 <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityName}</td>
                                 <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.organization}</td>
@@ -557,21 +560,15 @@ const AdminPanel = () => {
                                 <td className="px-1 py-2 text-xs text-center">
                                   <Badge
                                     className={
-                                      request.status === "For Appeal"
-                                        ? "bg-gray-100 text-gray-700 hover:bg-gray-100"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                                      request.status === "Pending"
+                                        ? "bg-[#F3AA2C] text-[#7B1113] hover:bg-[#F3AA2C]" // Gold fill, maroon text
+                                        : request.status === "For Appeal"
+                                        ? "bg-[#7B1113] text-white hover:bg-[#7B1113]"      // Maroon fill, white text
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-100"     // Default
                                     }
                                   >
                                     {request.status}
                                   </Badge>
-                                </td>
-                                <td className="px-1 py-2 text-center">
-                                  <button
-                                    onClick={() => handleViewDetails(request)}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                  >
-                                    <Eye className="h-5 w-5" />
-                                  </button>
                                 </td>
                               </tr>
                             ))}
@@ -610,15 +607,8 @@ const AdminPanel = () => {
                       <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
                         {(() => {
                           const range = getWeekRange(currentWeekStart);
-                          const [start, end] = range.split(" - ");
-                          return (
-                            <span className="flex flex-col items-center">
-                              <span>
-                                {start} <span className="font-bold">-</span>
-                              </span>
-                              <span>{end}</span>
-                            </span>
-                          );
+                          // Instead of splitting and stacking, just show as a single line
+                          return range;
                         })()}
                       </span>
                       <Button
