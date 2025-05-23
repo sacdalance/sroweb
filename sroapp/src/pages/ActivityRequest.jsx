@@ -609,42 +609,45 @@ const ActivityRequest = () => {
         );
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
-            <div className="w-full max-w-2xl mx-auto px-6">
+            <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 md:px-6">
                 <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
-                <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
-                    
+                <form
+                    onSubmit={handleSubmit}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    className="space-y-8"
+                >
                     {/* Sonner, side pop up */}
                     <Toaster/>
 
                     {/* Menu Bar */}
-                    <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex flex-wrap gap-2 sm:space-x-0 mb-4">
                         <Button
                             variant={currentSection === "general-info" ? "default" : "ghost"}
-                            className={`${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
                         >
                             General Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "date-info" ? "default" : "ghost"}
-                            className={`${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
                         >
                             Date Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "specifications" ? "default" : "ghost"}
-                            className={`${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
                         >
                             Specifications
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "submission" ? "default" : "ghost"}
-                            className={`${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
                         >
                             Submission
@@ -665,7 +668,7 @@ const ActivityRequest = () => {
                     <div className="min-h-[500px]">
                         {/* General Information Section */}
                         {currentSection === "general-info" && (
-                            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Organization Name */}
                                     <div>
@@ -728,7 +731,7 @@ const ActivityRequest = () => {
                                     </div>
 
                                     {/* Student Information */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
@@ -872,12 +875,12 @@ const ActivityRequest = () => {
                                         </RadioGroup>
                                     </div>
                                 </div>
-                                <div className="flex justify-end">
+                                <div className="flex flex-col sm:flex-row justify-end gap-2">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={fillWithDummyData}
-                                        >
+                                    >
                                         Fill with Dummy Data
                                     </Button>
                                     <Button
@@ -893,7 +896,7 @@ const ActivityRequest = () => {
 
                         {/* Date Information Section */}
                         {currentSection === "date-info" && (
-                            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Recurring */}
                                     <div>
@@ -920,7 +923,7 @@ const ActivityRequest = () => {
                                     </div>
 
                                     {/* Date and Time Information */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                                             <Input
@@ -945,7 +948,7 @@ const ActivityRequest = () => {
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Start Time <span className="text-red-500">*</span> </h3>
                                             
@@ -999,7 +1002,7 @@ const ActivityRequest = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex flex-col sm:flex-row justify-between gap-2">
                                     <Button
                                         type="button"
                                         className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6"
@@ -1020,7 +1023,7 @@ const ActivityRequest = () => {
 
                         {/* Specifications Section */}
                         {currentSection === "specifications" && (
-                            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6">
                                     {/* Off-Campus */}
                                     <div>
@@ -1232,7 +1235,7 @@ const ActivityRequest = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex flex-col sm:flex-row justify-between gap-2">
                                     <Button
                                         type="button"
                                         className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6"
@@ -1253,7 +1256,7 @@ const ActivityRequest = () => {
 
                         {/* Submission Section */}
                         {currentSection === "submission" && (
-                            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
                                 <div>
                                     <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF) <span className="text-red-500">*</span></h3>
                                     <div className="border rounded-md p-4">
@@ -1340,32 +1343,31 @@ const ActivityRequest = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between">
-                                <Button
-                                    type="button"
-                                    className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5"
-                                    onClick={() => handleBackSection("specifications")}
-                                    >
-                                    Back
-                                    </Button>
-
+                                <div className="flex flex-col sm:flex-row justify-between gap-2">
                                     <Button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        setShowConfirmDialog(true);
-                                    }}
-                                    type="submit"
-                                    className="w-relative"
-                                    disabled={isSubmitting}
+                                        type="button"
+                                        className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5"
+                                        onClick={() => handleBackSection("specifications")}
                                     >
-                                    {isSubmitting ? (
-                                        <span className="flex items-center gap-2">
-                                        <Loader2 className="animate-spin h-4 w-4" />
-                                        Uploading...
-                                        </span>
-                                    ) : (
-                                        "Submit Form"
-                                    )}
+                                        Back
+                                    </Button>
+                                    <Button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setShowConfirmDialog(true);
+                                        }}
+                                        type="submit"
+                                        className="w-full sm:w-auto"
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? (
+                                            <span className="flex items-center gap-2">
+                                                <Loader2 className="animate-spin h-4 w-4" />
+                                                Uploading...
+                                            </span>
+                                        ) : (
+                                            "Submit Form"
+                                        )}
                                     </Button>
                                 </div>
                             </div>
