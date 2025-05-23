@@ -155,8 +155,12 @@ const AdminPanel = () => {
         console.log("For Appeal Count:", forAppealCount);
         console.log("Pending Count:", pendingCount);
 
-        // Update state with transformed requests
-        setIncomingRequests(transformedRequests);
+        // Update state with transformed requests (limit to 10, sorted by activity_id descending)
+        setIncomingRequests(
+          transformedRequests
+            .sort((a, b) => Number(b.id) - Number(a.id))
+            .slice(0, 10)
+        );
 
         // Update the counts in state without overwriting the approved count
         setRequestsCounts((prevCounts) => ({
@@ -517,7 +521,7 @@ const AdminPanel = () => {
           <section className="flex flex-col lg:flex-row gap-6 min-w-0">
             {/* Left: Incoming Activity Requests */}
             <div className="flex-1 min-w-0">
-              <Card className="shadow-sm h-full flex flex-col">
+              <Card className="shadow-sm h-auto flex flex-col max-h-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl font-bold text-[#7B1113] flex items-center gap-2">
                     Incoming Activity Requests
@@ -537,7 +541,7 @@ const AdminPanel = () => {
                     ) : (
                       <div className="max-h-[800px] overflow-y-auto custom-scrollbar">
                         <table className="min-w-full border-separate border-spacing-0">
-                          <thead className="bg-gray-50 border-b border-gray-200">
+                          <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Submission<br />Date</th>
                               <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Activity<br />Name</th>
@@ -547,7 +551,7 @@ const AdminPanel = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {incomingRequests.map((request) => (
+                            {incomingRequests.map((request, idx) => (
                               <tr
                                 key={request.id}
                                 className="hover:bg-gray-100 cursor-pointer"
@@ -576,7 +580,7 @@ const AdminPanel = () => {
                         </table>
                       </div>
                     )}
-                  </div>
+                   </div>
                   {/* See More Button */}
                   <div className="flex justify-center mt-auto border-t pt-4">
                     <Link to="/admin/pending-requests">
