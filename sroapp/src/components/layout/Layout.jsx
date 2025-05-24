@@ -9,7 +9,7 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-[#ffffff]">
+    <div className="max-w-auto mx-auto p-9 min-h-screen flex bg-[#ffffff]">
       {/* Sidebar: always visible on lg+, toggleable on mobile */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       {/* Overlay for mobile */}
