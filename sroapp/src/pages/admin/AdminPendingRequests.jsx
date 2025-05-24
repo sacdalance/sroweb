@@ -247,7 +247,7 @@ const AdminPendingRequests = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto w-full">
+              <div className="overflow-x-auto w-full h-full">
                 <table className="w-full min-w-[900px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
