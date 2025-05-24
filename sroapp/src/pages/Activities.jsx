@@ -237,6 +237,7 @@ const Activities = () => {
   const [isAppealOpen, setIsAppealOpen] = useState(false);
   const [modalAppealReason, setModalAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
+  const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
   const [accountId, setAccountId] = useState(null);
 
@@ -301,81 +302,104 @@ const Activities = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="text-2xl font-bold mb-4">My Activities</h1>
+      <h1 className="text-2xl font-bold mb-4 text-[#7B1113]">My Activities</h1>
 
       <Dialog>
         {/* Requested Activities */}
         <section>
-          <h2 className="text-lg font-semibold mb-2">Requested Activities</h2>
+          <h2 className="text-lg font-semibold mb-2 ">Requested Activities</h2>
           <Card className="w-full relative">
-            <CardContent className="overflow-x-auto p-0">
-              <div className="w-full min-w-[700px]">
-                <table className="w-full table-fixed text-sm text-left">
-                  <thead className="border-b">
-                    <tr>
-                      <th className="py-2 px-4">Organization</th>
-                      <th className="py-2 px-4">Title</th>
-                      <th className="py-2 px-4">Date Range</th>
-                      <th className="py-2 px-4">Venue</th>
-                      <th className="py-2 px-4">Status</th>
-                      <th className="py-2 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requested.length > 0 ? (
-                      requested.map((act) => (
-                        <tr key={act.activity_id} className="border-b">
-                          <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
-                          <td className="py-2 px-4">{act.activity_name}</td>
-                          <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
-                          <td className="py-2 px-4">{act.venue}</td>
-                          <td className="py-2 px-4 text-[#7B1113] font-medium">
-                            {act.final_status || "Pending"}
-                          </td>
-                          <td className="py-2 px-4 text-right">
-                            <div className="flex justify-end space-x-2">
-                              <DialogTrigger asChild>
-                                <button
-                                  onClick={() => {
-                                    axios
-                                    .get(`/activities/user/${accountId}`)
-                                      .then((res) => {
+            <CardContent className="p-0">
+              <div className="w-full overflow-x-auto">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full min-w-[10px] text-sm text-left">
+                    <thead className="border-b">
+                      <tr>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                        <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {requested.length > 0 ? (
+                        requested.map((act) => (
+                          <tr key={act.activity_id} className="border-b">
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.organization?.org_name || "Unknown"}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.activity_name}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{formatDateRange(act.schedule)}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.venue}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {act.final_status === "For Appeal" && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
+                                  For Appeal
+                                </span>
+                              )}
+                              {act.final_status === "Pending" && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
+                                  Pending
+                                </span>
+                              )}
+                              {act.final_status === "Approved" && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-[#014421] text-white font-semibold text-xs">
+                                  Approved
+                                </span>
+                              )}
+                              {/* fallback for other statuses */}
+                              {["For Appeal", "Pending", "Approved"].indexOf(act.final_status) === -1 && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
+                                  {act.final_status || "Pending"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
+                              <div className="flex items-center justify-center gap-2">
+                                <DialogTrigger asChild>
+                                  <button
+                                    onClick={async () => {
+                                      setDialogLoading(true);
+                                      try {
+                                        const res = await axios.get(`/activities/user/${accountId}`);
                                         const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
                                         setSelectedActivity(fullActivity);
-                                      })
-                                      .catch((err) => {
+                                      } catch (err) {
                                         console.error("Error fetching activity with account info:", err);
-                                      });
-                                  }}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                >
-                                  <Eye className="h-5 w-5" />
-                                </button>
-                              </DialogTrigger>
-                              {act.final_status !== "For Appeal" && (
-                                <button
-                                  onClick={() => {
-                                    setEditingActivity(act);
-                                    setIsAppealOpen(true);
-                                  }}
-                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                                >
-                                  <Pencil className="h-5 w-5" />
-                                </button>
-                              )}
-                            </div>
+                                      } finally {
+                                        setDialogLoading(false);
+                                      }
+                                    }}
+                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  >
+                                    <Eye className="h-5 w-5" />
+                                  </button>
+                                </DialogTrigger>
+                                {act.final_status !== "For Appeal" && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingActivity(act);
+                                      setIsAppealOpen(true);
+                                    }}
+                                    className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                  >
+                                    <Pencil className="h-5 w-5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-4 px-3 text-center text-gray-500">
+                            No requested activities found.
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
-                          No requested activities found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -385,76 +409,90 @@ const Activities = () => {
         <section>
           <h2 className="text-lg font-semibold mb-2">Approved Activities</h2>
           <Card className="w-full relative">
-            <CardContent className="overflow-x-auto p-0">
-              <div className="w-full min-w-[700px]">
-                <table className="w-full table-fixed text-sm text-left">
-                  <thead className="border-b">
-                    <tr>
-                      <th className="py-2 px-4">Organization</th>
-                      <th className="py-2 px-4">Title</th>
-                      <th className="py-2 px-4">Date Range</th>
-                      <th className="py-2 px-4">Venue</th>
-                      <th className="py-2 px-4">Activity ID</th>
-                      <th className="py-2 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {approved.length > 0 ? (
-                      approved.map((act) => (
-                        <tr key={act.activity_id} className="border-b">
-                          <td className="py-2 px-4">{act.organization?.org_name || "Unknown"}</td>
-                          <td className="py-2 px-4">{act.activity_name}</td>
-                          <td className="py-2 px-4">{formatDateRange(act.schedule)}</td>
-                          <td className="py-2 px-4">{act.venue}</td>
-                          <td className="py-2 px-4">{act.activity_id}</td>
-                          <td className="py-2 px-4 text-right">
-                            <div className="flex justify-end space-x-2">
-                              <DialogTrigger asChild>
-                                <button
-                                  onClick={() => {
-                                    axios
-                                      .get(`/activities/user/${accountId}`)
-                                      .then((res) => {
+            <CardContent className="p-0">
+              <div className="w-full overflow-x-auto">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full min-w-[700px] table-fixed text-sm text-left">
+                    <thead className="border-b">
+                      <tr>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
+                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</th>
+                        <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {approved.length > 0 ? (
+                        approved.map((act) => (
+                          <tr key={act.activity_id} className="border-b">
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.organization?.org_name || "Unknown"}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_name}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{formatDateRange(act.schedule)}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.venue}</td>
+                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_id}</td>
+                            <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">
+                              <div className="flex items-center justify-center gap-2">
+                                <DialogTrigger asChild>
+                                  <button
+                                    onClick={async () => {
+                                      setDialogLoading(true);
+                                      try {
+                                        const res = await axios.get(`/activities/user/${accountId}`);
                                         const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
                                         setSelectedActivity(fullActivity);
-                                      })
-                                      .catch((err) => {
+                                      } catch (err) {
                                         console.error("Error fetching activity with account info:", err);
-                                      });
+                                      } finally {
+                                        setDialogLoading(false);
+                                      }
+                                    }}
+                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  >
+                                    <Eye className="h-5 w-5" />
+                                  </button>
+                                </DialogTrigger>
+                                <button
+                                  onClick={() => {
+                                    setEditingActivity(act);
+                                    setIsAppealOpen(true);
                                   }}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
                                 >
-                                  <Eye className="h-5 w-5" />
+                                  <Pencil className="h-5 w-5" />
                                 </button>
-                              </DialogTrigger>
-                              <button
-                                onClick={() => {
-                                  setEditingActivity(act);
-                                  setIsAppealOpen(true);
-                                }}
-                                className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                              >
-                                <Pencil className="h-5 w-5" />
-                              </button>
-                            </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-4 px-3 text-center text-gray-500">
+                            No approved activities found.
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-4 px-4 text-center text-gray-500">
-                          No approved activities found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
         </section>
 
-        {selectedActivity && <ActivityDialogContent activity={selectedActivity} />}
+        {selectedActivity && (
+          <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
+            {dialogLoading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 mb-4 animate-spin text-[#7B1113]" />
+                <span className="text-[#7B1113] font-semibold">Loading activity details...</span>
+              </div>
+            ) : (
+              <ActivityDialogContent activity={selectedActivity} />
+            )}
+          </DialogContent>
+        )}
       </Dialog>
       <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
         <DialogContent className="sm:max-w-md">
