@@ -488,7 +488,7 @@ const AdminPanel = () => {
     : weekEvents;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#ffffff]">
+    <div className="flex flex-col min-h-screen px-9 bg-[#ffffff]">
       {/* Responsive Flex Layout */}
       <div className="flex flex-col md:flex-row flex-wrap w-full max-w-[1500px] mx-auto p-4 md:p-6 gap-6 min-h-[80vh]">
         {/* Main Content */}

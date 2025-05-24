@@ -128,7 +128,6 @@ const AdminActivitySummary = () => {
         setLoading(true);
         const activities = await fetchSummaryActivities({
           activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
-          status: filter === 'approved' ? 'Approved' : filter,
           organization: appliedFilters.organization,
           month: appliedFilters.month,
           year: appliedFilters.year
@@ -143,7 +142,7 @@ const AdminActivitySummary = () => {
     };
   
     loadSummary();
-  }, [selectedType, filter, appliedFilters]);
+  }, [selectedType, appliedFilters]);
 
   const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
   useEffect(() => {
@@ -178,8 +177,8 @@ const AdminActivitySummary = () => {
     loadYears();
   }, []);
 
-  // Then apply status filter for display
-  const filteredActivities = summaryActivities.filter((activity) => {
+  // 1. Filter activities based on all filters EXCEPT the status tab
+  const filteredByOtherFilters = summaryActivities.filter((activity) => {
     const startDateStr = activity.schedule?.[0]?.start_date;
     if (!startDateStr) return false;
   
@@ -187,18 +186,18 @@ const AdminActivitySummary = () => {
     const startYear = startDate.getFullYear();
     const activityMonth = startDate.toLocaleString("default", { month: "long" });
   
-    //  Filter by academic year
+    // Academic year filter
     if (appliedFilters.year !== "All Academic Years") {
       const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
       if (startYear !== selectedStartYear) return false;
     }
   
-    //  Filter by month
+    // Month filter
     if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
       return false;
     }
   
-    //  Filter by organization
+    // Organization filter
     if (
       appliedFilters.organization !== "All Organizations" &&
       activity.organization?.org_name !== appliedFilters.organization
@@ -206,19 +205,24 @@ const AdminActivitySummary = () => {
       return false;
     }
   
-    //  Filter by status
+    return true;
+  });
+  
+  // 2. Calculate counts from this filtered list
+  const approvedCount = filteredByOtherFilters.filter(a => a.final_status === "Approved").length;
+  const pendingCount = filteredByOtherFilters.filter(a =>
+    a.final_status === null || a.final_status === "For Appeal"
+  ).length;
+
+  // 3. Now filter by the status tab for display
+  const filteredActivities = filteredByOtherFilters.filter((activity) => {
     const isApproved = activity.final_status === "Approved";
     const isPending = activity.final_status === "For Appeal" || activity.final_status === null;
     if (filter === "approved" && !isApproved) return false;
     if (filter === "pending" && !isPending) return false;
-  
     return true;
   });
-  const approvedCount = filteredActivities.filter(a => a.final_status === "Approved").length;
-  const pendingCount = filteredActivities.filter(a =>
-    a.final_status === null || a.final_status === "For Appeal"
-  ).length;
-
+  
   const handleApplyFilters = () => {
     setAppliedFilters({
       organization: selectedOrg,
@@ -246,10 +250,12 @@ const AdminActivitySummary = () => {
   };
 
   return (
-    <div className="max-w-[1350px] mx-auto p-2 sm:p-4 md:p-6">
+    <div
+      className="max-w-[1550px] mx-auto p-2 sm:p-4 md:p-6"
+      style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
+    >
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-4 sm:mb-6">Summary of Activity Requests</h1>
       
-      {/* Removed Activity Type Pills */}
 
       {/* Filter Section using Tabs */}
       <Card className="mb-6">
@@ -604,13 +610,20 @@ const AdminActivitySummary = () => {
             <TableBody>
               {filteredActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
+                  <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
                     No activities found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredActivities.map((activity, index) => (
-                  <TableRow key={index} className="border-b border-gray-100">
+                  <TableRow
+                    key={index}
+                    className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+                    onClick={() => {
+                      setSelectedActivity(activity);
+                      setIsModalOpen(true);
+                    }}
+                  >
                     <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                     <TableCell className="py-5 text-sm text-center">
                       {new Date(activity.created_at).toLocaleDateString(undefined, {
@@ -666,24 +679,17 @@ const AdminActivitySummary = () => {
                     <TableCell className="py-5">
                       <div className="flex items-center justify-center">
                         <Badge
-                          variant={activity.final_status === 'Approved' ? 'success' : 'warning'}
-                          className="text-sm px-4 py-1"
+                          className={
+                            (activity.final_status === "Approved"
+                              ? "bg-[#014421] text-white"
+                              : "bg-[#FFF7D6] text-[#A05A00]")
+                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
+                          }
                         >
-                          {activity.final_status || "Pending"}
+                          {activity.final_status === "Approved"
+                            ? "Approved"
+                            : "Pending"}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-5 px-5">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => {
-                            setSelectedActivity(activity);
-                            setIsModalOpen(true);
-                          }}
-                          className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
