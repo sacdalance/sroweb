@@ -5,6 +5,9 @@ import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import PropTypes from 'prop-types';
+import React from "react";
+
+const SIDEBAR_WIDTH = 256;
 
 const Sidebar = ({ isOpen, onClose }) => {
   const [user, setUser] = useState(null);
@@ -73,14 +76,18 @@ const Sidebar = ({ isOpen, onClose }) => {
         />
       )}
       
-      <aside className={`
-        fixed top-0 left-0 z-30
-        max-2xl:w-80 w-80 h-screen bg-[#F3F4F6] text-black
-        transform transition-all duration-200 ease-in-out
-        flex flex-col
-        ${isOpen ? 'translate-x-0' : 'max-xl:-translate-x-full'}
-        shadow-lg
-      `}>
+      <aside
+        className={`
+          bg-white border-r h-full flex flex-col
+          fixed z-30 top-0 left-0 transition-transform duration-300
+          w-[${SIDEBAR_WIDTH}px]
+          -translate-x-full
+          xl:static xl:translate-x-0 xl:w-[${SIDEBAR_WIDTH}px] xl:block
+          ${isOpen ? "translate-x-0 shadow-lg" : ""}
+        `}
+        style={{ minWidth: SIDEBAR_WIDTH }}
+        aria-label="Sidebar"
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 max-xl:block hidden"
