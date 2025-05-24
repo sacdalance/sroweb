@@ -158,7 +158,7 @@ const Dashboard = () => {
       : weekEvents;
 
     return (
-        <div className="mx-auto p-9" >
+        <div className="max-w-[1350px] px-9 mx-auto" >
         <Card className="shadow-sm px-6 py-4 mb-6">
                 <div className="space-y-1">
                     <h2 className="text-2xl font-bold">
