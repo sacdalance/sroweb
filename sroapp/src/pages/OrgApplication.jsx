@@ -59,7 +59,7 @@ const OrgApplication = () => {
   const [orgTypeSearch, setOrgTypeSearch] = useState("")
 
   const [yearOpen, setYearOpen] = useState(false)
-  const [academicYear, setAcademicYear] = useState("") // ✅ this is what was missing
+  const [academicYear, setAcademicYear] = useState("") // this is what was missing
   const [selectedYear, setSelectedYear] = useState("")
   const [yearSearch, setYearSearch] = useState("")
 
@@ -191,7 +191,7 @@ const OrgApplication = () => {
       toast.success("Submitted successfully!");
       setShowInterviewPrompt(true);
   
-      // ✅ Step 4: Clear form after success
+      // Step 4: Clear form after success
       setFiles([]);
       setOrgName("");
       setOrgEmail("");
