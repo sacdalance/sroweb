@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns";
 import { Badge } from "./badge";
 import PropTypes from 'prop-types';
@@ -78,114 +77,96 @@ const CustomCalendar = ({
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
-      <div className="mb-4 flex items-center justify-between">
-        <button 
-          onClick={handlePrevMonth}
-          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        
-        <div className="flex gap-4">
-          {monthOptions && yearOptions ? (
-            <>
-              <select
-                value={selectedMonth}
-                onChange={(e) => onMonthChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
-              >
-                {monthOptions.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedYear}
-                onChange={(e) => onYearChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : (
-            <h2 className="text-lg font-semibold text-[#014421]">
-              {format(currentMonth, 'MMMM yyyy')}
-            </h2>
-          )}
+    <div className="p-2 sm:p-4 bg-white rounded-lg shadow w-full max-w-full">
+      <div className="mb-2 flex flex-col sm:flex-row items-center sm:justify-between gap-2 px-2 sm:px-4 py-2">
+        <div className="text-base sm:text-lg font-semibold text-[#7B1113]">
+          {currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}
         </div>
-
-        <button 
-          onClick={handleNextMonth}
-          className="p-2 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 rounded hover:bg-gray-100 transition"
+            aria-label="Previous Month"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={handleNextMonth}
+            className="p-2 rounded hover:bg-gray-100 transition"
+            aria-label="Next Month"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 mb-2">
-        {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-          <div key={day} className="text-sm font-medium text-[#014421] py-2">
-            {day}
+      {/* Responsive scrollable wrapper */}
+      <div className="overflow-x-auto overflow-y-auto" style={{ minWidth: 350 }}>
+        <div className="min-w-[800px]">
+          <div className="grid grid-cols-7 mb-2">
+            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
+              <div key={day} className="text-sm font-medium text-[#014421] py-2 text-center">
+                {day}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
-          <div key={`empty-${index}`} className="h-10"></div>
-        ))}
-        
-        {generateCalendarDays().map((day, i) => (
-          mode === 'appointments' ? (
-            <div 
-              key={i}
-              onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
-              className="p-1"
-            >
-              <div className={getAppointmentDayClass(day)}>
-                {format(day, 'd')}
-              </div>
-            </div>
-          ) : (
-            <div 
-              key={i}
-              className={getActivityDayClass(day).containerClass}
-            >
-              <div className="flex justify-between items-start">
-                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
-                  isToday(day) ? "bg-[#014421] text-white" : ""
-                }`}>
-                  {format(day, 'd')}
-                </span>
-                {getActivityDayClass(day).hasEvents && (
-                  <Badge className="bg-[#7B1113] hover:bg-[#7B1113]/90 text-white border-0">
-                    {getActivityDayClass(day).events.length}
-                  </Badge>
-                )}
-              </div>
-              {getActivityDayClass(day).hasEvents && (
-                <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px]">
-                  {getActivityDayClass(day).events.map((event, index) => (
-                    <div
-                      key={index}
-                      className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category)}`}
-                      onClick={() => onDateSelect && onDateSelect(event)}
-                      title={event.title}
-                    >
-                      {event.title}
-                    </div>
-                  ))}
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
+              <div key={`empty-${index}`} className="h-10"></div>
+            ))}
+
+            {generateCalendarDays().map((day, i) =>
+              mode === 'appointments' ? (
+                <div
+                  key={i}
+                  onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
+                  className="p-1"
+                >
+                  <div className={getAppointmentDayClass(day)}>
+                    {format(day, 'd')}
+                  </div>
                 </div>
-              )}
-            </div>
-          )
-        ))}
+              ) : (
+                <div
+                  key={i}
+                  className={getActivityDayClass(day).containerClass}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
+                      isToday(day) ? "bg-[#014421] text-white" : ""
+                    }`}>
+                      {format(day, 'd')}
+                    </span>
+                    {getActivityDayClass(day).hasEvents && (
+                      <Badge className="bg-[#7B1113] hover:bg-[#7B1113]/90 text-white border-0">
+                        {getActivityDayClass(day).events.length}
+                      </Badge>
+                    )}
+                  </div>
+                  {getActivityDayClass(day).hasEvents && (
+                    <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px]">
+                      {getActivityDayClass(day).events.map((event, index) => (
+                        <div
+                          key={index}
+                          className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category)}`}
+                          onClick={() => onDateSelect && onDateSelect(event)}
+                          title={event.title}
+                        >
+                          {event.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
