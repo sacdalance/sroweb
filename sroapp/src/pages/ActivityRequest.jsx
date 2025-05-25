@@ -682,6 +682,7 @@ const ActivityRequest = () => {
                     {/* Menu Bar */}
                     <div className="flex flex-wrap gap-2 sm:space-x-0 mb-4">
                         <Button
+                            type="button"
                             variant={currentSection === "general-info" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
@@ -690,6 +691,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "date-info" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
@@ -698,6 +700,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "specifications" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
@@ -706,6 +709,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "submission" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
