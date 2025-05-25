@@ -12,7 +12,23 @@ import {
 import supabase from "@/lib/supabase";
 import { toast } from "sonner";
 import CustomCalendar from "@/components/ui/custom-calendar";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import PropTypes from 'prop-types';
+
+const categoryMap = {
+  charitable: "Charitable",
+  serviceWithinUPB: "Service (within UPB)",
+  serviceOutsideUPB: "Service (outside UPB)",
+  contestWithinUPB: "Contest (within UPB)",
+  contestOutsideUPB: "Contest (outside UPB)",
+  educational: "Educational",
+  incomeGenerating: "Income-Generating Project",
+  massOrientation: "Mass Orientation/General Assembly",
+  booth: "Booth",
+  rehearsals: "Rehearsals/Preparation",
+  specialEvents: "Special Event",
+  others: "Others",
+};
 
 const ActivitiesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,6 +40,7 @@ const ActivitiesCalendar = () => {
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   // Month and year options
   const months = [
@@ -45,7 +62,11 @@ const ActivitiesCalendar = () => {
           .select('org_id, org_name');
         
         if (error) throw error;
-        setOrganizations(data.map(org => org.org_name));
+        setOrganizations(
+          data
+            .map(org => org.org_name)
+            .sort((a, b) => a.localeCompare(b))
+        );
       } catch (error) {
         console.error('Error fetching organizations:', error);
         toast.error('Failed to load organizations');
@@ -135,6 +156,15 @@ const ActivitiesCalendar = () => {
     setCurrentDate(new Date(parseInt(value), monthIndex));
   };
 
+  // Sync dropdowns with calendar navigation
+  useEffect(() => {
+    const month = currentDate.toLocaleString("default", { month: "long" });
+    const year = currentDate.getFullYear().toString();
+    if (selectedMonth !== month) handleMonthChange(month);
+    if (selectedYear !== year) handleYearChange(year);
+    // eslint-disable-next-line
+  }, [currentDate]);
+
   // Get color for event based on category
   const getEventColor = (category) => {
     switch (category?.toLowerCase()) {
@@ -153,22 +183,31 @@ const ActivitiesCalendar = () => {
     }
   };
 
-  // Handle event click
-  const handleEventClick = (event) => {
-    // Format the date before setting the event
-    if (event.date instanceof Date) {
-      setSelectedEvent({
-        ...event,
-        formattedDate: event.date.toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
-        })
-      });
-    } else {
-      setSelectedEvent(event);
-    }
+  // Fetch full activity details when eye is clicked
+  const handleEventClick = async (event) => {
+    setModalLoading(true);
     setIsDialogOpen(true);
+    setSelectedEvent(null);
+
+    // Fetch full activity details from Supabase
+    const { data, error } = await supabase
+      .from("activity")
+      .select(`
+        *,
+        account:account(*),
+        schedule:activity_schedule(*),
+        organization:organization(*)
+      `)
+      .eq("activity_id", event.id)
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch activity details:", error);
+      setSelectedEvent(event); // fallback to minimal
+    } else {
+      setSelectedEvent(data);
+    }
+    setModalLoading(false);
   };
 
   // Loading state component
@@ -206,52 +245,53 @@ const ActivitiesCalendar = () => {
   );
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Activities Calendar</h1>
+    <div className="container mx-auto py-8 max-w-6xl px-2 sm:px-4 md:px-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Activities Calendar</h1>
 
-      <div className="flex flex-wrap gap-4 mb-8">
-        <Select value={selectedMonth} onValueChange={handleMonthChange}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((month) => (
-              <SelectItem key={month} value={month}>
-                {month}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+          <Select value={selectedMonth} onValueChange={handleMonthChange}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month) => (
+                <SelectItem key={month} value={month}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={selectedYear} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map((year) => (
-              <SelectItem key={year} value={year}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={selectedYear} onValueChange={handleYearChange}>
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Select organization" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Organizations</SelectItem>
-            {organizations.map((org) => (
-              <SelectItem key={org} value={org}>
-                {org}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Button 
-          className="ml-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white" 
+          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Select organization" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Organizations</SelectItem>
+              {organizations.map((org) => (
+                <SelectItem key={org} value={org}>
+                  {org}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
           onClick={() => window.print()}
         >
           <Printer className="w-4 h-4 mr-2" /> Print Calendar
@@ -259,7 +299,7 @@ const ActivitiesCalendar = () => {
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
-        <CardContent className="p-6">
+        <CardContent className="p-2 sm:p-6">
           {loading ? (
             <LoadingState />
           ) : error ? (
@@ -270,15 +310,10 @@ const ActivitiesCalendar = () => {
               currentMonth={currentDate}
               onDateSelect={handleEventClick}
               onMonthChange={setCurrentDate}
-              events={events.filter(event => 
+              events={events.filter(event =>
                 selectedOrganization === "all" || event.organization === selectedOrganization
               )}
               getEventColor={getEventColor}
-              monthOptions={months}
-              yearOptions={years}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onYearChange={handleYearChange}
             />
           )}
         </CardContent>
@@ -310,7 +345,7 @@ const ActivitiesCalendar = () => {
 
       <Card className="rounded-lg shadow-md">
         <CardHeader className="bg-white py-4">
-          <CardTitle className="text-xl font-bold text-[#7B1113]">
+          <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
             Upcoming Activities
           </CardTitle>
         </CardHeader>
@@ -323,49 +358,61 @@ const ActivitiesCalendar = () => {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Date</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Activity</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Organization</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Type</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black">Venue</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-black"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {upcomingEvents.map((event, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 text-sm text-gray-700">
-                        {event.date}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 font-medium">
-                        {event.title}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700">
-                        {event.organization}
-                      </td>
-                      <td className="px-5 py-4 text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}>
-                          {event.type}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700">
-                        {event.venue}
-                      </td>
-                      <td className="px-5 py-4 text-sm flex justify-center">
-                        <button
-                          onClick={() => handleEventClick(event)}
-                          className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
-                      </td>
+              <div className="max-h-[350px] overflow-y-auto"> {/* Add this wrapper */}
+                <table className="w-full min-w-[600px]">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date</th>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity</th>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5k">Organization</th>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Type</th>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
+                      <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {upcomingEvents.map((event, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          {event.date}
+                        </td>
+                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          {event.title}
+                        </td>
+                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          {event.organization}
+                        </td>
+                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 align-middle">
+                          <span
+                            className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
+                            style={{
+                              whiteSpace: "pre-line", // allow line breaks
+                              wordBreak: "break-word",
+                              lineHeight: "1.3",
+                              minHeight: "2.2em", // keeps pill shape even for one line
+                              maxWidth: "100%",
+                              boxShadow: "0 1px 3px 0 rgba(0,0,0,0.04)"
+                            }}
+                          >
+                            {categoryMap[event.type] || event.type}
+                          </span>
+                        </td>
+                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          {event.venue}
+                        </td>
+                        <td className="w-[70px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          <button
+                            onClick={() => handleEventClick(event)}
+                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -373,62 +420,20 @@ const ActivitiesCalendar = () => {
 
       {/* Event Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-[1000px] w-[90vw] sm:w-[85vw] mx-auto">
-          <DialogHeader className="px-2">
-            <DialogTitle className="text-xl font-bold text-[#7B1113]">Activity Details</DialogTitle>
-          </DialogHeader>
-          {selectedEvent && (
-            <div className="space-y-6 px-2">
-              {/* Activity Title, Description and Organization */}
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">{selectedEvent.title}</h2>
-                <p className="text-sm text-gray-600">{selectedEvent.organization}</p>
-                <p className="text-sm text-gray-700 mt-2">{selectedEvent.description || "No description available"}</p>
-              </div>
-
-              {/* General Information */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">General Information</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Activity Type:</span>
-                    <span>{selectedEvent.category || selectedEvent.type}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Date:</span>
-                    <span>{selectedEvent.formattedDate || selectedEvent.date}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Time:</span>
-                    <span>{selectedEvent.time}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-32 text-gray-600">Venue:</span>
-                    <span>{selectedEvent.venue || selectedEvent.location}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* University Partners */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">University Partners</h3>
-                <div className="text-sm">
-                  <p>{selectedEvent.partners || "No university partners specified"}</p>
-                </div>
-              </div>              {/* List of Sustainable Development Goals */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[#7B1113]">List of Sustainable Development Goals</h3>
-                <div className="text-sm">
-                  {selectedEvent.sdgs ? (
-                    <p>{selectedEvent.sdgs}</p>
-                  ) : (
-                    <span className="text-gray-500">No SDGs specified</span>
-                  )}
-                </div>
-              </div>
-            </div>
+          {modalLoading ? (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <Loader2 className="h-10 w-10 animate-spin text-[#7B1113]" />
+            </div>  
+          ) : (
+            selectedEvent && (
+              <ActivityDialogContent
+                activity={selectedEvent}
+                setActivity={setSelectedEvent}
+                isModalOpen={isDialogOpen}
+                readOnly={true}
+              />
+            )
           )}
-        </DialogContent>
       </Dialog>
     </div>
   );
