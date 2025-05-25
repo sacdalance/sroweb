@@ -673,7 +673,6 @@ const ActivityRequest = () => {
             <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 md:px-6">
                 <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
                 <form
-                    onSubmit={handleSubmit}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className="space-y-8"
                 >
