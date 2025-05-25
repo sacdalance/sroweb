@@ -180,7 +180,13 @@ const ActivityRequest = () => {
                 return { valid: false, field: "sdgGoals", message: "Please select at least one SDG goal." };
             }
             if (!chargingFees1) return { valid: false, field: "chargingFees", message: "Please answer if you're charging fees." };
-            if (!partnering) return { valid: false, field: "partnering", message: "Please indicate if you're partnering with a university unit." };
+            if (partnering !== "yes" && partnering !== "no") {
+                return {
+                    valid: false,
+                    field: "partnering",
+                    message: "Please indicate if you're partnering with a university unit."
+                };
+                };
             }
         
             if (section === "date-info") {
@@ -190,7 +196,11 @@ const ActivityRequest = () => {
                 if (!endTime) return { valid: false, field: "endTime", message: "End time is required." };
                 
                     if (recurring === "recurring") {
-                    if (!endDate) return { valid: false, field: "endDate", message: "End date is required for recurring activities." };
+                    if (!endDate) {
+                    return { valid: false, field: "endDate", message: "End date is required for recurring activities." };
+                    } else if (new Date(endDate) < new Date(startDate)) {
+                    return { valid: false, field: "endDate", message: "End date cannot be before start date." };
+                    }
                 
                     const selectedDays = Object.values(state.recurringDays || {}).filter(Boolean);
                     if (selectedDays.length === 0) {
@@ -221,10 +231,10 @@ const ActivityRequest = () => {
             if (partnering === "yes") {
                 const selectedPartners = Object.values(selectedPublicAffairs).filter(Boolean);
                 if (selectedPartners.length === 0) {
-                return { valid: false, field: "partnering", message: "Please select at least one university partner." };
+                    return { valid: false, field: "partnerUnits", message: "Please select at least one university partner." };
                 }
-                if (!partnerDescription) {
-                return { valid: false, field: "partnering", message: "Please describe the partner’s role in the activity." };
+                if (!partnerDescription || partnerDescription.trim().length < 3) {
+                    return { valid: false, field: "partnerDescription", message: "Partner Role Description must be at least 3 characters." };
                 }
             }
         
@@ -280,10 +290,17 @@ const ActivityRequest = () => {
     ];
 
     const handleSDGChange = (id) => {
-        setSelectedSDGs(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+        setSelectedSDGs(prev => {
+            const updated = {
+                ...prev,
+                [id]: !prev[id]
+            };
+            // Clear error if at least one checkbox is now selected
+            if (Object.values(updated).some((v) => v)) {
+                setFieldError("sdgGoals", false);
+            }
+            return updated;
+        });
     };
 
     const universityPartners = {
@@ -511,36 +528,75 @@ const ActivityRequest = () => {
                 });
             
                 if (!result.valid) {
-                    toast.dismiss();
-                    toast.error(
-                        result.field === "studentPosition"
-                            ? (studentPosition.trim().length < 10
-                                ? "Student Position is empty!"
-                                : "Student Position must be between 10 and 50 characters.")
-                        : result.field === "venueApprover"
-                            ? (venueApprover.trim().length < 10
-                                ? "Venue Approver is empty!"
-                                : "Venue Approver must be between 10 and 50 characters.")
-                        : result.field === "greenCampusMonitor"
-                            ? (greenCampusMonitor.trim().length < 10
-                                ? "Green Campus Monitor is empty!"
-                                : "Green Campus Monitor must be between 10 and 50 characters.")
-                        : result.field === "activityName"
-                            ? (activityName.trim().length < 3
-                                ? "Activity Name is too short!"
-                                : "Activity Name must not exceed 100 characters.")
-                        : result.field === "activityDescription"
-                            ? "Activity Description must be at least 20 characters."
-                        : result.field === "partnerDescription"
-                            ? "Partner Role Description must be at least 10 characters."
-                        : result.field === "studentContact"
-                            ? "Student Contact must contain only numbers."
-                        : result.field === "venue"
-                            ? "Venue must not exceed 100 characters."
-                        : result.field === "organization_id"
-                        ? "Organization Name is required!"
-                        : "Please fill out this field correctly."
-                        );
+                toast.dismiss();
+                toast.error(
+                result.field === "studentPosition"
+                    ? (studentPosition.trim().length < 3
+                        ? "Student Position is too short!"
+                        : "Student Position must be between 3 and 50 characters.")
+                : result.field === "venueApprover"
+                    ? (venueApprover.trim().length < 3
+                        ? "Venue Approver is too short!"
+                        : "Venue Approver must be between 3 and 50 characters.")
+                : result.field === "greenCampusMonitor"
+                    ? (greenCampusMonitor.trim().length < 3
+                        ? "Green Campus Monitor is too short!"
+                        : "Green Campus Monitor must be between 3 and 50 characters.")
+                : result.field === "activityName"
+                    ? (activityName.trim().length < 3
+                        ? "Activity Name is too short!"
+                        : "Activity Name must not exceed 100 characters.")
+                : result.field === "activityDescription"
+                    ? (activityDescription.trim().length < 20
+                        ? "Activity Description must be at least 20 characters."
+                        : "")
+                : result.field === "partnerDescription"
+                    ? (partnerDescription.trim().length < 3
+                        ? "Partner Role Description must be at least 3 characters."
+                        : "")
+                : result.field === "studentContact"
+                    ? "Student Contact must contain only numbers."
+                : result.field === "venue"
+                    ? "Venue must not exceed 100 characters."
+                : result.field === "greenCampusMonitorContact"
+                    ? "Green Campus Monitor contact must be a valid number or UP/Gmail address."
+                : result.field === "venueApproverContact"
+                    ? "Venue Approver contact must be a valid number or UP/Gmail address."
+                : result.field === "activityType"
+                    ? "Activity Type is required."
+                : result.field === "chargingFees"
+                    ? "Please indicate if you're charging fees."
+                : result.field === "partnering"
+                    ? "Please indicate if you're partnering with a unit."
+                : result.field === "partnerUnits"
+                    ? "Please select at least one university partner."
+                : result.field === "partnerDescription"
+                    ? "Partner Role Description must be at least 3 characters."
+                : result.field === "orgSelect"
+                    ? "Organization is required."
+                : result.field === "startDate"
+                    ? "Start date is required."
+                : result.field === "endDate"
+                    ? (endDate.trim() === ""
+                        ? "End date is required for recurring activities."
+                        : "End date cannot be before start date.")
+                : result.field === "startTime"
+                    ? "Start time is required."
+                : result.field === "endTime"
+                    ? "End time is required."
+                : result.field === "recurring"
+                    ? "Please select if activity is recurring."
+                : result.field === "recurringDays"
+                    ? "Please select at least one recurring day."
+                : result.field === "offcampus"
+                    ? "Please indicate if the activity is off-campus."
+                : result.field === "sdgGoals"
+                    ? "Please select at least one SDG goal."
+                : result.field === "activityRequestFileUpload"
+                    ? "Please upload a valid PDF file."
+                : "Please fill out this field correctly."
+                );
+
     setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
@@ -602,34 +658,75 @@ const ActivityRequest = () => {
                 });
             
                 if (!result.valid) {
-                    toast.dismiss();
-                    toast.error(
-                        result.field === "studentPosition"
-                            ? (studentPosition.trim().length < 10
-                                ? "Student Position is empty!"
-                                : "Student Position must be between 10 and 50 characters.")
-                        : result.field === "venueApprover"
-                            ? (venueApprover.trim().length < 10
-                                ? "Venue Approver is empty!"
-                                : "Venue Approver must be between 10 and 50 characters.")
-                        : result.field === "greenCampusMonitor"
-                            ? (greenCampusMonitor.trim().length < 10
-                                ? "Green Campus Monitor is empty!"
-                                : "Green Campus Monitor must be between 10 and 50 characters.")
-                        : result.field === "activityName"
-                            ? (activityName.trim().length < 3
-                                ? "Activity Name is too short!"
-                                : "Activity Name must not exceed 100 characters.")
-                        : result.field === "activityDescription"
-                            ? "Activity Description must be at least 20 characters."
-                        : result.field === "partnerDescription"
-                            ? "Partner Role Description must be at least 10 characters."
-                        : result.field === "studentContact"
-                            ? "Student Contact must contain only numbers."
-                        : result.field === "venue"
-                            ? "Venue must not exceed 100 characters."
-                        : "Please fill out this field correctly."
-                        );
+                toast.dismiss();
+                toast.error(
+                result.field === "studentPosition"
+                    ? (studentPosition.trim().length < 3
+                        ? "Student Position is too short!"
+                        : "Student Position must be between 3 and 50 characters.")
+                : result.field === "venueApprover"
+                    ? (venueApprover.trim().length < 3
+                        ? "Venue Approver is too short!"
+                        : "Venue Approver must be between 3 and 50 characters.")
+                : result.field === "greenCampusMonitor"
+                    ? (greenCampusMonitor.trim().length < 3
+                        ? "Green Campus Monitor is too short!"
+                        : "Green Campus Monitor must be between 3 and 50 characters.")
+                : result.field === "activityName"
+                    ? (activityName.trim().length < 3
+                        ? "Activity Name is too short!"
+                        : "Activity Name must not exceed 100 characters.")
+                : result.field === "activityDescription"
+                    ? (activityDescription.trim().length < 20
+                        ? "Activity Description must be at least 20 characters."
+                        : "")
+                : result.field === "partnerDescription"
+                    ? (partnerDescription.trim().length < 3
+                        ? "Partner Role Description must be at least 3 characters."
+                        : "")
+                : result.field === "studentContact"
+                    ? "Student Contact must contain only numbers."
+                : result.field === "venue"
+                    ? "Venue must not exceed 100 characters."
+                : result.field === "greenCampusMonitorContact"
+                    ? "Green Campus Monitor contact must be a valid number or UP/Gmail address."
+                : result.field === "venueApproverContact"
+                    ? "Venue Approver contact must be a valid number or UP/Gmail address."
+                : result.field === "activityType"
+                    ? "Activity Type is required."
+                : result.field === "chargingFees"
+                    ? "Please indicate if you're charging fees."
+                : result.field === "partnering"
+                    ? "Please indicate if you're partnering with a unit."
+                : result.field === "partnerUnits"
+                    ? "Please select at least one university partner."
+                : result.field === "partnerDescription"
+                    ? "Partner Role Description must be at least 3 characters."
+                : result.field === "orgSelect"
+                    ? "Organization is required."
+                : result.field === "startDate"
+                    ? "Start date is required."
+                : result.field === "endDate"
+                    ? (endDate.trim() === ""
+                        ? "End date is required for recurring activities."
+                        : "End date cannot be before start date.")
+                : result.field === "startTime"
+                    ? "Start time is required."
+                : result.field === "endTime"
+                    ? "End time is required."
+                : result.field === "recurring"
+                    ? "Please select if activity is recurring."
+                : result.field === "recurringDays"
+                    ? "Please select at least one recurring day."
+                : result.field === "offcampus"
+                    ? "Please indicate if the activity is off-campus."
+                : result.field === "sdgGoals"
+                    ? "Please select at least one SDG goal."
+                : result.field === "activityRequestFileUpload"
+                    ? "Please upload a valid PDF file."
+                : "Please fill out this field correctly."
+                );
+
     setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
@@ -800,15 +897,21 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="studentPosition"
-                                                onBlur={() => setFieldError("studentPosition", studentPosition.trim().length < 10 || studentPosition.length > 50)}                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
+                                                onBlur={(e) => {
+                                                const value = e.target.value.trim();
+                                                setFieldError("studentPosition", value.length < 3 || value.length > 50);
+                                                }}                                           
+                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Chairperson, Secretary, etc.)"
                                                 value={studentPosition}
                                                 onChange={(e) => {
-                                                setStudentPosition(e.target.value);
-                                                if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                const value = e.target.value;
+                                                setStudentPosition(value);
+                                                if (value.trim().length >= 3 && value.length <= 50) {
                                                     setFieldError("studentPosition", false);
                                                 }
                                                 }}
+
                                             />
                                         </div>
                                         <div>
@@ -1026,11 +1129,28 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Activity End Date <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="endDate" onBlur={() => setFieldError("endDate", !endDate)} className={fieldErrors.endDate ? "border-red-300 bg-red-50" : ""}
+                                                    id="endDate" onBlur={() => {
+                                                    const start = new Date(startDate);
+                                                    const end = new Date(endDate);
+                                                    const invalid =
+                                                        !endDate ||
+                                                        (recurring === "recurring" && startDate && endDate && end < start);
+
+                                                    setFieldError("endDate", invalid);
+                                                    }} className={fieldErrors.endDate ? "border-red-300 bg-red-50" : ""}
                                                     type="date"
                                                     min={new Date().toISOString().split("T")[0]}
                                                     value={endDate}
-                                                    onChange={(e) => { setEndDate(e.target.value); if (e.target.value !== "") setFieldError("endDate", false); }}
+                                                    onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setEndDate(value);
+
+                                                    const start = new Date(startDate);
+                                                    const end = new Date(value);
+                                                    const valid = value && (recurring !== "recurring" || (startDate && end >= start));
+
+                                                    if (valid) setFieldError("endDate", false);
+                                                    }}
                                                 />
                                             </div>
                                         )}
@@ -1072,10 +1192,14 @@ const ActivityRequest = () => {
                                                             id={`day-${day}`}
                                                             checked={recurringDays[day]}
                                                             onCheckedChange={(checked) => {
-                                                                setRecurringDays(prev => ({
-                                                                    ...prev,
-                                                                    [day]: checked
-                                                                }));
+                                                            const updated = {
+                                                                ...recurringDays,
+                                                                [day]: checked
+                                                            };
+                                                            setRecurringDays(updated);
+
+                                                            const selected = Object.values(updated).filter(Boolean);
+                                                            if (selected.length > 0) setFieldError("recurringDays", false);
                                                             }}
                                                         />
                                                         <label
@@ -1157,7 +1281,7 @@ const ActivityRequest = () => {
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                                                 <Input
                                                 id="venueApprover"
-                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim().length < 10 || venueApprover.length > 50)}
+                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim().length < 3 || venueApprover.length > 50)}
                                                 className={`${fieldErrors.venueApprover ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                                 type="text"
                                                 placeholder="Provide their name"
@@ -1165,7 +1289,8 @@ const ActivityRequest = () => {
                                                 disabled={isOffCampus === "yes"}
                                                 onChange={(e) => {
                                                 setVenueApprover(e.target.value);
-                                                if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                if (e.target.value.trim().length >= 3 && e.target.value.length <= 50)
+ {
                                                     setFieldError("venueApprover", false);
                                                 }
                                                 }}
@@ -1242,11 +1367,17 @@ const ActivityRequest = () => {
                                                                     id={`${category}-${unit}`}
                                                                     checked={!!selectedPublicAffairs[unit]}
                                                                     onCheckedChange={(checked) => {
-                                                                        setSelectedPublicAffairs((prev) => ({
-                                                                            ...prev,
-                                                                            [unit]: checked ? (unit === "Others" ? [""] : true) : false
-                                                                            }));
-                                                                        }}
+                                                                    const updated = {
+                                                                        ...selectedPublicAffairs,
+                                                                        [unit]: checked ? (unit === "Others" ? [""] : true) : false
+                                                                    };
+                                                                    setSelectedPublicAffairs(updated);
+
+                                                                    const hasAny = Object.values(updated).some(val =>
+                                                                        Array.isArray(val) ? val.some(str => str.trim() !== "") : val === true
+                                                                    );
+                                                                    if (hasAny) setFieldError("partnering", false);
+                                                                    }}
                                                                 />
                                                                 <label htmlFor={`${category}-${unit}`} className="text-sm">
                                                                     {unit}
@@ -1316,10 +1447,10 @@ const ActivityRequest = () => {
                                                 type="text"
                                                 placeholder="Describe the role of the partner"
                                                 value={partnerDescription}
-                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim().length < 10)}
+                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim().length < 3)}
                                                 onChange={(e) => {
                                                 setPartnerDescription(e.target.value);
-                                                if (e.target.value.trim().length >= 10) setFieldError("partnerDescription", false);
+                                                if (e.target.value.trim().length >= 3) setFieldError("partnerDescription", false);
                                                 }}
                                                 className={`${fieldErrors.partnerDescription ? "border-red-300 bg-red-50" : ""}`}
                                                 />
@@ -1331,13 +1462,13 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim().length < 10 || greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
+                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim().length < 3 || greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="Ex. Clarence Kyle Pagunsan"
                                                     value={greenCampusMonitor}
                                                     onChange={(e) => {
                                                     setGreenCampusMonitor(e.target.value);
-                                                    if (e.target.value.trim().length >= 10 && e.target.value.length <= 50) {
+                                                    if (e.target.value.trim().length >= 3 && e.target.value.length <= 50){
                                                         setFieldError("greenCampusMonitor", false);
                                                     }
                                                     }}
