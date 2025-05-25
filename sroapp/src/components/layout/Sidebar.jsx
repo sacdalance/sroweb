@@ -78,12 +78,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       
       <aside
         className={`
-          bg-white border-r h-full flex flex-col
+          bg-white border-r h-screen flex flex-col
           fixed z-30 top-0 left-0 transition-transform duration-300
           w-[${SIDEBAR_WIDTH}px]
           -translate-x-full
           xl:static xl:translate-x-0 xl:w-[${SIDEBAR_WIDTH}px] xl:block
           ${isOpen ? "translate-x-0 shadow-lg" : ""}
+          overflow-y-auto
         `}
         style={{ minWidth: SIDEBAR_WIDTH }}
         aria-label="Sidebar"
@@ -96,7 +97,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </button>
 
         {/* Main content area with custom scrollbar */}
-        <div className="flex-1 overflow-hidden pt-16">
+        <div className="flex-1 pt-16">
           <ScrollArea className="h-full pl-6 pr-0">
             <div className="pr-6">
               {/* Profile section now inside ScrollArea */}
