@@ -17,6 +17,7 @@ import { Progress } from "../components/ui/progress";
 import { createActivity } from '../api/activityRequestAPI';     
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
+import { X } from "lucide-react";
 import supabase from "@/lib/supabase"; 
 import {
     AlertDialog,
@@ -1422,41 +1423,59 @@ const ActivityRequest = () => {
                                         className={cn(
                                             "border-2 border-dashed p-4 rounded-md text-center transition-colors",
                                             isDragActive
-                                            ? "border-green-600 bg-green-50"
-                                            : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+                                                ? "border-green-600 bg-green-50"
+                                                : selectedFile
+                                                ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "border-gray-300 hover:border-gray-400 hover:bg-muted"
                                         )}
                                         >
-                                        <label htmlFor="activityRequestFileUpload" className="cursor-pointer flex flex-col items-center">
-                                            <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                                            <p className="text-sm">
+                                        <label
+                                        htmlFor="activityRequestFileUpload"
+                                        className={`flex flex-col items-center border border-dashed rounded-md p-4 transition text-sm text-muted-foreground ${
+                                        selectedFile ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "cursor-pointer hover:bg-muted"
+                                        }`}
+                                        >
+                                        <UploadCloud className="w-8 h-8 mb-2" />
+                                        <p>
                                             {isDragActive ? "Drop the file here" : "Drag and Drop or Upload File (PDF only)"}
-                                            </p>
-                                            <input
-                                                id="activityRequestFileUpload"
-                                                type="file"
-                                                accept=".pdf"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (!file || file.type !== "application/pdf") {
-                                                    toast.error("Only one PDF file is allowed.");
-                                                    return;
-                                                    }
-                                                    setSelectedFile(file);
-                                                }}
-                                                className={`${fieldErrors.activityRequestFileUpload ? "border-red-300 bg-red-50" : ""} hidden`}
-                                                disabled={isSubmitting}
-                                            />
+                                        </p>
+
+                                        <input
+                                            id="activityRequestFileUpload"
+                                            type="file"
+                                            accept=".pdf"
+                                            disabled={isSubmitting || !!selectedFile}
+                                            onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file || file.type !== "application/pdf") {
+                                                toast.error("Only one PDF file is allowed.");
+                                                return;
+                                            }
+                                            setSelectedFile(file);
+                                            }}
+                                            className="hidden"
+                                        />
                                         </label>
                                         </div>
-                                            {selectedFile && (
-                                                <div>
-                                                <h4 className="text-sm font-medium mb-1">Selected File</h4>
-                                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <FileText className="w-4 h-4 text-red-500" />
-                                                    {selectedFile.name}
-                                                </p>
+                                        {selectedFile && (
+                                        <div className="mt-2">
+                                            <h4 className="text-sm font-medium mb-1">Selected File</h4>
+                                            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
+                                            <div className="flex items-center gap-2 truncate">
+                                                <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                                                <span className="truncate max-w-[240px]">{selectedFile.name}</span>
                                             </div>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedFile(null)}
+                                                className="text-muted-foreground hover:text-red-600"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                            </div>
+                                        </div>
+                                        )}
+
                                         </div>
                                     </div>
                                 </div>
