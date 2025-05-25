@@ -81,7 +81,7 @@ const ActivityDialogContent = ({ activity }) => {
   console.log("Activity dialog data:", activity);
 
   return (
-    <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
+    <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
           <DialogTitle className="text-2xl text-[#7B1113] font-bold">{activity.activity_name}</DialogTitle>

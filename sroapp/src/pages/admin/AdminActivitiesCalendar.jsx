@@ -244,7 +244,7 @@ const AdminActivitiesCalendar = () => {
   );
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl px-2 sm:px-4 md:px-8">
+    <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Activities Calendar</h1>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">

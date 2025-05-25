@@ -61,7 +61,7 @@ const AdminAnnualReports = () => {
   });
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
+    <div className="container mx-auto py-4 max-w-6xl">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Organization Annual Reports</h1>
 
       {/* Filters */}

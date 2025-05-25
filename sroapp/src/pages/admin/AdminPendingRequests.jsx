@@ -203,8 +203,8 @@ const AdminPendingRequests = () => {
 
   return (
     <div
-      className="container mx-auto py-8 max-w-[1800px]"
-      style={{ transform: "scale(0.85)", transformOrigin: "top center" }}
+      className="container mx-auto py-4 max-w-[1800px]"
+      style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
       <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
