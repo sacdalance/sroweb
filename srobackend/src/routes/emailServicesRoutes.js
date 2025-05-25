@@ -1,10 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const { google } = require('googleapis');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+import express from 'express';
+import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// OAuth2 setup using your naming convention
+const router = express.Router();
+
 const oAuth2Client = new google.auth.OAuth2(
   process.env.GMAIL_CLIENT_ID,
   process.env.GMAIL_CLIENT_SECRET,
@@ -40,7 +41,6 @@ async function sendEmail({ to, subject, text, html }) {
   return result;
 }
 
-// Express route handler
 router.post('/send-email', async (req, res) => {
   const { to, subject, text, html } = req.body;
   try {
@@ -52,4 +52,4 @@ router.post('/send-email', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
