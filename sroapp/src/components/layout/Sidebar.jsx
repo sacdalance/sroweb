@@ -78,7 +78,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       
       <aside
         className={`
-          bg-white border-r h-screen flex flex-col
+          bg-[#F3F4F6] border-r h-screen flex flex-col
           fixed z-30 top-0 left-0 transition-transform duration-300
           w-[${SIDEBAR_WIDTH}px]
           -translate-x-full
@@ -173,6 +173,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
                       </>
                     )}
+                    <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
                     <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
                     <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
                     <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
