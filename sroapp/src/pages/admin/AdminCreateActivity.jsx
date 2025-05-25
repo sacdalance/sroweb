@@ -572,34 +572,34 @@ const AdminCreateActivity = () => {
                     <Toaster/>
 
                     {/* Menu Bar */}
-                    <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex flex-wrap gap-2 sm:space-x-0 mb-4">
                         <Button
                             variant={currentSection === "general-info" ? "default" : "ghost"}
-                            className={`${currentSection === "general-info" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "general-info" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
                         >
                             General Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "date-info" ? "default" : "ghost"}
-                            className={`${currentSection === "date-info" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "date-info" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
                         >
                             Date Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "specifications" ? "default" : "ghost"}
-                            className={`${currentSection === "specifications" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "specifications" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
                         >
                             Specifications
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
                             variant={currentSection === "submission" ? "default" : "ghost"}
-                            className={`${currentSection === "submission" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
+                            className={`flex-1 min-w-[120px] ${currentSection === "submission" ? "bg-[#7B1113] text-white" : "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
                         >
                             Submission

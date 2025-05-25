@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import supabase from "@/lib/supabase";
 import {
   Table,
@@ -21,6 +23,10 @@ const AdminOrgApplications = () => {
   const [applications, setApplications] = useState([]);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState(null); // true = approve, false = decline
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -44,6 +50,37 @@ const AdminOrgApplications = () => {
     setDialogOpen(true);
   };
 
+  const openConfirmationDialog = (isRecognized) => {
+    setDecisionType(isRecognized);
+    setConfirmOpen(true);
+  };
+
+  const confirmDecision = async () => {
+    if (!selectedApplication || decisionType === null) return;
+
+    try {
+      const response = await fetch("/api/org-applications/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recognition_id: selectedApplication.recognition_id,
+          is_recognized: decisionType,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update");
+
+      toast.success(`Organization ${decisionType ? "recognized" : "declined"} successfully.`);
+      setDialogOpen(false);
+      setConfirmOpen(false);
+      setDecisionType(null);
+      navigate("/admin");
+    } catch (err) {
+      toast.error("An error occurred. Try again.");
+      console.error(err);
+    }
+  };
+
   const categoriesList = [
     { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
     { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
@@ -61,7 +98,7 @@ const AdminOrgApplications = () => {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
+    <div className="container max-w-7xl mx-auto py-4">
       <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Organization Recognition Applications</h1>
 
       <div className="rounded-lg border shadow-sm">
@@ -84,7 +121,7 @@ const AdminOrgApplications = () => {
                   {new Date(application.submitted_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-center">{application.org_name}</TableCell>
-                <TableCell className="text-center">{getCategoryName(application.organization_type)}</TableCell> 
+                <TableCell className="text-center">{getCategoryName(application.org_type)}</TableCell>
                 <TableCell className="text-center">{application.org_chairperson}</TableCell>
                 <TableCell className="text-center">{application.org_adviser}</TableCell>
                 <TableCell className="text-center">{application.org_email}</TableCell>
@@ -102,7 +139,7 @@ const AdminOrgApplications = () => {
         </Table>
       </div>
 
-      {/* Modal Dialog */}
+      {/* Application Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -117,7 +154,7 @@ const AdminOrgApplications = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Type</p>
-                <p>{getCategoryName(selectedApplication.organization_type)}</p>
+                <p>{getCategoryName(selectedApplication.org_type)}</p>
               </div>
               <div>
                 <p className="font-medium text-gray-600">Organization Name</p>
@@ -152,26 +189,67 @@ const AdminOrgApplications = () => {
                 <p>{selectedApplication.coadviser_email}</p>
               </div>
 
-              {/* Google Drive Folder Link */}
+              {/* Drive Folder Link */}
               <div className="md:col-span-2 pt-4">
                 <p className="font-medium text-gray-600 mb-2">Drive Folder</p>
-                  <Button
-                    className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
-                    asChild
+                <Button
+                  className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
+                  asChild
+                >
+                  <a
+                    href={selectedApplication.drive_folder_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
                   >
-                    <a
-                      href={selectedApplication.drive_folder_id}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Drive Folder
-                    </a>
-                  </Button>
+                    <Download className="h-4 w-4" />
+                    Drive Folder
+                  </a>
+                </Button>
+              </div>
+
+              {/* Recognize / Decline Buttons */}
+              <div className="md:col-span-2 flex gap-4 pt-4">
+                <Button
+                  className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
+                  onClick={() => openConfirmationDialog(true)}
+                >
+                  Approve
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2"
+                  onClick={() => openConfirmationDialog(false)}
+                >
+                  Decline
+                </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Confirmation Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {decisionType ? "Approve Organization?" : "Decline Organization?"}
+            </DialogTitle>
+            <p className="text-sm text-gray-500">
+              Are you sure you want to {decisionType ? "APPROVE" : "DECLINE"} this organization?
+            </p>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className={decisionType ? "bg-[#014421] text-white" : "bg-red-600 text-white"}
+              onClick={confirmDecision}
+            >
+              {decisionType ? "Approve" : "Decline"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

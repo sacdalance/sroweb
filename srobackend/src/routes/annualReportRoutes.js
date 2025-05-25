@@ -12,13 +12,13 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 router.use(cors());
 
-// ✅ Load environment variables
+// Load environment variables
 const parentFolderId = process.env.GDRIVE_ANNUAL_REPORT_FOLDER_ID;
 const serviceAccountEmail = process.env.GDRIVE_CLIENT_EMAIL;
 const privateKey = process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n');
 const projectId = process.env.GDRIVE_PROJECT_ID;
 
-// 🔐 Google Drive API client setup
+// Google Drive API client setup
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: serviceAccountEmail,
@@ -31,7 +31,7 @@ const auth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth });
 
 /**
- * ✅ Create a Google Drive folder under the given parent folder
+ * Create a Google Drive folder under the given parent folder
  * and share it with the submitter and admin accounts (writers/editors)
  */
 async function createDriveFolder(folderName, parentId, allowedEmails = []) {
@@ -50,7 +50,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
 
   const folderId = folder.data.id;
 
-  // 🧪 Check parent and ownership
+  // Check parent and ownership
   const folderDetails = await drive.files.get({
     fileId: folderId,
     fields: 'id, name, parents, webViewLink, owners',
@@ -67,7 +67,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
     throw new Error(`🚫 Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
   }
 
-  // 🔐 Always share with srotest128@gmail.com
+  // Always share with srotest128@gmail.com
   await drive.permissions.create({
     fileId: folderId,
     requestBody: {
@@ -77,7 +77,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
     },
   });
 
-  // 🔐 Share with remaining allowed emails (submitter + admins)
+  // Share with remaining allowed emails (submitter + admins)
   for (const email of allowedEmails) {
     if (email === 'srotest128@gmail.com') continue;
 
@@ -95,7 +95,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
 }
 
 /**
- * ✅ Upload a file into the created Drive folder
+ * Upload a file into the created Drive folder
  */
 async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
   const fileMetadata = {
@@ -123,7 +123,7 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
 }
 
 /**
- * ✅ POST / - Handles uploading annual report and storing metadata
+ * POST / - Handles uploading annual report and storing metadata
  */
 router.post('/', upload.array('files', 2), async (req, res) => {
   try {
@@ -145,7 +145,7 @@ router.post('/', upload.array('files', 2), async (req, res) => {
       }
     }
 
-    // 🔍 Get organization name
+    // Get organization name
     const { data: orgData, error: orgError } = await supabase
       .from('organization')
       .select('org_name')
@@ -154,7 +154,7 @@ router.post('/', upload.array('files', 2), async (req, res) => {
 
     if (orgError || !orgData) throw new Error('Failed to fetch organization name.');
 
-    // 🔍 Get submitter email
+    // Get submitter email
     const { data: submitterData, error: submitterError } = await supabase
       .from('account')
       .select('email')
@@ -165,7 +165,7 @@ router.post('/', upload.array('files', 2), async (req, res) => {
       throw new Error('Failed to fetch submitter email.');
     }
 
-    // 🔍 Get all SRO (2), ODSA (3), and Superadmin (4) emails
+    // Get all SRO (2), ODSA (3), and Superadmin (4) emails
     const { data: adminAccounts, error: adminError } = await supabase
       .from('account')
       .select('email')
@@ -176,19 +176,19 @@ router.post('/', upload.array('files', 2), async (req, res) => {
     const adminEmails = adminAccounts.map(acc => acc.email);
     const allowedEmails = [submitterData.email, ...adminEmails];
 
-    // 📂 Create Google Drive folder
+    // Create Google Drive folder
     const folderName = `${orgData.org_name} - Annual Report ${academic_year}`;
     const folder = await createDriveFolder(folderName, parentFolderId, allowedEmails);
     const folderId = folder.id;
 
-    // 📄 Upload files to that folder
+    // Upload files to that folder
     const uploadedLinks = await Promise.all(
       files.map(file =>
         uploadToGoogleDrive(file.buffer, file.originalname, file.mimetype, folderId)
       )
     );
 
-    // 📝 Insert record into Supabase
+    // Insert record into Supabase
     const { error: insertError } = await supabase.from('org_annual_report').insert([{
       org_id: parseInt(org_id),
       submitted_by: parseInt(submitted_by),

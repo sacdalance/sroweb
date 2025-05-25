@@ -5,6 +5,9 @@ import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import PropTypes from 'prop-types';
+import React from "react";
+
+const SIDEBAR_WIDTH = 256;
 
 const Sidebar = ({ isOpen, onClose }) => {
   const [user, setUser] = useState(null);
@@ -73,14 +76,18 @@ const Sidebar = ({ isOpen, onClose }) => {
         />
       )}
       
-      <aside className={`
-        fixed top-0 left-0 z-30
-        max-2xl:w-64 w-80 h-screen bg-[#F3F4F6] text-black
-        transform transition-all duration-300 ease-in-out
-        flex flex-col
-        ${isOpen ? 'translate-x-0' : 'max-xl:-translate-x-full'}
-        shadow-lg
-      `}>
+      <aside
+        className={`
+          bg-white border-r h-screen flex flex-col
+          fixed z-30 top-0 left-0 transition-transform duration-300
+          w-[${SIDEBAR_WIDTH}px]
+          -translate-x-full
+          xl:static xl:translate-x-0 xl:w-[${SIDEBAR_WIDTH}px] xl:block
+          ${isOpen ? "translate-x-0 shadow-lg" : ""}
+        `}
+        style={{ minWidth: SIDEBAR_WIDTH }}
+        aria-label="Sidebar"
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 max-xl:block hidden"
@@ -88,98 +95,84 @@ const Sidebar = ({ isOpen, onClose }) => {
           <X className="h-6 w-6" />
         </button>
 
-        {/* Main content area with custom scrollbar */}
-        <div className="flex-1 overflow-hidden pt-16">
-          <ScrollArea className="h-full pl-6 pr-0">
-            <div className="pr-6">
-              {/* Profile section now inside ScrollArea */}
-              <div className="flex flex-col items-center mb-8">
-                <img
-                  src={
-                    user?.user_metadata?.avatar_url ||
-                    "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"
-                  }
-                  className="w-24 h-24 rounded-full"
-                  alt="User"
-                  referrerPolicy="no-referrer"
-                />
-                <h2 className="text-xl font-semibold mt-3 text-center">
-                  {user?.user_metadata?.full_name || "User"}
-                </h2>
-                <p className="text-base italic text-center">
-                  {{
-                    1: "Student",
-                    2: "SRO Staff",
-                    3: "ODSA Staff",
-                    4: "Super Admin",
-                  }[role] || (
-                    <span className="inline-flex items-center gap-2 text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Assigning...
-                    </span>
-                  )}
-                </p>
-                <p className="text-sm text-center break-all">{user?.email}</p>
-              </div>
-
-              {/* Navigation links */}
-              <div className="space-y-1">
-                {(isUser || isSuperAdmin) && (
-                  <>
-                    <hr className="border-t border-[#DBDBDB] my-4" />
-                    <div className="mb-4 mt-4 font-medium">
-                      <Link to={dashboardLink} className={linkClass(dashboardLink)}>
-                        Dashboard
-                      </Link>
-                    </div>
-                  </>
+        {/* Make the entire sidebar scrollable except the close button */}
+        <ScrollArea className="h-screen pt-16 flex flex-col pl-6 pr-0">
+          <div className="pr-6 flex flex-col min-h-0">
+            {/* Profile section */}
+            <div className="flex flex-col items-center mb-8">
+              <img
+                src={
+                  user?.user_metadata?.avatar_url ||
+                  "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"
+                }
+                className="w-24 h-24 rounded-full"
+                alt="User"
+                referrerPolicy="no-referrer"
+              />
+              <h2 className="text-xl font-semibold mt-3 text-center">
+                {user?.user_metadata?.full_name || "User"}
+              </h2>
+              <p className="text-base italic text-center">
+                {{
+                  1: "Student",
+                  2: "SRO Staff",
+                  3: "ODSA Staff",
+                  4: "Super Admin",
+                }[role] || (
+                  <span className="inline-flex items-center gap-2 text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Assigning...
+                  </span>
                 )}
+              </p>
+              <p className="text-sm text-center break-all">{user?.email}</p>
+            </div>
 
-                <div className="mb-6">
-                  <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
-                  <ul className="space-y-2 text-[15px] font-medium">
-                    <li><Link to="/activity-request" className={linkClass("/activity-request")}>Submit a Request</Link></li>
-                    <li><Link to="/activities" className={linkClass("/activities")}>My Activities</Link></li>
-                    <li><Link to="/activities-calendar" className={linkClass("/activities-calendar")}>Activities Calendar</Link></li>
-                    <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Book an Appointment</Link></li>
-                  </ul>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Organizational Requirements</h3>
-                  <ul className="space-y-2 text-[15px] font-medium">
-                    <li><Link to="/org-application" className={linkClass("/org-application")}>Application for Recognition</Link></li>
-                    <li><Link to="/annual-report" className={linkClass("/annual-report")}>Annual Report</Link></li>
-                  </ul>
-                </div>
-
-                {(isSRO || isSuperAdmin) && (
-                  <div className="mb-6">
-                    <ul className="space-y-2 text-[15px] font-medium">
-                      <hr className="border-t border-[#DBDBDB] my-4" />
-                      <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
-                      <hr className="border-t border-[#DBDBDB] my-4" />
-                      <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
-                      <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
-                      <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
-                      <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
-                      <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
-                      <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
-                      <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Organization Applications</Link></li>
-                      <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>
-                      <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Annual Reports</Link></li>
-                    </ul>
-                    <hr className="border-t border-[#DBDBDB] my-4" />
+            {/* Navigation links */}
+            <div className="space-y-1">
+              {/* Student & Super Admin: Student sidebar */}
+              {(isUser || isSuperAdmin) && (
+                <>
+                  <hr className="border-t border-[#DBDBDB] my-4" />
+                  <div className="mb-4 mt-4 font-medium">
+                    <Link to={dashboardLink} className={linkClass(dashboardLink)}>
+                      Dashboard
+                    </Link>
                   </div>
-                )}
-
-                {(isODSA) && (
                   <div className="mb-6">
+                    <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
+                    <ul className="space-y-2 text-[15px] font-medium">
+                      <li><Link to="/activity-request" className={linkClass("/activity-request")}>Submit a Request</Link></li>
+                      <li><Link to="/activities" className={linkClass("/activities")}>My Activities</Link></li>
+                      <li><Link to="/activities-calendar" className={linkClass("/activities-calendar")}>Activities Calendar</Link></li>
+                      <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Book an Appointment</Link></li>
+                    </ul>
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Organizational Requirements</h3>
+                    <ul className="space-y-2 text-[15px] font-medium">
+                      <li><Link to="/org-application" className={linkClass("/org-application")}>Application for Recognition</Link></li>
+                      <li><Link to="/annual-report" className={linkClass("/annual-report")}>Annual Report</Link></li>
+                    </ul>
+                  </div>
+                </>
+              )}
+
+              {/* SRO Staff, ODSA Staff, Super Admin: Admin sidebar */}
+              {(isSRO || isODSA || isSuperAdmin) && (
+                <div className="mb-6">
                   <ul className="space-y-2 text-[15px] font-medium">
                     <hr className="border-t border-[#DBDBDB] my-4" />
                     <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
                     <hr className="border-t border-[#DBDBDB] my-4" />
                     <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
+                    {/* Only show admin links for SRO, ODSA, Super Admin */}
+                    {isSRO && (
+                      <>
+                        <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
+                        <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
+                      </>
+                    )}
                     <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
                     <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
                     <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
@@ -189,22 +182,22 @@ const Sidebar = ({ isOpen, onClose }) => {
                   </ul>
                   <hr className="border-t border-[#DBDBDB] my-4" />
                 </div>
-                )}
-              </div>
+              )}
             </div>
-          </ScrollArea>
-        </div>
 
-        {/* Footer section */}
-        <div className="px-6 py-4 border-t border-gray-200">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#7B1113] hover:bg-[#7B1113] hover:text-white rounded-md transition-colors duration-200"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
+            {/* Footer section */}
+            <div className="mt-auto px-6 py-4 border-gray-200">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#7B1113] hover:bg-[#7B1113] hover:text-white rounded-md transition-colors duration-200"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </ScrollArea>
+        
       </aside>
     </>
   );

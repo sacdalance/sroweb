@@ -18,6 +18,11 @@ import appointmentRoutes from './routes/appointmentRoutes.js';
 
 import orgApplicationRoutes from './routes/orgApplicationRoutes.js';
 
+import adminOrgApplicationsRoutes from "./routes/adminOrgApplicationsRoutes.js";
+
+import emailServicesRoutes from './routes/emailServicesRoutes.js';
+
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -51,6 +56,12 @@ app.use('/api', adminActivityRoutes);
 
 // Appointments
 app.use("/api/appointments", appointmentRoutes);
+
+// Org Application (approve/reject)
+app.use('/api/org-applications', adminOrgApplicationsRoutes);
+
+// Email Services
+app.use('/api', emailServicesRoutes);
 
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');

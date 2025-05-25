@@ -202,25 +202,41 @@ const AdminPendingRequests = () => {
   if (!userRole) return null;
 
   return (
-    <div className="container mx-auto py-8 max-w-[1600px]">
+    <div
+      className="container mx-auto py-4 max-w-[1800px]"
+      style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
+    >
       <Toaster/>
       <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
-        <TabsList className="grid w-[800px] grid-cols-2 h-8 p-0 mx-auto bg-gray-100 rounded-4xl">
-        <TabsTrigger  
-          value="submissions" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl"
+        <TabsList
+          className="
+            grid 
+            w-full 
+            max-w-[400px] 
+            grid-cols-2 
+            h-8 
+            p-0 
+            mx-auto 
+            bg-gray-100 
+            rounded-4xl
+            sm:max-w-[800px]
+          "
         >
-          Incoming Submissions ({incomingRequests.length})
-        </TabsTrigger>
+          <TabsTrigger  
+            value="submissions" 
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base"
+          >
+            Incoming Submissions ({incomingRequests.length})
+          </TabsTrigger>
 
-        <TabsTrigger 
-          value="appeals" 
-          className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl"
-        >
-          Appeals and Cancellations ({pendingAppeals.length})
-        </TabsTrigger>
+          <TabsTrigger 
+            value="appeals" 
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base"
+          >
+            Appeals and Cancellations ({pendingAppeals.length})
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="appeals">
@@ -231,61 +247,54 @@ const AdminPendingRequests = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="w-full">
-                <table className="w-full">
+              <div className="overflow-x-auto w-full h-full">
+                <table className="w-full min-w-[900px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center">Adviser</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center"></th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
+                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {pendingAppeals.map((request) => (
-                      <tr key={request.activity_id} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {new Date(request.created_at).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
-                        {request.organization?.org_name || "N/A"}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {getActivityTypeLabel(request.activity_type)}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                        {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
-                        {request.organization?.adviser_name || "N/A"}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-center">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => handleViewDetails(request)}
-                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      <tr
+                        key={request.activity_id}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleViewDetails(request)}
+                      >
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(request.created_at).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
+                          {request.organization?.org_name || "N/A"}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {getActivityTypeLabel(request.activity_type)}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                          {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
+                          {request.organization?.adviser_name || "N/A"}
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -317,27 +326,30 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
-                        <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap"></th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity ID</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Submission Date</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Organization</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Name</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Type</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Date</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Venue</th>
+                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Adviser</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {incomingRequests.length === 0 ? (
                         <tr>
-                          <td colSpan="9" className="text-center text-gray-500 py-10">
+                          <td colSpan="8" className="text-center text-gray-500 py-10">
                             No incoming submissions.
                           </td>
                         </tr>
                       ) : (
                         incomingRequests.map((request) => (
-                          <tr key={request.activity_id} className="hover:bg-gray-50">
+                          <tr
+                            key={request.activity_id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleViewDetails(request)}
+                          >
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">
                               {new Date(request.created_at).toLocaleDateString(undefined, {
@@ -363,16 +375,6 @@ const AdminPendingRequests = () => {
                             <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
                             <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
                               {request.organization?.adviser_name || "N/A"}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-center">
-                              <div className="flex justify-center">
-                                <button
-                                  onClick={() => handleViewDetails(request)}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                >
-                                  <Eye className="h-5 w-5" />
-                                </button>
-                              </div>
                             </td>
                           </tr>
                         ))
@@ -404,4 +406,4 @@ const AdminPendingRequests = () => {
   );
 };
 
-export default AdminPendingRequests; 
+export default AdminPendingRequests;
