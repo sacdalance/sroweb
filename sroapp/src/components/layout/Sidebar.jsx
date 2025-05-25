@@ -184,8 +184,20 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
               )}
             </div>
+
+            {/* Footer section */}
+            <div className="mt-auto px-6 py-4 border-gray-200">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#7B1113] hover:bg-[#7B1113] hover:text-white rounded-md transition-colors duration-200"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
         </ScrollArea>
+        
       </aside>
     </>
   );
