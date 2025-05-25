@@ -17,6 +17,7 @@ import { Progress } from "../components/ui/progress";
 import { createActivity } from '../api/activityRequestAPI';     
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
+import { X } from "lucide-react";
 import supabase from "@/lib/supabase"; 
 import {
     AlertDialog,
@@ -67,6 +68,10 @@ const ActivityRequest = () => {
     const [greenCampusMonitor, setGreenCampusMonitor] = useState("");
     const [greenCampusMonitorContact, setGreenCampusMonitorContact] = useState("");
     const [selectedFile, setSelectedFile] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const setFieldError = (field, hasError) => {
+        setFieldErrors(prev => ({ ...prev, [field]: hasError }));
+    };
     const [recurringDays, setRecurringDays] = useState({
         Monday: false,
         Tuesday: false,
@@ -175,7 +180,13 @@ const ActivityRequest = () => {
                 return { valid: false, field: "sdgGoals", message: "Please select at least one SDG goal." };
             }
             if (!chargingFees1) return { valid: false, field: "chargingFees", message: "Please answer if you're charging fees." };
-            if (!partnering) return { valid: false, field: "partnering", message: "Please indicate if you're partnering with a university unit." };
+            if (partnering !== "yes" && partnering !== "no") {
+                return {
+                    valid: false,
+                    field: "partnering",
+                    message: "Please indicate if you're partnering with a university unit."
+                };
+                };
             }
         
             if (section === "date-info") {
@@ -185,7 +196,11 @@ const ActivityRequest = () => {
                 if (!endTime) return { valid: false, field: "endTime", message: "End time is required." };
                 
                     if (recurring === "recurring") {
-                    if (!endDate) return { valid: false, field: "endDate", message: "End date is required for recurring activities." };
+                    if (!endDate) {
+                    return { valid: false, field: "endDate", message: "End date is required for recurring activities." };
+                    } else if (new Date(endDate) < new Date(startDate)) {
+                    return { valid: false, field: "endDate", message: "End date cannot be before start date." };
+                    }
                 
                     const selectedDays = Object.values(state.recurringDays || {}).filter(Boolean);
                     if (selectedDays.length === 0) {
@@ -216,10 +231,10 @@ const ActivityRequest = () => {
             if (partnering === "yes") {
                 const selectedPartners = Object.values(selectedPublicAffairs).filter(Boolean);
                 if (selectedPartners.length === 0) {
-                return { valid: false, field: "partnering", message: "Please select at least one university partner." };
+                    return { valid: false, field: "partnerUnits", message: "Please select at least one university partner." };
                 }
-                if (!partnerDescription) {
-                return { valid: false, field: "partnering", message: "Please describe the partner’s role in the activity." };
+                if (!partnerDescription || partnerDescription.trim().length < 3) {
+                    return { valid: false, field: "partnerDescription", message: "Partner Role Description must be at least 3 characters." };
                 }
             }
         
@@ -275,10 +290,17 @@ const ActivityRequest = () => {
     ];
 
     const handleSDGChange = (id) => {
-        setSelectedSDGs(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+        setSelectedSDGs(prev => {
+            const updated = {
+                ...prev,
+                [id]: !prev[id]
+            };
+            // Clear error if at least one checkbox is now selected
+            if (Object.values(updated).some((v) => v)) {
+                setFieldError("sdgGoals", false);
+            }
+            return updated;
+        });
     };
 
     const universityPartners = {
@@ -506,8 +528,76 @@ const ActivityRequest = () => {
                 });
             
                 if (!result.valid) {
-                    toast.dismiss();
-                    toast.error(result.message);
+                toast.dismiss();
+                toast.error(
+                result.field === "studentPosition"
+                    ? (studentPosition.trim().length < 3
+                        ? "Student Position is too short!"
+                        : "Student Position must be between 3 and 50 characters.")
+                : result.field === "venueApprover"
+                    ? (venueApprover.trim().length < 3
+                        ? "Venue Approver is too short!"
+                        : "Venue Approver must be between 3 and 50 characters.")
+                : result.field === "greenCampusMonitor"
+                    ? (greenCampusMonitor.trim().length < 3
+                        ? "Green Campus Monitor is too short!"
+                        : "Green Campus Monitor must be between 3 and 50 characters.")
+                : result.field === "activityName"
+                    ? (activityName.trim().length < 3
+                        ? "Activity Name is too short!"
+                        : "Activity Name must not exceed 100 characters.")
+                : result.field === "activityDescription"
+                    ? (activityDescription.trim().length < 20
+                        ? "Activity Description must be at least 20 characters."
+                        : "")
+                : result.field === "partnerDescription"
+                    ? (partnerDescription.trim().length < 3
+                        ? "Partner Role Description must be at least 3 characters."
+                        : "")
+                : result.field === "studentContact"
+                    ? "Student Contact must contain only numbers."
+                : result.field === "venue"
+                    ? "Venue must not exceed 100 characters."
+                : result.field === "greenCampusMonitorContact"
+                    ? "Green Campus Monitor contact must be a valid number or UP/Gmail address."
+                : result.field === "venueApproverContact"
+                    ? "Venue Approver contact must be a valid number or UP/Gmail address."
+                : result.field === "activityType"
+                    ? "Activity Type is required."
+                : result.field === "chargingFees"
+                    ? "Please indicate if you're charging fees."
+                : result.field === "partnering"
+                    ? "Please indicate if you're partnering with a unit."
+                : result.field === "partnerUnits"
+                    ? "Please select at least one university partner."
+                : result.field === "partnerDescription"
+                    ? "Partner Role Description must be at least 3 characters."
+                : result.field === "orgSelect"
+                    ? "Organization is required."
+                : result.field === "startDate"
+                    ? "Start date is required."
+                : result.field === "endDate"
+                    ? (endDate.trim() === ""
+                        ? "End date is required for recurring activities."
+                        : "End date cannot be before start date.")
+                : result.field === "startTime"
+                    ? "Start time is required."
+                : result.field === "endTime"
+                    ? "End time is required."
+                : result.field === "recurring"
+                    ? "Please select if activity is recurring."
+                : result.field === "recurringDays"
+                    ? "Please select at least one recurring day."
+                : result.field === "offcampus"
+                    ? "Please indicate if the activity is off-campus."
+                : result.field === "sdgGoals"
+                    ? "Please select at least one SDG goal."
+                : result.field === "activityRequestFileUpload"
+                    ? "Please upload a valid PDF file."
+                : "Please fill out this field correctly."
+                );
+
+    setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
                     if (el) {
@@ -568,8 +658,76 @@ const ActivityRequest = () => {
                 });
             
                 if (!result.valid) {
-                    toast.dismiss();
-                    toast.error(result.message);
+                toast.dismiss();
+                toast.error(
+                result.field === "studentPosition"
+                    ? (studentPosition.trim().length < 3
+                        ? "Student Position is too short!"
+                        : "Student Position must be between 3 and 50 characters.")
+                : result.field === "venueApprover"
+                    ? (venueApprover.trim().length < 3
+                        ? "Venue Approver is too short!"
+                        : "Venue Approver must be between 3 and 50 characters.")
+                : result.field === "greenCampusMonitor"
+                    ? (greenCampusMonitor.trim().length < 3
+                        ? "Green Campus Monitor is too short!"
+                        : "Green Campus Monitor must be between 3 and 50 characters.")
+                : result.field === "activityName"
+                    ? (activityName.trim().length < 3
+                        ? "Activity Name is too short!"
+                        : "Activity Name must not exceed 100 characters.")
+                : result.field === "activityDescription"
+                    ? (activityDescription.trim().length < 20
+                        ? "Activity Description must be at least 20 characters."
+                        : "")
+                : result.field === "partnerDescription"
+                    ? (partnerDescription.trim().length < 3
+                        ? "Partner Role Description must be at least 3 characters."
+                        : "")
+                : result.field === "studentContact"
+                    ? "Student Contact must contain only numbers."
+                : result.field === "venue"
+                    ? "Venue must not exceed 100 characters."
+                : result.field === "greenCampusMonitorContact"
+                    ? "Green Campus Monitor contact must be a valid number or UP/Gmail address."
+                : result.field === "venueApproverContact"
+                    ? "Venue Approver contact must be a valid number or UP/Gmail address."
+                : result.field === "activityType"
+                    ? "Activity Type is required."
+                : result.field === "chargingFees"
+                    ? "Please indicate if you're charging fees."
+                : result.field === "partnering"
+                    ? "Please indicate if you're partnering with a unit."
+                : result.field === "partnerUnits"
+                    ? "Please select at least one university partner."
+                : result.field === "partnerDescription"
+                    ? "Partner Role Description must be at least 3 characters."
+                : result.field === "orgSelect"
+                    ? "Organization is required."
+                : result.field === "startDate"
+                    ? "Start date is required."
+                : result.field === "endDate"
+                    ? (endDate.trim() === ""
+                        ? "End date is required for recurring activities."
+                        : "End date cannot be before start date.")
+                : result.field === "startTime"
+                    ? "Start time is required."
+                : result.field === "endTime"
+                    ? "End time is required."
+                : result.field === "recurring"
+                    ? "Please select if activity is recurring."
+                : result.field === "recurringDays"
+                    ? "Please select at least one recurring day."
+                : result.field === "offcampus"
+                    ? "Please indicate if the activity is off-campus."
+                : result.field === "sdgGoals"
+                    ? "Please select at least one SDG goal."
+                : result.field === "activityRequestFileUpload"
+                    ? "Please upload a valid PDF file."
+                : "Please fill out this field correctly."
+                );
+
+    setFieldError(result.field, true);
             
                     const el = document.getElementById(result.field);
                     if (el) {
@@ -612,7 +770,6 @@ const ActivityRequest = () => {
             <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 md:px-6">
                 <h1 className="text-2xl font-bold mb-6 text-left">Request Form</h1>
                 <form
-                    onSubmit={handleSubmit}
                     onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     className="space-y-8"
                 >
@@ -622,6 +779,7 @@ const ActivityRequest = () => {
                     {/* Menu Bar */}
                     <div className="flex flex-wrap gap-2 sm:space-x-0 mb-4">
                         <Button
+                            type="button"
                             variant={currentSection === "general-info" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
@@ -630,6 +788,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "date-info" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
@@ -638,6 +797,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "specifications" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
@@ -646,6 +806,7 @@ const ActivityRequest = () => {
                         </Button>
                         <Separator orientation="vertical" className="h-6 hidden sm:block" />
                         <Button
+                            type="button"
                             variant={currentSection === "submission" ? "default" : "ghost"}
                             className={`flex-1 min-w-[120px] ${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
@@ -736,19 +897,39 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Student Position <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="studentPosition"
+                                                onBlur={(e) => {
+                                                const value = e.target.value.trim();
+                                                setFieldError("studentPosition", value.length < 3 || value.length > 50);
+                                                }}                                           
+                                                className={fieldErrors.studentPosition ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Chairperson, Secretary, etc.)"
                                                 value={studentPosition}
-                                                onChange={(e) => setStudentPosition(e.target.value)}
+                                                onChange={(e) => {
+                                                const value = e.target.value;
+                                                setStudentPosition(value);
+                                                if (value.trim().length >= 3 && value.length <= 50) {
+                                                    setFieldError("studentPosition", false);
+                                                }
+                                                }}
+
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="studentContact"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
                                                 placeholder="(09XXXXXXXXX)"
+                                                onBlur={() => setFieldError("studentContact", !/^\d+$/.test(studentContact))}
                                                 value={studentContact}
-                                                onChange={(e) => setStudentContact(e.target.value)}
-                                            />
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, "");
+                                                    setStudentContact(value);
+                                                    if (/^\d+$/.test(value)) setFieldError("studentContact", false);
+                                                }}
+                                                className={fieldErrors.studentContact ? "border-red-300 bg-red-50" : ""}
+                                                />
                                         </div>
                                     </div>
 
@@ -757,20 +938,27 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="activityName"
+                                                id="activityName" onBlur={() => setFieldError("activityName", activityName.trim().length < 3 || activityName.length > 100)} className={fieldErrors.activityName ? "border-red-300 bg-red-50" : ""}
                                                 placeholder="(Mass Orientation, Welcome Party, etc.)"
                                                 value={activityName}
-                                                onChange={(e) => setActivityName(e.target.value)}
+                                                onChange={(e) => {
+                                                    setActivityName(e.target.value);
+                                                    if (e.target.value.trim().length >= 3 && e.target.value.length <= 100) setFieldError("activityName", false);
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Description <span className="text-red-500">*</span></h3>
                                             <Textarea
                                                 id="activityDescription"
+                                                onBlur={() => setFieldError("activityDescription", activityDescription.trim().length < 20)}
+                                                className={`${fieldErrors.activityDescription ? "border-red-300 bg-red-50" : ""} min-h-[100px]`}
                                                 placeholder="Enter activity description"
                                                 value={activityDescription}
-                                                onChange={(e) => setActivityDescription(e.target.value)}
-                                                className="min-h-[100px]"
+                                                onChange={(e) => {
+                                                setActivityDescription(e.target.value);
+                                                if (e.target.value.trim().length >= 20) setFieldError("activityDescription", false);
+                                                }}
                                             />
                                         </div>
                                     </div>
@@ -779,7 +967,7 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Activity Type <span className="text-red-500">*</span></h3>
                                         <Select value={selectedActivityType} onValueChange={setSelectedActivityType}>
-                                            <SelectTrigger id="activityType" className="w-full">
+                                            <SelectTrigger id="activityType" onBlur={() => setFieldError("activityType", selectedActivityType.trim() === "")} className={fieldErrors.activityType ? "border-red-300 bg-red-50 w-full" : "w-full"}>
                                                 <SelectValue placeholder="Select activity type" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -805,7 +993,7 @@ const ActivityRequest = () => {
                                     <div>
                                     <h3 className="text-sm font-medium mb-2">Sustainable Development Goals <span className="text-red-500">*</span></h3>
                                     <div className="mb-4 border border-gray-200 rounded-md">
-                                        <details id="sdgGoals" open>
+                                        <details id="sdgGoals" className={fieldErrors.sdgGoals ? "border-red-300 bg-red-50" : ""} open>
                                         <summary className="cursor-pointer px-4 py-2 bg-gray-100 font-medium capitalize">
                                             SDG List
                                         </summary>
@@ -831,10 +1019,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Charging Fees? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="chargingFees"
-                                            value={chargingFees1}
-                                            onValueChange={setChargingFees1}
-                                            className="space-y-3"
+                                        id="chargingFees"
+                                        onBlur={() => setFieldError("chargingFees", chargingFees1.trim() === "")}
+                                        value={chargingFees1}
+                                        onValueChange={setChargingFees1}
+                                        className={`${fieldErrors.chargingFees ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="fees-yes" />
@@ -855,10 +1044,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="partnering"
-                                            value={partnering}
-                                            onValueChange={setPartnering}
-                                            className="space-y-3"
+                                        id="partnering"
+                                        onBlur={() => setFieldError("partnering", partnering.trim() === "")}
+                                        value={partnering}
+                                        onValueChange={(val) => { setPartnering(val); if (val.trim() !== "") setFieldError("partnering", false); }}
+                                        className={`${fieldErrors.partnering ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="partnering-yes" />
@@ -902,10 +1092,11 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Recurring? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="recurring"
-                                            value={recurring}
-                                            onValueChange={setRecurring}
-                                            className="space-y-3"
+                                        id="recurring"
+                                        onBlur={() => setFieldError("recurring", recurring.trim() === "")}
+                                        value={recurring}
+                                        onValueChange={setRecurring}
+                                        className={`${fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="one-time" id="one-time" />
@@ -914,7 +1105,7 @@ const ActivityRequest = () => {
                                                 </label>
                                             </div>
                                             <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="recurring" id="recurring" />
+                                                <RadioGroupItem value="recurring" id="recurring" onBlur={() => setFieldError("recurring", recurring.trim() === "")} className={fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} />
                                                 <label htmlFor="recurring" className="text-sm font-medium leading-none">
                                                     Recurring
                                                 </label>
@@ -927,22 +1118,39 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="startDate"
+                                                id="startDate" onBlur={() => setFieldError("startDate", !startDate)} className={fieldErrors.startDate ? "border-red-300 bg-red-50" : ""}
                                                 type="date"
                                                 min={new Date().toISOString().split("T")[0]}
                                                 value={startDate}
-                                                onChange={(e) => setStartDate(e.target.value)}
+                                                onChange={(e) => { setStartDate(e.target.value); if (e.target.value !== "") setFieldError("startDate", false); }}
                                             />
                                         </div>
                                         {recurring === "recurring" && (
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Activity End Date <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="endDate"
+                                                    id="endDate" onBlur={() => {
+                                                    const start = new Date(startDate);
+                                                    const end = new Date(endDate);
+                                                    const invalid =
+                                                        !endDate ||
+                                                        (recurring === "recurring" && startDate && endDate && end < start);
+
+                                                    setFieldError("endDate", invalid);
+                                                    }} className={fieldErrors.endDate ? "border-red-300 bg-red-50" : ""}
                                                     type="date"
                                                     min={new Date().toISOString().split("T")[0]}
                                                     value={endDate}
-                                                    onChange={(e) => setEndDate(e.target.value)}
+                                                    onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setEndDate(value);
+
+                                                    const start = new Date(startDate);
+                                                    const end = new Date(value);
+                                                    const valid = value && (recurring !== "recurring" || (startDate && end >= start));
+
+                                                    if (valid) setFieldError("endDate", false);
+                                                    }}
                                                 />
                                             </div>
                                         )}
@@ -953,10 +1161,10 @@ const ActivityRequest = () => {
                                             <h3 className="text-sm font-medium mb-2">Activity Start Time <span className="text-red-500">*</span> </h3>
                                             
                                             <Input
-                                                id="startTime"
+                                                id="startTime" onBlur={() => setFieldError("startTime", !startTime)} className={fieldErrors.startTime ? "border-red-300 bg-red-50" : ""}
                                                 type="time"
                                                 value={startTime}
-                                                onChange={(e) => setStartTime(e.target.value)}
+                                                onChange={(e) => { setStartTime(e.target.value); if (e.target.value !== "") setFieldError("startTime", false); }}
                                             />
                                             <p className="text-xs text-muted-foreground mt-1">
                                             NOTE: Official curfew in the campus is at 9:00PM.
@@ -965,10 +1173,10 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Activity End Time <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="endTime"
+                                                id="endTime" onBlur={() => setFieldError("endTime", !endTime)} className={fieldErrors.endTime ? "border-red-300 bg-red-50" : ""}
                                                 type="time"
                                                 value={endTime}
-                                                onChange={(e) => setEndTime(e.target.value)}
+                                                onChange={(e) => { setEndTime(e.target.value); if (e.target.value !== "") setFieldError("endTime", false); }}
                                             />
                                         </div>
                                     </div>
@@ -984,10 +1192,14 @@ const ActivityRequest = () => {
                                                             id={`day-${day}`}
                                                             checked={recurringDays[day]}
                                                             onCheckedChange={(checked) => {
-                                                                setRecurringDays(prev => ({
-                                                                    ...prev,
-                                                                    [day]: checked
-                                                                }));
+                                                            const updated = {
+                                                                ...recurringDays,
+                                                                [day]: checked
+                                                            };
+                                                            setRecurringDays(updated);
+
+                                                            const selected = Object.values(updated).filter(Boolean);
+                                                            if (selected.length > 0) setFieldError("recurringDays", false);
                                                             }}
                                                         />
                                                         <label
@@ -1029,10 +1241,10 @@ const ActivityRequest = () => {
                                     <div>
                                         <h3 className="text-sm font-medium mb-2">Off-Campus? <span className="text-red-500">*</span></h3>
                                         <RadioGroup
-                                            id="offcampus"
-                                            value={isOffCampus}
-                                            onValueChange={setIsOffCampus}
-                                            className="space-y-3"
+                                        id="offcampus"
+                                        value={isOffCampus}
+                                        onValueChange={(val) => { setIsOffCampus(val); if (val.trim() !== "") setFieldError("offcampus", false); }}
+                                        className={`${fieldErrors.offcampus ? "border-red-300 bg-red-50" : ""} space-y-3`}
                                         >
                                             <div className="flex items-center space-x-2">
                                                 <RadioGroupItem value="yes" id="offcampus-yes" />
@@ -1054,36 +1266,59 @@ const ActivityRequest = () => {
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                                             <Input
-                                                id="venue"
+                                                id="venue" onBlur={() => setFieldError("venue", venue.trim() === "" || venue.length > 100)} className={fieldErrors.venue ? "border-red-300 bg-red-50" : ""}
                                                 type="text"
                                                 placeholder="(Teatro Amianan, CS AVR, etc.)"
                                                 value={venue}
-                                                onChange={(e) => setVenue(e.target.value)}
+                                                onChange={(e) => {
+                                                setVenue(e.target.value);
+                                                if (e.target.value.trim() !== "" && e.target.value.length <= 100) setFieldError("venue", false);
+                                                }}
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="venueApprover"
-                                                    type="text"
-                                                    placeholder="Provide their name"
-                                                    value={isOffCampus === "yes" ? "N/A" : venueApprover}
-                                                    disabled={isOffCampus === "yes"}
-                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
-                                                    onChange={(e) => setVenueApprover(e.target.value)}
+                                                id="venueApprover"
+                                                onBlur={() => setFieldError("venueApprover", venueApprover.trim().length < 3 || venueApprover.length > 50)}
+                                                className={`${fieldErrors.venueApprover ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                type="text"
+                                                placeholder="Provide their name"
+                                                value={isOffCampus === "yes" ? "N/A" : venueApprover}
+                                                disabled={isOffCampus === "yes"}
+                                                onChange={(e) => {
+                                                setVenueApprover(e.target.value);
+                                                if (e.target.value.trim().length >= 3 && e.target.value.length <= 50)
+ {
+                                                    setFieldError("venueApprover", false);
+                                                }
+                                                }}
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Venue Approver Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="venueApproverContact"
-                                                    type="text"
-                                                    placeholder="09XXXXXXXXX or XXX@up.edu.ph"
-                                                    value={isOffCampus === "yes" ? "N/A" : venueApproverContact}
-                                                    disabled={isOffCampus === "yes"}
-                                                    className={isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}
-                                                    onChange={(e) => setVenueApproverContact(e.target.value)}
+                                                id="venueApproverContact"
+                                                onBlur={() =>
+                                                    setFieldError(
+                                                    "venueApproverContact",
+                                                    !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact)
+                                                    )
+                                                }
+                                                className={`${fieldErrors.venueApproverContact ? "border-red-300 bg-red-50" : ""} ${isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                type="text"
+                                                placeholder="09XXXXXXXXX or XXX@up.edu.ph"
+                                                value={isOffCampus === "yes" ? "N/A" : venueApproverContact}
+                                                disabled={isOffCampus === "yes"}
+                                                onChange={(e) => {
+                                                    setVenueApproverContact(e.target.value);
+                                                    if (
+                                                    /^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(e.target.value)
+                                                    ) {
+                                                    setFieldError("venueApproverContact", false);
+                                                    }
+                                                }}
                                                 />
                                             </div>
                                         </div>
@@ -1132,11 +1367,17 @@ const ActivityRequest = () => {
                                                                     id={`${category}-${unit}`}
                                                                     checked={!!selectedPublicAffairs[unit]}
                                                                     onCheckedChange={(checked) => {
-                                                                        setSelectedPublicAffairs((prev) => ({
-                                                                            ...prev,
-                                                                            [unit]: checked ? (unit === "Others" ? [""] : true) : false
-                                                                            }));
-                                                                        }}
+                                                                    const updated = {
+                                                                        ...selectedPublicAffairs,
+                                                                        [unit]: checked ? (unit === "Others" ? [""] : true) : false
+                                                                    };
+                                                                    setSelectedPublicAffairs(updated);
+
+                                                                    const hasAny = Object.values(updated).some(val =>
+                                                                        Array.isArray(val) ? val.some(str => str.trim() !== "") : val === true
+                                                                    );
+                                                                    if (hasAny) setFieldError("partnering", false);
+                                                                    }}
                                                                 />
                                                                 <label htmlFor={`${category}-${unit}`} className="text-sm">
                                                                     {unit}
@@ -1202,10 +1443,16 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Description of Partner’s Role in the Activity <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    type="text"
-                                                    placeholder="Provide their role"
-                                                    value={partnerDescription}
-                                                    onChange={(e) => setPartnerDescription(e.target.value)}
+                                                id="partnerDescription"
+                                                type="text"
+                                                placeholder="Describe the role of the partner"
+                                                value={partnerDescription}
+                                                onBlur={() => setFieldError("partnerDescription", partnerDescription.trim().length < 3)}
+                                                onChange={(e) => {
+                                                setPartnerDescription(e.target.value);
+                                                if (e.target.value.trim().length >= 3) setFieldError("partnerDescription", false);
+                                                }}
+                                                className={`${fieldErrors.partnerDescription ? "border-red-300 bg-red-50" : ""}`}
                                                 />
                                             </div>
                                         </div>
@@ -1215,21 +1462,26 @@ const ActivityRequest = () => {
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitor"
+                                                    id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", greenCampusMonitor.trim().length < 3 || greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="Ex. Clarence Kyle Pagunsan"
                                                     value={greenCampusMonitor}
-                                                    onChange={(e) => setGreenCampusMonitor(e.target.value)}
+                                                    onChange={(e) => {
+                                                    setGreenCampusMonitor(e.target.value);
+                                                    if (e.target.value.trim().length >= 3 && e.target.value.length <= 50){
+                                                        setFieldError("greenCampusMonitor", false);
+                                                    }
+                                                    }}
                                                 />
                                             </div>
                                             <div>
                                                 <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
                                                 <Input
-                                                    id="greenCampusMonitorContact"
+                                                    id="greenCampusMonitorContact" onBlur={() => setFieldError("greenCampusMonitorContact", !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))} className={fieldErrors.greenCampusMonitorContact ? "border-red-300 bg-red-50" : ""}
                                                     type="text"
                                                     placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                                                     value={greenCampusMonitorContact}
-                                                    onChange={(e) => setGreenCampusMonitorContact(e.target.value)}
+                                                    onChange={(e) => { setGreenCampusMonitorContact(e.target.value); if (/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(e.target.value)) setFieldError("greenCampusMonitorContact", false); }}
                                                 />
                                             </div>
                                         </div>
@@ -1305,41 +1557,59 @@ const ActivityRequest = () => {
                                         className={cn(
                                             "border-2 border-dashed p-4 rounded-md text-center transition-colors",
                                             isDragActive
-                                            ? "border-green-600 bg-green-50"
-                                            : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+                                                ? "border-green-600 bg-green-50"
+                                                : selectedFile
+                                                ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "border-gray-300 hover:border-gray-400 hover:bg-muted"
                                         )}
                                         >
-                                        <label htmlFor="activityRequestFileUpload" className="cursor-pointer flex flex-col items-center">
-                                            <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                                            <p className="text-sm">
+                                        <label
+                                        htmlFor="activityRequestFileUpload"
+                                        className={`flex flex-col items-center border border-dashed rounded-md p-4 transition text-sm text-muted-foreground ${
+                                        selectedFile ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "cursor-pointer hover:bg-muted"
+                                        }`}
+                                        >
+                                        <UploadCloud className="w-8 h-8 mb-2" />
+                                        <p>
                                             {isDragActive ? "Drop the file here" : "Drag and Drop or Upload File (PDF only)"}
-                                            </p>
-                                            <input
+                                        </p>
+
+                                        <input
                                             id="activityRequestFileUpload"
                                             type="file"
                                             accept=".pdf"
+                                            disabled={isSubmitting || !!selectedFile}
                                             onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file || file.type !== "application/pdf") {
+                                            const file = e.target.files?.[0];
+                                            if (!file || file.type !== "application/pdf") {
                                                 toast.error("Only one PDF file is allowed.");
                                                 return;
-                                                }
-                                                setSelectedFile(file);
+                                            }
+                                            setSelectedFile(file);
                                             }}
                                             className="hidden"
-                                            disabled={isSubmitting}
-                                            />
+                                        />
                                         </label>
                                         </div>
-                                            {selectedFile && (
-                                                <div>
-                                                <h4 className="text-sm font-medium mb-1">Selected File</h4>
-                                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <FileText className="w-4 h-4 text-red-500" />
-                                                    {selectedFile.name}
-                                                </p>
+                                        {selectedFile && (
+                                        <div className="mt-2">
+                                            <h4 className="text-sm font-medium mb-1">Selected File</h4>
+                                            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
+                                            <div className="flex items-center gap-2 truncate">
+                                                <FileText className="w-4 h-4 text-red-500 shrink-0" />
+                                                <span className="truncate max-w-[240px]">{selectedFile.name}</span>
                                             </div>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedFile(null)}
+                                                className="text-muted-foreground hover:text-red-600"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                            </div>
+                                        </div>
+                                        )}
+
                                         </div>
                                     </div>
                                 </div>
