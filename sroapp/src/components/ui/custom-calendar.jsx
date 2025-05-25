@@ -33,16 +33,16 @@ const CustomCalendar = ({
     let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
     
     if (selectedDate && isSameDay(day, selectedDate)) {
-      classes += "bg-[#7B1113] text-white font-bold ";
+      classes += "bg-[#014421] text-white font-bold ";
     } 
     else if (isToday(day)) {
       classes += "border-2 border-[#014421] text-[#014421] font-bold ";
-    } 
+    }
     else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
-        classes += "text-[#FFD700] font-bold hover:bg-gray-100 ";
+        classes += "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 ";
       } else {
-        classes += "text-[#014421] font-bold hover:bg-gray-100 ";
+        classes += "bg-[#014421]/20 text-[#014421] font-bold hover:bg-[#014421]/30 ";
       }
     } 
     else if (blockedDates.some(date => isSameDay(day, date))) {
@@ -77,6 +77,7 @@ const CustomCalendar = ({
   };
 
   return (
+
     <div className="p-2 sm:p-4 bg-white rounded-lg shadow w-full max-w-full">
       <div className="mb-2 flex flex-col sm:flex-row items-center sm:justify-between gap-2 px-2 sm:px-4 py-2">
         <div className="text-base sm:text-lg font-semibold text-[#7B1113]">

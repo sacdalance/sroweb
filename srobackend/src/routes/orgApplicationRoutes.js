@@ -130,13 +130,14 @@ router.post('/', upload.array('files', 6), async (req, res) => {
       org_name,
       academic_year,
       org_email,
-      chairperson,
+      org_chairperson,
       chairperson_email,
-      adviser,
+      org_adviser,
       adviser_email,
-      co_adviser,
+      org_coadviser,
       coadviser_email,
       org_type,
+      org_status,
       submitted_by,
     } = req.body;
     const files = req.files;
@@ -148,9 +149,10 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
     // 🚨 Validate required fields
     if (
       !org_name || !academic_year || !org_email ||
-      !chairperson || !chairperson_email ||
-      !adviser || !adviser_email ||
-      !co_adviser || !coadviser_email || !org_type
+      !org_chairperson || !chairperson_email ||
+      !org_adviser || !adviser_email ||
+      !org_coadviser || !coadviser_email || !org_type ||
+      !org_status
     ) {
       return res.status(400).json({ error: "Missing required fields." });
     }
@@ -194,32 +196,34 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
     
     const { data: existingOrgs, error: fetchError } = await supabase
       .from("org_recognition")
-      .select("organization_id")
-      .gte("organization_id", min)
-      .lte("organization_id", max);
+      .select("org_id")
+      .gte("org_id", min)
+      .lte("org_id", max);
     
     if (fetchError) throw fetchError;
 
     const nextSuffix = (existingOrgs?.length || 0) + 1;
-    const organization_id = baseYear * 10 + nextSuffix; // e.g., 20251
+    const org_id = baseYear * 10 + nextSuffix; // e.g., 20251
       
 
     // 📝 Insert record into Supabase DB
     const { error: insertError } = await supabase.from('org_recognition').insert([{
-      organization_id,
-      organization_type: org_type,
+      org_id,
+      org_name,
       academic_year,
       org_email,
-      org_chairperson: chairperson,
+      org_chairperson,
       chairperson_email,
-      org_adviser: adviser,
+      org_adviser,
       adviser_email,
-      org_coadviser: co_adviser,
+      org_coadviser,
       coadviser_email,
+      org_type, 
+      org_status,
       submission_file_url: JSON.stringify(uploadedLinks),
-      drive_folder_id: folder.webViewLink,
+      drive_folder_link: folder.webViewLink, 
       submitted_at: new Date(),
-      submitted_by: parseInt(submitted_by),
+      submitted_by: parsedSubmitter,
     }]);
 
     if (insertError) throw insertError;
