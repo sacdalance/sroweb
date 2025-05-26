@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, Eye, Loader2 } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -295,7 +295,12 @@ const AdminActivitiesCalendar = () => {
 
   const [expandedText, setExpandedText] = useState({});
 
-  const toggleText = (id, type) => {
+  const toggleText = (id, type, e) => {
+    // Make sure to stop event propagation
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setExpandedText(prev => ({
       ...prev,
       [type + id]: !prev[type + id]
@@ -418,15 +423,13 @@ const AdminActivitiesCalendar = () => {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-h-[350px] overflow-y-auto">                <table className="w-full min-w-[500px]">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+              <div className="max-h-[350px] overflow-y-auto">                <table className="w-full min-w-[500px]">                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
                       <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
                       <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>
-                      <th className="w-[80px] text-xs font-semibold text-center py-2 px-3">Type</th>
+                      <th className="w-[120px] text-xs font-semibold text-center py-2 px-3">Type</th>
                       <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
-                      <th className="w-[40px] text-xs font-semibold text-center py-2 px-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -439,8 +442,9 @@ const AdminActivitiesCalendar = () => {
                         </tr>
                         {upcomingEvents
                           .filter(event => event.timeframe === timeframe)
-                          .map((event, index) => (                            <tr key={`${timeframe}-${index}`} 
-                                className="hover:bg-gray-50 border-b border-gray-100">
+                          .map((event, index) => (                              <tr key={`${timeframe}-${index}`}
+                                onClick={() => handleEventClick(event)}
+                                className="group hover:bg-[#014421]/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
                                 <td className="w-[100px] text-xs py-2 px-3">
                                   <div className="flex flex-col">
                                     <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
@@ -456,7 +460,7 @@ const AdminActivitiesCalendar = () => {
                                   </div>
                                   {event.title.length > 50 && (
                                     <button
-                                      onClick={() => toggleText(event.id, 'title')}
+                                      onClick={(e) => toggleText(event.id, 'title', e)}
                                       className="text-gray-500 hover:text-[#7B1113] transition-transform"
                                     >
                                       <svg
@@ -486,7 +490,7 @@ const AdminActivitiesCalendar = () => {
                                   </div>
                                   {event.organization.length > 50 && (
                                     <button
-                                      onClick={() => toggleText(event.id, 'org')}
+                                      onClick={(e) => toggleText(event.id, 'org', e)}
                                       className="text-gray-500 hover:text-[#7B1113] transition-transform"
                                     >
                                       <svg
@@ -522,17 +526,10 @@ const AdminActivitiesCalendar = () => {
                                   >
                                     {categoryMap[event.type] || event.type}
                                   </span>
-                                </td>
-                                <td className="w-[100px] text-xs py-2 px-3">
-                                  {event.venue}
-                                </td>
-                                <td className="w-[40px] text-xs py-2 px-3 text-center">
-                                  <button
-                                    onClick={() => handleEventClick(event)}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                  >
-                                    <Eye className="h-5 w-5" />
-                                  </button>
+                                </td>                                <td className="w-[100px] text-xs py-2 px-3">
+                                  <span className="truncate block" title={event.venue}>
+                                    {event.venue}
+                                  </span>
                                 </td>
                               </tr>
                           ))}
