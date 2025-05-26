@@ -63,11 +63,6 @@ const OrgApplication = () => {
   const [selectedYear, setSelectedYear] = useState("")
   const [yearSearch, setYearSearch] = useState("")
 
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [orgStatus, setOrgStatus] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [statusSearch, setStatusSearch] = useState("")
-
   const [isDragActive, setIsDragActive] = useState(false);
   
   const filteredCategories = categoriesList.filter((cat) =>
@@ -151,7 +146,6 @@ const OrgApplication = () => {
       { label: "Co-Adviser", value: coAdviser },
       { label: "Co-Adviser Email", value: coAdviserEmail },
       { label: "Organization Type", value: orgType },
-      { label: "Organization Status", value: orgStatus},
       { label: "Academic Year", value: academicYear },
     ];
   
@@ -183,7 +177,6 @@ const OrgApplication = () => {
         org_coadviser: coAdviser,
         coadviser_email: coAdviserEmail,
         org_type: orgType,       
-        org_status: orgStatus,
         files,
         submitted_by: userId,
       });
@@ -203,7 +196,6 @@ const OrgApplication = () => {
       setCoAdviserEmail("");
       setAcademicYear("");
       setSelectedYear("");
-      setOrgStatus("");
       setOrgType("");
       setSelectedOrgTypeName("");
     } catch (error) {
@@ -354,63 +346,6 @@ const OrgApplication = () => {
               </PopoverContent>
             </Popover>
           </div>
-
-          {/* Organization Status */}
-          <div>
-            <h3 className="text-sm font-medium mb-2">
-              Organization Status <span className="text-red-500">*</span>
-            </h3>
-
-            <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-              <PopoverTrigger asChild>
-                <div
-                  role="combobox"
-                  aria-expanded={statusOpen}
-                  className="w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400"
-                >
-                  <span className={!selectedStatus ? "text-muted-foreground" : ""}>
-                    {selectedStatus || "Select recognition status"}
-                  </span>
-                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </div>
-              </PopoverTrigger>
-
-              <PopoverContent align="start" className="w-full max-w-md p-0">
-                <Input
-                  placeholder="Search status..."
-                  value={statusSearch}
-                  onChange={(e) => setStatusSearch(e.target.value)}
-                  className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
-                />
-                <div className="max-h-48 overflow-y-auto">
-                  {statusList
-                    .filter((status) =>
-                      status.toLowerCase().includes(statusSearch.toLowerCase())
-                    )
-                    .map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => {
-                          setOrgStatus(status);
-                          setSelectedStatus(status);
-                          setStatusSearch(status);
-                          setStatusOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
-                          orgStatus === status ? "bg-gray-100 font-medium" : ""
-                        }`}
-                      >
-                        {status}
-                        {orgStatus === status && (
-                          <Check className="ml-2 inline h-4 w-4 text-green-600" />
-                        )}
-                      </button>
-                    ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-
           <div>
             <label className="text-sm font-medium block mb-1">Organization E-mail</label>
             <Input

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, Loader2 } from "lucide-react";
+import {Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -353,12 +353,6 @@ const AdminActivitiesCalendar = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-          onClick={() => window.print()}
-        >
-          <Printer className="w-4 h-4 mr-2" /> Print Calendar
-        </Button>
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
