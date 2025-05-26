@@ -51,6 +51,14 @@ import {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [orgs, setOrgs] = useState([]);
+    const buttonClasses = (type = "primary") =>
+  type === "primary"
+    ? mode === "admin"
+      ? "bg-[#7B1113] text-white hover:bg-[#5e0d0f]"
+      : "bg-[#014421] text-white hover:bg-[#003218]"
+    : mode === "admin"
+    ? "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"
+    : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10";
     const sectionOrder = ["general-info", "date-info", "specifications", "submission"];
     const [formData, setFormData] = useState({
       selectedValue: defaultValues?.selectedValue || "",
@@ -489,8 +497,8 @@ const handleSubmit = async (e) => {
   venue: form.venue,
   venue_approver: form.venueApprover,
   venue_approver_contact: form.venueApproverContact,
-  green_campus_monitor: form.greenCampusMonitor,
-  green_campus_monitor_contact: form.greenCampusMonitorContact,
+  green_monitor_name: form.greenCampusMonitor,
+  green_monitor_contact: form.greenCampusMonitorContact,
   charge_fee: form.chargingFees1 === "yes",
   university_partner: form.partnering === "yes",
   partner_units: JSON.stringify(form.selectedPublicAffairs),
@@ -515,7 +523,11 @@ const handleSubmit = async (e) => {
     <div className="min-h-screen flex flex-col items-start justify-start py-8">
     <div className="w-full max-w-2xl mx-auto px-6">
       <h1 className="text-2xl font-bold mb-6 text-left">
-        {mode === "edit" ? "Edit Submission" : "Request Form"}
+        {mode === "edit"
+          ? "Edit Submission"
+          : mode === "admin"
+          ? "Admin: Add Activity"
+          : "Request Form"}
       </h1>
     <form onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} className="space-y-8">
       <Toaster />
@@ -525,7 +537,7 @@ const handleSubmit = async (e) => {
           <Button
               type="button"
               variant={currentSection === "general-info" ? "default" : "ghost"}
-              className={`${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+              className={currentSection === "general-info" ? buttonClasses() : buttonClasses("outline")}
               onClick={() => handleMenuNavigation("general-info")}
           >
               General Information
@@ -534,7 +546,7 @@ const handleSubmit = async (e) => {
           <Button
               type="button"
               variant={currentSection === "date-info" ? "default" : "ghost"}
-              className={`${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+              className={`${currentSection === "date-info" ? buttonClasses() : buttonClasses("outline")}"}`}
               onClick={() => handleMenuNavigation("date-info")}
           >
               Date Information
@@ -543,7 +555,7 @@ const handleSubmit = async (e) => {
           <Button
               type="button"
               variant={currentSection === "specifications" ? "default" : "ghost"}
-              className={`${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+              className={`${currentSection === "specifications" ? buttonClasses() : buttonClasses("outline")}"}`}
               onClick={() => handleMenuNavigation("specifications")}
           >
               Specifications
@@ -552,7 +564,7 @@ const handleSubmit = async (e) => {
           <Button
               type="button"
               variant={currentSection === "submission" ? "default" : "ghost"}
-              className={`${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+              className={`${currentSection === "submission" ? buttonClasses() : buttonClasses("outline")}}`}
               onClick={() => handleMenuNavigation("submission")}
           >
               Submission
@@ -892,7 +904,7 @@ const handleSubmit = async (e) => {
                                 <div className="flex flex-col sm:flex-row justify-end gap-2">
                                     <Button
                                         type="button"
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        className={`${buttonClasses()} px-6`}
                                         onClick={() => handleNext()}
                                     >
                                         Next
@@ -1078,7 +1090,7 @@ const handleSubmit = async (e) => {
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                   <Button
                       type="button"
-                      className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                      className={`${buttonClasses()} px-6`}
                       onClick={() => handleNext()}
                   >
                       Next
@@ -1408,7 +1420,7 @@ const handleSubmit = async (e) => {
               <div className="flex flex-col sm:flex-row justify-end gap-2">
                   <Button
                       type="button"
-                      className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                      className={`${buttonClasses()} px-6`}
                       onClick={() => handleNext()}
                   >
                       Next
@@ -1546,7 +1558,7 @@ const handleSubmit = async (e) => {
           setShowConfirmDialog(true);
         }}
         type="submit"
-        className="bg-[#7B1113] text-white hover:bg-[#5e0d0f] px-6"
+        className={`${buttonClasses()} px-6`}
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -1592,7 +1604,7 @@ const handleSubmit = async (e) => {
       <AlertDialogAction
         onClick={(e) => handleSubmit(e)}
         disabled={isSubmitting}
-        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+        className={`${buttonClasses()} px-6`}
       >
         {isSubmitting ? "Submitting..." : "Yes"}
       </AlertDialogAction>
