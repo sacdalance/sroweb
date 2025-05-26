@@ -8,8 +8,9 @@ import PropTypes from 'prop-types';
 import React from "react";
 
 const SIDEBAR_WIDTH = 256;
+const XL_BREAKPOINT = 1280; // Tailwind's xl
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const navigate = useNavigate();
@@ -64,18 +65,34 @@ const Sidebar = ({ isOpen, onClose }) => {
         : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
     }`;
 
+  // Responsive: Reset sidebar state on large screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= XL_BREAKPOINT) {
+        setIsOpen(false); // Always close overlay/toggle on large screens
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    // Initial check
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setIsOpen]);
+
+  // Helper: Only show overlay on small screens
+  const isSmallScreen = typeof window !== "undefined" && window.innerWidth < XL_BREAKPOINT;
+
   if (!isValidUPMail) return null;
 
   return (
     <>
-      {/* Blur overlay for mobile */}
-      {isOpen && (
+      {/* Blur overlay for mobile only */}
+      {isOpen && isSmallScreen && (
         <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-20 max-xl:block hidden transition-all duration-300"
+          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-30 xl:hidden transition-all duration-300"
           onClick={onClose}
         />
       )}
-      
+
       <aside
         className={`
           bg-[#F3F4F6] border-r h-screen flex flex-col
@@ -88,11 +105,16 @@ const Sidebar = ({ isOpen, onClose }) => {
         style={{ minWidth: SIDEBAR_WIDTH }}
         aria-label="Sidebar"
       >
+        {/* Close button only on mobile */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 max-xl:block hidden"
+          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 xl:hidden z-50"
+          aria-label="Close sidebar"
         >
-          <X className="h-6 w-6" />
+          <svg className="h-6 w-6" viewBox="0 0 24 24">
+            <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+          </svg>
         </button>
 
         {/* Make the entire sidebar scrollable except the close button */}
@@ -169,7 +191,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                     {(isSRO || isSuperAdmin) && (
                       <>
-                      <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment</Link></li>
+                      <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointments</Link></li>
                       <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
                       </>
                     )}
@@ -207,6 +229,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 Sidebar.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
+  setIsOpen: PropTypes.func.isRequired,
 };
 
 export default Sidebar;

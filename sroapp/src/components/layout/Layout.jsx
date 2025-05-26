@@ -1,17 +1,24 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 const SIDEBAR_WIDTH = 256; // Tailwind's w-64
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Optional: close sidebar on route change, etc.
+  const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
+
   return (
     <div className="fixed w-full h-screen flex bg-[#ffffff]">
       {/* Sidebar: always visible on lg+, toggleable on mobile */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={handleSidebarClose}
+        setIsOpen={setSidebarOpen}
+      />
       {/* Overlay for mobile */}
       <div
         className={`
