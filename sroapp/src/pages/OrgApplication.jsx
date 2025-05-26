@@ -222,7 +222,7 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto py-8">
       <Toaster />
-      <h1 className="text-3xl font-semibold mb-8 text-center">Organization Application</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Organization Application</h1>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div className="space-y-5">
           <div>

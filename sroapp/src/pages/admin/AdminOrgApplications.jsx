@@ -99,7 +99,7 @@ const AdminOrgApplications = () => {
 
   return (
     <div className="container max-w-7xl mx-auto py-4">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Organization Recognition Applications</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Organization Recognition Applications</h1>
 
       <div className="rounded-lg border shadow-sm">
         <Table>

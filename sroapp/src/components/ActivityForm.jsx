@@ -514,7 +514,7 @@ const handleSubmit = async (e) => {
   return (
     <div className="min-h-screen flex flex-col items-start justify-start py-8">
     <div className="w-full max-w-2xl mx-auto px-6">
-      <h1 className="text-2xl font-bold mb-6 text-left">
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">
         {mode === "edit" ? "Edit Submission" : "Request Form"}
       </h1>
     <form onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} className="space-y-8">

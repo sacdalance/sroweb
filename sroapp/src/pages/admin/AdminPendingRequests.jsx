@@ -207,7 +207,7 @@ const AdminPendingRequests = () => {
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
       <Toaster/>
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Pending Activity Requests</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
         <TabsList
@@ -217,7 +217,7 @@ const AdminPendingRequests = () => {
             max-w-[400px] 
             grid-cols-2 
             h-8 
-            p-0 
+            p-0
             mx-auto 
             bg-gray-100 
             rounded-4xl
@@ -226,14 +226,14 @@ const AdminPendingRequests = () => {
         >
           <TabsTrigger  
             value="submissions" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base"
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
           >
             Incoming Submissions ({incomingRequests.length})
           </TabsTrigger>
 
           <TabsTrigger 
             value="appeals" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base"
+            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
           >
             Appeals and Cancellations ({pendingAppeals.length})
           </TabsTrigger>
