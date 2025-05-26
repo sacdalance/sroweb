@@ -488,7 +488,7 @@ Student Relations Office`,
   return (
     <div className="max-w-[90rem] mx-auto p-6">
       <Toaster />
-      <h1 className="text-2xl font-bold text-[#7B1113] mb-6">Appointment Management</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Appointment Management</h1>
 
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList>

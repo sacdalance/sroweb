@@ -353,12 +353,6 @@ const AdminActivitiesCalendar = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-          onClick={() => window.print()}
-        >
-          <Printer className="w-4 h-4 mr-2" /> Print Calendar
-        </Button>
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
