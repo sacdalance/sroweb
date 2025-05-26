@@ -427,9 +427,8 @@ const ActivitiesCalendar = () => {
                     <tr>
                       <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
                       <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
-                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>
-                      <th className="w-[80px] text-xs font-semibold text-center py-2 px-3">Type</th>
-                      <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
+                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>                      <th className="w-[100px] text-xs font-semibold text-center py-2 px-3">Type</th>
+                      <th className="w-[80px] text-xs font-semibold text-left py-2 px-3">Venue</th>
                       <th className="w-[40px] text-xs font-semibold text-center py-2 px-3"></th>
                     </tr>
                   </thead>
@@ -443,9 +442,8 @@ const ActivitiesCalendar = () => {
                         </tr>
                         {upcomingEvents
                           .filter(event => event.timeframe === timeframe)
-                          .map((event, index) => (
-                            <tr key={`${timeframe}-${index}`} 
-                              className="hover:bg-gray-50 border-b border-gray-100">
+                          .map((event, index) => (                            <tr key={`${timeframe}-${index}`} 
+                              className="hover:bg-gray-50 border-b border-gray-200">
                               <td className="w-[100px] text-xs py-2 px-3">
                                 <div className="flex flex-col">
                                   <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
@@ -455,8 +453,9 @@ const ActivitiesCalendar = () => {
                               </td>
                               <td className="w-[120px] text-xs py-2 px-3">
                                 <div className="flex items-center gap-1">
-                                  <div className={`${expandedText['title' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
-                                    {event.title}
+                                  <div className="transition-all duration-200">
+                                    {expandedText['title' + event.id] ? event.title : 
+                                      event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
                                   </div>
                                   {event.title.length > 50 && (
                                     <button
@@ -484,8 +483,9 @@ const ActivitiesCalendar = () => {
                               </td>
                               <td className="w-[120px] text-xs py-2 px-3">
                                 <div className="flex items-center gap-1">
-                                  <div className={`${expandedText['org' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
-                                    {event.organization}
+                                  <div className="transition-all duration-200">
+                                    {expandedText['org' + event.id] ? event.organization : 
+                                      event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
                                   </div>
                                   {event.organization.length > 50 && (
                                     <button
@@ -510,15 +510,14 @@ const ActivitiesCalendar = () => {
                                     </button>
                                   )}
                                 </div>
-                              </td>
-                              <td className="w-[80px] text-xs text-center py-2 px-3 align-middle">
+                              </td>                              <td className="w-[100px] text-xs text-center py-2 px-3 align-middle">
                                 <span
                                   className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
                                 >
                                   {categoryMap[event.type] || event.type}
                                 </span>
                               </td>
-                              <td className="w-[100px] text-xs py-2 px-3">
+                              <td className="w-[80px] text-xs py-2 px-3">
                                 <span className="truncate block" title={event.venue}>
                                   {event.venue}
                                 </span>

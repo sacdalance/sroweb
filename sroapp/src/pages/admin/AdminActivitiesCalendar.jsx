@@ -449,63 +449,65 @@ const AdminActivitiesCalendar = () => {
                                   </div>
                                 </td>
                                 <td className="w-[120px] text-xs py-2 px-3">
-                                  <div className="flex items-center gap-1">
-                                    <div className={`${expandedText['title' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
-                                      {event.title}
-                                    </div>
-                                    {event.title.length > 50 && (
-                                      <button
-                                        onClick={() => toggleText(event.id, 'title')}
-                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
-                                      >
-                                        <svg
-                                          className={`h-4 w-4 transform transition-transform ${
-                                            expandedText['title' + event.id] ? 'rotate-180' : ''
-                                          }`}
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 9l-7 7-7-7"
-                                          />
-                                        </svg>
-                                      </button>
-                                    )}
+                                <div className="flex items-center gap-1">
+                                  <div className="transition-all duration-200">
+                                    {expandedText['title' + event.id] ? event.title : 
+                                      event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
                                   </div>
-                                </td>
+                                  {event.title.length > 50 && (
+                                    <button
+                                      onClick={() => toggleText(event.id, 'title')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                    >
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['title' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
                                 <td className="w-[120px] text-xs py-2 px-3">
-                                  <div className="flex items-center gap-1">
-                                    <div className={`${expandedText['org' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
-                                      {event.organization}
-                                    </div>
-                                    {event.organization.length > 50 && (
-                                      <button
-                                        onClick={() => toggleText(event.id, 'org')}
-                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
-                                      >
-                                        <svg
-                                          className={`h-4 w-4 transform transition-transform ${
-                                            expandedText['org' + event.id] ? 'rotate-180' : ''
-                                          }`}
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 9l-7 7-7-7"
-                                          />
-                                        </svg>
-                                      </button>
-                                    )}
+                                <div className="flex items-center gap-1">
+                                  <div className="transition-all duration-200">
+                                    {expandedText['org' + event.id] ? event.organization : 
+                                      event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
                                   </div>
-                                </td>
+                                  {event.organization.length > 50 && (
+                                    <button
+                                      onClick={() => toggleText(event.id, 'org')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                    >
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['org' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
                                 <td className="w-[80px] text-xs py-2 px-3 text-center">
                                   <span
                                     className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
