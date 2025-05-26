@@ -766,7 +766,7 @@ const handleSubmit = async (e) => {
                                             fieldErrors.activityType && "border-[#7B1113] bg-red-50"
                                           )}
                                         >
-                                          <SelectValue placeholder="Select activity type" />
+                                        <SelectValue placeholder="Select activity type" />
                                         </SelectTrigger>
                                         <SelectContent>
                                           {activityTypeOptions.map((option) => (
