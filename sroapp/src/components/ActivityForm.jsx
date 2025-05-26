@@ -1153,7 +1153,7 @@ const handleSubmit = async (e) => {
                               onBlur={() => setFieldError("venueApprover", formData.venueApprover.trim().length < 3 || formData.venueApprover.length > 50)}
                               className={`${fieldErrors.venueApprover ? "border-[#7B1113] bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                               type="text"
-                              placeholder="Provide their name"
+                              placeholder="Ex. Lance Gabriel Sacdalan"
                               value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApprover}
                               disabled={formData.isOffCampus === "yes"}
                               onChange={(e) => {
