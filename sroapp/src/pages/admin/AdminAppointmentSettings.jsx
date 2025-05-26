@@ -374,6 +374,19 @@ const AdminAppointmentSettings = () => {
     if (!appointmentId) return;
 
     try {
+      // Get the appointment details first for email notification
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          account:account(account_name, email)
+        `)
+        .eq('id', appointmentId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update appointment status
       const { error } = await supabase
         .from('appointments')
         .update({
@@ -385,15 +398,63 @@ const AdminAppointmentSettings = () => {
 
       if (error) throw error;
 
-      // Send confirmation email
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appointmentId}/send-confirmation`, {
+      // Format appointment time for email
+      const appointmentDate = new Date(appointment.appointment_date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      // Send email notification
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/send-email`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          notes: adminComment,
-          status: action === 'confirm' ? 'confirmed' : 'rejected'
+          to: appointment.account.email,
+          subject: `Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'} - ${appointment.reason}`,
+          text: `Your appointment has been ${action === 'confirm' ? 'confirmed' : 'rejected'}.
+          
+Date: ${appointmentDate}
+Time: ${appointmentTime}
+Purpose: ${appointment.reason}${appointment.specified_reason ? ' - ' + appointment.specified_reason : ''}
+Mode: ${appointment.meeting_mode || 'Face-to-face'}
+
+${adminComment ? `Admin Notes: ${adminComment}` : ''}
+
+${action === 'confirm' 
+  ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
+  : 'If you would like to schedule another appointment, please visit our website.'}
+
+Thank you,
+Student Relations Office`,
+          html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: ${action === 'confirm' ? '#014421' : '#7B1113'}">Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'}</h2>
+  
+  <p>Your appointment has been <strong>${action === 'confirm' ? 'confirmed' : 'rejected'}</strong>.</p>
+  
+  <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <p><strong>Date:</strong> ${appointmentDate}</p>
+    <p><strong>Time:</strong> ${appointmentTime}</p>
+    <p><strong>Purpose:</strong> ${appointment.reason}${appointment.specified_reason ? ' - ' + appointment.specified_reason : ''}</p>
+    <p><strong>Mode:</strong> ${appointment.meeting_mode || 'Face-to-face'}</p>
+  </div>
+  
+  ${adminComment ? `<p><strong>SRO Notes:</strong> ${adminComment}</p>` : ''}
+  
+  <p>${action === 'confirm' 
+    ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
+    : 'If you would like to schedule another appointment, please visit our website.'}</p>
+  
+  <p>Thank you,<br>Student Relations Office</p>
+</div>`
         })
       });
 

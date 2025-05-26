@@ -2,16 +2,21 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import FAQCard from "@/components/FAQCard";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 
 const Dashboard = () => {
     const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
     const [loading, setLoading] = useState(true);
     const [events, setEvents] = useState([]);
     const [error, setError] = useState(null);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const navigate = useNavigate();
 
     // Function to check if a date falls within the current week
     const isDateInCurrentWeek = (dateString) => {
@@ -79,7 +84,8 @@ const Dashboard = () => {
           .select(`
             *,
             organization:organization(*),
-            schedule:activity_schedule(*)
+            schedule:activity_schedule(*),
+            account:account(*)
           `)
           .eq("final_status", "Approved");
 
@@ -95,15 +101,14 @@ const Dashboard = () => {
             ? new Date(`1970-01-01T${activity.schedule[0].end_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             : "00:00";
 
-          // Map category to user-friendly label
-          const categoryLabel = categoryMap[activity.activity_type] || "Others";
-
+          // Keep all original activity data for the dialog
           return {
+            ...activity,
             id: activity.activity_id,
             name: activity.activity_name,
             time: `${startTime} to ${endTime}`,
             location: activity.venue,
-            category: categoryLabel, // Use the mapped label
+            category: categoryMap[activity.activity_type] || "Others",
             organization: activity.organization?.org_name,
             date: activity.schedule[0]?.start_date,
           };
@@ -247,23 +252,36 @@ const Dashboard = () => {
 
                               return (
                                 <div key={i} className="flex-1 min-w-0">
-                                  {dayEvents.length > 0 ? (
-                                    <div
+                                  {dayEvents.length > 0 ? (                                    <div
                                       key={dayEvents[0].id}
-                                      className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto justify-between"
-                                      style={{ width: "100%", maxWidth: "100%" }}
+                                      className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-[#8b1416] transition-colors"
+                                      onClick={() => {
+                                        const event = dayEvents[0];
+                                        setSelectedEvent(event);
+                                        setIsDialogOpen(true);
+                                      }}
                                     >
-                                      {/* Top Row: Location + Time Slot */}
-                                      <div className="flex items-center mb-1 min-w-0">
-                                        <span className="text-white text-xs truncate flex-1 min-w-0">{dayEvents[0].location}</span>
-                                        <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{dayEvents[0].time}</span>
+                                      {/* Activity Name and Time */}
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
+                                        <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
                                       </div>
-                                      {/* Activity Name */}
-                                      <h3 className="text-white font-bold text-base mb-1 truncate">{dayEvents[0].name}</h3>
-                                      {/* Organization and Category */}
-                                      <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                        <span className="text-white text-sm truncate flex-1 min-w-0">{dayEvents[0].organization}</span>
-                                        <span className="text-white/80 italic text-xs sm:text-sm text-right flex-shrink-0">{dayEvents[0].category}</span>
+                                      {/* Organization Name */}
+                                      <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
+                                      {/* Bottom Row: Location and Activity Count */}                                      <div className="flex items-center justify-between mt-1">
+                                        <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                        {dayEvents.length > 1 && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Prevent card click
+                                              const date = new Date(dayEvents[0].date);
+                                              navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
+                                            }}
+                                            className="bg-[#F3AA2C] text-[#7B1113] text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-[#f4b544] transition-colors"
+                                          >
+                                            +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   ) : (
@@ -308,18 +326,34 @@ const Dashboard = () => {
                                   {dayEvents.length > 0 ? (
                                     dayEvents.map(event => (
                                       <div
-                                        key={event.id}
-                                        className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between"
+                                        key={event.id}                                        className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full relative cursor-pointer hover:bg-[#8b1416] transition-colors"
                                         style={{ minWidth: 0 }}
+                                        onClick={() => {
+                                          setSelectedEvent(event);
+                                          setIsDialogOpen(true);
+                                        }}
                                       >
-                                        <div className="flex items-center mb-1 min-w-0">
-                                          <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
-                                          <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
+                                        {/* Activity Name and Time */}
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                          <h3 className="text-white font-bold text-base truncate flex-1">{event.name}</h3>
+                                          <span className="text-white text-xs flex-shrink-0">{event.time}</span>
                                         </div>
-                                        <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
-                                        <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                          <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
-                                          <span className="text-white/80 italic text-xs sm:text-sm text-right flex-shrink-0">{event.category}</span>
+                                        {/* Organization Name */}
+                                        <span className="text-white/90 text-sm truncate mb-auto">{event.organization}</span>
+                                        {/* Bottom Row: Location and Activity Count */}
+                                        <div className="flex items-center justify-between mt-1">                                          <span className="text-white/80 text-xs truncate">{event.location}</span>
+                                          {dayEvents.length > 1 && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation(); // Prevent card click
+                                                const date = new Date(event.date);
+                                                navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
+                                              }}
+                                              className="bg-[#F3AA2C] text-[#7B1113] text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-[#f4b544] transition-colors"
+                                            >
+                                              +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
+                                            </button>
+                                          )}
                                         </div>
                                       </div>
                                     ))
@@ -345,6 +379,18 @@ const Dashboard = () => {
                   </div>
                 </Card>
             </div>
+
+            {/* Activity Details Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              {selectedEvent && (
+                <ActivityDialogContent
+                  activity={selectedEvent}
+                  setActivity={setSelectedEvent}
+                  isModalOpen={isDialogOpen}
+                  readOnly={true}
+                />
+              )}
+            </Dialog>
         </div>
     );
 };

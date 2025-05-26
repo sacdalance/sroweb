@@ -33,6 +33,9 @@ import { checkOrCreateUser } from "@/api/authAPI";
 import RequireUser from "@/auth/RequireUser";
 import RequireAdminRole from "@/auth/RequireAdmin";
 
+// try
+import EmailTestButton from "@/pages/EmailTestButton";
+
 const RedirectHome = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -186,6 +189,7 @@ const router = createBrowserRouter([
           { path: "org-application", element: <RequireUser><OrgApplication /></RequireUser> },
           { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },
           { path: "appointment-booking", element: <RequireUser><AppointmentBooking /></RequireUser> },
+          { path: "email-test-button", element: <RequireUser><EmailTestButton /></RequireUser> },
 
           // Admin routes using unified RequireAdminRole
           { path: "admin", element: <RequireAdminRole childrenByRole={
