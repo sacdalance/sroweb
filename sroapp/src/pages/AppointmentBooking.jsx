@@ -681,7 +681,7 @@ const AppointmentBooking = () => {
                   className={`w-full p-2 border rounded-md ${
                     errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
                   }`}
-                  placeholder="youremail@example.com"
+                  placeholder="delpilarmh@up.edu.ph"
                   required
                 />
                 {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
@@ -705,7 +705,7 @@ const AppointmentBooking = () => {
                     className={`w-full p-2 border rounded-md ${
                       errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
                     }`}
-                    placeholder="09XXXXXXXXX"
+                    placeholder="(09XXXXXXXXX)"
                     maxLength="11"
                     required
                   />
