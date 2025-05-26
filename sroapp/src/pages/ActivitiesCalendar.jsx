@@ -290,6 +290,27 @@ const ActivitiesCalendar = () => {
     </div>
   );
 
+  const formatTime = (timeString) => {
+    const [startTime, endTime] = timeString.split(' to ').map(time => {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      if (hour === 12) return `${hour}:${minutes}NN`;
+      return hour > 12 
+        ? `${hour-12}:${minutes}PM` 
+        : `${hour}:${minutes}AM`;
+    });
+    return `${startTime} to ${endTime}`;
+  };
+
+  const [expandedText, setExpandedText] = useState({});
+
+  const toggleText = (id, type) => {
+    setExpandedText(prev => ({
+      ...prev,
+      [type + id]: !prev[type + id]
+    }));
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Activities Calendar</h1>
@@ -381,8 +402,7 @@ const ActivitiesCalendar = () => {
         </div>
       </div>
 
-      <Card className="rounded-lg shadow-md">
-        <CardHeader className="bg-white py-4">
+      <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
               Upcoming Activities
@@ -425,46 +445,68 @@ const ActivitiesCalendar = () => {
                           .filter(event => event.timeframe === timeframe)
                           .map((event, index) => (
                             <tr key={`${timeframe}-${index}`} 
-                              className={`hover:bg-gray-50 ${index > 0 ? 'border-t border-gray-100' : ''}`}>
+                              className="hover:bg-gray-50 border-b border-gray-100">
                               <td className="w-[100px] text-xs py-2 px-3">
                                 <div className="flex flex-col">
                                   <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
                                   <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
-                                  <span className="text-gray-500 text-xs mt-0.5">{event.time}</span>
+                                  <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
                                 </div>
                               </td>
                               <td className="w-[120px] text-xs py-2 px-3">
-                                <div className="flex items-center">
-                                  <span className="truncate max-w-[100px]">
-                                    {event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
-                                  </span>
+                                <div className="flex items-center gap-1">
+                                  <div className={`${expandedText['title' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
+                                    {event.title}
+                                  </div>
                                   {event.title.length > 50 && (
                                     <button
-                                      onClick={() => toast.info(event.title, {
-                                        description: "Full activity title",
-                                        duration: 5000,
-                                      })}
-                                      className="text-xs text-[#7B1113] hover:underline ml-1 whitespace-nowrap"
+                                      onClick={() => toggleText(event.id, 'title')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
                                     >
-                                      more
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['title' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
                                     </button>
                                   )}
                                 </div>
                               </td>
                               <td className="w-[120px] text-xs py-2 px-3">
-                                <div className="flex items-center">
-                                  <span className="truncate max-w-[100px]">
-                                    {event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
-                                  </span>
+                                <div className="flex items-center gap-1">
+                                  <div className={`${expandedText['org' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
+                                    {event.organization}
+                                  </div>
                                   {event.organization.length > 50 && (
                                     <button
-                                      onClick={() => toast.info(event.organization, {
-                                        description: "Full organization name",
-                                        duration: 5000,
-                                      })}
-                                      className="text-xs text-[#7B1113] hover:underline ml-1 whitespace-nowrap"
+                                      onClick={() => toggleText(event.id, 'org')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
                                     >
-                                      more
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['org' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
                                     </button>
                                   )}
                                 </div>

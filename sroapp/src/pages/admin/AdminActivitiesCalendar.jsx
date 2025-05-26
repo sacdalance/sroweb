@@ -281,6 +281,27 @@ const AdminActivitiesCalendar = () => {
     </div>
   );
 
+  const formatTime = (timeString) => {
+    const [startTime, endTime] = timeString.split(' to ').map(time => {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      if (hour === 12) return `${hour}:${minutes}NN`;
+      return hour > 12 
+        ? `${hour-12}:${minutes}PM` 
+        : `${hour}:${minutes}AM`;
+    });
+    return `${startTime} to ${endTime}`;
+  };
+
+  const [expandedText, setExpandedText] = useState({});
+
+  const toggleText = (id, type) => {
+    setExpandedText(prev => ({
+      ...prev,
+      [type + id]: !prev[type + id]
+    }));
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Activities Calendar</h1>
@@ -378,8 +399,7 @@ const AdminActivitiesCalendar = () => {
           <div className="w-3 h-3 rounded-full bg-red-100 mr-1"></div>
           <span className="text-xs text-[#7B1113]">Special Event</span>
         </div>
-      </div>      <Card className="rounded-lg shadow-md">
-        <CardHeader className="bg-white py-4">
+      </div>      <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
               Upcoming Activities
@@ -420,79 +440,99 @@ const AdminActivitiesCalendar = () => {
                         {upcomingEvents
                           .filter(event => event.timeframe === timeframe)
                           .map((event, index) => (                            <tr key={`${timeframe}-${index}`} 
-                              className={`hover:bg-gray-50 ${index > 0 ? 'border-t border-gray-100' : ''}`}>
-                              <td className="min-w-[120px] w-[150px] text-xs sm:text-sm py-3 sm:py-5 px-4">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
-                                  <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
-                                  <span className="text-gray-500 text-xs mt-1">{event.time}</span>
-                                </div>
-                              </td><td className="min-w-[120px] w-[150px] text-xs sm:text-sm py-3 sm:py-5 px-4">
-                                <div className="flex items-center gap-1">
-                                  <span className="truncate">
-                                    {event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
+                                className="hover:bg-gray-50 border-b border-gray-100">
+                                <td className="w-[100px] text-xs py-2 px-3">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
+                                    <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
+                                    <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
+                                  </div>
+                                </td>
+                                <td className="w-[120px] text-xs py-2 px-3">
+                                  <div className="flex items-center gap-1">
+                                    <div className={`${expandedText['title' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
+                                      {event.title}
+                                    </div>
+                                    {event.title.length > 50 && (
+                                      <button
+                                        onClick={() => toggleText(event.id, 'title')}
+                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                      >
+                                        <svg
+                                          className={`h-4 w-4 transform transition-transform ${
+                                            expandedText['title' + event.id] ? 'rotate-180' : ''
+                                          }`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                          />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="w-[120px] text-xs py-2 px-3">
+                                  <div className="flex items-center gap-1">
+                                    <div className={`${expandedText['org' + event.id] ? '' : 'truncate'} transition-all duration-200`}>
+                                      {event.organization}
+                                    </div>
+                                    {event.organization.length > 50 && (
+                                      <button
+                                        onClick={() => toggleText(event.id, 'org')}
+                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                      >
+                                        <svg
+                                          className={`h-4 w-4 transform transition-transform ${
+                                            expandedText['org' + event.id] ? 'rotate-180' : ''
+                                          }`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                          />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="w-[80px] text-xs py-2 px-3 text-center">
+                                  <span
+                                    className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
+                                    style={{
+                                      whiteSpace: "pre-line",
+                                      wordBreak: "break-word",
+                                      lineHeight: "1.3",
+                                      minHeight: "2.2em",
+                                      maxWidth: "100%",
+                                      boxShadow: "0 1px 3px 0 rgba(0,0,0,0.04)"
+                                    }}
+                                  >
+                                    {categoryMap[event.type] || event.type}
                                   </span>
-                                  {event.title.length > 50 && (
-                                    <button
-                                      onClick={() => toast(event.title, {
-                                        description: "Full activity title",
-                                        duration: 5000,
-                                      })}
-                                      className="text-xs text-[#7B1113] hover:underline ml-1"
-                                    >
-                                      see more
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="min-w-[120px] w-[150px] text-xs sm:text-sm py-3 sm:py-5 px-4">
-                                <div className="flex items-center gap-1">
-                                  <span className="truncate">
-                                    {event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
-                                  </span>
-                                  {event.organization.length > 50 && (
-                                    <button
-                                      onClick={() => toast(event.organization, {
-                                        description: "Full organization name",
-                                        duration: 5000,
-                                      })}
-                                      className="text-xs text-[#7B1113] hover:underline ml-1"
-                                    >
-                                      see more
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 align-middle">
-                                <span
-                                  className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
-                                  style={{
-                                    whiteSpace: "pre-line",
-                                    wordBreak: "break-word",
-                                    lineHeight: "1.3",
-                                    minHeight: "2.2em",
-                                    maxWidth: "100%",
-                                    boxShadow: "0 1px 3px 0 rgba(0,0,0,0.04)"
-                                  }}
-                                >
-                                  {categoryMap[event.type] || event.type}
-                                </span>
-                              </td>
-                              <td className="min-w-[120px] w-[150px] text-xs sm:text-sm py-3 sm:py-5 px-4">
-                                {event.venue}
-                              </td>
-                              <td className="min-w-[120px] w-[150px] text-xs sm:text-sm py-3 sm:py-5 px-4">
-                                {event.time}
-                              </td>
-                              <td className="w-[70px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                                <button
-                                  onClick={() => handleEventClick(event)}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                >
-                                  <Eye className="h-5 w-5" />
-                                </button>
-                              </td>
-                            </tr>
+                                </td>
+                                <td className="w-[100px] text-xs py-2 px-3">
+                                  {event.venue}
+                                </td>
+                                <td className="w-[40px] text-xs py-2 px-3 text-center">
+                                  <button
+                                    onClick={() => handleEventClick(event)}
+                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  >
+                                    <Eye className="h-5 w-5" />
+                                  </button>
+                                </td>
+                              </tr>
                           ))}
                       </React.Fragment>
                     ))}
