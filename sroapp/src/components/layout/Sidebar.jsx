@@ -167,8 +167,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                     <hr className="border-t border-[#DBDBDB] my-4" />
                     <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
 
-                    <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment Settings</Link></li>
-                    <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
+                    {(isSRO || isSuperAdmin) && (
+                      <>
+                      <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointment</Link></li>
+                      <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
+                      </>
+                    )}
+
                     <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
                     <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
                     <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
