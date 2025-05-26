@@ -141,27 +141,34 @@ const AdminActivitiesCalendar = () => {
 
     fetchActivities();
   }, []);
-
   // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
-    setSelectedMonth(value);
     const monthIndex = months.indexOf(value);
-    setCurrentDate(new Date(parseInt(selectedYear), monthIndex));
+    const newDate = new Date(currentDate);
+    newDate.setMonth(monthIndex);
+    setCurrentDate(newDate);
+    setSelectedMonth(value);
   };
 
   const handleYearChange = (value) => {
+    const monthIndex = currentDate.getMonth();
+    const newDate = new Date(currentDate);
+    newDate.setFullYear(parseInt(value));
+    setCurrentDate(newDate);
     setSelectedYear(value);
-    const monthIndex = months.indexOf(selectedMonth);
-    setCurrentDate(new Date(parseInt(value), monthIndex));
   };
 
   // Sync dropdowns with calendar navigation
   useEffect(() => {
     const month = currentDate.toLocaleString("default", { month: "long" });
     const year = currentDate.getFullYear().toString();
-    if (selectedMonth !== month) handleMonthChange(month);
-    if (selectedYear !== year) handleYearChange(year);
-    // eslint-disable-next-line
+    
+    if (selectedMonth !== month) {
+      setSelectedMonth(month);
+    }
+    if (selectedYear !== year) {
+      setSelectedYear(year);
+    }
   }, [currentDate]);
 
   // Get color for event based on category
