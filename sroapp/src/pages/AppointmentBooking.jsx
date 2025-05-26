@@ -832,7 +832,7 @@ const AppointmentBooking = () => {
         </div>
       )}
       <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Reschedule Appointment</DialogTitle>
             <DialogDescription>
@@ -840,7 +840,7 @@ const AppointmentBooking = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1">
             <div className="rounded-lg border p-4">
               <CustomCalendar
                 mode="appointments"
