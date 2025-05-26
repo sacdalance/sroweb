@@ -487,6 +487,32 @@ const AdminPanel = () => {
       })
     : weekEvents;
 
+  const handleEventClick = async (event) => {
+    setModalLoading(true);
+    setIsModalOpen(true);
+    setSelectedActivity(null);
+
+    // Fetch full activity details from Supabase
+    const { data, error } = await supabase
+      .from("activity")
+      .select(`
+        *,
+        account:account(*),
+        schedule:activity_schedule(*),
+        organization:organization(*)
+      `)
+      .eq("activity_id", event.id.split("_")[0])
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch activity details:", error);
+      setSelectedActivity(event); // fallback to minimal
+    } else {
+      setSelectedActivity(data);
+    }
+    setModalLoading(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#ffffff]">
       {/* Responsive Flex Layout */}
@@ -674,22 +700,35 @@ const AdminPanel = () => {
                               return (
                                 <div key={i} className="flex-1 min-w-0">
                                   {dayEvents.length > 0 ? (
-                                    <div
-                                      key={dayEvents[0].id}
-                                      className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto justify-between"
-                                      style={{ width: "100%", maxWidth: "100%" }}
-                                    >
-                                      {/* Top Row: Location + Time Slot */}
-                                      <div className="flex items-center mb-1 min-w-0">
-                                        <span className="text-white text-xs truncate flex-1 min-w-0">{dayEvents[0].location}</span>
-                                        <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{dayEvents[0].time}</span>
-                                      </div>
-                                      {/* Activity Name */}
-                                      <h3 className="text-white font-bold text-base mb-1 truncate">{dayEvents[0].name}</h3>
-                                      {/* Organization and Category */}
-                                      <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                        <span className="text-white text-sm truncate flex-1 min-w-0">{dayEvents[0].organization}</span>
-                                        <span className="text-white/80 italic text-xs sm:text-sm text-right flex-shrink-0">{dayEvents[0].category}</span>
+                                    <div className="h-[100px] w-full max-w-full mx-auto">
+                                      <div
+                                        key={dayEvents[0].id}
+                                        onClick={() => handleEventClick(dayEvents[0])}
+                                        className="bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors"
+                                      >
+                                        {/* Activity Name and Time */}
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                          <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
+                                          <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
+                                        </div>
+                                        {/* Organization Name */}
+                                        <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
+                                        {/* Bottom Row: Location and Activity Count */}
+                                        <div className="flex items-center justify-between mt-1">
+                                          <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                          {dayEvents.length > 1 && (
+                                            <Badge 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Navigate to activities calendar
+                                                window.location.href = '/admin/activities-calendar';
+                                              }}
+                                              className="bg-[#F3AA2C] hover:bg-[#F3AA2C]/90 text-[#7B1113] text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
+                                            >
+                                              +{dayEvents.length - 1} More Activities
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   ) : (
@@ -776,7 +815,7 @@ const AdminPanel = () => {
         </main>
       </div>
 
-      {/* Activity Details Modal */}
+      {/* Activity Details Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
