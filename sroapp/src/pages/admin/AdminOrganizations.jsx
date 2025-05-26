@@ -74,7 +74,7 @@ useEffect(() => {
 
   return (
     <div className="container mx-auto py-4 max-w-6xl">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-8">Summary of Organizations</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Organizations</h1>
 
       {/* Search and Category Filter */}
       <div className="mb-8 flex flex-col md:flex-row gap-4">
