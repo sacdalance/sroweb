@@ -788,7 +788,7 @@ const AdminPanel = () => {
               activity={selectedActivity}
               setActivity={setSelectedActivity}
               isModalOpen={isModalOpen}
-              readOnly={true}
+              readOnly={false}
             />
           )
         )}
