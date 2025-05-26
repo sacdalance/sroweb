@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -273,9 +273,7 @@ const AdminActivitiesCalendar = () => {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
-
-          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+          </Select>          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
             <SelectTrigger className="w-full sm:w-64">
               <SelectValue placeholder="Select organization" />
             </SelectTrigger>
@@ -289,12 +287,6 @@ const AdminActivitiesCalendar = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-          onClick={() => window.print()}
-        >
-          <Printer className="w-4 h-4 mr-2" /> Print Calendar
-        </Button>
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
