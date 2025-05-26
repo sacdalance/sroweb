@@ -1,255 +1,322 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import supabase from "@/lib/supabase";
+import { updateOrgStatus } from "@/api/updateOrgStatusAPI";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Download } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
+import { Download } from "lucide-react";
+import supabase from "@/lib/supabase"; // Only for fetching, NOT for update!
+
+const statusList = [
+  "On Probation", "Warning", "Renewed/Duly", "Recognized", "Disaffiliated"
+];
+
+const categoriesList = [
+  { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
+  { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
+  { id: "fraternity", name: "Fraternity/Sorority/Confraternity" },
+  { id: "performing", name: "Performing Groups" },
+  { id: "political", name: "Political Organizations" },
+  { id: "regional", name: "Regional/Provincial and Socio-Cultural Organizations" },
+  { id: "special", name: "Special Interests Organizations" },
+  { id: "sports", name: "Sports and Recreation Organizations" },
+  { id: "probation", name: "On Probation Organizations" }
+];
+
+const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.name || id;
+
+const statusPill = (status) => {
+  let pillColor = "bg-gray-200 text-gray-700";
+  if (status === "Approved") pillColor = "bg-[#014421] text-white";
+  else if (status === "Pending") pillColor = "bg-[#FFF7D6] text-[#A05A00]";
+  else if (status === "Declined" || status === "Rejected") pillColor = "bg-[#800000] text-white";
+
+  return (
+    <span className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${pillColor}`}>
+      {status}
+    </span>
+  );
+};
+
 
 const AdminOrgApplications = () => {
+  const [roleId, setRoleId] = useState(null);
   const [applications, setApplications] = useState([]);
-  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [existingOrgs, setExistingOrgs] = useState([]);
+  const [selectedApp, setSelectedApp] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [decisionType, setDecisionType] = useState(null); // true = approve, false = decline
+  const [decision, setDecision] = useState(null);
+  const [odsaDecision, setOdsaDecision] = useState(null);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
-
+  // 1. Fetch roleId from account using supabase_uid
   useEffect(() => {
-    const fetchApplications = async () => {
-      const { data, error } = await supabase
-        .from("org_recognition")
-        .select("*")
-        .order("submitted_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching applications:", error.message);
-      } else {
-        setApplications(data);
-      }
+    const fetchRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return toast.error("Not logged in.");
+      const { data: profile, error } = await supabase
+        .from("account")
+        .select("role_id")
+        .eq("supabase_uid", user.id)
+        .single();
+      if (error || !profile) toast.error("Account/role not found.");
+      else setRoleId(profile.role_id);
     };
-
-    fetchApplications();
+    fetchRole();
   }, []);
 
-  const handleViewDetails = (application) => {
-    setSelectedApplication(application);
+  // 2. Fetch applications and recognized orgs
+  useEffect(() => {
+    if (!roleId) return;
+    const fetchApplications = async () => {
+      let query = supabase.from("org_recognition").select("*").order("submitted_at", { ascending: false });
+      if (roleId === 3) query = query.eq("sro_approved", true);
+      const { data, error } = await query;
+      if (!error) setApplications(data || []);
+    };
+    const fetchExistingOrgs = async () => {
+      const { data, error } = await supabase.from("organization").select("org_name, academic_year");
+      if (!error) setExistingOrgs(data || []);
+    };
+    fetchApplications();
+    fetchExistingOrgs();
+  }, [roleId]);
+
+  const handleRowClick = (app) => {
+    setSelectedApp(app);
+    setDecision(app.sro_approved === true ? "yes" : app.sro_approved === false ? "no" : null);
+    setOdsaDecision(app.odsa_approved === true ? "yes" : app.odsa_approved === false ? "no" : null);
+    setStatus(app.new_org_status || "");
     setDialogOpen(true);
   };
 
-  const openConfirmationDialog = (isRecognized) => {
-    setDecisionType(isRecognized);
-    setConfirmOpen(true);
-  };
-
-  const confirmDecision = async () => {
-    if (!selectedApplication || decisionType === null) return;
-
+  const handleConfirm = async () => {
+    if (!selectedApp) return;
+    if ((roleId === 2 && (decision === null || !status))
+      || (roleId === 3 && odsaDecision === null)
+      || (roleId === 4 && (decision === null || odsaDecision === null || !status))
+    ) {
+      toast.error("Complete all fields before submitting.");
+      return;
+    }
+    setLoading(true);
     try {
-      const response = await fetch("/api/org-applications/update-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recognition_id: selectedApplication.recognition_id,
-          is_recognized: decisionType,
-        }),
-      });
+      let update = {};
+      if (roleId === 2) update = { sro_approved: decision === "yes", new_org_status: status };
+      if (roleId === 3) update = { odsa_approved: odsaDecision === "yes" };
+      if (roleId === 4) update = {
+        sro_approved: decision === "yes",
+        odsa_approved: odsaDecision === "yes",
+        new_org_status: status,
+      };
+      await updateOrgStatus(selectedApp.recognition_id, update);
 
-      if (!response.ok) throw new Error("Failed to update");
-
-      toast.success(`Organization ${decisionType ? "recognized" : "declined"} successfully.`);
+      toast.success("Decision saved.");
       setDialogOpen(false);
-      setConfirmOpen(false);
-      setDecisionType(null);
-      navigate("/admin");
-    } catch (err) {
-      toast.error("An error occurred. Try again.");
-      console.error(err);
+      setApplications(prev =>
+        prev.map(a =>
+          a.recognition_id === selectedApp.recognition_id ? { ...a, ...update } : a
+        )
+      );
+    } catch (error) {
+      toast.error(error.message || "Failed to save approval");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const categoriesList = [
-    { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
-    { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
-    { id: "fraternity", name: "Fraternity/Sorority/Confraternity" },
-    { id: "performing", name: "Performing Groups" },
-    { id: "political", name: "Political Organizations" },
-    { id: "regional", name: "Regional/Provincial and Socio-Cultural Organizations" },
-    { id: "special", name: "Special Interests Organizations" },
-    { id: "sports", name: "Sports and Recreation Organizations" },
-    { id: "probation", name: "On Probation Organizations" },
-  ];
+  const isOrgExisting = (app) => {
+    return existingOrgs.some(
+      (org) => org.org_name === app.org_name && org.academic_year === app.academic_year
+    );
+  };
 
-  const getCategoryName = (id) => {
-    return categoriesList.find((cat) => cat.id === id)?.name || id;
+  const getStatus = (app) => {
+    if (roleId === 2)
+      return app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending";
+    if (roleId === 3)
+      return app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending";
+    if (roleId === 4)
+      return (
+        <>
+          {statusPill(app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending")}
+          <br />
+          {statusPill(app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending")}
+        </>
+      );
+    return "-";
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-4">
-      <h1 className="text-3xl font-bold text-[#7B1113] mb-6">Organization Recognition Applications</h1>
-
-      <div className="rounded-lg border shadow-sm">
+    <div className="container mx-auto py-6 max-w-[1550px] scale-100 sm:scale-[0.97] transform origin-top">
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-6">Organization Recognition Applications</h1>
+      <div className="rounded-lg overflow-hidden shadow-md bg-white border border-gray-200">
         <Table>
-          <TableHeader className="bg-gray-100">
+          <TableHeader>
             <TableRow>
               <TableHead className="text-center">Submission Date</TableHead>
               <TableHead className="text-center">Organization</TableHead>
               <TableHead className="text-center">Organization Type</TableHead>
               <TableHead className="text-center">Chairperson</TableHead>
-              <TableHead className="text-center">Adviser</TableHead>
-              <TableHead className="text-center">Organizational Email</TableHead>
-              <TableHead className="text-center"> </TableHead>
+              <TableHead className="text-center">Academic Year</TableHead>
+              <TableHead className="text-center">Existing Org?</TableHead>
+              <TableHead className="text-center">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {applications.map((application) => (
-              <TableRow key={application.recognition_id}>
-                <TableCell className="text-center">
-                  {new Date(application.submitted_at).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="text-center">{application.org_name}</TableCell>
-                <TableCell className="text-center">{getCategoryName(application.org_type)}</TableCell>
-                <TableCell className="text-center">{application.org_chairperson}</TableCell>
-                <TableCell className="text-center">{application.org_adviser}</TableCell>
-                <TableCell className="text-center">{application.org_email}</TableCell>
-                <TableCell className="text-center">
-                  <button
-                    onClick={() => handleViewDetails(application)}
-                    className="text-gray-600 hover:text-[#7B1113] hover:scale-125 transition-transform"
-                  >
-                    <Eye className="h-5 w-5" />
-                  </button>
+            {applications.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-gray-500">
+                  No applications found for your role.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              applications.map((app) => (
+                <TableRow
+                  key={app.recognition_id}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(app)}
+                >
+                  <TableCell className="text-center">{new Date(app.submitted_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-center">{app.org_name}</TableCell>
+                  <TableCell className="text-center">{getCategoryName(app.org_type)}</TableCell>
+                  <TableCell className="text-center">{app.org_chairperson}</TableCell>
+                  <TableCell className="text-center">{app.academic_year}</TableCell>
+                  <TableCell className="text-center">
+                    {isOrgExisting(app) ? (
+                      <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
+                    ) : (
+                      <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">{statusPill(getStatus(app))}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Application Detail Dialog */}
+      {/* Dialog with <DialogDescription> for accessibility */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Organization Application Details</DialogTitle>
-          </DialogHeader>
-
-          {selectedApplication && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 pt-2 text-sm">
-              <div>
-                <p className="font-medium text-gray-600">Submission Date</p>
-                <p>{new Date(selectedApplication.submitted_at).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Organization Type</p>
-                <p>{getCategoryName(selectedApplication.org_type)}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Organization Name</p>
-                <p>{selectedApplication.org_name}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Organization Email</p>
-                <p>{selectedApplication.org_email}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Chairperson</p>
-                <p>{selectedApplication.org_chairperson}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Chairperson Email</p>
-                <p>{selectedApplication.chairperson_email}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Adviser</p>
-                <p>{selectedApplication.org_adviser}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Adviser Email</p>
-                <p>{selectedApplication.adviser_email}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Co-Adviser</p>
-                <p>{selectedApplication.org_coadviser}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-600">Co-Adviser Email</p>
-                <p>{selectedApplication.coadviser_email}</p>
-              </div>
-
-              {/* Drive Folder Link */}
-              <div className="md:col-span-2 pt-4">
-                <p className="font-medium text-gray-600 mb-2">Drive Folder</p>
-                <Button
-                  className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
-                  asChild
-                >
-                  <a
-                    href={selectedApplication.drive_folder_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Drive Folder
-                  </a>
-                </Button>
-              </div>
-
-              {/* Recognize / Decline Buttons */}
-              <div className="md:col-span-2 flex gap-4 pt-4">
-                <Button
-                  className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2"
-                  onClick={() => openConfirmationDialog(true)}
-                >
-                  Approve
-                </Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2"
-                  onClick={() => openConfirmationDialog(false)}
-                >
-                  Decline
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Custom Confirmation Dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {decisionType ? "Approve Organization?" : "Decline Organization?"}
+            <DialogTitle className="text-[#3F3F3F]">
+              {(roleId === 2 && "SRO") || (roleId === 3 && "ODSA") || (roleId === 4 && "Superadmin")} Approval
             </DialogTitle>
-            <p className="text-sm text-gray-500">
-              Are you sure you want to {decisionType ? "APPROVE" : "DECLINE"} this organization?
-            </p>
+            <DialogDescription>
+              {selectedApp
+                ? `You are reviewing "${selectedApp.org_name}". Fill in the approval fields below and click confirm to proceed.`
+                : "Approve or decline this organization application."}
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className={decisionType ? "bg-[#014421] text-white" : "bg-red-600 text-white"}
-              onClick={confirmDecision}
-            >
-              {decisionType ? "Approve" : "Decline"}
-            </Button>
-          </div>
+          {selectedApp && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
+                <div>
+                  <p className="font-semibold text-gray-700">Organization</p>
+                  <p>{selectedApp.org_name}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Type</p>
+                  <p>{getCategoryName(selectedApp.org_type)}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Chairperson</p>
+                  <p>{selectedApp.org_chairperson}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Academic Year</p>
+                  <p>{selectedApp.academic_year}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Submitted At</p>
+                  <p>{new Date(selectedApp.submitted_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700">Existing Org?</p>
+                  <p>
+                    {isOrgExisting(selectedApp) ? (
+                      <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
+                    ) : (
+                      <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
+                    )}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="font-semibold text-gray-700">Adviser</p>
+                  <p>{selectedApp.org_adviser}</p>
+                </div>
+                <div className="sm:col-span-2 pt-2">
+                  <p className="font-semibold text-gray-700 mb-2">Drive Folder</p>
+                  <Button className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2" asChild>
+                    <a href={selectedApp.drive_folder_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Drive Folder
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              {(roleId === 2 || roleId === 4) && (
+                <>
+                  <div>
+                    <label className="font-semibold text-gray-800">SRO Approval</label>
+                    <RadioGroup value={decision} onValueChange={setDecision} className="flex gap-6 mt-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <RadioGroupItem value="yes" className="border-black text-black" />
+                        <span>Yes</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <RadioGroupItem value="no" className="border-black text-black" />
+                        <span>No</span>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div>
+                    <label className="font-semibold block mb-1 text-gray-800">New Organization Status</label>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="w-full border rounded px-3 py-2">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusList.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              {(roleId === 3 || roleId === 4) && (
+                <div>
+                  <label className="font-semibold text-gray-800">ODSA Approval</label>
+                  <RadioGroup value={odsaDecision} onValueChange={setOdsaDecision} className="flex gap-6 mt-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <RadioGroupItem value="yes" className="border-black text-black" />
+                      <span>Yes</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <RadioGroupItem value="no" className="border-black text-black" />
+                      <span>No</span>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+              <DialogFooter className="pt-4">
+                <Button onClick={handleConfirm} className="bg-[#014421] hover:bg-green-900 text-white" disabled={loading}>Confirm</Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
