@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Loader2 } from "lucide-react";
+import { Printer, Eye, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -109,27 +110,64 @@ const AdminActivitiesCalendar = () => {
           venue: activity.venue
         }));
 
-        setEvents(transformedEvents);
-
-        // Set upcoming events (events from today onwards)
+        setEvents(transformedEvents);        // Set upcoming events (events in next 30 days)
         const today = new Date();
-        const upcoming = transformedEvents
-          .filter(event => event.date >= today)
-          .sort((a, b) => a.date - b.date)
-          .slice(0, 5);
+        const thirtyDaysFromNow = new Date(today);
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
 
-        setUpcomingEvents(upcoming.map(event => ({
-          id: event.id,
-          date: event.date.toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric', 
-            year: 'numeric' 
-          }),
-          title: event.title,
-          organization: event.organization,
-          type: event.category,
-          venue: event.venue
-        })));
+        const upcoming = transformedEvents
+          .filter(event => event.date >= today && event.date <= thirtyDaysFromNow)
+          .sort((a, b) => a.date - b.date);
+
+        // Group events by week
+        const upcomingGrouped = upcoming.map(event => {
+          const eventDate = event.date;
+          const diffTime = Math.abs(eventDate - today);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          let timeframe;
+          let relativeDate;
+
+          if (diffDays === 0) {
+            timeframe = "Today";
+            relativeDate = "Today";
+          } else if (diffDays === 1) {
+            timeframe = "Tomorrow";
+            relativeDate = "Tomorrow";
+          } else if (diffDays <= 7) {
+            timeframe = "This Week";
+            relativeDate = `In ${diffDays} days`;
+          } else if (diffDays <= 14) {
+            timeframe = "Next Week";
+            relativeDate = `In ${diffDays} days`;
+          } else {
+            timeframe = "Later This Month";
+            relativeDate = eventDate.toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric'
+            });
+          }
+
+          return {
+            id: event.id,
+            timeframe,
+            relativeDate,
+            absoluteDate: eventDate.toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric', 
+              year: 'numeric' 
+            }),
+            title: event.title,
+            organization: event.organization,
+            type: event.category,
+            venue: event.venue,
+            time: event.time,
+            startDate: event.date,
+            endDate: event.endDate
+          };
+        });
+
+        setUpcomingEvents(upcomingGrouped);
       } catch (err) {
         console.error('Error fetching activities:', err);
         setError(err.message);
@@ -141,34 +179,27 @@ const AdminActivitiesCalendar = () => {
 
     fetchActivities();
   }, []);
+
   // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
-    const monthIndex = months.indexOf(value);
-    const newDate = new Date(currentDate);
-    newDate.setMonth(monthIndex);
-    setCurrentDate(newDate);
     setSelectedMonth(value);
+    const monthIndex = months.indexOf(value);
+    setCurrentDate(new Date(parseInt(selectedYear), monthIndex));
   };
 
   const handleYearChange = (value) => {
-    const monthIndex = currentDate.getMonth();
-    const newDate = new Date(currentDate);
-    newDate.setFullYear(parseInt(value));
-    setCurrentDate(newDate);
     setSelectedYear(value);
+    const monthIndex = months.indexOf(selectedMonth);
+    setCurrentDate(new Date(parseInt(value), monthIndex));
   };
 
   // Sync dropdowns with calendar navigation
   useEffect(() => {
     const month = currentDate.toLocaleString("default", { month: "long" });
     const year = currentDate.getFullYear().toString();
-    
-    if (selectedMonth !== month) {
-      setSelectedMonth(month);
-    }
-    if (selectedYear !== year) {
-      setSelectedYear(year);
-    }
+    if (selectedMonth !== month) handleMonthChange(month);
+    if (selectedYear !== year) handleYearChange(year);
+    // eslint-disable-next-line
   }, [currentDate]);
 
   // Get color for event based on category
@@ -250,6 +281,27 @@ const AdminActivitiesCalendar = () => {
     </div>
   );
 
+  const formatTime = (timeString) => {
+    const [startTime, endTime] = timeString.split(' to ').map(time => {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      if (hour === 12) return `${hour}:${minutes}NN`;
+      return hour > 12 
+        ? `${hour-12}:${minutes}PM` 
+        : `${hour}:${minutes}AM`;
+    });
+    return `${startTime} to ${endTime}`;
+  };
+
+  const [expandedText, setExpandedText] = useState({});
+
+  const toggleText = (id, type) => {
+    setExpandedText(prev => ({
+      ...prev,
+      [type + id]: !prev[type + id]
+    }));
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Activities Calendar</h1>
@@ -280,7 +332,9 @@ const AdminActivitiesCalendar = () => {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+          </Select>
+
+          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
             <SelectTrigger className="w-full sm:w-64">
               <SelectValue placeholder="Select organization" />
             </SelectTrigger>
@@ -294,6 +348,12 @@ const AdminActivitiesCalendar = () => {
             </SelectContent>
           </Select>
         </div>
+        <Button
+          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+          onClick={() => window.print()}
+        >
+          <Printer className="w-4 h-4 mr-2" /> Print Calendar
+        </Button>
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
@@ -339,13 +399,15 @@ const AdminActivitiesCalendar = () => {
           <div className="w-3 h-3 rounded-full bg-red-100 mr-1"></div>
           <span className="text-xs text-[#7B1113]">Special Event</span>
         </div>
-      </div>
-
-      <Card className="rounded-lg shadow-md">
-        <CardHeader className="bg-white py-4">
-          <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
-            Upcoming Activities
-          </CardTitle>
+      </div>      <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
+              Upcoming Activities
+            </CardTitle>
+            <Badge variant="outline" className="text-[#014421]">
+              Next 30 Days
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -356,57 +418,125 @@ const AdminActivitiesCalendar = () => {
             <EmptyState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-h-[350px] overflow-y-auto">
-                <table className="w-full min-w-[600px]">
+              <div className="max-h-[350px] overflow-y-auto">                <table className="w-full min-w-[500px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5k">Organization</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Type</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
-                      <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5"></th>
+                      <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
+                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
+                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>
+                      <th className="w-[80px] text-xs font-semibold text-center py-2 px-3">Type</th>
+                      <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
+                      <th className="w-[40px] text-xs font-semibold text-center py-2 px-3"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {upcomingEvents.map((event, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                          {event.date}
-                        </td>
-                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                          {event.title}
-                        </td>
-                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                          {event.organization}
-                        </td>
-                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 align-middle">
-                          <span
-                            className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
-                            style={{
-                              whiteSpace: "pre-line", // allow line breaks
-                              wordBreak: "break-word",
-                              lineHeight: "1.3",
-                              minHeight: "2.2em", // keeps pill shape even for one line
-                              maxWidth: "100%",
-                              boxShadow: "0 1px 3px 0 rgba(0,0,0,0.04)"
-                            }}
-                          >
-                            {categoryMap[event.type] || event.type}
-                          </span>
-                        </td>
-                        <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                          {event.venue}
-                        </td>
-                        <td className="w-[70px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                          <button
-                            onClick={() => handleEventClick(event)}
-                            className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </button>
-                        </td>
-                      </tr>
+                  <tbody>
+                    {[...new Set(upcomingEvents.map(event => event.timeframe))].map(timeframe => (
+                      <React.Fragment key={timeframe}>
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-4 py-2 font-semibold text-sm text-[#014421]">
+                            {timeframe}
+                          </td>
+                        </tr>
+                        {upcomingEvents
+                          .filter(event => event.timeframe === timeframe)
+                          .map((event, index) => (                            <tr key={`${timeframe}-${index}`} 
+                                className="hover:bg-gray-50 border-b border-gray-100">
+                                <td className="w-[100px] text-xs py-2 px-3">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
+                                    <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
+                                    <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
+                                  </div>
+                                </td>
+                                <td className="w-[120px] text-xs py-2 px-3">
+                                <div className="flex items-center gap-1">
+                                  <div className="transition-all duration-200">
+                                    {expandedText['title' + event.id] ? event.title : 
+                                      event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
+                                  </div>
+                                  {event.title.length > 50 && (
+                                    <button
+                                      onClick={() => toggleText(event.id, 'title')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                    >
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['title' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                                <td className="w-[120px] text-xs py-2 px-3">
+                                <div className="flex items-center gap-1">
+                                  <div className="transition-all duration-200">
+                                    {expandedText['org' + event.id] ? event.organization : 
+                                      event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
+                                  </div>
+                                  {event.organization.length > 50 && (
+                                    <button
+                                      onClick={() => toggleText(event.id, 'org')}
+                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                    >
+                                      <svg
+                                        className={`h-4 w-4 transform transition-transform ${
+                                          expandedText['org' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                                <td className="w-[80px] text-xs py-2 px-3 text-center">
+                                  <span
+                                    className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
+                                    style={{
+                                      whiteSpace: "pre-line",
+                                      wordBreak: "break-word",
+                                      lineHeight: "1.3",
+                                      minHeight: "2.2em",
+                                      maxWidth: "100%",
+                                      boxShadow: "0 1px 3px 0 rgba(0,0,0,0.04)"
+                                    }}
+                                  >
+                                    {categoryMap[event.type] || event.type}
+                                  </span>
+                                </td>
+                                <td className="w-[100px] text-xs py-2 px-3">
+                                  {event.venue}
+                                </td>
+                                <td className="w-[40px] text-xs py-2 px-3 text-center">
+                                  <button
+                                    onClick={() => handleEventClick(event)}
+                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  >
+                                    <Eye className="h-5 w-5" />
+                                  </button>
+                                </td>
+                              </tr>
+                          ))}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
