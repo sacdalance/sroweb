@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -142,27 +142,34 @@ const ActivitiesCalendar = () => {
 
     fetchActivities();
   }, []);
-
   // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
-    setSelectedMonth(value);
     const monthIndex = months.indexOf(value);
-    setCurrentDate(new Date(parseInt(selectedYear), monthIndex));
+    const newDate = new Date(currentDate);
+    newDate.setMonth(monthIndex);
+    setCurrentDate(newDate);
+    setSelectedMonth(value);
   };
 
   const handleYearChange = (value) => {
+    const monthIndex = currentDate.getMonth();
+    const newDate = new Date(currentDate);
+    newDate.setFullYear(parseInt(value));
+    setCurrentDate(newDate);
     setSelectedYear(value);
-    const monthIndex = months.indexOf(selectedMonth);
-    setCurrentDate(new Date(parseInt(value), monthIndex));
   };
 
   // Sync dropdowns with calendar navigation
   useEffect(() => {
     const month = currentDate.toLocaleString("default", { month: "long" });
     const year = currentDate.getFullYear().toString();
-    if (selectedMonth !== month) handleMonthChange(month);
-    if (selectedYear !== year) handleYearChange(year);
-    // eslint-disable-next-line
+    
+    if (selectedMonth !== month) {
+      setSelectedMonth(month);
+    }
+    if (selectedYear !== year) {
+      setSelectedYear(year);
+    }
   }, [currentDate]);
 
   // Get color for event based on category
@@ -274,9 +281,7 @@ const ActivitiesCalendar = () => {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
-
-          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
+          </Select>          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
             <SelectTrigger className="w-full sm:w-64">
               <SelectValue placeholder="Select organization" />
             </SelectTrigger>
@@ -290,12 +295,6 @@ const ActivitiesCalendar = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button
-          className="w-full sm:w-auto bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
-          onClick={() => window.print()}
-        >
-          <Printer className="w-4 h-4 mr-2" /> Print Calendar
-        </Button>
       </div>
 
       <Card className="rounded-lg shadow-md mb-6">
