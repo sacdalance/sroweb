@@ -638,7 +638,7 @@ const AdminActivitySummary = () => {
           <Table>
             <TableHeader>
               <TableRow className="border-b-0">
-                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
+                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Name</TableHead>
@@ -646,7 +646,7 @@ const AdminActivitySummary = () => {
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Date</TableHead>
                 <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead>  
+                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -666,7 +666,22 @@ const AdminActivitySummary = () => {
                       setIsModalOpen(true);
                     }}
                   >
-                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                    <TableCell className="py-5">
+                      <div className="flex items-center justify-center">
+                        <Badge
+                          className={
+                            (activity.final_status === "Approved"
+                              ? "bg-[#014421] text-white"
+                              : "bg-[#FFF7D6] text-[#A05A00]")
+                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
+                          }
+                        >
+                          {activity.final_status === "Approved"
+                            ? "Approved"
+                            : "Pending"}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="py-5 text-sm text-center">
                       {new Date(activity.created_at).toLocaleDateString(undefined, {
                         year: "numeric",
@@ -718,22 +733,7 @@ const AdminActivitySummary = () => {
                     <TableCell className="py-5 text-sm text-center">
                       {activity.organization?.adviser_name || "N/A"}
                     </TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex items-center justify-center">
-                        <Badge
-                          className={
-                            (activity.final_status === "Approved"
-                              ? "bg-[#014421] text-white"
-                              : "bg-[#FFF7D6] text-[#A05A00]")
-                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
-                          }
-                        >
-                          {activity.final_status === "Approved"
-                            ? "Approved"
-                            : "Pending"}
-                        </Badge>
-                      </div>
-                    </TableCell>
+                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                   </TableRow>
                 ))
             )}
