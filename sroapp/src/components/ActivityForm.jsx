@@ -484,29 +484,43 @@ const handleSubmit = async (e) => {
 };
 
 
-  const buildActivityPayload = (form) => {
+const buildActivityPayload = (form) => {
+  // Extract SDGs as a comma-separated string
+  const selectedSDGs = Object.entries(form.selectedSDGs)
+    .filter(([_, value]) => value === true)
+    .map(([key]) => key)
+    .join(", ");
+
+  // Extract partner names from selectedPublicAffairs
+  const selectedPartners = Object.entries(form.selectedPublicAffairs)
+    .flatMap(([unit, val]) => {
+      if (Array.isArray(val)) return val.filter(v => v.trim() !== "");
+      return val === true ? [unit] : [];
+    })
+    .join(", ");
+
   const activityData = {
-  org_id: form.selectedValue,
-  student_position: form.studentPosition,
-  student_contact: form.studentContact,
-  activity_name: form.activityName.trim(),
-  activity_description: form.activityDescription.trim(),
-  activity_type: form.selectedActivityType,
-  is_off_campus: form.isOffCampus === "yes",
-  is_recurring: form.recurring === "recurring",
-  venue: form.venue,
-  venue_approver: form.venueApprover,
-  venue_approver_contact: form.venueApproverContact,
-  green_monitor_name: form.greenCampusMonitor,
-  green_monitor_contact: form.greenCampusMonitorContact,
-  charge_fee: form.chargingFees1 === "yes",
-  university_partner: form.partnering === "yes",
-  partner_units: JSON.stringify(form.selectedPublicAffairs),
-  partner_role_description: form.partnerDescription,
-  sdg_goals: JSON.stringify(form.selectedSDGs),
-  status: "For Review",
-  submitted_at: new Date().toISOString(),
-};
+    org_id: form.selectedValue,
+    student_position: form.studentPosition,
+    student_contact: form.studentContact,
+    activity_name: form.activityName.trim(),
+    activity_description: form.activityDescription.trim(),
+    activity_type: form.selectedActivityType,
+    is_off_campus: form.isOffCampus === "yes",
+    is_recurring: form.recurring === "recurring",
+    venue: form.venue,
+    venue_approver: form.venueApprover,
+    venue_approver_contact: form.venueApproverContact,
+    green_monitor_name: form.greenCampusMonitor,
+    green_monitor_contact: form.greenCampusMonitorContact,
+    charge_fee: form.chargingFees1 === "yes",
+    university_partner: form.partnering === "yes",
+    partner_name: selectedPartners,
+    partner_role: form.partnerDescription,
+    sdg_goals: selectedSDGs,
+    status: "For Review",
+    submitted_at: new Date().toISOString(),
+  };
 
   const scheduleData = {
     start_date: form.startDate,
@@ -516,8 +530,9 @@ const handleSubmit = async (e) => {
     recurring_days: form.recurring === "recurring" ? JSON.stringify(form.recurringDays) : null,
   };
 
-    return { activityData, scheduleData };
-  };
+  return { activityData, scheduleData };
+};
+
 
   return (
     <div className="min-h-screen flex flex-col items-start justify-start py-8">
