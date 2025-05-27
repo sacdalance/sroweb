@@ -45,25 +45,47 @@ const formatLabel = (id, options) => {
   return options.find((opt) => opt.id === id)?.label || id;
 };
 
-const formatSDGLabels = (sdg) => {
-  try {
-    let ids = [];
+const formatSDGLabels = (sdgRaw) => {
+  let ids = [];
 
-    if (typeof sdg === "string") {
+  try {
+    // Case: valid JSON string
+    if (typeof sdgRaw === "string") {
       try {
-        ids = JSON.parse(sdg);
+        const parsed = JSON.parse(sdgRaw);
+        if (Array.isArray(parsed)) {
+          ids = parsed;
+        } else if (typeof parsed === "object") {
+          ids = Object.keys(parsed).filter((key) => parsed[key]);
+        } else {
+          ids = sdgRaw.split(",").map((s) => s.trim());
+        }
       } catch {
-        ids = sdg.split(",").map((s) => s.trim());
+        // fallback if not JSON parsable
+        ids = sdgRaw.split(",").map((s) => s.trim());
       }
-    } else if (Array.isArray(sdg)) {
-      ids = sdg;
     }
 
-    return ids.map((id) => formatLabel(id, sdgOptions));
+    // Case: directly passed as array
+    else if (Array.isArray(sdgRaw)) {
+      ids = sdgRaw;
+    }
+
+    // Case: object like { genderEquality: true }
+    else if (typeof sdgRaw === "object" && sdgRaw !== null) {
+      ids = Object.keys(sdgRaw).filter((key) => sdgRaw[key]);
+    }
   } catch {
-    return [];
+    ids = [];
   }
+
+  return ids.map((id) => {
+    const match = sdgOptions.find((opt) => opt.id === id);
+    return match ? match.label : id;
+  });
 };
+
+
 
 const ActivityDialogContent = ({
   activity,
@@ -151,11 +173,7 @@ const ActivityDialogContent = ({
     });
   };
 
-  const sdgs = Array.isArray(activity.sdg_goals)
-    ? activity.sdg_goals
-    : typeof activity.sdg_goals === "string"
-    ? activity.sdg_goals.split(",").map((s) => s.trim())
-    : [];
+  const sdgs = activity.sdg_goals;
 
   return (
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
@@ -229,17 +247,18 @@ const ActivityDialogContent = ({
             </div>
           </div>
 
-          {activity.university_partner === "true" && activity.partner_name?.trim() && (
+          {activity.university_partner === "true" && (
             <Collapsible className="border border-gray-300 rounded-md">
               <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
                 <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-                <p>{activity.partner_name}</p>
+                <p>{activity.partner_name || "None listed"}</p>
               </CollapsibleContent>
             </Collapsible>
           )}
+
 
           {sdgs.length > 0 && (
             <Collapsible className="border border-gray-300 rounded-md">
