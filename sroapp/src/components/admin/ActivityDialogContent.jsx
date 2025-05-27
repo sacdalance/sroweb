@@ -174,14 +174,24 @@ const ActivityDialogContent = ({
   };
 
   const sdgs = activity.sdg_goals;
+  const title = activity.activity_name || activity.activityName || "";
+  const isNoSpaceLong = title.length > 40 && !/\s/.test(title);
 
   return (
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-[#7B1113] font-bold">
-            {activity.activity_name || activity.activityName}
-          </DialogTitle>
+        <DialogTitle
+          className="text-2xl text-[#7B1113] font-bold break-words"
+          style={{
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+            maxWidth: isNoSpaceLong ? "15%" : "100%",
+          }}
+        >
+          {title}
+        </DialogTitle>
           <p className="text-sm font-semibold text-gray-700 mb-2">
             {activity.organization?.org_name || activity.organization || "Organization Name"}
           </p>
@@ -190,10 +200,10 @@ const ActivityDialogContent = ({
         <div className="flex flex-col gap-y-6 text-sm">
           <div className="text-gray-800">
             {!isLong ? (
-              <p className="whitespace-pre-wrap">{description}</p>
+              <p className="whitespace-pre-wrap break-words">{description}</p>
             ) : showFullDescription ? (
               <>
-                <p className="whitespace-pre-wrap">{description}</p>
+                <p className="whitespace-pre-wrap break-words">{description}</p>
                 <button
                   onClick={toggleDescription}
                   className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
@@ -203,7 +213,17 @@ const ActivityDialogContent = ({
               </>
             ) : (
               <>
-                <p className="whitespace-pre-wrap">{description.slice(0, 300)}...</p>
+                <p
+                  className="whitespace-pre-wrap break-words overflow-hidden"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    maxHeight: "4.5em",
+                  }}
+                >
+                  {description}
+                </p>
                 <button
                   onClick={toggleDescription}
                   className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
@@ -213,6 +233,8 @@ const ActivityDialogContent = ({
               </>
             )}
           </div>
+
+
 
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
