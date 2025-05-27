@@ -174,11 +174,12 @@ const OrgApplication = () => {
       setFieldError("adviser", "length"); valid = false;
     } else setFieldError("adviser", "");
 
-    if (!coAdviser.trim()) {
-      setFieldError("coAdviser", "required"); valid = false;
-    } else if (!isValidName(coAdviser)) {
-      setFieldError("coAdviser", "length"); valid = false;
-    } else setFieldError("coAdviser", "");
+    if (coAdviser.trim() && !isValidName(coAdviser)) {
+      setFieldError("coAdviser", "length");
+      valid = false;
+    } else {
+      setFieldError("coAdviser", "");
+    }
 
     // Org type and year: not blank
     if (!orgType.trim()) {
@@ -208,11 +209,12 @@ const OrgApplication = () => {
       setFieldError("adviserEmail", "invalid"); valid = false;
     } else setFieldError("adviserEmail", "");
 
-    if (!coAdviserEmail.trim()) {
-      setFieldError("coAdviserEmail", "required"); valid = false;
-    } else if (!isValidEmail(coAdviserEmail)) {
-      setFieldError("coAdviserEmail", "invalid"); valid = false;
-    } else setFieldError("coAdviserEmail", "");
+    if (coAdviserEmail.trim() && !isValidEmail(coAdviserEmail)) {
+      setFieldError("coAdviserEmail", "invalid");
+      valid = false;
+    } else {
+      setFieldError("coAdviserEmail", "");
+    }
 
     // Files: exactly 6
     if (files.length !== 6) {
@@ -240,8 +242,8 @@ const OrgApplication = () => {
         chairperson_email: chairpersonEmail,
         org_adviser: adviser,
         adviser_email: adviserEmail,
-        org_coadviser: coAdviser,
-        coadviser_email: coAdviserEmail,
+        org_coadviser: coAdviser.trim() || null,
+        coadviser_email: coAdviserEmail.trim() || null,
         org_type: orgType,
         files,
         submitted_by: userId,
@@ -581,7 +583,7 @@ const OrgApplication = () => {
           {/* Co-Adviser */}
           <div>
             <label className="text-sm font-medium block mb-1">
-              Co-Adviser <span className="text-red-500">*</span>
+              Co-Adviser 
             </label>
             <Input
               type="text"
@@ -591,17 +593,19 @@ const OrgApplication = () => {
                 setFieldError("coAdviser", "");
               }}
               onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("coAdviser", "required");
-                else if (!isValidName(e.target.value)) setFieldError("coAdviser", "length");
-                else setFieldError("coAdviser", "");
+                const value = e.target.value.trim();
+                if (value === "") {
+                  setFieldError("coAdviser", ""); // No error if blank
+                } else if (!isValidName(value)) {
+                  setFieldError("coAdviser", "length");
+                } else {
+                  setFieldError("coAdviser", "");
+                }
               }}
               className={fieldErrors.coAdviser ? "border-[#7B1113] bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
-            {fieldErrors.coAdviser === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
-            )}
             {fieldErrors.coAdviser === "length" && (
               <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
             )}
@@ -609,7 +613,7 @@ const OrgApplication = () => {
           {/* Co-Adviser Email */}
           <div>
             <label className="text-sm font-medium block mb-1">
-              Co-Adviser E-mail <span className="text-red-500">*</span>
+              Co-Adviser E-mail
             </label>
             <Input
               type="email"
@@ -619,17 +623,19 @@ const OrgApplication = () => {
                 setFieldError("coAdviserEmail", "");
               }}
               onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("coAdviserEmail", "required");
-                else if (!isValidEmail(e.target.value)) setFieldError("coAdviserEmail", "invalid");
-                else setFieldError("coAdviserEmail", "");
+                const value = e.target.value.trim();
+                if (value === "") {
+                  setFieldError("coAdviserEmail", ""); // No error if blank
+                } else if (!isValidEmail(value)) {
+                  setFieldError("coAdviserEmail", "invalid");
+                } else {
+                  setFieldError("coAdviserEmail", "");
+                }
               }}
               placeholder="delpilarmh@up.edu.ph"
               className={fieldErrors.coAdviserEmail ? "border-[#7B1113] bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.coAdviserEmail === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
-            )}
             {fieldErrors.coAdviserEmail === "invalid" && (
               <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
