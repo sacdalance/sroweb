@@ -583,7 +583,7 @@ const AdminPanel = () => {
                                       request.status === "Pending"
                                         ? "bg-[#FFF7D6] text-[#A05A00] pointer-events-none" // Light yellow fill, brown text, no hover
                                         : request.status === "For Appeal"
-                                        ? "bg-[#7B1113] text-white pointer-events-none"
+                                        ? "bg-[#F3E0E0] text-[#7B1113] pointer-events-none" // Light red fill, maroon text
                                         : "bg-gray-100 text-gray-700 pointer-events-none"
                                     }
                                   >
