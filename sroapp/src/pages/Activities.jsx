@@ -9,228 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Pencil, ChevronDown, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-
-const formatLabel = (value, options) => {
-  const found = options.find(opt => opt.id === value);
-  return found ? found.label : value;
-};
-
-const sdgOptions = [
-  { id: "noPoverty", label: "No Poverty" },
-  { id: "zeroHunger", label: "Zero Hunger" },
-  { id: "goodHealth", label: "Good Health and Well-Being" },
-  { id: "qualityEducation", label: "Quality Education" },
-  { id: "genderEquality", label: "Gender Equality" },
-  { id: "cleanWater", label: "Clean Water and Sanitation" },
-  { id: "affordableEnergy", label: "Affordable and Clean Energy" },
-  { id: "decentWork", label: "Decent Work and Economic Work" },
-  { id: "industryInnovation", label: "Industry Innovation and Infrastructure" },
-  { id: "reducedInequalities", label: "Reduced Inequalities" },
-  { id: "sustainableCities", label: "Sustainable Cities and Communities" },
-  { id: "responsibleConsumption", label: "Responsible Consumption and Production" },
-  { id: "climateAction", label: "Climate Action" },
-  { id: "lifeBelowWater", label: "Life Below Water" },
-  { id: "lifeOnLand", label: "Life on Land" },
-  { id: "peaceJustice", label: "Peace, Justice and Strong Institutions" },
-  { id: "partnerships", label: "Partnerships for the Goals" }
-];
-
-const activityTypeOptions = [
-  { id: "charitable", label: "Charitable" },
-  { id: "serviceWithinUPB", label: "Service within UPB" },
-  { id: "serviceOutsideUPB", label: "Service outside UPB" },
-  { id: "contestWithinUPB", label: "Contest within UPB" },
-  { id: "contestOutsideUPB", label: "Contest outside UPB" },
-  { id: "educational", label: "Educational" },
-  { id: "incomeGenerating", label: "Income-Generating Project" },
-  { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-  { id: "booth", label: "Booth" },
-  { id: "rehearsals", label: "Rehearsals/Preparation" },
-  { id: "specialEvents", label: "Special Events" },
-  { id: "others", label: "Others" }
-];
-
-const formatSDGLabels = (sdgString) => {
-  const ids = sdgString?.split(",") || [];
-  return ids.map(id => {
-    const match = sdgOptions.find(opt => opt.id === id);
-    return match ? match.label : id;
-  });
-};
-
-const ActivityDialogContent = ({ activity }) => {
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const description = activity.activity_description || "";
-  const isLong = description.length > 300;
-  const toggleDescription = () => setShowFullDescription(!showFullDescription);
-
-  const formatDateRange = (schedule) => {
-    if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
-    const { start_date, end_date } = schedule[0];
-    const start = new Date(start_date).toLocaleDateString();
-    const endFormatted = end_date ? new Date(end_date).toLocaleDateString() : "";
-    return start === endFormatted || !endFormatted ? start : `${start} - ${endFormatted}`;
-  };
-
-  const formatTime = (t) => {
-    if (!t) return "N/A";
-    const [h, m] = t.split(":");
-    return new Date(0, 0, 0, h, m).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  console.log("Activity dialog data:", activity);
-
-  return (
-    <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl overflow-hidden">
-      <ScrollArea className="max-h-[80vh] px-6 py-4">
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-[#7B1113] font-bold">{activity.activity_name}</DialogTitle>
-          <p className="text-sm font-semibold text-gray-700 mb-2">{activity.organization?.org_name || "Organization Name"}</p>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-y-6 text-sm">
-        {/* Description */}
-        <div className="text-gray-800">
-          {!isLong ? (
-            <p className="whitespace-pre-wrap">{description}</p>
-          ) : showFullDescription ? (
-            <>
-              <p className="whitespace-pre-wrap">{description}</p>
-              <button
-                onClick={toggleDescription}
-                className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
-              >
-                Show less
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="whitespace-pre-wrap">{description.slice(0, 300)}...</p>
-              <button
-                onClick={toggleDescription}
-                className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
-              >
-                Show more
-              </button>
-            </>
-          )}
-        </div>
-
-          {/* General Info */}
-          <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
-            <div className="pl-4">
-              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
-              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
-              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
-              <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
-              <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
-              <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
-              <p><strong>Adviser Contact:</strong> {activity.organization?.adviser_email || "N/A"}</p>
-            </div>
-          </div>
-
-          {/* Specifications */}
-          <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">Specifications</h3>
-            <div className="pl-4">
-              <p><strong>Venue:</strong> {activity.venue}</p>
-              <p><strong>Venue Approver:</strong> {activity.venue_approver}</p>
-              <p><strong>Venue Contact:</strong> {activity.venue_approver_contact}</p>
-              <p><strong>Green Monitor:</strong> {activity.green_monitor_name}</p>
-              <p><strong>Monitor Contact:</strong> {activity.green_monitor_contact}</p>
-              <p><strong>Off-Campus:</strong> {activity.is_off_campus === "true" ? "Yes" : "No"}</p>
-            </div>
-          </div>
-
-          {/* Schedule */}
-          <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
-            <div className="pl-4">
-              <p><strong>Date:</strong> {formatDateRange(activity.schedule)}</p>
-              <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
-              {activity.schedule?.[0]?.is_recurring !== "one-time" && (
-                <p><strong>Recurring Days:</strong> {activity.schedule?.[0]?.recurring_days || "N/A"}</p>
-              )}
-            </div>
-          </div>
-
-          {/* University Partners */}
-          {activity.university_partner && (
-            <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
-                <span>University Partners</span>
-                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-                <p>{activity.partner_name || "None listed"}</p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* SDG Goals */}
-          <Collapsible className="border border-gray-300 rounded-md">
-            <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
-              <span>Sustainable Development Goals</span>
-              <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-              {formatSDGLabels(activity.sdg_goals).join(", ") || "None listed"}
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Status + Button */}
-          <div className="space-y-2">
-            <p><strong>Status:</strong> {activity.final_status || "Pending"}</p>
-            {activity.final_status === "For Appeal" && activity.appeal_reason && (
-            <div className="space-y-1">
-              <h3 className="text-[#7B1113] font-semibold text-sm">Appeal Reason</h3>
-              <p className="bg-gray-50 border mt-2 mb-5 p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                {activity.appeal_reason}
-              </p>
-            </div>
-            )}
-            {activity.drive_folder_link && (
-              <a
-                href={activity.drive_folder_link}
-                className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Scanned Form
-              </a>
-            )}
-          </div>
-
-          {/* Remarks Section */}
-          {(activity.sro_remarks || activity.odsa_remarks) && (
-            <div className="space-y-2 mt-4">
-              {activity.sro_remarks && (
-                <div>
-                  <h3 className="text-[#7B1113] font-semibold text-sm">SRO Remarks</h3>
-                  <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                    {activity.sro_remarks.trim()}
-                  </p>
-                </div>
-              )}
-              {activity.odsa_remarks && (
-                <div>
-                  <h3 className="text-[#7B1113] font-semibold text-sm">ODSA Remarks</h3>
-                  <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                    {activity.odsa_remarks.trim()}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </DialogContent>
-  );
-};
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 
 const Activities = () => {
   const [requested, setRequested] = useState([]);
@@ -690,19 +469,23 @@ const Activities = () => {
 
       {selectedActivity && (
         <Dialog open={true} onOpenChange={() => setSelectedActivity(null)}>
-          <DialogContent
-            className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            {dialogLoading ? (
+          {dialogLoading ? (
+            <DialogContent
+              className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
               <div className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 mb-4 animate-spin text-[#7B1113]" />
                 <span className="text-[#7B1113] font-semibold">Loading activity details...</span>
               </div>
-            ) : (
-              <ActivityDialogContent activity={selectedActivity} />
-            )}
-          </DialogContent>
+            </DialogContent>
+          ) : (
+            <ActivityDialogContent
+              activity={selectedActivity}
+              isModalOpen={true}
+              readOnly={true}
+            />
+          )}
         </Dialog>
       )}
 
