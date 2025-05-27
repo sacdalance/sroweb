@@ -7,7 +7,7 @@ import supabase from "@/lib/supabase";
 import FAQCard from "@/components/FAQCard";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import StudentActivityDialogContent from "@/components/admin/StudentActivityDialogContent";
 
 const Dashboard = () => {
     const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
@@ -401,11 +401,9 @@ const Dashboard = () => {
             {/* Activity Details Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               {selectedEvent && (
-                <ActivityDialogContent
+                <StudentActivityDialogContent
                   activity={selectedEvent}
-                  setActivity={setSelectedEvent}
                   isModalOpen={isDialogOpen}
-                  readOnly={true}
                 />
               )}
             </Dialog>
