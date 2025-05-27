@@ -24,14 +24,14 @@ const NotFound = () => {
             </h2>
         </div>
 
-        {/* Bottom-right caption + button */}
-        <div className="absolute bottom-16 right-12 text-right z-10">
-            <p className="text-lg lg:text-xl text-gray-700 mb-4">
+        {/* Bottom-right caption + button, smaller and responsive */}
+        <div className="absolute bottom-6 right-4 text-right z-10 max-w-xs sm:max-w-sm">
+            <p className="text-sm sm:text-base text-gray-700 mb-2 ml-3">
             Please check the link or go back to the homepage.
             </p>
             <Button
             onClick={() => navigate("/home")}
-            className="cursor-pointer bg-[#7B1113] text-white px-6 py-3 text-base lg:text-lg font-medium rounded-xl transition-all duration-300 hover:scale-105 hover:bg-[#5c0d0e]"
+            className="cursor-pointer bg-[#7B1113] text-white px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:bg-[#5c0d0e]"
             >
             Back to Homepage
             </Button>
