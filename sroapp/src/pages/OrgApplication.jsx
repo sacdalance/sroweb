@@ -799,17 +799,30 @@ const OrgApplication = () => {
       </form>
       {/* Interview dialog after submission */}
       <Dialog open={showInterviewPrompt} onOpenChange={setShowInterviewPrompt}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white shadow-lg border border-gray-100">
           <DialogHeader>
-            <DialogTitle className="text-center">Submission Sent</DialogTitle>
-            <DialogDescription className="text-center">
-              Schedule an interview?
-            </DialogDescription>
+            <div className="flex flex-col items-center">
+              <Check className="h-10 w-10 text-[#014421] mb-2" /> {/* Forest Green */}
+              <DialogTitle className="text-center text-2xl font-semibold text-[#800000] mb-2">Submission Successful</DialogTitle> {/* UP Maroon */}
+              <DialogDescription className="text-center text-base text-gray-700 mb-4">
+                Your application was submitted.<br />
+                Would you like to schedule your interview now?
+              </DialogDescription>
+            </div>
           </DialogHeader>
-          <DialogFooter className="flex justify-center gap-4">
-            <Button onClick={() => handleInterviewResponse(true)}>Yes</Button>
-            <Button variant="destructive" onClick={() => handleInterviewResponse(false)}>
-              No
+          <DialogFooter className="flex flex-row justify-center gap-6 mt-4">
+            <Button
+              className="bg-[#014421] hover:bg-[#012d21] text-white font-semibold px-6 py-2 rounded-xl shadow-none"
+              onClick={() => handleInterviewResponse(true)}
+            >
+              Schedule Now
+            </Button>
+            <Button
+              variant="outline"
+              className="border-[#800000] text-[#800000] hover:bg-[#fff7d6] font-semibold px-6 py-2 rounded-xl"
+              onClick={() => handleInterviewResponse(false)}
+            >
+              Not Now
             </Button>
           </DialogFooter>
         </DialogContent>
