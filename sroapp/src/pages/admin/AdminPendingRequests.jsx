@@ -96,47 +96,54 @@ const AdminPendingRequests = () => {
   const [incomingRequests, setIncomingRequests] = useState([]);
   useEffect(() => {
     if (!userRole) return; // Wait until role is available
-  
+
     const fetchIncoming = async () => {
       try {
         setLoading(true);
         const { data: sessionData, error } = await supabase.auth.getSession();
         const access_token = sessionData?.session?.access_token;
-  
+
         if (!access_token) {
           console.error("No access token found");
           return;
         }
-  
+
         const res = await axios.get("/api/activities/incoming", {
           headers: {
             Authorization: `Bearer ${access_token}`,
           },
         });
-  
-        console.log("Fetched incoming:", res.data);
+
         const allActivities = res.data;
         setAllActivities(allActivities);
-        
+
         const filtered = allActivities.filter((a) => {
-          const isAppeal = a.final_status === "For Appeal";  
+          const isAppeal = a.final_status === "For Appeal";
           if (isAppeal) return false;
 
           if (userRole === 2) {
             return (
               a.sro_approval_status === null ||
-              (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+              (a.sro_approval_status === "Approved" &&
+                (a.odsa_approval_status === null ||
+                  a.odsa_approval_status === "" ||
+                  typeof a.odsa_approval_status === "undefined"))
             );
           } else if (userRole === 3) {
             // ODSA sees only activities approved by SRO and not yet acted on by them
             return (
               a.sro_approval_status === "Approved" &&
-              a.odsa_approval_status === null
+              (a.odsa_approval_status === null ||
+                a.odsa_approval_status === "" ||
+                typeof a.odsa_approval_status === "undefined")
             );
+          } else if (userRole === 4) {
+            // Superadmin sees all
+            return true;
           }
-          return true; // fallback: show all (for devs/superadmins if needed)
+          return false;
         });
-        
+
         setIncomingRequests(filtered);
 
       } catch (error) {
@@ -145,9 +152,9 @@ const AdminPendingRequests = () => {
         setLoading(false);
       }
     };
-  
+
     fetchIncoming();
-  }, [userRole]); // trigger only when userRole is ready
+  }, [userRole]);
   
   
   useEffect(() => {
@@ -224,19 +231,32 @@ const AdminPendingRequests = () => {
             sm:max-w-[800px]
           "
         >
-          <TabsTrigger  
-            value="submissions" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
-          >
-            Incoming Submissions ({incomingRequests.length})
-          </TabsTrigger>
-
-          <TabsTrigger 
-            value="appeals" 
-            className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
-          >
-            Appeals and Cancellations ({pendingAppeals.length})
-          </TabsTrigger>
+          {userRole === 3 ? (
+            <TabsTrigger  
+              value="submissions" 
+              className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-4xl text-xs sm:text-base p-1 w-full"
+              style={{ gridColumn: "1 / span 2" }}
+            >
+              Incoming Submissions ({incomingRequests.length})
+            </TabsTrigger>
+          ) : (
+            <>
+              <TabsTrigger  
+                value="submissions" 
+                className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
+              >
+                Incoming Submissions ({incomingRequests.length})
+              </TabsTrigger>
+              {(userRole === 2 || userRole === 4) && (
+                <TabsTrigger 
+                  value="appeals" 
+                  className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
+                >
+                  Appeals and Cancellations ({pendingAppeals.length})
+                </TabsTrigger>
+              )}
+            </>
+          )}
         </TabsList>
         
         <TabsContent value="appeals">
