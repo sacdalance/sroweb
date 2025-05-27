@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Eye, Pencil, ChevronDown } from "lucide-react";
+import { Loader2, Pencil, ChevronDown, X } from "lucide-react";
+
 const formatLabel = (value, options) => {
   const found = options.find(opt => opt.id === value);
   return found ? found.label : value;
@@ -235,6 +236,9 @@ const Activities = () => {
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isAppealOpen, setIsAppealOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [cancelActivity, setCancelActivity] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [modalAppealReason, setModalAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
   const [dialogLoading, setDialogLoading] = useState(false);
@@ -304,7 +308,9 @@ const Activities = () => {
     <div className="p-6 max-w-6xl mx-auto space-y-10">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Activities</h1>
 
-      <Dialog>
+      <Dialog
+      open={!!selectedActivity}
+      onOpenChange={() => setSelectedActivity(null)}>
         {/* Requested Activities */}
         <section>
           <h2 className="text-lg font-semibold mb-2 ">Requested Activities</h2>
@@ -326,7 +332,22 @@ const Activities = () => {
                     <tbody>
                       {requested.length > 0 ? (
                         requested.map((act) => (
-                          <tr key={act.activity_id} className="border-b">
+                          <tr
+                            key={act.activity_id}
+                            onClick={async () => {
+                              setDialogLoading(true);
+                              try {
+                                const res = await axios.get(`/activities/user/${accountId}`);
+                                const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                setSelectedActivity(fullActivity);
+                              } catch (err) {
+                                console.error("Error fetching activity with account info:", err);
+                              } finally {
+                                setDialogLoading(false);
+                              }
+                            }}
+                            className="border-b cursor-pointer hover:bg-gray-50"
+                          >
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.organization?.org_name || "Unknown"}</td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.activity_name}</td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{formatDateRange(act.schedule)}</td>
@@ -355,38 +376,33 @@ const Activities = () => {
                               )}
                             </td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
-                              <div className="flex items-center justify-center gap-2">
-                                <DialogTrigger asChild>
-                                  <button
-                                    onClick={async () => {
-                                      setDialogLoading(true);
-                                      try {
-                                        const res = await axios.get(`/activities/user/${accountId}`);
-                                        const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                                        setSelectedActivity(fullActivity);
-                                      } catch (err) {
-                                        console.error("Error fetching activity with account info:", err);
-                                      } finally {
-                                        setDialogLoading(false);
-                                      }
-                                    }}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                  >
-                                    <Eye className="h-5 w-5" />
-                                  </button>
-                                </DialogTrigger>
-                                {act.final_status !== "For Appeal" && (
-                                  <button
-                                    onClick={() => {
-                                      setEditingActivity(act);
-                                      setIsAppealOpen(true);
-                                    }}
-                                    className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                                  >
-                                    <Pencil className="h-5 w-5" />
-                                  </button>
-                                )}
+                              {act.final_status !== "For Appeal" && (
+                                <div className="flex items-center justify-center gap-2">
+                                {/* Edit Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingActivity(act);
+                                    setIsAppealOpen(true);
+                                  }}
+                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                >
+                                  <Pencil className="h-5 w-5" />
+                                </button>
+
+                                {/* Cancel Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCancelActivity(act);
+                                    setIsCancelOpen(true);
+                                  }}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <X className="h-5 w-5 font-bold" />
+                                </button>
                               </div>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -426,7 +442,22 @@ const Activities = () => {
                     <tbody>
                       {approved.length > 0 ? (
                         approved.map((act) => (
-                          <tr key={act.activity_id} className="border-b">
+                          <tr
+                            key={act.activity_id}
+                            onClick={async () => {
+                              setDialogLoading(true);
+                              try {
+                                const res = await axios.get(`/activities/user/${accountId}`);
+                                const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+                                setSelectedActivity(fullActivity);
+                              } catch (err) {
+                                console.error("Error fetching activity with account info:", err);
+                              } finally {
+                                setDialogLoading(false);
+                              }
+                            }}
+                            className="border-b cursor-pointer hover:bg-gray-50"
+                          >
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.organization?.org_name || "Unknown"}</td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_name}</td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{formatDateRange(act.schedule)}</td>
@@ -434,33 +465,28 @@ const Activities = () => {
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_id}</td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">
                               <div className="flex items-center justify-center gap-2">
-                                <DialogTrigger asChild>
-                                  <button
-                                    onClick={async () => {
-                                      setDialogLoading(true);
-                                      try {
-                                        const res = await axios.get(`/activities/user/${accountId}`);
-                                        const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                                        setSelectedActivity(fullActivity);
-                                      } catch (err) {
-                                        console.error("Error fetching activity with account info:", err);
-                                      } finally {
-                                        setDialogLoading(false);
-                                      }
-                                    }}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                  >
-                                    <Eye className="h-5 w-5" />
-                                  </button>
-                                </DialogTrigger>
+                                {/* Edit Button */}
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setEditingActivity(act);
                                     setIsAppealOpen(true);
                                   }}
                                   className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
                                 >
                                   <Pencil className="h-5 w-5" />
+                                </button>
+
+                                {/* Cancel Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCancelActivity(act);
+                                    setIsCancelOpen(true);
+                                  }}
+                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                >
+                                  <X className="h-5 w-5 font-bold" />
                                 </button>
                               </div>
                             </td>
@@ -480,26 +506,15 @@ const Activities = () => {
             </CardContent>
           </Card>
         </section>
-
-        {selectedActivity && (
-          <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
-            {dialogLoading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 mb-4 animate-spin text-[#7B1113]" />
-                <span className="text-[#7B1113] font-semibold">Loading activity details...</span>
-              </div>
-            ) : (
-              <ActivityDialogContent activity={selectedActivity} />
-            )}
-          </DialogContent>
-        )}
       </Dialog>
       <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
             <p className="text-sm text-red-700">
-              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to FOR APPEAL.
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR APPEAL.</strong> 
+              <br/><br/>
+              <strong>This is IRREVERSIBLE.</strong>
             </p>
           </DialogHeader>
           <div className="space-y-2 mt-1">
@@ -535,6 +550,63 @@ const Activities = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Cancel Submission</DialogTitle>
+            <p className="text-sm text-red-700">
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR CANCELLATION.</strong> <br/><br/><strong>This is IRREVERSIBLE.</strong>
+            </p>
+          </DialogHeader>
+          <div className="space-y-2 mt-1">
+            <label htmlFor="cancelReason" className="text-sm font-medium">Reason for Cancellation</label>
+            <textarea
+              id="cancelReason"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Provide a reason for cancelling your submission..."
+              className="w-full p-2 border rounded-md text-sm resize-none"
+              rows={4}
+            />
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  // Submit cancel later
+                  console.log("Cancel Submission for:", cancelActivity, "Reason:", cancelReason);
+                  setIsCancelOpen(false);
+                  setCancelReason("");
+                }}
+                disabled={cancelReason.trim() === ""}
+                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
+                  cancelReason.trim() === ""
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#7B1113] hover:bg-[#5e0d0e]"
+                }`}
+              >
+                Cancel Submission
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {selectedActivity && (
+        <Dialog open={true} onOpenChange={() => setSelectedActivity(null)}>
+          <DialogContent
+            className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            {dialogLoading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 mb-4 animate-spin text-[#7B1113]" />
+                <span className="text-[#7B1113] font-semibold">Loading activity details...</span>
+              </div>
+            ) : (
+              <ActivityDialogContent activity={selectedActivity} />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
     </div>
   );
