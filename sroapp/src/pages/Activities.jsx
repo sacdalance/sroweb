@@ -106,8 +106,9 @@ const Activities = () => {
       onOpenChange={() => setSelectedActivity(null)}>
         {/* Requested Activities */}
         <section>
-          <h2 className="text-lg font-semibold mb-2 ">Requested Activities</h2>
-          <div className="flex items-center justify-end gap-2 mb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h2 className="text-lg font-semibold">Requested Activities</h2>
+          <div className="flex items-center justify-end gap-2">
             {(filterOrg !== "All" || filterStatus !== "All") && (
               <div className="flex items-center gap-2">
                 {filterOrg !== "All" && (
@@ -181,6 +182,7 @@ const Activities = () => {
               </DialogContent>
             </FilterDialog>
           </div>
+        </div>
           <Card className="w-full relative">
             <CardContent className="p-0">
               <div className="w-full overflow-x-auto">
