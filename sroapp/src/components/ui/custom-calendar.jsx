@@ -107,8 +107,8 @@ const CustomCalendar = ({
               </select>
             </div>
           ) : (            <h2 className="text-2xl font-bold text-[#7B1113]">
-              {format(currentMonth, 'MMMM yyyy')}
-            </h2>
+            {format(currentMonth, 'MMMM').toUpperCase()} {format(currentMonth, 'yyyy')}
+          </h2>
           )}
         </div>
 

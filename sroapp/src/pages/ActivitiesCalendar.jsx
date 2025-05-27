@@ -362,49 +362,31 @@ const ActivitiesCalendar = () => {
         </div>
       </div>
 
-      <Card className="rounded-lg shadow-md mb-6">
-        <CardContent className="p-2 sm:p-6">
-          {loading ? (
-            <LoadingState />
-          ) : error ? (
-            <ErrorState message={error} />
-          ) : (
-            <CustomCalendar
-              mode="activities"
-              currentMonth={currentDate}
-              onDateSelect={handleEventClick}
-              onMonthChange={setCurrentDate}
-              events={events.filter(event =>
-                selectedOrganization === "all" || event.organization === selectedOrganization
-              )}
-              getEventColor={getEventColor}
-            />
-          )}
-        </CardContent>
-      </Card>
+
+      <div
+        className="rounded-lg shadow-md border border-gray-200 bg-white"
+      >
+        {loading ? (
+          <LoadingState />
+        ) : error ? (
+          <ErrorState message={error} />
+        ) : (
+          <CustomCalendar
+            mode="activities"
+            currentMonth={currentDate}
+            onDateSelect={handleEventClick}
+            onMonthChange={setCurrentDate}
+            events={events.filter(event =>
+              selectedOrganization === "all" || event.organization === selectedOrganization
+            )}
+            getEventColor={getEventColor}
+          />
+        )}
+      </div>
+
 
       <div className="flex flex-wrap gap-2 mb-6">
-        <div className="text-sm font-medium">Legend:</div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-green-100 mr-1"></div>
-          <span className="text-xs text-[#014421]">Academic</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-blue-100 mr-1"></div>
-          <span className="text-xs text-blue-700">Cultural</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-amber-100 mr-1"></div>
-          <span className="text-xs text-amber-700">Sports</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-purple-100 mr-1"></div>
-          <span className="text-xs text-purple-700">Service</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-red-100 mr-1"></div>
-          <span className="text-xs text-[#7B1113]">Special Event</span>
-        </div>
+
       </div>
 
       <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
