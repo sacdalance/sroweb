@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, Dialog as FilterDialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Pencil, ChevronDown, X } from "lucide-react";
+import { Loader2, Pencil, ChevronDown, X, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 const formatLabel = (value, options) => {
   const found = options.find(opt => opt.id === value);
@@ -244,6 +246,18 @@ const Activities = () => {
   const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
   const [accountId, setAccountId] = useState(null);
+  const [filterOrg, setFilterOrg] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const orgOptions = [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))];
+  const filteredRequested = requested.filter((act) => {
+  const orgMatch = filterOrg === "All" || act.organization?.org_name === filterOrg;
+  const statusMatch =
+      filterStatus === "All" ||
+      act.final_status === filterStatus ||
+      (filterStatus === "Pending" && !act.final_status);
+    return orgMatch && statusMatch;
+  });
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -314,6 +328,80 @@ const Activities = () => {
         {/* Requested Activities */}
         <section>
           <h2 className="text-lg font-semibold mb-2 ">Requested Activities</h2>
+          <div className="flex items-center justify-end gap-2 mb-2">
+            {(filterOrg !== "All" || filterStatus !== "All") && (
+              <div className="flex items-center gap-2">
+                {filterOrg !== "All" && (
+                  <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
+                    {filterOrg}
+                    <button onClick={() => setFilterOrg("All")}
+                      className="hover:text-[#7B1113] transition">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                {filterStatus !== "All" && (
+                  <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
+                    {filterStatus}
+                    <button onClick={() => setFilterStatus("All")}
+                      className="hover:text-[#7B1113] transition">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <FilterDialog open={filterOpen} onOpenChange={setFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Filter className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
+                <DialogHeader>
+                  <DialogTitle>Filter Activities</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Organization</label>
+                    <Select value={filterOrg} onValueChange={setFilterOrg}>
+                      <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
+                        <SelectValue placeholder="Select organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All">All</SelectItem>
+                        {orgOptions.map((org) => (
+                          <SelectItem key={org} value={org} className="whitespace-normal break-words">
+                            {org}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All">All</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="For Appeal">For Appeal</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
+                        <SelectItem value="For Cancellation">For Cancellation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setFilterOpen(false)} className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white">
+                    Apply Filters
+                  </Button>
+                </div>
+              </DialogContent>
+            </FilterDialog>
+          </div>
           <Card className="w-full relative">
             <CardContent className="p-0">
               <div className="w-full overflow-x-auto">
@@ -331,7 +419,7 @@ const Activities = () => {
                     </thead>
                     <tbody>
                       {requested.length > 0 ? (
-                        requested.map((act) => (
+                        filteredRequested.map((act) => (
                           <tr
                             key={act.activity_id}
                             onClick={async () => {
@@ -518,7 +606,7 @@ const Activities = () => {
         </section>
       </Dialog>
       <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
             <p className="text-sm text-red-700">
@@ -561,7 +649,7 @@ const Activities = () => {
         </DialogContent>
       </Dialog>
       <Dialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Cancel Submission</DialogTitle>
             <p className="text-sm text-red-700">
