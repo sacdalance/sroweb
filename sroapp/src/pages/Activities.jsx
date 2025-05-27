@@ -215,10 +215,22 @@ const Activities = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.organization?.org_name || "Unknown"}</td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.activity_name}</td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.organization?.org_name || "Unknown"}
+                              </span>
+                            </td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.activity_name}
+                              </span>
+                            </td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{act.venue}</td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.venue}
+                              </span>
+                            </td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
                               {act.final_status === "For Appeal" && (
                                 <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
@@ -335,10 +347,22 @@ const Activities = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.organization?.org_name || "Unknown"}</td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_name}</td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.organization?.org_name || "Unknown"}
+                              </span>
+                            </td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.activity_name}
+                              </span>
+                            </td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.venue}</td>
+                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                              <span className="block whitespace-normal break-words">
+                                {act.venue}
+                              </span>
+                            </td>
                             <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_id}</td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">
                               <div className="flex items-center justify-center gap-2">
