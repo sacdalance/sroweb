@@ -538,10 +538,10 @@ const Activities = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Report ID</th>
                       <th className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
                       <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
                       <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Report ID</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -552,7 +552,6 @@ const Activities = () => {
                           onClick={() => window.open(report.drive_folder_link, '_blank')}
                           className="border-b cursor-pointer hover:bg-gray-50"
                         >
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.organization?.org_name || "Unknown"}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
@@ -562,6 +561,7 @@ const Activities = () => {
                               day: "numeric"
                             })}
                           </td>
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
                         </tr>
                       ))
                     ) : (
