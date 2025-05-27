@@ -185,13 +185,11 @@ useEffect(() => {
   );
 
   const handleViewSummary = (orgId) => {
-    console.log(`Viewing summary for: ${orgId}`);
-    // Logic to view summary
+    window.open("https://docs.google.com/document/d/1HUt9Mz_sm2iDpvNkJqgPWoiXAA__QE099oxNLURTDyI/edit?tab=t.0", "_blank");
   };
 
   const handleViewAnnualReport = (orgId) => {
-    console.log(`Viewing annual report for: ${orgId}`);
-    // Logic to view annual report
+    window.open("https://docs.google.com/document/d/1HUt9Mz_sm2iDpvNkJqgPWoiXAA__QE099oxNLURTDyI/edit?tab=t.0", "_blank");
   };
 
   return (
