@@ -29,6 +29,133 @@ useEffect(() => {
   fetchOrganizations();
 }, []);
 
+  const CERTIFICATE_TEMPLATE = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Certificate of Recognition</title>
+    <style>
+      @page {
+        size: 297mm 210mm; /* A4 landscape */
+        margin: 0;
+      }
+
+      html, body {
+        width: 297mm;
+        height: 210mm;
+        margin: 0;
+        padding: 0;
+        background: white;
+        font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+      }
+
+      .certificate-container {
+        width: 100%;
+        height: 100%;
+        padding: 30mm;
+        box-sizing: border-box;
+        border: 5px solid maroon;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+      }
+
+      .header {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: black;
+      }
+
+      .title {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: maroon;
+        text-decoration: underline;
+        margin-top: 20px;
+      }
+
+      .content {
+        font-size: 1.4em;
+        margin-top: 40px;
+        line-height: 1.6;
+      }
+
+      .org-name {
+        color: maroon;
+        font-weight: bold;
+        font-size: 1.6em;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 60px;
+        font-size: 1em;
+      }
+
+      .signatory {
+        width: 40%;
+        text-align: center;
+      }
+
+      .name {
+        margin-top: 40px;
+        font-weight: bold;
+        text-decoration: underline;
+      }
+
+      .position {
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="certificate-container">
+      <div class="header">
+        University of the Philippines Baguio<br>
+        Office of Student Affairs
+      </div>
+
+      <div class="title">Certificate of Recognition</div>
+
+      <div class="content">
+        This is to formally recognize the organization<br>
+        <span class="org-name">[Name of Organization]</span><br>
+        for complying with the requirements for student organization recognition<br>
+        and being acknowledged as a duly recognized student organization<br>
+        for the Academic Year <strong>[YYYY–YYYY]</strong>.
+      </div>
+
+      <div class="footer">
+        <div class="signatory">
+          <div class="name">Mr. Friedrich Andres Aquino</div>
+          <div class="position">Student Relations Officer</div>
+        </div>
+        <div class="signatory">
+          <div class="name">Ms. Liezel M. Magtoto, Ph.D.</div>
+          <div class="position">Director, Office of Student Affairs</div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+  `
+
+  const handleGenerateCertificate = (orgName, acadYear) => {
+  const certHtml = CERTIFICATE_TEMPLATE
+    .replace('[Name of Organization]', orgName)
+    .replace('[YYYY–YYYY]', acadYear || '____________');
+
+  const certWindow = window.open('', '_blank');
+  certWindow.document.open();
+  certWindow.document.write(certHtml);
+  certWindow.document.close();
+
+  certWindow.onload = () => certWindow.print();
+  };
+
 
   // Mock data for organization categories
   const categories = [
@@ -56,11 +183,6 @@ useEffect(() => {
   const filteredOrganizations = organizations.filter((org) =>
     org.org_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleGenerateCertificate = (orgId) => {
-    console.log(`Generating certificate for: ${orgId}`);
-    // Logic to generate certificate
-  };
 
   const handleViewSummary = (orgId) => {
     console.log(`Viewing summary for: ${orgId}`);
@@ -138,8 +260,8 @@ useEffect(() => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-4">
-                  <Button 
-                    onClick={() => handleGenerateCertificate(org.org_id)}
+                  <Button
+                    onClick={() => handleGenerateCertificate(org.org_name, org.academic_year)}
                     className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
                   >
                     Generate Certificate

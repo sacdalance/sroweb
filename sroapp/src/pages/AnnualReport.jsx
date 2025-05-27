@@ -167,11 +167,11 @@ const AnnualReport = () => {
   const formLinks = [
     {
       name: "Revised OSA Form D: Report on Past Activities, including partnerships",
-      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      url: "https://docs.google.com/document/d/1xO70gKiSKL2p18cAsq255oSPM1S5ehxm"
     },
     {
       name: "Financial Report (Form F), AY 202X-202X",
-      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      url: "https://docs.google.com/document/d/1VjY-6qXvvNzMpZPIz_ONX-sGBnL32y7A"
     }
   ];
 

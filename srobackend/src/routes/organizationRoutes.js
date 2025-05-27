@@ -13,7 +13,9 @@ router.get('/list', async (req, res) => {
       adviser_name,
       adviser_email,
       chairperson_name,
-      chairperson_email
+      chairperson_email,
+      academic_year,
+      drive_folder_link
     `);
 
   if (error) {
