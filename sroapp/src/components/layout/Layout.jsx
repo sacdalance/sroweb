@@ -22,7 +22,7 @@ const Layout = () => {
       {/* Overlay for mobile */}
       <div
         className={`
-          fixed inset-0 bg-black/30 z-20 transition-opacity duration-300
+          fixed inset-0 bg-black/30 z-10 transition-opacity duration-300 mt-14
           ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
           xl:hidden
         `}
@@ -31,15 +31,17 @@ const Layout = () => {
       {/* Main content */}
       <div
         className={`
-          flex-1 min-w-0  transition-all duration-300
-          ${sidebarOpen ? "blur-sm lg:blur-0" : ""}
+          flex-1 min-w-0 transition-all duration-300
           xl:ml-[${SIDEBAR_WIDTH}px]
           flex flex-col
           h-screen
         `}
       >
         {/* Mobile menu button */}
-        <Navbar onMenuClick={() => setSidebarOpen(true)} />
+        <Navbar
+          onMenuClick={() => setSidebarOpen(open => !open)}
+          sidebarOpen={sidebarOpen}
+        />
         <main className="pt-20 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-5rem)] overflow-auto">
           <Outlet />
         </main>

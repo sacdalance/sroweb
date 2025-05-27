@@ -85,18 +85,10 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
 
   return (
     <>
-      {/* Blur overlay for mobile only */}
-      {isOpen && isSmallScreen && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-30 xl:hidden transition-all duration-300"
-          onClick={onClose}
-        />
-      )}
-
       <aside
         className={`
           bg-[#F3F4F6] border-r h-screen flex flex-col
-          fixed z-30 top-0 left-0 transition-transform duration-300
+          fixed z-30 top-0 left-0 transition-transform duration-300 
           w-[${SIDEBAR_WIDTH}px]
           -translate-x-full
           xl:static xl:translate-x-0 xl:w-[${SIDEBAR_WIDTH}px] xl:block
@@ -105,23 +97,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
         style={{ minWidth: SIDEBAR_WIDTH }}
         aria-label="Sidebar"
       >
-        {/* Close button only on mobile */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 xl:hidden z-50"
-          aria-label="Close sidebar"
-        >
-          <svg className="h-6 w-6" viewBox="0 0 24 24">
-            <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-          </svg>
-        </button>
-
         {/* Make the entire sidebar scrollable except the close button */}
-        <ScrollArea className="h-screen pt-16 flex flex-col pl-6 pr-0">
+        <ScrollArea className="h-screen pt-14 flex flex-col pl-6 pr-0">
           <div className="pr-6 flex flex-col min-h-0">
             {/* Profile section */}
-            <div className="flex flex-col items-center mb-8">
+            <div className="flex flex-col items-center mb-8 mt-14">
               <img
                 src={
                   user?.user_metadata?.avatar_url ||
@@ -157,24 +137,76 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                 <>
                   <hr className="border-t border-[#DBDBDB] my-4" />
                   <div className="mb-4 mt-4 font-medium">
-                    <Link to={dashboardLink} className={linkClass(dashboardLink)}>
+                    <Link
+                      to={dashboardLink}
+                      className={linkClass(dashboardLink)}
+                      onClick={() => isSmallScreen && setIsOpen(false)}
+                    >
                       Dashboard
                     </Link>
                   </div>
                   <div className="mb-6">
                     <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
                     <ul className="space-y-2 text-[15px] font-medium">
-                      <li><Link to="/activity-request" className={linkClass("/activity-request")}>Submit a Request</Link></li>
-                      <li><Link to="/activities" className={linkClass("/activities")}>My Activities</Link></li>
-                      <li><Link to="/activities-calendar" className={linkClass("/activities-calendar")}>Activities Calendar</Link></li>
-                      <li><Link to="/appointment-booking" className={linkClass("/appointment-booking")}>Book an Appointment</Link></li>
+                      <li>
+                        <Link
+                          to="/activity-request"
+                          className={linkClass("/activity-request")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Submit a Request
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/activities"
+                          className={linkClass("/activities")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          My Activities
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/activities-calendar"
+                          className={linkClass("/activities-calendar")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Activities Calendar
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/appointment-booking"
+                          className={linkClass("/appointment-booking")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Book an Appointment
+                        </Link>
+                      </li>
                     </ul>
                   </div>
                   <div className="mb-6">
                     <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Organizational Requirements</h3>
                     <ul className="space-y-2 text-[15px] font-medium">
-                      <li><Link to="/org-application" className={linkClass("/org-application")}>Application for Recognition</Link></li>
-                      <li><Link to="/annual-report" className={linkClass("/annual-report")}>Annual Report</Link></li>
+                      <li>
+                        <Link
+                          to="/org-application"
+                          className={linkClass("/org-application")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Application for Recognition
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/annual-report"
+                          className={linkClass("/annual-report")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Annual Report
+                        </Link>
+                      </li>
                     </ul>
                   </div>
                 </>
@@ -185,23 +217,95 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                 <div className="mb-6">
                   <ul className="space-y-2 text-[15px] font-medium">
                     <hr className="border-t border-[#DBDBDB] my-4" />
-                    <li><Link to="/admin" className={linkClass("/admin")}>Admin Dashboard</Link></li>
+                    <li>
+                      <Link
+                        to="/admin"
+                        className={linkClass("/admin")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+                    </li>
                     <hr className="border-t border-[#DBDBDB] my-4" />
                     <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
 
                     {(isSRO || isSuperAdmin) && (
                       <>
-                      <li><Link to="/admin/appointment-settings" className={linkClass("/admin/appointment-settings")}>Appointments</Link></li>
-                      <li><Link to="/admin/create-activity" className={linkClass("/admin/create-activity")}>Add an Activity</Link></li>
+                      <li>
+                        <Link
+                          to="/admin/appointment-settings"
+                          className={linkClass("/admin/appointment-settings")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Appointments
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          to="/admin/create-activity"
+                          className={linkClass("/admin/create-activity")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Add an Activity
+                        </Link>
+                      </li>
                       </>
                     )}
 
-                    <li><Link to="/admin/pending-requests" className={linkClass("/admin/pending-requests")}>Pending Requests</Link></li>
-                    <li><Link to="/admin/activity-summary" className={linkClass("/admin/activity-summary")}>Summary of Activities</Link></li>
-                    <li><Link to="/admin/activities-calendar" className={linkClass("/admin/activities-calendar")}>Activities Calendar</Link></li>
-                    <li><Link to="/admin/org-applications" className={linkClass("/admin/org-applications")}>Organization Applications</Link></li>
-                    <li><Link to="/admin/organizations" className={linkClass("/admin/organizations")}>Summary of Organizations</Link></li>
-                    <li><Link to="/admin/annual-reports" className={linkClass("/admin/annual-reports")}>Annual Reports</Link></li>
+                    <li>
+                      <Link
+                        to="/admin/pending-requests"
+                        className={linkClass("/admin/pending-requests")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Pending Requests
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/activity-summary"
+                        className={linkClass("/admin/activity-summary")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Summary of Activities
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/activities-calendar"
+                        className={linkClass("/admin/activities-calendar")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Activities Calendar
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/org-applications"
+                        className={linkClass("/admin/org-applications")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Organization Applications
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/organizations"
+                        className={linkClass("/admin/organizations")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Summary of Organizations
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/admin/annual-reports"
+                        className={linkClass("/admin/annual-reports")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Annual Reports
+                      </Link>
+                    </li>
                   </ul>
                   <hr className="border-t border-[#DBDBDB] my-4" />
                 </div>
@@ -209,7 +313,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
             </div>
 
             {/* Footer section */}
-            <div className="mt-auto px-6 py-4 border-gray-200">
+            <div className="mt-auto px-6 pb-6 border-gray-200">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#7B1113] hover:bg-[#7B1113] hover:text-white rounded-md transition-colors duration-200"
