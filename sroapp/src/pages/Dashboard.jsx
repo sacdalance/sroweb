@@ -255,10 +255,28 @@ const Dashboard = () => {
                                   {dayEvents.length > 0 ? (                                    <div
                                       key={dayEvents[0].id}
                                       className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-[#8b1416] transition-colors"
-                                      onClick={() => {
-                                        const event = dayEvents[0];
-                                        setSelectedEvent(event);
-                                        setIsDialogOpen(true);
+                                      onClick={async () => {
+                                        try {
+                                          const { data, error } = await supabase
+                                            .from("activity")
+                                            .select(`
+                                              *,
+                                              account:account(*),
+                                              schedule:activity_schedule(*),
+                                              organization:organization(*)
+                                            `)
+                                            .eq("activity_id", dayEvents[0].activity_id)
+                                            .single();
+
+                                          if (!error) {
+                                            setSelectedEvent(data);
+                                            setIsDialogOpen(true);
+                                          } else {
+                                            console.error("Error loading full activity:", error.message);
+                                          }
+                                        } catch (err) {
+                                          console.error("Unexpected error loading activity:", err);
+                                        }
                                       }}
                                     >
                                       {/* Activity Name and Time */}

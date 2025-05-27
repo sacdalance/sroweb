@@ -117,6 +117,8 @@ const AdminActivitySummary = () => {
   const [selectedYear, setSelectedYear] = useState("All Academic Years");
   const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
   const [orgSearchTerm, setOrgSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [appliedFilters, setAppliedFilters] = useState({
     organization: "All Organizations",
     month: "All Months",
@@ -145,6 +147,7 @@ const AdminActivitySummary = () => {
     };
   
     loadSummary();
+    setCurrentPage(1);
   }, [selectedType, appliedFilters]);
 
   const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
@@ -194,6 +197,7 @@ const AdminActivitySummary = () => {
       const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
       if (startYear !== selectedStartYear) return false;
     }
+
   
     // Month filter
     if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
@@ -251,6 +255,10 @@ const AdminActivitySummary = () => {
       return newFilters;
     });
   };
+
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const paginatedActivities = filteredActivities.slice(startIdx, startIdx + rowsPerPage);
+  const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
 
   return (
     <div
@@ -339,6 +347,24 @@ const AdminActivitySummary = () => {
                                   {month}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <label className="text-sm font-medium">Rows per Page</label>
+                          <Select value={String(rowsPerPage)} onValueChange={(val) => {
+                            setRowsPerPage(Number(val));
+                            setCurrentPage(1);
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Rows per page" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -507,6 +533,23 @@ const AdminActivitySummary = () => {
                           </Select>
                         </div>
                         <div className="grid gap-2">
+                          <label className="text-sm font-medium">Rows per Page</label>
+                          <Select value={String(rowsPerPage)} onValueChange={(val) => {
+                            setRowsPerPage(Number(val));
+                            setCurrentPage(1);
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Rows per page" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
                           <label className="text-sm font-medium">Academic Year</label>
                           <Select value={selectedYear} onValueChange={setSelectedYear}>
                             <SelectTrigger>
@@ -598,7 +641,7 @@ const AdminActivitySummary = () => {
           <Table>
             <TableHeader>
               <TableRow className="border-b-0">
-                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
+                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Name</TableHead>
@@ -606,18 +649,18 @@ const AdminActivitySummary = () => {
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Date</TableHead>
                 <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead>  
+                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredActivities.length === 0 ? (
+              {paginatedActivities.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
                     No activities found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredActivities.map((activity, index) => (
+                paginatedActivities.map((activity, index) => (
                   <TableRow
                     key={index}
                     className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
@@ -626,7 +669,22 @@ const AdminActivitySummary = () => {
                       setIsModalOpen(true);
                     }}
                   >
-                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                    <TableCell className="py-5">
+                      <div className="flex items-center justify-center">
+                        <Badge
+                          className={
+                            (activity.final_status === "Approved"
+                              ? "bg-[#014421] text-white"
+                              : "bg-[#FFF7D6] text-[#A05A00]")
+                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
+                          }
+                        >
+                          {activity.final_status === "Approved"
+                            ? "Approved"
+                            : "Pending"}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="py-5 text-sm text-center">
                       {new Date(activity.created_at).toLocaleDateString(undefined, {
                         year: "numeric",
@@ -678,27 +736,35 @@ const AdminActivitySummary = () => {
                     <TableCell className="py-5 text-sm text-center">
                       {activity.organization?.adviser_name || "N/A"}
                     </TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex items-center justify-center">
-                        <Badge
-                          className={
-                            (activity.final_status === "Approved"
-                              ? "bg-[#014421] text-white"
-                              : "bg-[#FFF7D6] text-[#A05A00]")
-                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
-                          }
-                        >
-                          {activity.final_status === "Approved"
-                            ? "Approved"
-                            : "Pending"}
-                        </Badge>
-                      </div>
-                    </TableCell>
+                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                   </TableRow>
                 ))
             )}
           </TableBody>
         </Table>
+        <div className="flex justify-between items-center mt-4 px-4">
+        <div className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
         </div>
       )}
 
