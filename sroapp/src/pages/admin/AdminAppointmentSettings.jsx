@@ -488,7 +488,7 @@ Student Relations Office`,
   return (
     <div className="max-w-[90rem] mx-auto p-6">
       <Toaster />
-      <h1 className="text-2xl font-bold text-[#7B1113] mb-6">Appointment Management</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Appointment Management</h1>
 
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList>
@@ -670,11 +670,11 @@ Student Relations Office`,
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {blockedDates.map((date) => (
-                      <div key={date} className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-md">
-                        <span className="text-red-700">{new Date(date).toLocaleDateString()}</span>
+                      <div key={date} className="flex items-center justify-between p-2 bg-[#7b1113] rounded-md">
+                        <span className="text-white">{new Date(date).toLocaleDateString()}</span>
                         <button
                           onClick={() => handleRemoveBlockedDate(date)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-white hover:text-gray-500 transition-colors"
                         >
                           ×
                         </button>
@@ -694,8 +694,8 @@ Student Relations Office`,
                       key={slot}
                       className={`p-2 border rounded-md text-sm ${
                         blockedTimeSlots.includes(slot) 
-                          ? "bg-[#7B1113]/10 text-[#7B1113] border-[#7B1113]/20" 
-                          : "bg-green-100 text-green-700 border-green-300"
+                          ? "bg-[#7B1113] text-white hover:bg-[#5e0d0e] transition-colors"
+                          : "bg-[#014421] text-white hover:bg-[#014421]/90 transition-colors"
                       }`}
                       onClick={() => toggleTimeSlot(slot)}
                     >

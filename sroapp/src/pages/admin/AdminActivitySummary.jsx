@@ -254,9 +254,8 @@ const AdminActivitySummary = () => {
       className="max-w-[1550px] mx-auto sm:p-4 md:p-6"
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-4 sm:mb-6">Summary of Activity Requests</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Activity Requests</h1>
       
-
       {/* Filter Section using Tabs */}
       <Card className="mb-6">
         <div className="p-2 sm:px-4 md:px-8">

@@ -36,6 +36,9 @@ const AdminPanel = () => {
     approved: 0,
     forAppeal: 0,
     pending: 0,
+    pendingApplications: 0,
+    approvedApplications: 0,
+    annualReports: 0,
   });
 
   // State for filtered events
@@ -323,56 +326,74 @@ const AdminPanel = () => {
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const activeDay = "WED"; // Highlighted day
 
-  // Fetch organization requests (annual reports, pending applications, and approved applications)
-  const fetchOrganizationRequests = async () => {
-    try {
-      // Get the current year
-      const currentYear = new Date().getFullYear();
+  useEffect(() => {
+    const fetchPendingOrgRequests = async () => {
+      try {
+        setRequestsLoading(true);
 
-      // Fetch and count annual reports where the last 4 digits of academic_year match the current year
-      const { data: annualReportsData, error: annualReportsError } = await supabase
-        .from("org_annual_report")
-        .select("*", { count: "exact" })
-        .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
+        // Fetch pending applications with these combinations:
+        // (sro_approved: null, odsa_approved: null)
+        // (sro_approved: true, odsa_approved: null)
+        // (sro_approved: true, odsa_approved: false)
+        const { data, error } = await supabase
+          .from("org_recognition")
+          .select("*", { count: "exact" })
+          .or(
+            'and(sro_approved.is.null,odsa_approved.is.null),' +
+            'and(sro_approved.eq.true,odsa_approved.is.null),' +
+            'and(sro_approved.eq.true,odsa_approved.eq.false)'
+          );
 
-      if (annualReportsError) throw annualReportsError;
+        if (error) throw error;
 
-      // Log the count of annual reports
-      console.log(`Annual Reports Count for ${currentYear}:`, annualReportsData.length);
+        // Log the count of pending applications
+        console.log(`Pending Applications Count:`, data.length);
 
-      // Fetch and count pending applications from the org_application table
-      const { data: pendingApplicationsData, error: pendingApplicationsError } = await supabase
-        .from("org_application")
-        .select("*", { count: "exact" })
-        .eq("final_status", "Pending"); // Filter for rows where final_status is "Pending"
+        // Update the counts in state
+        setRequestsCounts((prevCounts) => ({
+          ...prevCounts,
+          pendingApplications: data.length,
+        }));
+      } catch (error) {
+        console.error("Error fetching pending organization requests:", error);
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
 
-      if (pendingApplicationsError) throw pendingApplicationsError;
+    fetchPendingOrgRequests();
+  }, []);
 
-      // Log the count of pending applications
-      console.log(`Pending Applications Count:`, pendingApplicationsData.length);
+  useEffect(() => {
+    const fetchApprovedOrgRequests = async () => {
+      try {
+        setRequestsLoading(true);
 
-      // Fetch and count approved applications from the org_application table
-      const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
-        .from("org_application")
-        .select("*", { count: "exact" })
-        .eq("final_status", "Approved"); // Filter for rows where final_status is "Approved"
+        const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
+          .from("org_recognition")
+          .select("*", { count: "exact" })
+          .eq("sro_approved", true)
+          .eq("odsa_approved", true);
 
-      if (approvedApplicationsError) throw approvedApplicationsError;
+        if (approvedApplicationsError) throw approvedApplicationsError;
 
-      // Log the count of approved applications
-      console.log(`Approved Applications Count:`, approvedApplicationsData.length);
+        // Log the count of approved applications
+        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
 
-      // Update the counts in state
-      setRequestsCounts((prevCounts) => ({
-        ...prevCounts,
-        annualReports: annualReportsData.length, // Update the annualReports count
-        pendingApplications: pendingApplicationsData.length, // Update the pendingApplications count
-        approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
-      }));
-    } catch (error) {
-      console.error("Error fetching organization requests:", error);
-    }
-  };
+        // Update the counts in state
+        setRequestsCounts((prevCounts) => ({
+          ...prevCounts,
+          approvedApplications: approvedApplicationsData.length, // <-- use the correct variable
+        }));
+      } catch (error) {
+        console.error("Error fetching approved organization requests:", error);
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
+
+    fetchApprovedOrgRequests();
+  }, []);
 
   useEffect(() => {
     const fetchAnnualReports = async () => {
@@ -406,37 +427,6 @@ const AdminPanel = () => {
     };
 
     fetchAnnualReports();
-  }, []);
-
-  // Fetch approved organization requests
-  const fetchApprovedOrganizationRequests = async () => {
-    try {
-      // Get the current year
-      const currentYear = new Date().getFullYear();
-
-      // Fetch and count approved applications from the org_recognition table
-      const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
-        .from("org_recognition")
-        .select("*", { count: "exact" })
-        .eq("is_recognized", true) // Filter for rows where status is "Approved"
-
-      if (approvedApplicationsError) throw approvedApplicationsError;
-
-      // Log the count of approved applications
-      console.log(`Approved Applications Count:`, approvedApplicationsData.length);
-
-      // Update the counts in state
-      setRequestsCounts((prevCounts) => ({
-        ...prevCounts,
-        approvedApplications: approvedApplicationsData.length, // Update the approvedApplications count
-      }));
-    } catch (error) {
-      console.error("Error fetching approved organization requests:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchApprovedOrganizationRequests();
   }, []);
 
   const categoryMap = {
@@ -521,7 +511,7 @@ const AdminPanel = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="text-2xl font-bold text-[#7B1113] mb-4">Summary of Submissions</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Submissions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <div
