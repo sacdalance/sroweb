@@ -555,11 +555,7 @@ const Activities = () => {
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.organization?.org_name || "Unknown"}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                            {new Date(report.submitted_at).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}
+                            {new Date(report.submitted_at).toLocaleDateString('en-US')}
                           </td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
                         </tr>
