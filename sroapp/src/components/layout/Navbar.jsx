@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 const Navbar = ({ onMenuClick }) => {
   return (
-    <div className="fixed top-0 left-0 w-full bg-[#7B1113] text-white z-50 shadow-md ">
+    <div className="fixed top-0 left-0 w-full bg-[#7B1113] text-white z-50 shadow-md">
       <div className="flex justify-between items-center px-6 py-3">
         <div className="flex items-center gap-4">
           <button
@@ -22,6 +22,7 @@ const Navbar = ({ onMenuClick }) => {
 
 Navbar.propTypes = {
   onMenuClick: PropTypes.func.isRequired,
+  sidebarOpen: PropTypes.bool, // Optional, but can be kept for future use
 };
 
 export default Navbar;

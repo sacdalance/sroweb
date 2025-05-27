@@ -174,11 +174,12 @@ const OrgApplication = () => {
       setFieldError("adviser", "length"); valid = false;
     } else setFieldError("adviser", "");
 
-    if (!coAdviser.trim()) {
-      setFieldError("coAdviser", "required"); valid = false;
-    } else if (!isValidName(coAdviser)) {
-      setFieldError("coAdviser", "length"); valid = false;
-    } else setFieldError("coAdviser", "");
+    if (coAdviser.trim() && !isValidName(coAdviser)) {
+      setFieldError("coAdviser", "length");
+      valid = false;
+    } else {
+      setFieldError("coAdviser", "");
+    }
 
     // Org type and year: not blank
     if (!orgType.trim()) {
@@ -208,11 +209,12 @@ const OrgApplication = () => {
       setFieldError("adviserEmail", "invalid"); valid = false;
     } else setFieldError("adviserEmail", "");
 
-    if (!coAdviserEmail.trim()) {
-      setFieldError("coAdviserEmail", "required"); valid = false;
-    } else if (!isValidEmail(coAdviserEmail)) {
-      setFieldError("coAdviserEmail", "invalid"); valid = false;
-    } else setFieldError("coAdviserEmail", "");
+    if (coAdviserEmail.trim() && !isValidEmail(coAdviserEmail)) {
+      setFieldError("coAdviserEmail", "invalid");
+      valid = false;
+    } else {
+      setFieldError("coAdviserEmail", "");
+    }
 
     // Files: exactly 6
     if (files.length !== 6) {
@@ -240,8 +242,8 @@ const OrgApplication = () => {
         chairperson_email: chairpersonEmail,
         org_adviser: adviser,
         adviser_email: adviserEmail,
-        org_coadviser: coAdviser,
-        coadviser_email: coAdviserEmail,
+        org_coadviser: coAdviser.trim() || null,
+        coadviser_email: coAdviserEmail.trim() || null,
         org_type: orgType,
         files,
         submitted_by: userId,
@@ -581,7 +583,7 @@ const OrgApplication = () => {
           {/* Co-Adviser */}
           <div>
             <label className="text-sm font-medium block mb-1">
-              Co-Adviser <span className="text-red-500">*</span>
+              Co-Adviser 
             </label>
             <Input
               type="text"
@@ -591,17 +593,19 @@ const OrgApplication = () => {
                 setFieldError("coAdviser", "");
               }}
               onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("coAdviser", "required");
-                else if (!isValidName(e.target.value)) setFieldError("coAdviser", "length");
-                else setFieldError("coAdviser", "");
+                const value = e.target.value.trim();
+                if (value === "") {
+                  setFieldError("coAdviser", ""); // No error if blank
+                } else if (!isValidName(value)) {
+                  setFieldError("coAdviser", "length");
+                } else {
+                  setFieldError("coAdviser", "");
+                }
               }}
               className={fieldErrors.coAdviser ? "border-[#7B1113] bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
-            {fieldErrors.coAdviser === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
-            )}
             {fieldErrors.coAdviser === "length" && (
               <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
             )}
@@ -609,7 +613,7 @@ const OrgApplication = () => {
           {/* Co-Adviser Email */}
           <div>
             <label className="text-sm font-medium block mb-1">
-              Co-Adviser E-mail <span className="text-red-500">*</span>
+              Co-Adviser E-mail
             </label>
             <Input
               type="email"
@@ -619,17 +623,19 @@ const OrgApplication = () => {
                 setFieldError("coAdviserEmail", "");
               }}
               onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("coAdviserEmail", "required");
-                else if (!isValidEmail(e.target.value)) setFieldError("coAdviserEmail", "invalid");
-                else setFieldError("coAdviserEmail", "");
+                const value = e.target.value.trim();
+                if (value === "") {
+                  setFieldError("coAdviserEmail", ""); // No error if blank
+                } else if (!isValidEmail(value)) {
+                  setFieldError("coAdviserEmail", "invalid");
+                } else {
+                  setFieldError("coAdviserEmail", "");
+                }
               }}
               placeholder="delpilarmh@up.edu.ph"
               className={fieldErrors.coAdviserEmail ? "border-[#7B1113] bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.coAdviserEmail === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
-            )}
             {fieldErrors.coAdviserEmail === "invalid" && (
               <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
@@ -793,17 +799,30 @@ const OrgApplication = () => {
       </form>
       {/* Interview dialog after submission */}
       <Dialog open={showInterviewPrompt} onOpenChange={setShowInterviewPrompt}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white shadow-lg border border-gray-100">
           <DialogHeader>
-            <DialogTitle className="text-center">Submission Sent</DialogTitle>
-            <DialogDescription className="text-center">
-              Schedule an interview?
-            </DialogDescription>
+            <div className="flex flex-col items-center">
+              <Check className="h-10 w-10 text-[#014421] mb-2" /> {/* Forest Green */}
+              <DialogTitle className="text-center text-2xl font-semibold text-[#800000] mb-2">Submission Successful</DialogTitle> {/* UP Maroon */}
+              <DialogDescription className="text-center text-base text-gray-700 mb-4">
+                Your application was submitted.<br />
+                Would you like to schedule your interview now?
+              </DialogDescription>
+            </div>
           </DialogHeader>
-          <DialogFooter className="flex justify-center gap-4">
-            <Button onClick={() => handleInterviewResponse(true)}>Yes</Button>
-            <Button variant="destructive" onClick={() => handleInterviewResponse(false)}>
-              No
+          <DialogFooter className="flex flex-row justify-center gap-6 mt-4">
+            <Button
+              className="bg-[#014421] hover:bg-[#012d21] text-white font-semibold px-6 py-2 rounded-xl shadow-none"
+              onClick={() => handleInterviewResponse(true)}
+            >
+              Schedule Now
+            </Button>
+            <Button
+              variant="outline"
+              className="border-[#800000] text-[#800000] hover:bg-[#fff7d6] font-semibold px-6 py-2 rounded-xl"
+              onClick={() => handleInterviewResponse(false)}
+            >
+              Not Now
             </Button>
           </DialogFooter>
         </DialogContent>
