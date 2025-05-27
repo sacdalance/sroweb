@@ -101,7 +101,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
         <ScrollArea className="h-screen pt-14 flex flex-col pl-6 pr-0">
           <div className="pr-6 flex flex-col min-h-0">
             {/* Profile section */}
-            <div className="flex flex-col items-center mb-8 mt-14">
+            <div className="flex flex-col items-center mb-8 mt-10">
               <img
                 src={
                   user?.user_metadata?.avatar_url ||
