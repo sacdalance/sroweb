@@ -184,25 +184,28 @@ const Dashboard = () => {
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 p-0 border-[#014421] text-[#014421] rounded-md"
+                          className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                           onClick={() => handleWeekNavigation("prev")}
                         >
-                          <ChevronLeft className="h-3 w-3" />
+                          <ChevronLeft className="h-6 w-6" />
                         </Button>
                         <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
-                          {getWeekRange(currentWeekStart)}
+                          {(() => {
+                            const range = getWeekRange(currentWeekStart);
+                            return range;
+                          })()}
                         </span>
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6 p-0 border-[#014421] text-[#014421] rounded-md"
+                          className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                           onClick={() => handleWeekNavigation("next")}
                         >
-                          <ChevronRight className="h-3 w-3" />
+                          <ChevronRight className="h-6 w-6" />
                         </Button>
                       </div>
                     </div>
