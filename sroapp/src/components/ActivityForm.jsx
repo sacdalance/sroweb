@@ -116,7 +116,7 @@ import {
         { id: "booth", label: "Booth (membership, registration, ticket payment, etc.)" },
         { id: "rehearsals", label: "Rehearsals/Preparation" },
         { id: "specialEvents", label: "Special Events (anniversary, concert, etc.)" },
-        { id: "others", label: "Others (please specify, e.g., interview process, final rites)" }
+        { id: "others", label: "Others" }
     ];
 
     const sdgOptions = [
