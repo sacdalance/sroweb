@@ -368,13 +368,23 @@ const Activities = () => {
                                   Approved
                                 </span>
                               )}
-                              {/* fallback for other statuses */}
-                              {["For Appeal", "Pending", "Approved"].indexOf(act.final_status) === -1 && (
+                              {act.final_status === "Rejected" && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-gray-100 text-[#1C1C1C] font-semibold text-xs border border-gray-200">
+                                  Rejected
+                                </span>
+                              )}
+                              {act.final_status === "For Cancellation" && (
+                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
+                                  For Cancellation
+                                </span>
+                              )}
+                              {["For Appeal", "Pending", "Approved", "Rejected", "For Cancellation"].indexOf(act.final_status) === -1 && (
                                 <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
                                   {act.final_status || "Pending"}
                                 </span>
                               )}
                             </td>
+
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
                               {!["For Appeal", "Rejected", "For Cancellation"].includes(act.final_status) && (
                                 <div className="flex items-center justify-center gap-2">
