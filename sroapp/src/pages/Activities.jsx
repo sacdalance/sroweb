@@ -376,7 +376,7 @@ const Activities = () => {
                               )}
                             </td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
-                              {act.final_status !== "For Appeal" && (
+                              {!["For Appeal", "Rejected", "For Cancellation"].includes(act.final_status) && (
                                 <div className="flex items-center justify-center gap-2">
                                 {/* Edit Button */}
                                 <button
