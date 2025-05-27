@@ -88,6 +88,20 @@ const Activities = () => {
     fetchActivities();
   }, []);
 
+  const [annualReports, setAnnualReports] = useState([]);
+  useEffect(() => {
+    const fetchAnnualReports = async () => {
+      const { data, error } = await supabase
+        .from("org_annual_report")
+        .select("*, organization:org_id (org_name)")
+        .eq("submitted_by", accountId);
+
+      if (!error && data) setAnnualReports(data);
+    };
+
+    if (accountId) fetchAnnualReports();
+  }, [accountId]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
@@ -515,7 +529,59 @@ const Activities = () => {
         </Dialog>
       )}
 
+      <section>
+        <h2 className="text-lg font-semibold mb-2">Annual Reports</h2>
+        <Card className="w-full relative">
+          <CardContent className="p-0">
+            <div className="w-full overflow-x-auto">
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full min-w-[700px] table-fixed text-sm text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Report ID</th>
+                      <th className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
+                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
+                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {annualReports?.length > 0 ? (
+                      annualReports.map((report) => (
+                        <tr
+                          key={report.report_id}
+                          onClick={() => window.open(report.drive_folder_link, '_blank')}
+                          className="border-b cursor-pointer hover:bg-gray-50"
+                        >
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.organization?.org_name || "Unknown"}</td>
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            {new Date(report.submitted_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric"
+                            })}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-4 px-3 text-center text-gray-500">
+                          No annual reports found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
     </div>
+
+    
   );
 };
 
