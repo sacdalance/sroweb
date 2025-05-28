@@ -17,7 +17,7 @@ import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
@@ -51,6 +51,12 @@ import {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [orgs, setOrgs] = useState([]);
+    const fileInputRef = useRef(null);
+    const today = new Date();
+    const minStartDate = addBusinessDays(today, 5).toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextDay = tomorrow.toISOString().split("T")[0];
     const buttonClasses = (type = "primary") =>
   type === "primary"
     ? mode === "admin"
@@ -138,6 +144,19 @@ import {
         { id: "peaceJustice", label: "Peace, Justice and Strong Institutions" },
         { id: "partnerships", label: "Partnerships for the Goals" }
     ];
+
+    function addBusinessDays(date, days) {
+      const result = new Date(date);
+      let added = 0;
+      while (added < days) {
+        result.setDate(result.getDate() + 1);
+        const day = result.getDay();
+        if (day !== 0 && day !== 6) {
+          added++;
+        }
+      }
+      return result;
+    }
 
     const universityPartners = {
         colleges: [
@@ -349,6 +368,15 @@ import {
   if (currentSection === "date-info") {
     if (!recurring) return fail("recurring", "Please indicate if activity is recurring.");
     if (!startDate) return fail("startDate", "Start date is required.");
+
+const chosenDate = new Date(startDate);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+chosenDate.setHours(0, 0, 0, 0);
+
+if (chosenDate < today) {
+  return fail("startDate", "Start date cannot be in the past.");
+}
     if (!startTime) return fail("startTime", "Start time is required.");
     if (!endTime) return fail("endTime", "End time is required.");
     if (recurring === "recurring") {
@@ -969,20 +997,93 @@ const buildActivityPayload = (form) => {
                       <div>
                           <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                           <Input
-                              id="startDate" onBlur={() => setFieldError("startDate", !formData.startDate)} className={fieldErrors.startDate ? "border-[#7B1113] bg-red-50" : ""}                                                type="date"
-                              min={new Date().toISOString().split("T")[0]}
-                              value={formData.startDate}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setFormData((prev) => ({ ...prev, startDate: value }));
-                                if (value !== "") setFieldError("startDate", false);
-                              }}
+                            id="startDate"
+                            type="date"
+                            min={nextDay}
+                            value={formData.startDate}
+                            onBlur={() => {
+                              const chosen = new Date(formData.startDate);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              chosen.setHours(0, 0, 0, 0);
+
+                              setFieldError("startDate", !formData.startDate || chosen <= today);
+                            }}
+                            className={cn(
+                              fieldErrors.startDate
+                                ? "border-[#7B1113] bg-red-50"
+                                : (() => {
+                                    const today = new Date();
+                                    const chosen = new Date(formData.startDate);
+                                    today.setHours(0, 0, 0, 0);
+                                    chosen.setHours(0, 0, 0, 0);
+
+                                    const addBusinessDays = (date, days) => {
+                                      const result = new Date(date);
+                                      let added = 0;
+                                      while (added < days) {
+                                        result.setDate(result.getDate() + 1);
+                                        const day = result.getDay();
+                                        if (day !== 0 && day !== 6) added++;
+                                      }
+                                      return result;
+                                    };
+
+                                    const minAllowed = addBusinessDays(today, 5);
+                                    minAllowed.setHours(0, 0, 0, 0);
+
+                                    if (formData.startDate && chosen < minAllowed && chosen > today) {
+                                      return "border-yellow-400 bg-yellow-50";
+                                    }
+
+                                    return "";
+                                  })()
+                            )}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const chosen = new Date(value);
+                              const minDate = new Date(minStartDate);
+                              setFormData((prev) => ({ ...prev, startDate: value }));
+                              if (value && chosen >= minDate) {
+                                setFieldError("startDate", false);
+                              }
+                            }}
                           />
                           {fieldErrors.startDate && (
-                          <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
-                              Start date is required.
-                          </p>
+                            <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                              {formData.startDate
+                                ? "Start date cannot be in the past."
+                                : "Start date is required."}
+                            </p>
                           )}
+
+                          {formData.startDate && (() => {
+                            const addBusinessDays = (date, days) => {
+                              const result = new Date(date);
+                              let added = 0;
+                              while (added < days) {
+                                result.setDate(result.getDate() + 1);
+                                const day = result.getDay();
+                                if (day !== 0 && day !== 6) added++;
+                              }
+                              return result;
+                            };
+
+                            const minDate = addBusinessDays(new Date(), 5);
+                            const selected = new Date(formData.startDate);
+                            selected.setHours(0, 0, 0, 0);
+                            minDate.setHours(0, 0, 0, 0);
+
+                            if (selected < minDate && selected >= new Date()) {
+                              return (
+                                <p className="text-xs text-yellow-600 mt-1 px-1 font-medium">
+                                  ⚠️ <strong>Warning:</strong> This activity is not 5 business days in advance.
+                                  Please coordinate directly with SRO. You may still submit your request.
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
                       </div>
                       {formData.recurring === "recurring" && (
                           <div>
@@ -1486,8 +1587,7 @@ const buildActivityPayload = (form) => {
         i.e. LARUA-TinigAmianan_Activity-Request-Form_01-01-2024
       </p>
 
-      <div className="mt-4">
-        <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
+      <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
           <h4 className="font-medium text-base mb-2 text-[#7B1113]">
             What to include in your single PDF file:
           </h4>
@@ -1498,27 +1598,54 @@ const buildActivityPayload = (form) => {
           </ul>
         </div>
 
-        <div
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, isDragActive: true }));
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, isDragActive: false }));
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const file = e.dataTransfer.files?.[0];
+          if (file?.type !== "application/pdf") {
+            toast.error("Only PDF files are allowed.");
+            return;
+          }
+          setFormData((prev) => ({ ...prev, selectedFile: file, isDragActive: false }));
+        }}
         className={cn(
           "border-2 border-dashed p-4 rounded-md text-center transition-colors",
           formData.selectedFile
-            ? "border-gray-200 bg-muted/60 cursor-not-allowed"
+            ? "border-gray-300 bg-gray-50 cursor-not-allowed"
+            : formData.isDragActive
+            ? "border-green-600 bg-green-50"
             : "border-gray-300 hover:border-gray-400 hover:bg-muted"
         )}
       >
         <label
-          htmlFor="activityRequestFileUpload"
+          htmlFor="activityUpload"
           className={cn(
-            "flex flex-col items-center",
-            formData.selectedFile ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+            "cursor-pointer flex flex-col items-center",
+            formData.selectedFile && "cursor-not-allowed opacity-70"
           )}
         >
-            <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm">Drag and Drop or Click to Upload File</p>
-            <input
-            id="activityRequestFileUpload"
+          <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm">
+            {formData.selectedFile
+              ? "You cannot upload or drag files after completion."
+              : formData.isDragActive
+              ? "Drop the file here"
+              : "Drag and Drop or Click to Upload File (1 required)"}
+          </p>
+          <input
+            ref={fileInputRef}
+            id="activityUpload"
             type="file"
             accept=".pdf"
+            disabled={!!formData.selectedFile || isSubmitting}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file || file.type !== "application/pdf") {
@@ -1528,34 +1655,34 @@ const buildActivityPayload = (form) => {
               setFormData((prev) => ({ ...prev, selectedFile: file }));
             }}
             className="hidden"
-            disabled={!!formData.selectedFile || isSubmitting}
           />
-          </label>
-        </div>
-
-        {formData.selectedFile && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Selected File</h4>
-            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
-              <div className="flex items-center gap-2 truncate">
-                <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                <span className="truncate max-w-[240px]">
-                  {formData.selectedFile.name}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, selectedFile: null }))
-                }
-                className="text-muted-foreground hover:text-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        </label>
       </div>
+
+      {formData.selectedFile && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-1">Selected File</h4>
+          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
+            <div className="flex items-center gap-2 truncate">
+              <FileText className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="truncate max-w-[240px]">{formData.selectedFile.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, selectedFile: null }));
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = null;
+                }
+              }}
+              className="text-muted-foreground hover:text-red-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
 
     <div className="flex justify-between">
