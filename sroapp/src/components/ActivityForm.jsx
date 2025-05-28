@@ -52,6 +52,11 @@ import {
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [orgs, setOrgs] = useState([]);
     const fileInputRef = useRef(null);
+    const today = new Date();
+    const minStartDate = addBusinessDays(today, 5).toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextDay = tomorrow.toISOString().split("T")[0];
     const buttonClasses = (type = "primary") =>
   type === "primary"
     ? mode === "admin"
@@ -139,6 +144,19 @@ import {
         { id: "peaceJustice", label: "Peace, Justice and Strong Institutions" },
         { id: "partnerships", label: "Partnerships for the Goals" }
     ];
+
+    function addBusinessDays(date, days) {
+      const result = new Date(date);
+      let added = 0;
+      while (added < days) {
+        result.setDate(result.getDate() + 1);
+        const day = result.getDay();
+        if (day !== 0 && day !== 6) {
+          added++;
+        }
+      }
+      return result;
+    }
 
     const universityPartners = {
         colleges: [
@@ -350,6 +368,15 @@ import {
   if (currentSection === "date-info") {
     if (!recurring) return fail("recurring", "Please indicate if activity is recurring.");
     if (!startDate) return fail("startDate", "Start date is required.");
+
+const chosenDate = new Date(startDate);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+chosenDate.setHours(0, 0, 0, 0);
+
+if (chosenDate < today) {
+  return fail("startDate", "Start date cannot be in the past.");
+}
     if (!startTime) return fail("startTime", "Start time is required.");
     if (!endTime) return fail("endTime", "End time is required.");
     if (recurring === "recurring") {
@@ -970,20 +997,94 @@ const buildActivityPayload = (form) => {
                       <div>
                           <h3 className="text-sm font-medium mb-2">Activity Start Date <span className="text-red-500">*</span></h3>
                           <Input
-                              id="startDate" onBlur={() => setFieldError("startDate", !formData.startDate)} className={fieldErrors.startDate ? "border-[#7B1113] bg-red-50" : ""}                                                type="date"
-                              min={new Date().toISOString().split("T")[0]}
-                              value={formData.startDate}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setFormData((prev) => ({ ...prev, startDate: value }));
-                                if (value !== "") setFieldError("startDate", false);
-                              }}
+                            id="startDate"
+                            type="date"
+                            min={nextDay}
+                            value={formData.startDate}
+                            onBlur={() => {
+                              const chosen = new Date(formData.startDate);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              chosen.setHours(0, 0, 0, 0);
+
+                              setFieldError("startDate", !formData.startDate || chosen <= today);
+                            }}
+                            className={cn(
+                              fieldErrors.startDate
+                                ? "border-[#7B1113] bg-red-50"
+                                : (() => {
+                                    const today = new Date();
+                                    const chosen = new Date(formData.startDate);
+                                    today.setHours(0, 0, 0, 0);
+                                    chosen.setHours(0, 0, 0, 0);
+
+                                    const addBusinessDays = (date, days) => {
+                                      const result = new Date(date);
+                                      let added = 0;
+                                      while (added < days) {
+                                        result.setDate(result.getDate() + 1);
+                                        const day = result.getDay();
+                                        if (day !== 0 && day !== 6) added++;
+                                      }
+                                      return result;
+                                    };
+
+                                    const minAllowed = addBusinessDays(today, 5);
+                                    minAllowed.setHours(0, 0, 0, 0);
+
+                                    if (formData.startDate && chosen < minAllowed && chosen > today) {
+                                      return "border-yellow-400 bg-yellow-50";
+                                    }
+
+                                    return "";
+                                  })()
+                            )}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const chosen = new Date(value);
+                              const minDate = new Date(minStartDate);
+                              setFormData((prev) => ({ ...prev, startDate: value }));
+                              if (value && chosen >= minDate) {
+                                setFieldError("startDate", false);
+                              }
+                            }}
                           />
                           {fieldErrors.startDate && (
-                          <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
-                              Start date is required.
-                          </p>
+                            <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                              {formData.startDate
+                                ? "Start date cannot be in the past."
+                                : "Start date is required."}
+                            </p>
                           )}
+
+                          {/* Add this new warning block */}
+                          {formData.startDate && (() => {
+                            const addBusinessDays = (date, days) => {
+                              const result = new Date(date);
+                              let added = 0;
+                              while (added < days) {
+                                result.setDate(result.getDate() + 1);
+                                const day = result.getDay();
+                                if (day !== 0 && day !== 6) added++;
+                              }
+                              return result;
+                            };
+
+                            const minDate = addBusinessDays(new Date(), 5);
+                            const selected = new Date(formData.startDate);
+                            selected.setHours(0, 0, 0, 0);
+                            minDate.setHours(0, 0, 0, 0);
+
+                            if (selected < minDate && selected >= new Date()) {
+                              return (
+                                <p className="text-xs text-yellow-600 mt-1 px-1 font-medium">
+                                  ⚠️ Warning: This activity is not 5 business days in advance.
+                                  Please coordinate directly with SRO.
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
                       </div>
                       {formData.recurring === "recurring" && (
                           <div>
