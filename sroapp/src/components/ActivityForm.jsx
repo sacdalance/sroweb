@@ -1057,7 +1057,6 @@ const buildActivityPayload = (form) => {
                             </p>
                           )}
 
-                          {/* Add this new warning block */}
                           {formData.startDate && (() => {
                             const addBusinessDays = (date, days) => {
                               const result = new Date(date);
@@ -1078,8 +1077,8 @@ const buildActivityPayload = (form) => {
                             if (selected < minDate && selected >= new Date()) {
                               return (
                                 <p className="text-xs text-yellow-600 mt-1 px-1 font-medium">
-                                  ⚠️ Warning: This activity is not 5 business days in advance.
-                                  Please coordinate directly with SRO.
+                                  ⚠️ <strong>Warning:</strong> This activity is not 5 business days in advance.
+                                  Please coordinate directly with SRO. You may still submit your request.
                                 </p>
                               );
                             }
