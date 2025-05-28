@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 
-const Activities = () => {
+const Submissions = () => {
   const [requested, setRequested] = useState([]);
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +136,7 @@ const Activities = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Activities</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Submissions</h1>
 
       <Dialog
       open={!!selectedActivity}
@@ -702,4 +702,4 @@ const Activities = () => {
   );
 };
 
-export default Activities;
+export default Submissions;
