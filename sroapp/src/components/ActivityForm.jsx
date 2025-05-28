@@ -1628,21 +1628,24 @@ const buildActivityPayload = (form) => {
       </AlertDialog>
 
       <AlertDialog open={showSuccessDialog}>
-      <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
-            {mode === "edit"
-              ? "Edited Successfully!"
-              : mode === "admin"
-              ? "Created Successfully!"
-              : "Submitted Successfully!"}
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm font-medium mb-2">
-            You will be redirected to the dashboard...
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-      </AlertDialogContent>
-    </AlertDialog>
+        <AlertDialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white/90 border border-[#014421]/10 shadow-2xl text-center">
+          <AlertDialogHeader>
+            <div className="flex flex-col items-center">
+              <Check className="h-12 w-12 text-[#014421] mb-3" />
+              <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-3 text-center">
+                {mode === "edit"
+                  ? "Edited Successfully!"
+                  : mode === "admin"
+                  ? "Created Successfully!"
+                  : "Submitted Successfully!"}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-base font-medium text-gray-700 mb-2">
+                You will be redirected to the dashboard...
+              </AlertDialogDescription>
+            </div>
+          </AlertDialogHeader>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showRemindersDialog} onOpenChange={setShowRemindersDialog}>
         <AlertDialogContent className="max-h-[90vh] overflow-hidden">
