@@ -1486,8 +1486,7 @@ const buildActivityPayload = (form) => {
         i.e. LARUA-TinigAmianan_Activity-Request-Form_01-01-2024
       </p>
 
-      <div className="mt-4">
-        <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
+      <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
           <h4 className="font-medium text-base mb-2 text-[#7B1113]">
             What to include in your single PDF file:
           </h4>
@@ -1498,27 +1497,53 @@ const buildActivityPayload = (form) => {
           </ul>
         </div>
 
-        <div
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, isDragActive: true }));
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, isDragActive: false }));
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const file = e.dataTransfer.files?.[0];
+          if (file?.type !== "application/pdf") {
+            toast.error("Only PDF files are allowed.");
+            return;
+          }
+          setFormData((prev) => ({ ...prev, selectedFile: file, isDragActive: false }));
+        }}
         className={cn(
           "border-2 border-dashed p-4 rounded-md text-center transition-colors",
           formData.selectedFile
-            ? "border-gray-200 bg-muted/60 cursor-not-allowed"
+            ? "border-gray-300 bg-gray-50 cursor-not-allowed"
+            : formData.isDragActive
+            ? "border-green-600 bg-green-50"
             : "border-gray-300 hover:border-gray-400 hover:bg-muted"
         )}
       >
         <label
-          htmlFor="activityRequestFileUpload"
+          htmlFor="activityUpload"
           className={cn(
-            "flex flex-col items-center",
-            formData.selectedFile ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+            "cursor-pointer flex flex-col items-center",
+            formData.selectedFile && "cursor-not-allowed opacity-70"
           )}
         >
-            <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm">Drag and Drop or Click to Upload File</p>
-            <input
-            id="activityRequestFileUpload"
+          <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm">
+            {formData.selectedFile
+              ? "You cannot upload or drag files after completion."
+              : formData.isDragActive
+              ? "Drop the file here"
+              : "Drag and Drop or Click to Upload File (1 required)"}
+          </p>
+          <input
+            id="activityUpload"
             type="file"
             accept=".pdf"
+            disabled={!!formData.selectedFile || isSubmitting}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file || file.type !== "application/pdf") {
@@ -1528,34 +1553,31 @@ const buildActivityPayload = (form) => {
               setFormData((prev) => ({ ...prev, selectedFile: file }));
             }}
             className="hidden"
-            disabled={!!formData.selectedFile || isSubmitting}
           />
-          </label>
-        </div>
-
-        {formData.selectedFile && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-1">Selected File</h4>
-            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
-              <div className="flex items-center gap-2 truncate">
-                <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                <span className="truncate max-w-[240px]">
-                  {formData.selectedFile.name}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, selectedFile: null }))
-                }
-                className="text-muted-foreground hover:text-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        </label>
       </div>
+
+      {formData.selectedFile && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-1">Selected File</h4>
+          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
+            <div className="flex items-center gap-2 truncate">
+              <FileText className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="truncate max-w-[240px]">{formData.selectedFile.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, selectedFile: null }))
+              }
+              className="text-muted-foreground hover:text-red-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
 
     <div className="flex justify-between">
