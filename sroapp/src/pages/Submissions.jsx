@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 
-const Activities = () => {
+const Submissions = () => {
   const [requested, setRequested] = useState([]);
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +102,29 @@ const Activities = () => {
     if (accountId) fetchAnnualReports();
   }, [accountId]);
 
+  const [recognitionApps, setRecognitionApps] = useState([]);
+
+  useEffect(() => {
+    const fetchRecognitionApps = async () => {
+      const { data, error } = await supabase
+        .from("org_recognition")
+        .select("recognition_id, academic_year, submitted_at, sro_approved, odsa_approved, org_name, new_org_status")
+        .eq("submitted_by", accountId);
+
+      if (!error && data) {
+        console.log("✅ Loaded recognitions:", data);
+        setRecognitionApps(data);
+      } else {
+        console.error("❌ Recognition fetch error:", error);
+      }
+    };
+
+    if (accountId) {
+      console.log("Fetching recognitions for:", accountId); // Debug
+      fetchRecognitionApps();
+    }
+  }, [accountId]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
@@ -113,7 +136,7 @@ const Activities = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Activities</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Submissions</h1>
 
       <Dialog
       open={!!selectedActivity}
@@ -552,7 +575,9 @@ const Activities = () => {
                           onClick={() => window.open(report.drive_folder_link, '_blank')}
                           className="border-b cursor-pointer hover:bg-gray-50"
                         >
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.organization?.org_name || "Unknown"}</td>
+                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+  {report.organization?.org_name || report.org_name || "Unknown"}
+</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
                           <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
                             {new Date(report.submitted_at).toLocaleDateString('en-US')}
@@ -575,10 +600,106 @@ const Activities = () => {
         </Card>
       </section>
 
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold mb-2">Applications for Recognition</h2>
+        <Card className="w-full relative">
+          <CardContent className="p-0">
+            <div className="w-full overflow-x-auto">
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full min-w-[700px] table-fixed text-sm text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
+                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
+                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
+                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recognitionApps?.filter((app) => !(app.sro_approved && app.odsa_approved)).length > 0 ? (
+                      recognitionApps
+                        .filter((app) => !(app.sro_approved && app.odsa_approved))
+                        .map((app) => (
+                          <tr key={app.recognition_id} className="border-b">
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {app.org_name || "Unknown"}
+                            </td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {new Date(app.submitted_at).toLocaleDateString('en-US')}
+                            </td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              <span className="inline-block px-3 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] text-xs font-semibold border border-[#FFF7D6]">Pending</span>
+                            </td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="py-4 px-3 text-center text-gray-500">
+                          No recognition applications found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold mb-2">Approved Applications for Recognition</h2>
+        <Card className="w-full relative">
+          <CardContent className="p-0">
+            <div className="w-full overflow-x-auto">
+              <div className="max-h-[400px] overflow-y-auto">
+                <table className="w-full min-w-[700px] table-fixed text-sm text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
+                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
+                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
+                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Org Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recognitionApps?.filter((app) => app.sro_approved && app.odsa_approved).length > 0 ? (
+                      recognitionApps
+                        .filter((app) => app.sro_approved && app.odsa_approved)
+                        .map((app) => (
+                          <tr key={app.recognition_id} className="border-b">
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {app.org_name || "Unknown"}
+                            </td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {new Date(app.submitted_at).toLocaleDateString('en-US')}
+                            </td>
+                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                              {app.new_org_status || "N/A"}
+                            </td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="py-4 px-3 text-center text-gray-500">
+                          No approved recognition applications found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
     </div>
 
     
   );
 };
 
-export default Activities;
+export default Submissions;

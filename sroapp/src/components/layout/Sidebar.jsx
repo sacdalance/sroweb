@@ -159,11 +159,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                       </li>
                       <li>
                         <Link
-                          to="/activities"
-                          className={linkClass("/activities")}
+                          to="/submissions"
+                          className={linkClass("/submissions")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
                         >
-                          My Activities
+                          My Submissions
                         </Link>
                       </li>
                       <li>
