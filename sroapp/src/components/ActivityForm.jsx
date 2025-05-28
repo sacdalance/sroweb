@@ -17,7 +17,7 @@ import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
@@ -51,6 +51,7 @@ import {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
     const [orgs, setOrgs] = useState([]);
+    const fileInputRef = useRef(null);
     const buttonClasses = (type = "primary") =>
   type === "primary"
     ? mode === "admin"
@@ -1540,6 +1541,7 @@ const buildActivityPayload = (form) => {
               : "Drag and Drop or Click to Upload File (1 required)"}
           </p>
           <input
+            ref={fileInputRef}
             id="activityUpload"
             type="file"
             accept=".pdf"
@@ -1567,9 +1569,12 @@ const buildActivityPayload = (form) => {
             </div>
             <button
               type="button"
-              onClick={() =>
-                setFormData((prev) => ({ ...prev, selectedFile: null }))
-              }
+              onClick={() => {
+                setFormData((prev) => ({ ...prev, selectedFile: null }));
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = null;
+                }
+              }}
               className="text-muted-foreground hover:text-red-600"
             >
               <X className="w-4 h-4" />
