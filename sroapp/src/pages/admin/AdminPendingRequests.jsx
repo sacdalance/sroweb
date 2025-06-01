@@ -47,6 +47,7 @@ const AdminPendingRequests = () => {
   const [userRole, setUserRole] = useState(null);
   const [allActivities, setAllActivities] = useState([]);
   const [pendingAppeals, setPendingAppeals] = useState([]);
+  const [superadminView, setSuperadminView] = useState('sro'); // 'sro' or 'odsa'
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -115,28 +116,55 @@ const AdminPendingRequests = () => {
           },
         });
 
-        console.log("Fetched incoming:", res.data);
         const allActivities = res.data;
         setAllActivities(allActivities);
 
-        const filtered = allActivities.filter((a) => {
-          const isAppeal = a.final_status === "For Appeal";
-          if (isAppeal) return false;
-
-          if (userRole === 2) {
+        let filtered;
+        if (userRole === 4) {
+          // Superadmin: filter based on superadminView
+          if (superadminView === 'sro') {
+            filtered = allActivities.filter((a) => {
+              const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+              if (isAppealOrCancel) return false;
+              return (
+                a.sro_approval_status === null ||
+                (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+              );
+            });
+          } else if (superadminView === 'odsa') {
+            filtered = allActivities.filter((a) => {
+              const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+              if (isAppealOrCancel) return false;
+              return (
+                a.sro_approval_status === "Approved" &&
+                a.odsa_approval_status === null
+              );
+            });
+          } else {
+            filtered = allActivities;
+          }
+        } else if (userRole === 2) {
+          filtered = allActivities.filter((a) => {
+            const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+            if (isAppealOrCancel) return false;
             return (
               a.sro_approval_status === null ||
               (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
             );
-          } else if (userRole === 3) {
-            // ODSA sees only activities approved by SRO and not yet acted on by them
+          });
+        } else if (userRole === 3) {
+          // ODSA sees only activities approved by SRO and not yet acted on by them
+          filtered = allActivities.filter((a) => {
+            const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+            if (isAppealOrCancel) return false;
             return (
               a.sro_approval_status === "Approved" &&
               a.odsa_approval_status === null
             );
-          }
-          return true; // fallback: show all (for devs/superadmins if needed)
-        });
+          });
+        } else {
+          filtered = allActivities;
+        }
 
         setIncomingRequests(filtered);
 
@@ -148,7 +176,7 @@ const AdminPendingRequests = () => {
     };
 
     fetchIncoming();
-  }, [userRole]); // trigger only when userRole is ready
+  }, [userRole, superadminView]); // trigger when userRole or superadminView changes
 
 
   useEffect(() => {
@@ -311,9 +339,27 @@ const AdminPendingRequests = () => {
         <TabsContent value="submissions">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#000000]">
-                Incoming Submissions
-              </CardTitle>
+              <div className="flex items-center gap-4">
+                <CardTitle className="text-xl font-bold text-[#000000]">
+                  Incoming Submissions
+                </CardTitle>
+                {userRole === 4 && (
+                  <div className="flex gap-2 ml-2">
+                    <button
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${superadminView === 'sro' ? 'bg-[#014421] text-white border-[#014421]' : 'bg-white text-[#014421] border-[#014421]'}`}
+                      onClick={() => setSuperadminView('sro')}
+                    >
+                      SRO view
+                    </button>
+                    <button
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${superadminView === 'odsa' ? 'bg-[#7B1113] text-white border-[#7B1113]' : 'bg-white text-[#7B1113] border-[#7B1113]'}`}
+                      onClick={() => setSuperadminView('odsa')}
+                    >
+                      ODSA view
+                    </button>
+                  </div>
+                )}
+              </div>
               {userRole === 3 && (
                 <p className="text-sm text-gray-600 italic mb-1">
                   Showing only activities approved by the SRO.
