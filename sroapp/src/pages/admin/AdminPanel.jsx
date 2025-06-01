@@ -208,11 +208,45 @@ const AdminPanel = () => {
         ).length;
 
         // Transform the data to match our events structure
-        const transformedEvents = [];
+        let transformedEvents = [];
         data.forEach((activity) => {
           if (Array.isArray(activity.schedule)) {
             activity.schedule.forEach((sched) => {
-              if (sched.start_date) {
+              if (sched.is_recurring === "true" && sched.recurring_days) {
+                // Recurring event: expand to all matching days
+                const recurringDays = JSON.parse(sched.recurring_days);
+                const dayMap = {
+                  Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+                };
+                const start = new Date(sched.start_date);
+                const end = new Date(sched.end_date);
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                  const dayName = Object.keys(dayMap).find(key => dayMap[key] === d.getDay());
+                  if (recurringDays[dayName]) {
+                    const startTime = sched.start_time
+                      ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "00:00";
+                    const endTime = sched.end_time
+                      ? new Date(`1970-01-01T${sched.end_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "00:00";
+                    const categoryLabel = categoryMap[activity.activity_type] || "Others";
+                    transformedEvents.push({
+                      ...activity,
+                      id: activity.activity_id + "_" + d.toISOString().slice(0, 10),
+                      name: activity.activity_name,
+                      time: `${startTime} to ${endTime}`,
+                      location: activity.venue,
+                      category: categoryLabel,
+                      organization: activity.organization?.org_name,
+                      date: d.toISOString().slice(0, 10),
+                      is_recurring: "true",
+                      recurring_days: sched.recurring_days,
+                      schedule: [sched],
+                    });
+                  }
+                }
+              } else if (sched.start_date) {
+                // Non-recurring event
                 const startTime = sched.start_time
                   ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                   : "00:00";
@@ -221,6 +255,7 @@ const AdminPanel = () => {
                   : "00:00";
                 const categoryLabel = categoryMap[activity.activity_type] || "Others";
                 transformedEvents.push({
+                  ...activity,
                   id: activity.activity_id + "_" + sched.activity_schedule_id,
                   name: activity.activity_name,
                   time: `${startTime} to ${endTime}`,
@@ -228,6 +263,8 @@ const AdminPanel = () => {
                   category: categoryLabel,
                   organization: activity.organization?.org_name,
                   date: sched.start_date,
+                  is_recurring: "false",
+                  schedule: [sched],
                 });
               }
             });
@@ -634,6 +671,11 @@ const AdminPanel = () => {
                       </Button>
                     </div>
                   </div>
+                  {/* Legend for recurring activities */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-block w-4 h-4 rounded border-4 border-[#F3AA2C] bg-white"></span>
+                    <span className="text-xs text-gray-700">Recurring Activity</span>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-grow min-w-0">
                   {loading ? (
@@ -687,7 +729,7 @@ const AdminPanel = () => {
                                       <div
                                         key={dayEvents[0].id}
                                         onClick={() => handleEventClick(dayEvents[0])}
-                                        className="bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors"
+                                        className={`bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
                                       >
                                         {/* Activity Name and Time */}
                                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -698,7 +740,28 @@ const AdminPanel = () => {
                                         <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
                                         {/* Bottom Row: Location and Activity Count */}
                                         <div className="flex items-center justify-between mt-1">
-                                          <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                          {dayEvents[0].is_recurring === "true" ? (
+                                            <>
+                                              <span className="text-white/80 text-xs truncate">
+                                                {(() => {
+                                                  const sched = dayEvents[0].schedule?.[0] || {};
+                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                                })()}
+                                              </span>
+                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                                {(() => {
+                                                  const sched = dayEvents[0].schedule?.[0] || {};
+                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                  return daysList.length > 0 ? daysList.join(", ") : null;
+                                                })()}
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                          )}
                                           {dayEvents.length > 1 && (
                                             <Badge
                                               onClick={(e) => {
@@ -757,8 +820,7 @@ const AdminPanel = () => {
                                     dayEvents.map(event => (
                                       <div
                                         key={event.id}
-                                        className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between"
-                                        style={{ minWidth: 0 }}
+                                        className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
                                       >
                                         <div className="flex items-center mb-1 min-w-0">
                                           <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
@@ -768,6 +830,30 @@ const AdminPanel = () => {
                                         <div className="flex flex-row items-start gap-2 min-w-0 w-full">
                                           <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
                                           <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-1">
+                                          {event.is_recurring === "true" ? (
+                                            <>
+                                              <span className="text-white/80 text-xs truncate">
+                                                {(() => {
+                                                  const sched = event.schedule?.[0] || {};
+                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                                })()}
+                                              </span>
+                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                                {(() => {
+                                                  const sched = event.schedule?.[0] || {};
+                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                  return daysList.length > 0 ? daysList.join(", ") : null;
+                                                })()}
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <span className="text-white/80 text-xs truncate">{event.location}</span>
+                                          )}
                                         </div>
                                       </div>
                                     ))

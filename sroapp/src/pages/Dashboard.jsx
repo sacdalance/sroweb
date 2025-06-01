@@ -349,7 +349,7 @@ const Dashboard = () => {
                                     </span>
                                   </>
                                 ) : (
-                                  <span className="text-white/80 text-xs truncate">{dayEvents[0].date}</span>
+                                  <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
                                 )}
                                 {dayEvents.length > 1 && (
                                   <button
@@ -444,7 +444,7 @@ const Dashboard = () => {
                                       </span>
                                     </>
                                   ) : (
-                                    <span className="text-white/80 text-xs truncate">{event.date}</span>
+                                    <span className="text-white/80 text-xs truncate">{event.location}</span>
                                   )}
                                   {dayEvents.length > 1 && (
                                     <button
