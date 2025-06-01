@@ -160,7 +160,7 @@ const ActivitiesCalendar = () => {
             }),
             title: event.title,
             organization: event.organization,
-            type: event.category,
+            type: categoryMap[event.category] || event.category,
             venue: event.venue,
             time: event.time,
             startDate: event.date,
