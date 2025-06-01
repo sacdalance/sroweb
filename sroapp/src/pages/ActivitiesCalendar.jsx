@@ -96,39 +96,71 @@ const ActivitiesCalendar = () => {
 
         if (activitiesError) throw activitiesError;
 
-        // Transform the data
-        const transformedEvents = data.map(activity => ({
-          id: activity.activity_id,
-          date: new Date(activity.schedule[0]?.start_date),
-          title: activity.activity_name,
-          time: `${activity.schedule[0]?.start_time} to ${activity.schedule[0]?.end_time}`,
-          location: activity.venue,
-          category: activity.activity_type,
-          organization: activity.organization?.org_name,
-          description: activity.activity_description,
-          partners: activity.university_partner,
-          sdgs: activity.sdg_goals,
-          venue: activity.venue
-        }));
+        // Transform the data for calendar
+        let calendarEvents = [];
+        data.forEach(activity => {
+          const schedule = activity.schedule[0];
+          if (schedule?.is_recurring && schedule.recurring_days) {
+            const recurringDays = typeof schedule.recurring_days === 'string' ? JSON.parse(schedule.recurring_days) : schedule.recurring_days;
+            const start = new Date(schedule.start_date);
+            const end = new Date(schedule.end_date);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+              const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+              if (recurringDays[dayName]) {
+                calendarEvents.push({
+                  id: activity.activity_id,
+                  date: new Date(d),
+                  title: activity.activity_name,
+                  time: `${schedule.start_time} to ${schedule.end_time}`,
+                  location: activity.venue,
+                  category: activity.activity_type,
+                  organization: activity.organization?.org_name,
+                  description: activity.activity_description,
+                  partners: activity.university_partner,
+                  sdgs: activity.sdg_goals,
+                  venue: activity.venue,
+                  isRecurringInstance: true
+                });
+              }
+            }
+          } else {
+            calendarEvents.push({
+              id: activity.activity_id,
+              date: new Date(schedule?.start_date),
+              title: activity.activity_name,
+              time: `${schedule?.start_time} to ${schedule?.end_time}`,
+              location: activity.venue,
+              category: activity.activity_type,
+              organization: activity.organization?.org_name,
+              description: activity.activity_description,
+              partners: activity.university_partner,
+              sdgs: activity.sdg_goals,
+              venue: activity.venue,
+              isRecurringInstance: false
+            });
+          }
+        });
+        setEvents(calendarEvents);
 
-        setEvents(transformedEvents);        // Set upcoming events (events in next 30 days)
+        // For upcoming activities table, only use the original activities array (not expanded)
         const today = new Date();
         const thirtyDaysFromNow = new Date(today);
         thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-        const upcoming = transformedEvents
-          .filter(event => event.date >= today && event.date <= thirtyDaysFromNow)
-          .sort((a, b) => a.date - b.date);
-
+        const upcoming = data
+          .filter(activity => {
+            const schedule = activity.schedule[0];
+            const activityDate = new Date(schedule?.start_date);
+            return activityDate >= today && activityDate <= thirtyDaysFromNow;
+          })
+          .sort((a, b) => new Date(a.schedule[0]?.start_date) - new Date(b.schedule[0]?.start_date));
         // Group events by week
-        const upcomingGrouped = upcoming.map(event => {
-          const eventDate = event.date;
+        const upcomingGrouped = upcoming.map(activity => {
+          const schedule = activity.schedule[0];
+          const eventDate = new Date(schedule?.start_date);
           const diffTime = Math.abs(eventDate - today);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
           let timeframe;
           let relativeDate;
-
           if (diffDays === 0) {
             timeframe = "Today";
             relativeDate = "Today";
@@ -148,9 +180,8 @@ const ActivitiesCalendar = () => {
               day: 'numeric'
             });
           }
-
           return {
-            id: event.id,
+            id: activity.activity_id,
             timeframe,
             relativeDate,
             absoluteDate: eventDate.toLocaleDateString('en-US', {
@@ -158,17 +189,16 @@ const ActivitiesCalendar = () => {
               day: 'numeric',
               year: 'numeric'
             }),
-            title: event.title,
-            organization: event.organization,
-            type: categoryMap[event.category] || event.category,
-            venue: event.venue,
-            time: event.time,
-            startDate: event.date,
-            endDate: event.endDate,
-            isYourOrg: event.organization === selectedOrganization
+            title: activity.activity_name,
+            organization: activity.organization?.org_name,
+            type: activity.activity_type,
+            venue: activity.venue,
+            time: `${schedule?.start_time} to ${schedule?.end_time}`,
+            startDate: eventDate,
+            endDate: schedule?.end_date ? new Date(schedule.end_date) : undefined,
+            isYourOrg: activity.organization?.org_name === selectedOrganization
           };
         });
-
         setUpcomingEvents(upcomingGrouped);
 
       } catch (err) {
@@ -212,42 +242,30 @@ const ActivitiesCalendar = () => {
     }
   }, [currentDate]);
 
-  // Get color for event based on category
-  const getEventColor = (category) => {
-    switch (category?.toLowerCase()) {
-      case 'academic':
-        return 'bg-green-100 text-[#014421]';
-      case 'cultural':
-        return 'bg-blue-100 text-blue-700';
-      case 'sports':
-        return 'bg-amber-100 text-amber-700';
-      case 'service':
-        return 'bg-purple-100 text-purple-700';
-      case 'educational':
-        return 'bg-green-100 text-[#014421]';
-      default:
-        return 'bg-red-100 text-[#7B1113]';
-    }
+  // Add a helper to check if an event is recurring
+  const isRecurringEvent = (event) => {
+    if (!event || !event.id) return false;
+    return typeof event.id === 'string' && event.id.includes('-') && event.id.split('-')[1].length === 10;
   };
 
-  // Fetch full activity details when eye is clicked
+  // Only care about recurring or nonrecurring for color
+  const getEventColor = (category, event) => {
+    if (event && event.isRecurringInstance) return 'bg-orange-200 text-orange-800';
+    return 'bg-red-100 text-[#7B1113]';
+  };
+
+  // Update handleEventClick to fetch the correct activity for recurring events
   const handleEventClick = async (event) => {
     setModalLoading(true);
     setIsDialogOpen(true);
     setSelectedEvent(null);
-
+    const baseId = event.id;
     // Fetch full activity details from Supabase
     const { data, error } = await supabase
       .from("activity")
-      .select(`
-        *,
-        account:account(*),
-        schedule:activity_schedule(*),
-        organization:organization(*)
-      `)
-      .eq("activity_id", event.id)
+      .select(`*, account:account(*), schedule:activity_schedule(*), organization:organization(*)`)
+      .eq("activity_id", baseId)
       .single();
-
     if (error) {
       console.error("Failed to fetch activity details:", error);
       setSelectedEvent(event); // fallback to minimal
@@ -380,14 +398,21 @@ const ActivitiesCalendar = () => {
             events={events.filter(event =>
               selectedOrganization === "all" || event.organization === selectedOrganization
             )}
-            getEventColor={getEventColor}
+            getEventColor={(category, event) => getEventColor(category, event)}
           />
         )}
       </div>
 
 
       <div className="flex flex-wrap gap-2 mb-6">
-
+        <div className="flex items-center gap-2 mt-2">
+          <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-[#7B1113]"></span>
+          <span className="text-xs text-[#7B1113] font-medium">Nonrecurring Event</span>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="inline-block w-4 h-4 rounded-full bg-orange-200 border border-orange-400"></span>
+          <span className="text-xs text-orange-800 font-medium">Recurring Event</span>
+        </div>
       </div>
 
       <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
@@ -496,7 +521,7 @@ const ActivitiesCalendar = () => {
                               </div>
                             </td>                              <td className="w-[100px] text-xs text-center py-2 px-3 align-middle">
                               <span
-                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
+                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type, event)}`}
                               >
                                 {categoryMap[event.type] || event.type}
                               </span>
