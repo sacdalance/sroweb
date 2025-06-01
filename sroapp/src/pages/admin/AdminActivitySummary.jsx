@@ -639,7 +639,7 @@ const AdminActivitySummary = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-b-0">
-                  <TableHead className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">Status</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[120px] text-center">Status</TableHead>
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Submission Date</TableHead>
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Organization</TableHead>
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Name</TableHead>
@@ -647,7 +647,6 @@ const AdminActivitySummary = () => {
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Date</TableHead>
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Venue</TableHead>
                   <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Adviser</TableHead>
-                  <TableHead className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">Activity ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -667,7 +666,7 @@ const AdminActivitySummary = () => {
                         setIsModalOpen(true);
                       }}
                     >
-                      <TableCell className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.final_status}><StatusPill status={activity.final_status || "Pending"} /></TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[120px] text-center" title={activity.final_status}><StatusPill status={activity.final_status || "Pending"} /></TableCell>
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(activity.created_at).toLocaleDateString()}>{new Date(activity.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.organization?.org_name || "N/A"}>{activity.organization?.org_name || "N/A"}</TableCell>
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.activity_name}>{activity.activity_name}</TableCell>
@@ -675,7 +674,6 @@ const AdminActivitySummary = () => {
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.schedule?.[0]?.start_date ? new Date(activity.schedule[0]?.start_date).toLocaleDateString() : "TBD"}>{activity.schedule?.[0]?.start_date ? new Date(activity.schedule[0]?.start_date).toLocaleDateString() : "TBD"}</TableCell>
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.venue || "N/A"}>{activity.venue || "N/A"}</TableCell>
                       <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.organization?.adviser_name || "N/A"}>{activity.organization?.adviser_name || "N/A"}</TableCell>
-                      <TableCell className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.activity_id}>{activity.activity_id}</TableCell>
                     </TableRow>
                   ))
                 )}
