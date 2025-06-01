@@ -252,7 +252,6 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity ID</th>
                       <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Submission Date</th>
                       <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Organization</th>
                       <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
@@ -269,7 +268,6 @@ const AdminPendingRequests = () => {
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => handleViewDetails(request)}
                       >
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.activity_id}>{request.activity_id}</td>
                         <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
                           year: "numeric",
                           month: "long",
@@ -333,7 +331,6 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity ID</th>
                         <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Submission Date</th>
                         <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Organization</th>
                         <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
@@ -357,7 +354,6 @@ const AdminPendingRequests = () => {
                             className="hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleViewDetails(request)}
                           >
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.activity_id}>{request.activity_id}</td>
                             <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
                               year: "numeric",
                               month: "long",
