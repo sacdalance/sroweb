@@ -96,54 +96,30 @@ const AdminPendingRequests = () => {
   };
 
   const [incomingRequests, setIncomingRequests] = useState([]);
-  useEffect(() => {
-    if (!userRole) return; // Wait until role is available
+  const fetchIncoming = async () => {
+    try {
+      setLoading(true);
+      const { data: sessionData, error } = await supabase.auth.getSession();
+      const access_token = sessionData?.session?.access_token;
 
-    const fetchIncoming = async () => {
-      try {
-        setLoading(true);
-        const { data: sessionData, error } = await supabase.auth.getSession();
-        const access_token = sessionData?.session?.access_token;
+      if (!access_token) {
+        console.error("No access token found");
+        return;
+      }
 
-        if (!access_token) {
-          console.error("No access token found");
-          return;
-        }
+      const res = await axios.get("/api/activities/incoming", {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
 
-        const res = await axios.get("/api/activities/incoming", {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        });
+      const allActivities = res.data;
+      setAllActivities(allActivities);
 
-        const allActivities = res.data;
-        setAllActivities(allActivities);
-
-        let filtered;
-        if (userRole === 4) {
-          // Superadmin: filter based on superadminView
-          if (superadminView === 'sro') {
-            filtered = allActivities.filter((a) => {
-              const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
-              if (isAppealOrCancel) return false;
-              return (
-                a.sro_approval_status === null ||
-                (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
-              );
-            });
-          } else if (superadminView === 'odsa') {
-            filtered = allActivities.filter((a) => {
-              const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
-              if (isAppealOrCancel) return false;
-              return (
-                a.sro_approval_status === "Approved" &&
-                a.odsa_approval_status === null
-              );
-            });
-          } else {
-            filtered = allActivities;
-          }
-        } else if (userRole === 2) {
+      let filtered;
+      if (userRole === 4) {
+        // Superadmin: filter based on superadminView
+        if (superadminView === 'sro') {
           filtered = allActivities.filter((a) => {
             const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
             if (isAppealOrCancel) return false;
@@ -152,8 +128,7 @@ const AdminPendingRequests = () => {
               (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
             );
           });
-        } else if (userRole === 3) {
-          // ODSA sees only activities approved by SRO and not yet acted on by them
+        } else if (superadminView === 'odsa') {
           filtered = allActivities.filter((a) => {
             const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
             if (isAppealOrCancel) return false;
@@ -165,19 +140,41 @@ const AdminPendingRequests = () => {
         } else {
           filtered = allActivities;
         }
-
-        setIncomingRequests(filtered);
-
-      } catch (error) {
-        console.error("Failed to fetch incoming submissions:", error);
-      } finally {
-        setLoading(false);
+      } else if (userRole === 2) {
+        filtered = allActivities.filter((a) => {
+          const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+          if (isAppealOrCancel) return false;
+          return (
+            a.sro_approval_status === null ||
+            (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+          );
+        });
+      } else if (userRole === 3) {
+        // ODSA sees only activities approved by SRO and not yet acted on by them
+        filtered = allActivities.filter((a) => {
+          const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+          if (isAppealOrCancel) return false;
+          return (
+            a.sro_approval_status === "Approved" &&
+            a.odsa_approval_status === null
+          );
+        });
+      } else {
+        filtered = allActivities;
       }
-    };
 
+      setIncomingRequests(filtered);
+
+    } catch (error) {
+      console.error("Failed to fetch incoming submissions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchIncoming();
-  }, [userRole, superadminView]); // trigger when userRole or superadminView changes
-
+  }, [userRole, superadminView]);
 
   useEffect(() => {
     const appeals = allActivities.filter(a => a.final_status === "For Appeal" || a.final_status === "For Cancellation");
@@ -214,6 +211,7 @@ const AdminPendingRequests = () => {
 
     await approveActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
+    await fetchIncoming();
   };
 
   const handleReject = async (comment, activityId) => {
@@ -224,9 +222,8 @@ const AdminPendingRequests = () => {
 
     await rejectActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
+    await fetchIncoming();
   };
-
-
 
   if (!userRole) return null;
 
