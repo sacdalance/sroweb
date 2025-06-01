@@ -104,16 +104,36 @@ const UnifiedActivitiesCalendar = ({
         const thirtyDaysFromNow = new Date(today);
         thirtyDaysFromNow.setDate(today.getDate() + 30);
         const upcoming = data
-          .filter(activity => {
+          .map(activity => {
             const schedule = activity.schedule[0];
-            const activityDate = new Date(schedule?.start_date);
-            return activityDate >= today && activityDate <= thirtyDaysFromNow;
+            if (schedule?.is_recurring && schedule.recurring_days) {
+              // Find the next instance of the recurring event within the next 30 days
+              const recurringDays = typeof schedule.recurring_days === 'string' ? JSON.parse(schedule.recurring_days) : schedule.recurring_days;
+              const start = new Date(schedule.start_date);
+              const end = new Date(schedule.end_date);
+              let nextInstance = null;
+              for (let d = new Date(today); d <= end && d <= thirtyDaysFromNow; d.setDate(d.getDate() + 1)) {
+                const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+                if (recurringDays[dayName] && d >= start) {
+                  nextInstance = new Date(d);
+                  break;
+                }
+              }
+              if (!nextInstance) return null; // No upcoming instance in next 30 days
+              return { ...activity, _upcomingDate: nextInstance };
+            } else {
+              // Nonrecurring: use start date
+              const activityDate = new Date(schedule?.start_date);
+              if (activityDate < today || activityDate > thirtyDaysFromNow) return null;
+              return { ...activity, _upcomingDate: activityDate };
+            }
           })
-          .sort((a, b) => new Date(a.schedule[0]?.start_date) - new Date(b.schedule[0]?.start_date));
+          .filter(Boolean)
+          .sort((a, b) => a._upcomingDate - b._upcomingDate);
         // Group events by week
         const upcomingGrouped = upcoming.map(activity => {
           const schedule = activity.schedule[0];
-          const eventDate = new Date(schedule?.start_date);
+          const eventDate = activity._upcomingDate;
           const diffTime = Math.abs(eventDate - today);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           let timeframe;
