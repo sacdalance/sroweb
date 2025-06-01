@@ -95,20 +95,19 @@ const AdminActivitiesCalendar = () => {
 
         if (activitiesError) throw activitiesError;
 
-        // Transform the data
-        let transformedEvents = [];
+        // Transform the data for calendar
+        let calendarEvents = [];
         data.forEach(activity => {
           const schedule = activity.schedule[0];
           if (schedule?.is_recurring && schedule.recurring_days) {
-            // Recurring event: generate events for each matching day
             const recurringDays = typeof schedule.recurring_days === 'string' ? JSON.parse(schedule.recurring_days) : schedule.recurring_days;
             const start = new Date(schedule.start_date);
             const end = new Date(schedule.end_date);
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
               const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
               if (recurringDays[dayName]) {
-                transformedEvents.push({
-                  id: activity.activity_id + '-' + d.toISOString().slice(0, 10),
+                calendarEvents.push({
+                  id: activity.activity_id,
                   date: new Date(d),
                   title: activity.activity_name,
                   time: `${schedule.start_time} to ${schedule.end_time}`,
@@ -124,8 +123,7 @@ const AdminActivitiesCalendar = () => {
               }
             }
           } else {
-            // Non-recurring event
-            transformedEvents.push({
+            calendarEvents.push({
               id: activity.activity_id,
               date: new Date(schedule?.start_date),
               title: activity.activity_name,
@@ -141,25 +139,27 @@ const AdminActivitiesCalendar = () => {
             });
           }
         });
+        setEvents(calendarEvents);
 
-        setEvents(transformedEvents);        // Set upcoming events (events in next 30 days)
+        // For upcoming activities table, only use the original activities array (not expanded)
         const today = new Date();
         const thirtyDaysFromNow = new Date(today);
         thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-        const upcoming = transformedEvents
-          .filter(event => event.date >= today && event.date <= thirtyDaysFromNow)
-          .sort((a, b) => a.date - b.date);
-
+        const upcoming = data
+          .filter(activity => {
+            const schedule = activity.schedule[0];
+            const activityDate = new Date(schedule?.start_date);
+            return activityDate >= today && activityDate <= thirtyDaysFromNow;
+          })
+          .sort((a, b) => new Date(a.schedule[0]?.start_date) - new Date(b.schedule[0]?.start_date));
         // Group events by week
-        const upcomingGrouped = upcoming.map(event => {
-          const eventDate = event.date;
+        const upcomingGrouped = upcoming.map(activity => {
+          const schedule = activity.schedule[0];
+          const eventDate = new Date(schedule?.start_date);
           const diffTime = Math.abs(eventDate - today);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
           let timeframe;
           let relativeDate;
-
           if (diffDays === 0) {
             timeframe = "Today";
             relativeDate = "Today";
@@ -179,9 +179,8 @@ const AdminActivitiesCalendar = () => {
               day: 'numeric'
             });
           }
-
           return {
-            id: event.id,
+            id: activity.activity_id,
             timeframe,
             relativeDate,
             absoluteDate: eventDate.toLocaleDateString('en-US', {
@@ -189,16 +188,16 @@ const AdminActivitiesCalendar = () => {
               day: 'numeric',
               year: 'numeric'
             }),
-            title: event.title,
-            organization: event.organization,
-            type: categoryMap[event.category] || event.category,
-            venue: event.venue,
-            time: event.time,
-            startDate: event.date,
-            endDate: event.endDate
+            title: activity.activity_name,
+            organization: activity.organization?.org_name,
+            type: activity.activity_type,
+            venue: activity.venue,
+            time: `${schedule?.start_time} to ${schedule?.end_time}`,
+            startDate: eventDate,
+            endDate: schedule?.end_date ? new Date(schedule.end_date) : undefined,
+            isYourOrg: activity.organization?.org_name === selectedOrganization
           };
         });
-
         setUpcomingEvents(upcomingGrouped);
       } catch (err) {
         console.error('Error fetching activities:', err);
@@ -248,12 +247,7 @@ const AdminActivitiesCalendar = () => {
     setModalLoading(true);
     setIsDialogOpen(true);
     setSelectedEvent(null);
-    let baseId = event.id;
-    let overrideDate = null;
-    if (isRecurringEvent(event)) {
-      baseId = event.id.split('-')[0];
-      overrideDate = event.date;
-    }
+    const baseId = event.id;
     // Fetch full activity details from Supabase
     const { data, error } = await supabase
       .from("activity")
@@ -264,14 +258,6 @@ const AdminActivitiesCalendar = () => {
       console.error("Failed to fetch activity details:", error);
       setSelectedEvent(event); // fallback to minimal
     } else {
-      // If recurring, override the schedule date/time for the dialog
-      if (overrideDate && data.schedule && data.schedule[0]) {
-        data.schedule = [{
-          ...data.schedule[0],
-          start_date: overrideDate,
-          end_date: overrideDate
-        }];
-      }
       setSelectedEvent(data);
     }
     setModalLoading(false);
@@ -407,6 +393,10 @@ const AdminActivitiesCalendar = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex items-center gap-2 mt-2">
+          <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-[#7B1113]"></span>
+          <span className="text-xs text-[#7B1113] font-medium">Nonrecurring Event</span>
+        </div>
         <div className="flex items-center gap-2 mt-2">
           <span className="inline-block w-4 h-4 rounded-full bg-orange-200 border border-orange-400"></span>
           <span className="text-xs text-orange-800 font-medium">Recurring Event</span>
