@@ -194,9 +194,10 @@ const AdminActivitySummary = () => {
   
     return true;
   });
-  
-  // 2. Calculate counts from this filtered list
-  const approvedCount = filteredByOtherFilters.filter(a => a.final_status === "Approved").length;
+    // 2. Calculate counts from this filtered list
+  const approvedCount = filteredByOtherFilters.filter(a => 
+    a.final_status === "Approved" && !a.pdf_generated
+  ).length;
   const pendingCount = filteredByOtherFilters.filter(a =>
     a.final_status === null || a.final_status === "For Appeal"
   ).length;
@@ -693,8 +694,7 @@ const AdminActivitySummary = () => {
           </div>
         ) : (
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
+          <Table>            <TableHeader>
               <TableRow className="border-b-0">
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
@@ -705,12 +705,12 @@ const AdminActivitySummary = () => {
                 <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
                 <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
+                <TableHead className="min-w-[100px] w-[120px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">PDF Status</TableHead>
               </TableRow>
-            </TableHeader>
-            <TableBody>
+            </TableHeader>            <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
+                  <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
                     No activities found.
                   </TableCell>
                 </TableRow>
@@ -790,8 +790,25 @@ const AdminActivitySummary = () => {
                     <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
                     <TableCell className="py-5 text-sm text-center">
                       {activity.organization?.adviser_name || "N/A"}
+                    </TableCell>                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                    <TableCell className="py-5">
+                      <div className="flex items-center justify-center">
+                        {activity.final_status === "Approved" && (
+                          <Badge
+                            className={
+                              activity.pdf_generated
+                                ? "bg-green-600 text-white"
+                                : "bg-amber-600 text-white"
+                            }
+                          >
+                            {activity.pdf_generated ? "PDF Generated" : "Needs PDF"}
+                          </Badge>
+                        )}
+                        {activity.final_status !== "Approved" && (
+                          <span className="text-gray-400 text-sm">N/A</span>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                   </TableRow>
                 ))
             )}

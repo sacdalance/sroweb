@@ -126,6 +126,8 @@ router.get('/debug-routes', (req, res) => {
     availableRoutes: [
       'GET /test-route',
       'GET /approval-slips-folder-url',
+      'GET /pdf-status',
+      'POST /reset-pdf-status',
       'POST /generate-approval-slips'
     ]
   });
@@ -161,13 +163,114 @@ router.get('/approval-slips-folder-url', (req, res) => {
 });
 
 /**
+ * POST /reset-pdf-status - Reset PDF generation status for all or specific activities (for testing)
+ */
+router.post('/reset-pdf-status', authMiddleware, async (req, res) => {
+  try {
+    const { activity_ids } = req.body; // Optional array of specific activity IDs to reset
+    
+    console.log('🔄 Resetting PDF generation status...');
+    
+    let query = supabase
+      .from('activity')
+      .update({
+        pdf_generated: false,
+        pdf_generated_at: null
+      });
+
+    // If specific activity IDs provided, only reset those
+    if (activity_ids && Array.isArray(activity_ids) && activity_ids.length > 0) {
+      query = query.in('activity_id', activity_ids);
+      console.log('🎯 Resetting specific activities:', activity_ids);
+    } else {
+      // Reset all approved activities
+      query = query.eq('final_status', 'Approved');
+      console.log('🔄 Resetting all approved activities');
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error resetting PDF status:', error);
+      throw new Error(`Failed to reset PDF status: ${error.message}`);
+    }
+
+    const message = activity_ids && activity_ids.length > 0 
+      ? `Reset PDF status for ${activity_ids.length} specific activities`
+      : 'Reset PDF status for all approved activities';
+
+    console.log(`✅ ${message}`);
+
+    return res.status(200).json({
+      message,
+      reset_count: activity_ids ? activity_ids.length : 'all approved activities'
+    });
+
+  } catch (error) {
+    console.error('Error resetting PDF status:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to reset PDF status',
+    });
+  }
+});
+
+/**
+ * GET /pdf-status - Check PDF generation status for all approved activities
+ */
+router.get('/pdf-status', authMiddleware, async (req, res) => {
+  try {
+    console.log('📊 Checking PDF generation status...');
+    
+    // Fetch all approved activities with their PDF status
+    const { data: activities, error: fetchError } = await supabase
+      .from('activity')
+      .select(`
+        activity_id,
+        activity_name,
+        final_status,
+        pdf_generated,
+        pdf_generated_at,
+        organization:organization(org_name)
+      `)
+      .eq('final_status', 'Approved')
+      .order('pdf_generated_at', { ascending: false, nullsFirst: false });
+
+    if (fetchError) {
+      console.error('Error fetching activities:', fetchError);
+      throw new Error(`Failed to fetch activities: ${fetchError.message}`);
+    }
+
+    const pdfGenerated = activities.filter(a => a.pdf_generated === true);
+    const pdfNotGenerated = activities.filter(a => a.pdf_generated !== true);
+
+    return res.status(200).json({
+      total: activities.length,
+      pdfGenerated: pdfGenerated.length,
+      pdfNotGenerated: pdfNotGenerated.length,
+      activities: activities.map(activity => ({
+        activity_id: activity.activity_id,
+        activity_name: activity.activity_name,
+        organization: activity.organization?.org_name,
+        pdf_generated: activity.pdf_generated || false,
+        pdf_generated_at: activity.pdf_generated_at,
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error checking PDF status:', error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to check PDF status',
+    });
+  }
+});
+
+/**
  * POST /generate-approval-slips - Generate PDF approval slips for approved activities
  */
 router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
   try {
     console.log('🎯 Starting PDF generation for approved activities...');
-    
-    // Fetch all approved activities from Supabase
+      // Fetch all approved activities that haven't had PDFs generated yet
     const { data: approvedActivities, error: fetchError } = await supabase
       .from('activity')
       .select(`
@@ -176,21 +279,18 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
         organization:organization(org_name),
         schedule:activity_schedule(*)
       `)
-      .eq('final_status', 'Approved');
+      .eq('final_status', 'Approved')
+      .or('pdf_generated.is.null,pdf_generated.eq.false');
 
     if (fetchError) {
       console.error('Error fetching approved activities:', fetchError);
       throw new Error(`Failed to fetch activities: ${fetchError.message}`);
-    }
-
-    if (!approvedActivities || approvedActivities.length === 0) {
+    }    if (!approvedActivities || approvedActivities.length === 0) {
       return res.status(200).json({
-        message: 'No approved activities found to generate PDFs for',
+        message: 'No approved activities found that need PDF generation',
         pdfCount: 0
       });
-    }
-
-    console.log(`Found ${approvedActivities.length} approved activities to process`);
+    }    console.log(`Found ${approvedActivities.length} approved activities that need PDF generation`);
 
     // Read the HTML template
     const templatePath = path.join(__dirname, '../../../sroapp/activityApprovalSlipTemplate.html');
@@ -268,11 +368,23 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
           }
         });
 
-        await page.close();
-
-        // Upload PDF to Google Drive
+        await page.close();        // Upload PDF to Google Drive
         const fileName = `approval_slip_${activity.organization?.org_name || 'Unknown'}_${activity.activity_name || 'Activity'}_${activity.activity_id}.pdf`;
         const uploadResult = await uploadPDFToGoogleDrive(pdfBuffer, fileName);
+        
+        // Update database to mark PDF as generated
+        const { error: updateError } = await supabase
+          .from('activity')
+          .update({
+            pdf_generated: true,
+            pdf_generated_at: new Date().toISOString()
+          })
+          .eq('activity_id', activity.activity_id);
+
+        if (updateError) {
+          console.error(`Error updating PDF status for activity ${activity.activity_id}:`, updateError);
+          throw new Error(`Failed to update PDF status: ${updateError.message}`);
+        }
         
         pdfCount++;
         
