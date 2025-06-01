@@ -51,14 +51,14 @@ const AdminPendingRequests = () => {
     const fetchRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-  
+
       const { data: { user } } = await supabase.auth.getUser();
       const { data: account, error } = await supabase
-      .from("account")
-      .select("role_id")
-      .eq("email", user.email)
-      .single();
-  
+        .from("account")
+        .select("role_id")
+        .eq("email", user.email)
+        .single();
+
       if (error) {
         console.error("Error fetching role:", error);
       } else {
@@ -66,22 +66,22 @@ const AdminPendingRequests = () => {
         console.log("Fetched user role:", account?.role_id);
       }
     };
-  
+
     fetchRole();
   }, []);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
-    .from("activity")
-    .select(`
+      .from("activity")
+      .select(`
       *,
       account:account (*),
       schedule:activity_schedule(*),
       organization:organization(*)
     `)
-    .eq("activity_id", id)
-    .single();
-    
+      .eq("activity_id", id)
+      .single();
+
     if (error) {
       console.error("Failed to refresh activity:", error);
     } else {
@@ -96,30 +96,30 @@ const AdminPendingRequests = () => {
   const [incomingRequests, setIncomingRequests] = useState([]);
   useEffect(() => {
     if (!userRole) return; // Wait until role is available
-  
+
     const fetchIncoming = async () => {
       try {
         setLoading(true);
         const { data: sessionData, error } = await supabase.auth.getSession();
         const access_token = sessionData?.session?.access_token;
-  
+
         if (!access_token) {
           console.error("No access token found");
           return;
         }
-  
+
         const res = await axios.get("/api/activities/incoming", {
           headers: {
             Authorization: `Bearer ${access_token}`,
           },
         });
-  
+
         console.log("Fetched incoming:", res.data);
         const allActivities = res.data;
         setAllActivities(allActivities);
-        
+
         const filtered = allActivities.filter((a) => {
-          const isAppeal = a.final_status === "For Appeal";  
+          const isAppeal = a.final_status === "For Appeal";
           if (isAppeal) return false;
 
           if (userRole === 2) {
@@ -136,7 +136,7 @@ const AdminPendingRequests = () => {
           }
           return true; // fallback: show all (for devs/superadmins if needed)
         });
-        
+
         setIncomingRequests(filtered);
 
       } catch (error) {
@@ -145,34 +145,34 @@ const AdminPendingRequests = () => {
         setLoading(false);
       }
     };
-  
+
     fetchIncoming();
   }, [userRole]); // trigger only when userRole is ready
-  
-  
+
+
   useEffect(() => {
-    const appeals = allActivities.filter(a => a.final_status === "For Appeal");
+    const appeals = allActivities.filter(a => a.final_status === "For Appeal" || a.final_status === "For Cancellation");
     setPendingAppeals(appeals);
   }, [allActivities]);
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
-    .from("activity")
-    .select(`
+      .from("activity")
+      .select(`
       *,
       account:account (*),
       schedule:activity_schedule(*),
       organization:organization(*)
     `)
-    .eq("activity_id", activity.activity_id)
-    .single();
-  
+      .eq("activity_id", activity.activity_id)
+      .single();
+
     if (error) {
       console.error("Failed to fetch latest activity:", error);
       toast.error("Something went wrong loading this activity.");
       return;
     }
-  
+
     setSelectedActivity(data);
     setIsModalOpen(true);
   };
@@ -182,21 +182,21 @@ const AdminPendingRequests = () => {
       console.error("Missing activityId or userRole.");
       throw new Error("Activity or role not ready.");
     }
-  
+
     await approveActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
   };
-  
+
   const handleReject = async (comment, activityId) => {
     if (!activityId || !userRole) {
       console.error("Missing activityId or userRole.");
       throw new Error("Activity or role not ready.");
     }
-  
+
     await rejectActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
   };
-  
+
 
 
   if (!userRole) return null;
@@ -206,7 +206,7 @@ const AdminPendingRequests = () => {
       className="container mx-auto py-4 max-w-[1800px]"
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
-      <Toaster/>
+      <Toaster />
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
@@ -224,21 +224,21 @@ const AdminPendingRequests = () => {
             sm:max-w-[800px]
           "
         >
-          <TabsTrigger  
-            value="submissions" 
+          <TabsTrigger
+            value="submissions"
             className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
           >
             Incoming Submissions ({incomingRequests.length})
           </TabsTrigger>
 
-          <TabsTrigger 
-            value="appeals" 
+          <TabsTrigger
+            value="appeals"
             className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
           >
             Appeals and Cancellations ({pendingAppeals.length})
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="appeals">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
@@ -248,17 +248,17 @@ const AdminPendingRequests = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto w-full h-full">
-                <table className="w-full min-w-[900px]">
+                <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity ID</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Organization</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Name</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Venue</th>
-                      <th className="px-5 py-3 text-sm font-medium text-black text-center whitespace-nowrap">Adviser</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Organization</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Venue</th>
+                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -268,31 +268,40 @@ const AdminPendingRequests = () => {
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => handleViewDetails(request)}
                       >
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center">{request.activity_id}</td>
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center">
                           {new Date(request.created_at).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "long",
                             day: "numeric"
                           })}
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
-                          {request.organization?.org_name || "N/A"}
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                          <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                          {getActivityTypeLabel(request.activity_type)}
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words">
+                          <span className="block truncate">{request.activity_name}</span>
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                          <span className="block truncate">{getActivityTypeLabel(request.activity_type)}</span>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center">
                           {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "long",
                             day: "numeric"
                           })}
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
-                        <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
-                          {request.organization?.adviser_name || "N/A"}
+                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                          <span className="block truncate">{request.venue}</span>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-center">
+                          <span className={`inline-block px-2 py-1 rounded-full text-white font-medium ${request.final_status === "For Appeal"
+                              ? "bg-[#7B1113]"
+                              : "bg-[#7B1113]"
+                            }`}>
+                            {request.final_status}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -302,7 +311,7 @@ const AdminPendingRequests = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="submissions">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
@@ -326,14 +335,14 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity ID</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Submission Date</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Organization</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Name</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Type</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Activity Date</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Venue</th>
-                        <th className="px-5 py-3 text-sm font-small text-black text-center whitespace-nowrap">Adviser</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity ID</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Submission Date</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Organization</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Type</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Date</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Venue</th>
+                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Adviser</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -350,31 +359,35 @@ const AdminPendingRequests = () => {
                             className="hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleViewDetails(request)}
                           >
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_id}</td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center">{request.activity_id}</td>
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center">
                               {new Date(request.created_at).toLocaleDateString(undefined, {
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric"
                               })}
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center break-words">
-                              {request.organization?.org_name || "N/A"}
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                              <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.activity_name}</td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
-                              {getActivityTypeLabel(request.activity_type)}
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words">
+                              <span className="block truncate">{request.activity_name}</span>
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                              <span className="block truncate">{getActivityTypeLabel(request.activity_type)}</span>
+                            </td>
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center">
                               {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric"
                               })}
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center">{request.venue}</td>
-                            <td className="px-5 py-4 text-sm text-gray-700 text-center whitespace-nowrap">
-                              {request.organization?.adviser_name || "N/A"}
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                              <span className="block truncate">{request.venue}</span>
+                            </td>
+                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                              <span className="block truncate">{request.organization?.adviser_name || "N/A"}</span>
                             </td>
                           </tr>
                         ))
