@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import PropTypes from 'prop-types';
+import StudentActivityDialogContent from "@/components/admin/StudentActivityDialogContent";
 
 const categoryMap = {
   charitable: "Charitable",
@@ -49,7 +50,7 @@ const ActivitiesCalendar = () => {
     "July", "August", "September", "October", "November", "December"
   ];
   const years = ["2024", "2025", "2026", "2027", "2028"];
-  
+
   // Selected values for dropdowns
   const [selectedMonth, setSelectedMonth] = useState(months[currentDate.getMonth()]);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
@@ -61,7 +62,7 @@ const ActivitiesCalendar = () => {
         const { data, error } = await supabase
           .from('organization')
           .select('org_id, org_name');
-        
+
         if (error) throw error;
         setOrganizations(
           data
@@ -124,7 +125,7 @@ const ActivitiesCalendar = () => {
           const eventDate = event.date;
           const diffTime = Math.abs(eventDate - today);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
+
           let timeframe;
           let relativeDate;
 
@@ -142,8 +143,8 @@ const ActivitiesCalendar = () => {
             relativeDate = `In ${diffDays} days`;
           } else {
             timeframe = "Later This Month";
-            relativeDate = eventDate.toLocaleDateString('en-US', { 
-              month: 'long', 
+            relativeDate = eventDate.toLocaleDateString('en-US', {
+              month: 'long',
               day: 'numeric'
             });
           }
@@ -152,10 +153,10 @@ const ActivitiesCalendar = () => {
             id: event.id,
             timeframe,
             relativeDate,
-            absoluteDate: eventDate.toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric', 
-              year: 'numeric' 
+            absoluteDate: eventDate.toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
             }),
             title: event.title,
             organization: event.organization,
@@ -202,7 +203,7 @@ const ActivitiesCalendar = () => {
   useEffect(() => {
     const month = currentDate.toLocaleString("default", { month: "long" });
     const year = currentDate.getFullYear().toString();
-    
+
     if (selectedMonth !== month) {
       setSelectedMonth(month);
     }
@@ -269,8 +270,8 @@ const ActivitiesCalendar = () => {
     <div className="flex flex-col items-center justify-center p-8 text-[#7B1113]">
       <p className="text-lg font-semibold">Something went wrong</p>
       <p className="text-sm text-gray-600">{message}</p>
-      <Button 
-        onClick={() => window.location.reload()} 
+      <Button
+        onClick={() => window.location.reload()}
         className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
       >
         Try Again
@@ -295,8 +296,8 @@ const ActivitiesCalendar = () => {
       const [hours, minutes] = time.split(':');
       const hour = parseInt(hours);
       if (hour === 12) return `${hour}:${minutes}NN`;
-      return hour > 12 
-        ? `${hour-12}:${minutes}PM` 
+      return hour > 12
+        ? `${hour - 12}:${minutes}PM`
         : `${hour}:${minutes}AM`;
     });
     return `${startTime} to ${endTime}`;
@@ -390,15 +391,15 @@ const ActivitiesCalendar = () => {
       </div>
 
       <Card className="rounded-lg shadow-md">        <CardHeader className="bg-white py-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
-              Upcoming Activities
-            </CardTitle>
-            <Badge variant="outline" className="text-[#014421]">
-              Next 30 Days
-            </Badge>
-          </div>
-        </CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
+            Upcoming Activities
+          </CardTitle>
+          <Badge variant="outline" className="text-[#014421]">
+            Next 30 Days
+          </Badge>
+        </div>
+      </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <LoadingState />
@@ -411,11 +412,11 @@ const ActivitiesCalendar = () => {
               <div className="max-h-[350px] overflow-y-auto">
                 <table className="w-full min-w-[500px]">
                   <thead className="bg-gray-50 border-b border-gray-200">                    <tr>
-                      <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
-                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
-                      <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>                      <th className="w-[120px] text-xs font-semibold text-center py-2 px-3">Type</th>
-                      <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
-                    </tr>
+                    <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
+                    <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
+                    <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>                      <th className="w-[120px] text-xs font-semibold text-center py-2 px-3">Type</th>
+                    <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
+                  </tr>
                   </thead>
                   <tbody>
                     {[...new Set(upcomingEvents.map(event => event.timeframe))].map(timeframe => (
@@ -427,86 +428,84 @@ const ActivitiesCalendar = () => {
                         </tr>
                         {upcomingEvents
                           .filter(event => event.timeframe === timeframe)
-                          .map((event, index) => (                            <tr key={`${timeframe}-${index}`}                              onClick={() => handleEventClick(event)}
-                              className="group hover:bg-[#014421]/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
-                              <td className="w-[100px] text-xs py-2 px-3 group-hover:text-[#014421]">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
-                                  <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
-                                  <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
+                          .map((event, index) => (<tr key={`${timeframe}-${index}`} onClick={() => handleEventClick(event)}
+                            className="group hover:bg-[#014421]/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
+                            <td className="w-[100px] text-xs py-2 px-3 group-hover:text-[#014421]">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
+                                <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
+                                <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
+                              </div>
+                            </td>
+                            <td className="w-[120px] text-xs py-2 px-3">
+                              <div className="flex items-center gap-1">
+                                <div className="transition-all duration-200">
+                                  {expandedText['title' + event.id] ? event.title :
+                                    event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
                                 </div>
-                              </td>
-                              <td className="w-[120px] text-xs py-2 px-3">
-                                <div className="flex items-center gap-1">
-                                  <div className="transition-all duration-200">
-                                    {expandedText['title' + event.id] ? event.title : 
-                                      event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
-                                  </div>
-                                  {event.title.length > 50 && (
-                                    <button
-                                      onClick={(e) => toggleText(event.id, 'title', e)}
-                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
-                                    >
-                                      <svg
-                                        className={`h-4 w-4 transform transition-transform ${
-                                          expandedText['title' + event.id] ? 'rotate-180' : ''
+                                {event.title.length > 50 && (
+                                  <button
+                                    onClick={(e) => toggleText(event.id, 'title', e)}
+                                    className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                  >
+                                    <svg
+                                      className={`h-4 w-4 transform transition-transform ${expandedText['title' + event.id] ? 'rotate-180' : ''
                                         }`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M19 9l-7 7-7-7"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="w-[120px] text-xs py-2 px-3">
-                                <div className="flex items-center gap-1">
-                                  <div className="transition-all duration-200">
-                                    {expandedText['org' + event.id] ? event.organization : 
-                                      event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
-                                  </div>
-                                  {event.organization.length > 50 && (
-                                    <button
-                                      onClick={(e) => toggleText(event.id, 'org', e)}
-                                      className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
                                     >
-                                      <svg
-                                        className={`h-4 w-4 transform transition-transform ${
-                                          expandedText['org' + event.id] ? 'rotate-180' : ''
-                                        }`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M19 9l-7 7-7-7"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="w-[120px] text-xs py-2 px-3">
+                              <div className="flex items-center gap-1">
+                                <div className="transition-all duration-200">
+                                  {expandedText['org' + event.id] ? event.organization :
+                                    event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
                                 </div>
-                              </td>                              <td className="w-[100px] text-xs text-center py-2 px-3 align-middle">
-                                <span
-                                  className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
-                                >
-                                  {categoryMap[event.type] || event.type}
-                                </span>
-                              </td>                              <td className="w-[100px] text-xs py-2 px-3">
-                                <span className="truncate block" title={event.venue}>
-                                  {event.venue}
-                                </span>
-                              </td>
-                            </tr>
+                                {event.organization.length > 50 && (
+                                  <button
+                                    onClick={(e) => toggleText(event.id, 'org', e)}
+                                    className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                  >
+                                    <svg
+                                      className={`h-4 w-4 transform transition-transform ${expandedText['org' + event.id] ? 'rotate-180' : ''
+                                        }`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            </td>                              <td className="w-[100px] text-xs text-center py-2 px-3 align-middle">
+                              <span
+                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type)}`}
+                              >
+                                {categoryMap[event.type] || event.type}
+                              </span>
+                            </td>                              <td className="w-[100px] text-xs py-2 px-3">
+                              <span className="truncate block" title={event.venue}>
+                                {event.venue}
+                              </span>
+                            </td>
+                          </tr>
                           ))}
                       </React.Fragment>
                     ))}
@@ -520,20 +519,18 @@ const ActivitiesCalendar = () => {
 
       {/* Event Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          {modalLoading ? (
-            <div className="flex items-center justify-center min-h-[300px]">
-              <Loader2 className="h-10 w-10 animate-spin text-[#7B1113]" />
-            </div>  
-          ) : (
-            selectedEvent && (
-              <ActivityDialogContent
-                activity={selectedEvent}
-                setActivity={setSelectedEvent}
-                isModalOpen={isDialogOpen}
-                readOnly={true}
-              />
-            )
-          )}
+        {modalLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <Loader2 className="h-10 w-10 animate-spin text-[#7B1113]" />
+          </div>
+        ) : (
+          selectedEvent && (
+            <StudentActivityDialogContent
+              activity={selectedEvent}
+              isModalOpen={isDialogOpen}
+            />
+          )
+        )}
       </Dialog>
     </div>
   );
