@@ -165,3 +165,25 @@ export const fetchActivityDetails = async (activityId) => {
     partners: partnerData.map((p) => p.partner_name),
   };
 };
+
+export const generateApprovalSlips = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) throw new Error("No active session");
+
+  const res = await fetch("/api/generate-approval-slips", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  const result = await res.json();
+
+  if (!res.ok) {
+    throw new Error(result.error || "Failed to generate approval slips");
+  }
+
+  return result;
+};
