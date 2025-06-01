@@ -333,6 +333,14 @@ const ActivityDialogContent = ({
 
           {!readOnly && showDecisionBox && (
             <div className="mt-4 space-y-3" ref={commentRef}>
+              {(activity.final_status === "For Appeal" || activity.final_status === "For Cancellation") && activity.appeal_reason && (
+                <div className="mb-2">
+                  <label className="text-sm font-medium text-gray-700 block">Appeal/Cancellation Reason</label>
+                  <div className="border p-2 rounded bg-gray-50 text-gray-800 text-sm">
+                    {activity.appeal_reason}
+                  </div>
+                </div>
+              )}
               {isODSA && (
                 <div className="text-sm">
                   <p className="text-gray-600 mb-1 font-medium">SRO Remarks:</p>
