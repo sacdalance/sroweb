@@ -252,13 +252,13 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Organization</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Venue</th>
-                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Status</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Submission Date</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Organization</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Name</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Type</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Date</th>
+                      <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Venue</th>
+                      <th className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -268,7 +268,7 @@ const AdminPendingRequests = () => {
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => handleViewDetails(request)}
                       >
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.created_at).toLocaleDateString(undefined, {
                           year: "numeric",
                           month: "long",
                           day: "numeric"
@@ -277,14 +277,14 @@ const AdminPendingRequests = () => {
                           month: "long",
                           day: "numeric"
                         })}</td>
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.org_name || "N/A"}>
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.org_name || "N/A"}>
                           <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                         </td>
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words truncate" title={request.activity_name}>
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.activity_name}>
                           <span className="block truncate">{request.activity_name}</span>
                         </td>
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
                           year: "numeric",
                           month: "long",
                           day: "numeric"
@@ -293,10 +293,10 @@ const AdminPendingRequests = () => {
                           month: "long",
                           day: "numeric"
                         })}</td>
-                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.venue}>
+                        <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.venue}>
                           <span className="block truncate">{request.venue}</span>
                         </td>
-                        <td className="px-2 py-2 text-xs text-center">
+                        <td className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">
                           <StatusPill status={request.final_status} />
                         </td>
                       </tr>
@@ -331,13 +331,13 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Submission Date</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Organization</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Type</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Date</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Venue</th>
-                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Adviser</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Submission Date</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Organization</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Name</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Type</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Date</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Venue</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Adviser</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -354,7 +354,7 @@ const AdminPendingRequests = () => {
                             className="hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleViewDetails(request)}
                           >
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.created_at).toLocaleDateString(undefined, {
                               year: "numeric",
                               month: "long",
                               day: "numeric"
@@ -363,14 +363,14 @@ const AdminPendingRequests = () => {
                               month: "long",
                               day: "numeric"
                             })}</td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.org_name || "N/A"}>
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.org_name || "N/A"}>
                               <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                             </td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words truncate" title={request.activity_name}>
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.activity_name}>
                               <span className="block truncate">{request.activity_name}</span>
                             </td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
                               year: "numeric",
                               month: "long",
                               day: "numeric"
@@ -379,10 +379,10 @@ const AdminPendingRequests = () => {
                               month: "long",
                               day: "numeric"
                             })}</td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.venue}>
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.venue}>
                               <span className="block truncate">{request.venue}</span>
                             </td>
-                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.adviser_name || "N/A"}>
+                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.adviser_name || "N/A"}>
                               <span className="block truncate">{request.organization?.adviser_name || "N/A"}</span>
                             </td>
                           </tr>
