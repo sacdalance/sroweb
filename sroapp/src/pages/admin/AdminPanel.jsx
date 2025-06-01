@@ -101,8 +101,8 @@ const AdminPanel = () => {
   // Stats data for the summary section
   const statsSummary = [
     { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
-    { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
-    { title: "Approved Activity Requests", count: requestsCounts.approved || 0 },
+    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
+    { title: "Approved Requests", count: requestsCounts.approved || 0 },
     { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
     { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
