@@ -349,7 +349,6 @@ const ActivityDialogContent = ({
                   </div>
                 </div>
               )}
-
               {isSuperAdmin ? (
                 <>
                   <label className="text-sm font-medium text-gray-700 block">SRO Remarks</label>
@@ -386,7 +385,6 @@ const ActivityDialogContent = ({
                   />
                 </>
               )}
-
               <div className="flex justify-end gap-3">
                 {isActionLocked ? (
                   <div className="w-full flex justify-end">
@@ -405,26 +403,41 @@ const ActivityDialogContent = ({
                     {!hasViewedScannedForm && (
                       <p className="text-sm text-gray-500 italic">Click "View Scanned Form" to activate approval buttons.</p>
                     )}
-                    <button
-                      disabled={!hasViewedScannedForm}
-                      onClick={() => {
-                        setDecisionType("approve");
-                        setConfirmationOpen(true);
-                      }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      disabled={!hasViewedScannedForm}
-                      onClick={() => {
-                        setDecisionType("reject");
-                        setConfirmationOpen(true);
-                      }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
-                    >
-                      Reject
-                    </button>
+                    {activity.final_status === "For Cancellation" ? (
+                      <button
+                        disabled={!hasViewedScannedForm}
+                        onClick={() => {
+                          setDecisionType("cancel");
+                          setConfirmationOpen(true);
+                        }}
+                        className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                      >
+                        Cancel Activity
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          disabled={!hasViewedScannedForm}
+                          onClick={() => {
+                            setDecisionType("approve");
+                            setConfirmationOpen(true);
+                          }}
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          disabled={!hasViewedScannedForm}
+                          onClick={() => {
+                            setDecisionType("reject");
+                            setConfirmationOpen(true);
+                          }}
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -457,12 +470,18 @@ const ActivityDialogContent = ({
         <DialogContent className="max-w-md rounded-lg shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-[#7B1113] font-bold text-lg">
-              Confirmation
+              {decisionType === "cancel" ? "Cancel Activity" : "Confirmation"}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-700 mt-1">
-              You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"}`}>
-                {decisionType === "approve" ? "APPROVING" : "REJECTING"}
-              </strong> the request for activity:
+              {decisionType === "cancel" ? (
+                "You are cancelling the activity:"
+              ) : (
+                <>
+                  You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"}`}>
+                    {decisionType === "approve" ? "APPROVING" : "REJECTING"}
+                  </strong> the request for activity:
+                </>
+              )}
             </DialogDescription>
             <p className="text-base mt-2 font-semibold text-black">{activity.activity_name}</p>
           </DialogHeader>
@@ -491,7 +510,13 @@ const ActivityDialogContent = ({
                 }
 
                 try {
-                  if (decisionType === "approve") {
+                  if (decisionType === "cancel") {
+                    await handleReject(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
+                    toast.error("Activity cancelled.");
+                  } else if (decisionType === "approve") {
                     await handleApprove(
                       isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
                       localActivity.activity_id
@@ -505,7 +530,7 @@ const ActivityDialogContent = ({
                     toast.error("Activity rejected.");
                   }
                 } catch (error) {
-                  console.error("Reject Error:", error);
+                  console.error("Error:", error);
                   toast.error(`Something went wrong: ${error.message}`);
                 } finally {
                   setSubmitting(false);
