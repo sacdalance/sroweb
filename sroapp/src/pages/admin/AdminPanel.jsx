@@ -135,24 +135,17 @@ const AdminPanel = () => {
         let pendingCount = 0;
 
         // Filter and transform the data
-        const transformedRequests = allActivities.map((request) => {
-          const isForAppeal = request.final_status === "For Appeal";
-          const isPending = request.final_status === "Pending" || request.final_status === null;
+        const filteredActivities = allActivities.filter(activity => {
+          // Exclude rejected events
+          if (activity.final_status === "Rejected") return false;
+          const isForAppeal = activity.final_status === "For Appeal";
+          const isPending = activity.final_status === "Pending" || activity.final_status === null;
 
           // Increment counters based on status
           if (isForAppeal) forAppealCount++;
           if (isPending) pendingCount++;
 
-          return {
-            id: request.activity_id,
-            submissionDate: new Date(request.created_at).toLocaleDateString(),
-            activityName: request.activity_name,
-            organization: request.organization?.org_name || "N/A",
-            activityDate: request.schedule?.[0]?.start_date
-              ? new Date(request.schedule[0].start_date).toLocaleDateString()
-              : "TBD",
-            status: request.final_status || "Pending", // Treat NULL as "Pending"
-          };
+          return true;
         });
 
         // Log the counts for debugging
@@ -161,9 +154,19 @@ const AdminPanel = () => {
 
         // Update state with transformed requests (limit to 10, sorted by activity_id descending)
         setIncomingRequests(
-          transformedRequests
-            .sort((a, b) => Number(b.id) - Number(a.id))
+          filteredActivities
+            .sort((a, b) => Number(b.activity_id) - Number(a.activity_id))
             .slice(0, 10)
+            .map(activity => ({
+              id: activity.activity_id,
+              submissionDate: new Date(activity.created_at).toLocaleDateString(),
+              activityName: activity.activity_name,
+              organization: activity.organization?.org_name || "N/A",
+              activityDate: activity.schedule?.[0]?.start_date
+                ? new Date(activity.schedule[0].start_date).toLocaleDateString()
+                : "TBD",
+              status: activity.final_status || "Pending",
+            }))
         );
 
         // Update the counts in state without overwriting the approved count
