@@ -7,6 +7,7 @@ import protectedRoutes from './routes/protectedRoutes.js';
 import userActivitiesRoutes from "./routes/userActivitiesRoutes.js";
 import activityRequestRoutes from './routes/activityRequestRoutes.js';
 import activityEditRoutes from './routes/activityEditRoutes.js';
+import activityCancelRoutes from './routes/activityCancelRoutes.js';
 
 import organizationRoutes from './routes/organizationRoutes.js';
 
@@ -29,7 +30,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());  
+app.use(cors());
 app.use(express.json());
 
 // Public routes
@@ -43,6 +44,7 @@ app.use('/api', protectedRoutes);
 app.use('/activityRequest', activityRequestRoutes);
 app.use('/activities', userActivitiesRoutes);
 app.use('/activityEdit', activityEditRoutes);
+app.use('/activityCancel', activityCancelRoutes);
 
 // Organizations
 app.use('/api/organization', organizationRoutes);
