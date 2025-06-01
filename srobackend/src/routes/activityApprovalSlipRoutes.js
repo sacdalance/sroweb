@@ -131,44 +131,47 @@ function getCurrentSemesterAndAcademicYear() {
  * Generate PDF from HTML template with activity data
  */
 async function generateActivityApprovalPDF(activity) {
-  const templatePath = path.join(__dirname, '../../../sroapp/activityApprovalSlipTemplate.html');
-  let htmlTemplate = fs.readFileSync(templatePath, 'utf8');
-
-  // Replace placeholders with actual data
+  const templatePath = path.join(__dirname, '../../../sroapp/OSASROForm1BStudentActivityApprovalSlip.html');
+  let htmlTemplate = fs.readFileSync(templatePath, 'utf8');  // Replace placeholders with actual data using curly brace format
   htmlTemplate = htmlTemplate
-    .replace(/\[ORGANIZATION_NAME\]/g, activity.organization?.org_name || 'N/A')
-    .replace(/\[ACTIVITY_NAME\]/g, activity.activity_name || 'N/A')
-    .replace(/\[ACTIVITY_ID\]/g, activity.activity_id || 'N/A')
-    .replace(/\[ACTIVITY_TYPE\]/g, activity.activity_type || 'N/A')
-    .replace(/\[VENUE\]/g, activity.venue || 'N/A')
-    .replace(/\[STUDENT_POSITION\]/g, activity.student_position || 'N/A')
-    .replace(/\[STUDENT_CONTACT\]/g, activity.student_contact || 'N/A')
-    .replace(/\[VENUE_APPROVER\]/g, activity.venue_approver || 'N/A')
-    .replace(/\[VENUE_APPROVER_CONTACT\]/g, activity.venue_approver_contact || 'N/A')
-    .replace(/\[GREEN_MONITOR_NAME\]/g, activity.green_monitor_name || 'N/A')
-    .replace(/\[GREEN_MONITOR_CONTACT\]/g, activity.green_monitor_contact || 'N/A')
-    .replace(/\[PARTNER_NAME\]/g, activity.partner_name || 'N/A')
-    .replace(/\[PARTNER_ROLE\]/g, activity.partner_role || 'N/A')
-    .replace(/\[GENERATION_DATE\]/g, new Date().toLocaleDateString());
+    .replace(/{formCode}/g, activity.activity_id)
+    .replace(/{orgName}/g, activity.organization?.org_name || 'N/A')
+    .replace(/{student}/g, activity.account?.account_name || 'N/A')
+    .replace(/{studentPosition}/g, activity.student_position || 'N/A')
+    .replace(/{studentContact}/g, activity.student_contact || 'N/A')
+    .replace(/{activityName}/g, activity.activity_name || 'N/A')
+    .replace(/{activityDesc}/g, activity.activity_description || 'N/A')
+    .replace(/{venue}/g, activity.venue || 'N/A')
+    .replace(/{venueApprover}/g, activity.venue_approver || 'N/A')
+    .replace(/{partneredBool}/g, activity.university_partner ? 'Yes' : 'No')
+    .replace(/{universityPartner}/g, activity.partner_name || 'N/A')
+    .replace(/{universityPartnerRole}/g, activity.partner_role || 'N/A')
+    .replace(/{campusBool}/g, activity.is_off_campus ? 'Yes' : 'No')
+    .replace(/{feesBool}/g, activity.charge_fee ? 'Yes' : 'No')
+    .replace(/{greenCampusMonitor}/g, activity.green_monitor_name || 'N/A')
+    .replace(/{greenCampusContact}/g, activity.green_monitor_contact || 'N/A')
+    .replace(/{adviserName}/g, activity.organization?.adviser_name || 'N/A')
+    .replace(/{adviserContact}/g, activity.organization?.adviser_email || 'N/A')
+    .replace(/{dateApproved}/g, activity.odsa_approval_date ? 
+      new Date(activity.odsa_approval_date).toLocaleDateString() : 
+      new Date().toLocaleDateString())
+    .replace(/{sroComments}/g, activity.sro_comments || 'None.');
 
   // Handle schedule data
-  let scheduleRows = '';
-  if (activity.schedule && activity.schedule.length > 0) {
-    scheduleRows = activity.schedule.map(sched => `
-      <tr>
-        <td>${sched.start_date || 'N/A'}</td>
-        <td>${sched.end_date || sched.start_date || 'N/A'}</td>
-        <td>${sched.start_time || 'N/A'}</td>
-        <td>${sched.end_time || 'N/A'}</td>
-        <td>${sched.is_recurring || 'one-time'}</td>
-        <td>${sched.recurring_days || 'N/A'}</td>
-      </tr>
-    `).join('');
+  const schedule = activity.schedule?.[0];
+  if (schedule) {
+    const startDate = schedule.start_date ? new Date(schedule.start_date).toLocaleDateString() : 'N/A';
+    const startTime = schedule.start_time || 'N/A';
+    const endTime = schedule.end_time || 'N/A';
+    
+    htmlTemplate = htmlTemplate
+      .replace(/{activityDate}/g, startDate)
+      .replace(/{activityTime}/g, `${startTime} - ${endTime}`);
   } else {
-    scheduleRows = '<tr><td colspan="6">No schedule information available</td></tr>';
+    htmlTemplate = htmlTemplate
+      .replace(/{activityDate}/g, 'N/A')
+      .replace(/{activityTime}/g, 'N/A');
   }
-  
-  htmlTemplate = htmlTemplate.replace(/\[SCHEDULE_ROWS\]/g, scheduleRows);
 
   // Generate PDF using Puppeteer
   const browser = await puppeteer.launch({ 

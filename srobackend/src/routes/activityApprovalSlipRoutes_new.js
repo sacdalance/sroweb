@@ -290,10 +290,8 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
         message: 'No approved activities found that need PDF generation',
         pdfCount: 0
       });
-    }    console.log(`Found ${approvedActivities.length} approved activities that need PDF generation`);
-
-    // Read the HTML template
-    const templatePath = path.join(__dirname, '../../../sroapp/activityApprovalSlipTemplate.html');
+    }    console.log(`Found ${approvedActivities.length} approved activities that need PDF generation`);    // Read the HTML template
+    const templatePath = path.join(__dirname, '../../../sroapp/OSASROForm1BStudentActivityApprovalSlip.html');
     let htmlTemplate;
     
     try {
@@ -315,44 +313,46 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
     // Process each approved activity
     for (const activity of approvedActivities) {
       try {
-        console.log(`Processing activity ID: ${activity.activity_id}`);
-
-        // Replace placeholders in template
+        console.log(`Processing activity ID: ${activity.activity_id}`);        // Replace placeholders in template with curly brace format
         let processedHtml = htmlTemplate
-          .replace(/\[ORGANIZATION_NAME\]/g, activity.organization?.org_name || 'N/A')
-          .replace(/\[ACTIVITY_NAME\]/g, activity.activity_name || 'N/A')
-          .replace(/\[ACTIVITY_ID\]/g, activity.activity_id || 'N/A')
-          .replace(/\[STUDENT_NAME\]/g, activity.account?.account_name || 'N/A')
-          .replace(/\[STUDENT_POSITION\]/g, activity.student_position || 'N/A')
-          .replace(/\[STUDENT_CONTACT\]/g, activity.student_contact || 'N/A')
-          .replace(/\[ACTIVITY_DESCRIPTION\]/g, activity.activity_description || 'N/A')
-          .replace(/\[ACTIVITY_TYPE\]/g, activity.activity_type || 'N/A')
-          .replace(/\[VENUE\]/g, activity.venue || 'N/A')
-          .replace(/\[VENUE_APPROVER\]/g, activity.venue_approver || 'N/A')
-          .replace(/\[GREEN_MONITOR_NAME\]/g, activity.green_campus_monitor || 'N/A')
-          .replace(/\[ADVISER_NAME\]/g, activity.adviser || 'N/A')
-          .replace(/\[PARTNER_ORGANIZATIONS\]/g, activity.partner_name || 'N/A')
-          .replace(/\[APPROVAL_DATE\]/g, activity.odsa_approval_date ? 
+          .replace(/{formCode}/g, activity.activity_id)
+          .replace(/{orgName}/g, activity.organization?.org_name || 'N/A')
+          .replace(/{student}/g, activity.account?.account_name || 'N/A')
+          .replace(/{studentPosition}/g, activity.student_position || 'N/A')
+          .replace(/{studentContact}/g, activity.student_contact || 'N/A')
+          .replace(/{activityName}/g, activity.activity_name || 'N/A')
+          .replace(/{activityDesc}/g, activity.activity_description || 'N/A')
+          .replace(/{venue}/g, activity.venue || 'N/A')
+          .replace(/{venueApprover}/g, activity.venue_approver || 'N/A')
+          .replace(/{partneredBool}/g, activity.university_partner ? 'Yes' : 'No')
+          .replace(/{universityPartner}/g, activity.partner_name || 'N/A')
+          .replace(/{universityPartnerRole}/g, activity.partner_role || 'N/A')
+          .replace(/{campusBool}/g, activity.is_off_campus ? 'Yes' : 'No')
+          .replace(/{feesBool}/g, activity.charge_fee ? 'Yes' : 'No')
+          .replace(/{greenCampusMonitor}/g, activity.green_monitor_name || 'N/A')
+          .replace(/{greenCampusContact}/g, activity.green_monitor_contact || 'N/A')
+          .replace(/{adviserName}/g, activity.organization?.adviser_name || 'N/A')
+          .replace(/{adviserContact}/g, activity.organization?.adviser_email || 'N/A')
+          .replace(/{dateApproved}/g, activity.odsa_approval_date ? 
             new Date(activity.odsa_approval_date).toLocaleDateString() : 
             new Date().toLocaleDateString())
-          .replace(/\[GENERATION_DATE\]/g, new Date().toLocaleDateString());
+          .replace(/{sroComments}/g, activity.sro_comments || 'None.');
 
         // Handle schedule information
         const schedule = activity.schedule?.[0];
         if (schedule) {
+          const startDate = schedule.start_date ? new Date(schedule.start_date).toLocaleDateString() : 'N/A';
+          const startTime = schedule.start_time || 'N/A';
+          const endTime = schedule.end_time || 'N/A';
+          
           processedHtml = processedHtml
-            .replace(/\[SCHEDULE_DATE\]/g, schedule.start_date ? 
-              new Date(schedule.start_date).toLocaleDateString() : 'N/A')
-            .replace(/\[START_TIME\]/g, schedule.start_time || 'N/A')
-            .replace(/\[END_TIME\]/g, schedule.end_time || 'N/A')
-            .replace(/\[RECURRING_DAYS\]/g, schedule.recurring_days || 'N/A');
+            .replace(/{activityDate}/g, startDate)
+            .replace(/{activityTime}/g, `${startTime} - ${endTime}`);
         } else {
           processedHtml = processedHtml
-            .replace(/\[SCHEDULE_DATE\]/g, 'N/A')
-            .replace(/\[START_TIME\]/g, 'N/A')
-            .replace(/\[END_TIME\]/g, 'N/A')
-            .replace(/\[RECURRING_DAYS\]/g, 'N/A');
-        }        // Create new page for each PDF
+            .replace(/{activityDate}/g, 'N/A')
+            .replace(/{activityTime}/g, 'N/A');
+        }// Create new page for each PDF
         const page = await browser.newPage();
         await page.setContent(processedHtml, { waitUntil: 'networkidle0' });
 
