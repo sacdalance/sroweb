@@ -275,6 +275,22 @@ const UnifiedActivitiesCalendar = ({
     }));
   };
 
+  // Category map for formatting activity types
+  const categoryMap = {
+    charitable: "Charitable",
+    serviceWithinUPB: "Service (within UPB)",
+    serviceOutsideUPB: "Service (outside UPB)",
+    contestWithinUPB: "Contest (within UPB)",
+    contestOutsideUPB: "Contest (outside UPB)",
+    educational: "Educational",
+    incomeGenerating: "Income-Generating Project",
+    massOrientation: "Mass Orientation/General Assembly",
+    booth: "Booth",
+    rehearsals: "Rehearsals/Preparation",
+    specialEvents: "Special Event",
+    others: "Others",
+  };
+
   return (
     <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">{calendarTitle}</h1>
@@ -467,7 +483,7 @@ const UnifiedActivitiesCalendar = ({
                                   <span
                                     className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type, event)}`}
                                   >
-                                    {event.type}
+                                    {categoryMap[event.type] || event.type}
                                   </span>
                                 </td>
                                 <td className="w-[100px] text-xs py-2 px-3">
