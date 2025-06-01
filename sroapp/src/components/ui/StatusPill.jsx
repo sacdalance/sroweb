@@ -4,6 +4,7 @@ const STATUS_COLORS = {
   'For Appeal': 'bg-gray-100 text-[#1C1C1C]',
   'For Cancellation': 'bg-gray-100 text-[#1C1C1C]',
   'Pending': 'bg-[#FFF7D6] text-[#A05A00]',
+  'ODSA Pending': 'bg-[#7B1113] text-white',
   'Approved': 'bg-[#014421] text-white',
   'Rejected': 'bg-[#7B1113] text-white',
   // Add more statuses as needed

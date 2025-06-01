@@ -337,7 +337,7 @@ const AdminPendingRequests = () => {
                         <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Type</th>
                         <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Date</th>
                         <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Venue</th>
-                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Adviser</th>
+                        <th className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -348,45 +348,61 @@ const AdminPendingRequests = () => {
                           </td>
                         </tr>
                       ) : (
-                        incomingRequests.map((request) => (
-                          <tr
-                            key={request.activity_id}
-                            className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleViewDetails(request)}
-                          >
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.created_at).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}>{new Date(request.created_at).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}</td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.org_name || "N/A"}>
-                              <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
-                            </td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.activity_name}>
-                              <span className="block truncate">{request.activity_name}</span>
-                            </td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}>{new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric"
-                            })}</td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.venue}>
-                              <span className="block truncate">{request.venue}</span>
-                            </td>
-                            <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.adviser_name || "N/A"}>
-                              <span className="block truncate">{request.organization?.adviser_name || "N/A"}</span>
-                            </td>
-                          </tr>
-                        ))
+                        incomingRequests.map((request) => {
+                          let statusLabel = "";
+                          let pillStatus = "";
+                          if (request.final_status == null) {
+                            if (request.sro_approval_status == null) {
+                              statusLabel = "Pending";
+                              pillStatus = "For Appeal"; // gray pill
+                            } else {
+                              statusLabel = "ODSA Pending";
+                              pillStatus = "Pending"; // yellow pill
+                            }
+                          } else {
+                            statusLabel = request.final_status;
+                            pillStatus = request.final_status;
+                          }
+                          return (
+                            <tr
+                              key={request.activity_id}
+                              className="hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleViewDetails(request)}
+                            >
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.created_at).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}>{new Date(request.created_at).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}</td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.organization?.org_name || "N/A"}>
+                                <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
+                              </td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.activity_name}>
+                                <span className="block truncate">{request.activity_name}</span>
+                              </td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}>{new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric"
+                              })}</td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={request.venue}>
+                                <span className="block truncate">{request.venue}</span>
+                              </td>
+                              <td className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">
+                                <StatusPill status={statusLabel} />
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
