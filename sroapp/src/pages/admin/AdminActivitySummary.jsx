@@ -60,6 +60,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import StatusPill from "@/components/ui/StatusPill";
 
 
 
@@ -145,7 +146,7 @@ const AdminActivitySummary = () => {
         setLoading(false);
       }
     };
-  
+
     loadSummary();
     setCurrentPage(1);
   }, [selectedType, appliedFilters]);
@@ -160,14 +161,14 @@ const AdminActivitySummary = () => {
         console.error("Failed to load organizations:", err);
       }
     };
-  
+
     loadOrgs();
   }, []);
   const filteredOrgOptions = orgSearchTerm.trim() === ""
     ? organizationOptions
     : organizationOptions.filter((org) =>
-        org.toLowerCase().includes(orgSearchTerm.toLowerCase())
-      );
+      org.toLowerCase().includes(orgSearchTerm.toLowerCase())
+    );
 
   const [academicYears, setAcademicYears] = useState(["All Academic Years"]);
   useEffect(() => {
@@ -179,7 +180,7 @@ const AdminActivitySummary = () => {
         console.error("Failed to load academic years:", err);
       }
     };
-  
+
     loadYears();
   }, []);
 
@@ -187,23 +188,23 @@ const AdminActivitySummary = () => {
   const filteredByOtherFilters = summaryActivities.filter((activity) => {
     const startDateStr = activity.schedule?.[0]?.start_date;
     if (!startDateStr) return false;
-  
+
     const startDate = new Date(startDateStr);
     const startYear = startDate.getFullYear();
     const activityMonth = startDate.toLocaleString("default", { month: "long" });
-  
+
     // Academic year filter
     if (appliedFilters.year !== "All Academic Years") {
       const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
       if (startYear !== selectedStartYear) return false;
     }
 
-  
+
     // Month filter
     if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
       return false;
     }
-  
+
     // Organization filter
     if (
       appliedFilters.organization !== "All Organizations" &&
@@ -211,10 +212,10 @@ const AdminActivitySummary = () => {
     ) {
       return false;
     }
-  
+
     return true;
   });
-  
+
   // 2. Calculate counts from this filtered list
   const approvedCount = filteredByOtherFilters.filter(a => a.final_status === "Approved").length;
   const pendingCount = filteredByOtherFilters.filter(a =>
@@ -229,7 +230,7 @@ const AdminActivitySummary = () => {
     if (filter === "pending" && !isPending) return false;
     return true;
   });
-  
+
   const handleApplyFilters = () => {
     setAppliedFilters({
       organization: selectedOrg,
@@ -266,7 +267,7 @@ const AdminActivitySummary = () => {
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Activity Requests</h1>
-      
+
       {/* Filter Section using Tabs */}
       <Card className="mb-6">
         <div className="p-2 sm:px-4 md:px-8">
@@ -389,7 +390,7 @@ const AdminActivitySummary = () => {
                       <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleApplyFilters}
                         className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
                       >
@@ -401,64 +402,64 @@ const AdminActivitySummary = () => {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(appliedFilters.organization !== "All Organizations" || 
-                appliedFilters.month !== "All Months" || 
+              {(appliedFilters.organization !== "All Organizations" ||
+                appliedFilters.month !== "All Months" ||
                 appliedFilters.year !== "All Academic Years") && (
-                <div className="flex items-center gap-2">
-                  {appliedFilters.organization !== "All Organizations" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.organization}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('organization')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {appliedFilters.month !== "All Months" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.month}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('month')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {appliedFilters.year !== "All Academic Years" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.year}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('year')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {selectedType !== "all" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {activityTypes.find((t) => t.id === selectedType)?.label}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => setSelectedType("all")}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-              </div>
-              )}
+                  <div className="flex items-center gap-2">
+                    {appliedFilters.organization !== "All Organizations" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.organization}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('organization')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {appliedFilters.month !== "All Months" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.month}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('month')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {appliedFilters.year !== "All Academic Years" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.year}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('year')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {selectedType !== "all" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {activityTypes.find((t) => t.id === selectedType)?.label}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setSelectedType("all")}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                  </div>
+                )}
               {/* Filter Button: hidden on mobile, visible on sm+ */}
               <div className="hidden sm:block">
                 <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
@@ -570,7 +571,7 @@ const AdminActivitySummary = () => {
                       <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleApplyFilters}
                         className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
                       >
@@ -584,189 +585,127 @@ const AdminActivitySummary = () => {
           </div>
 
           <div className="flex justify-center px-0 sm:px-8">
-          <Tabs
-          value={filter}
-          onValueChange={(val) => {
-            if (tabCooldown || loading) return;
+            <Tabs
+              value={filter}
+              onValueChange={(val) => {
+                if (tabCooldown || loading) return;
 
-            setFilter(val);
-            setTabCooldown(true);
+                setFilter(val);
+                setTabCooldown(true);
 
-            setTimeout(() => {
-              setTabCooldown(false);
-            }, 800); // cooldown in ms
-          }}
-          className="w-full max-w-[400px]"
-        >
-          <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
-            <TabsTrigger
-              value="all"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                setTimeout(() => {
+                  setTabCooldown(false);
+                }, 800); // cooldown in ms
+              }}
+              className="w-full max-w-[400px]"
             >
-              Show All
-            </TabsTrigger>
-            <TabsTrigger
-              value="approved"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-            >
-              Approved ({approvedCount})
-            </TabsTrigger>
-            <TabsTrigger
-              value="pending"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-            >
-              Pending ({pendingCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
+                <TabsTrigger
+                  value="all"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Show All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="approved"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Approved ({approvedCount})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pending"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Pending ({pendingCount})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
-      {/* Table Section */}
-      {loading ? (
+        {/* Table Section */}
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
             <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
             Loading submissions...
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b-0">
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
-                <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Name</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Type</TableHead>
-                <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Date</TableHead>
-                <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
-                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedActivities.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
-                    No activities found.
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b-0">
+                  <TableHead className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">Status</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Submission Date</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Organization</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Name</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Type</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Activity Date</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Venue</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center">Adviser</TableHead>
+                  <TableHead className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center">Activity ID</TableHead>
                 </TableRow>
-              ) : (
-                paginatedActivities.map((activity, index) => (
-                  <TableRow
-                    key={index}
-                    className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
-                    onClick={() => {
-                      setSelectedActivity(activity);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <TableCell className="py-5">
-                      <div className="flex items-center justify-center">
-                        <Badge
-                          className={
-                            (activity.final_status === "Approved"
-                              ? "bg-[#014421] text-white"
-                              : "bg-[#FFF7D6] text-[#A05A00]")
-                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
-                          }
-                        >
-                          {activity.final_status === "Approved"
-                            ? "Approved"
-                            : "Pending"}
-                        </Badge>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {paginatedActivities.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
+                      No activities found.
                     </TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {new Date(activity.created_at).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.activity_name}
-                    </TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
-                        {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
-                          <Badge
-                            key={typeId}
-                            variant="secondary"
-                            className={`${
-                              typeId === selectedType
-                                ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]'
-                                : ''
-                            } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
-                          >
-                            <span className="inline-block truncate max-w-[200px]">
-                              {formatActivityTypeLabel(typeId)}
-                            </span>
-                          </Badge>
-                        ))}
-                        {(activity.activity_type?.split(",") || []).length > 3 && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                              +{activity.activity_type.split(",").length - 3}
-                            </div>
-                            more
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.schedule?.[0]?.start_date
-                        ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric"
-                          })
-                        : "TBD"}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.organization?.adviser_name || "N/A"}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                   </TableRow>
-                ))
-            )}
-          </TableBody>
-        </Table>
-        <div className="flex justify-between items-center mt-4 px-4">
-        <div className="text-sm text-gray-600">
-          Page {currentPage} of {totalPages}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-        </div>
-      )}
+                ) : (
+                  paginatedActivities.map((activity, index) => (
+                    <TableRow
+                      key={index}
+                      className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        setSelectedActivity(activity);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <TableCell className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.final_status}><StatusPill status={activity.final_status || "Pending"} /></TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={new Date(activity.created_at).toLocaleDateString()}>{new Date(activity.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.organization?.org_name || "N/A"}>{activity.organization?.org_name || "N/A"}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.activity_name}>{activity.activity_name}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.activity_type}>{formatActivityTypeLabel(activity.activity_type)}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.schedule?.[0]?.start_date ? new Date(activity.schedule[0]?.start_date).toLocaleDateString() : "TBD"}>{activity.schedule?.[0]?.start_date ? new Date(activity.schedule[0]?.start_date).toLocaleDateString() : "TBD"}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.venue || "N/A"}>{activity.venue || "N/A"}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[150px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.organization?.adviser_name || "N/A"}>{activity.organization?.adviser_name || "N/A"}</TableCell>
+                      <TableCell className="px-2 py-2 text-xs max-w-[120px] truncate overflow-hidden whitespace-nowrap text-center" title={activity.activity_id}>{activity.activity_id}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between items-center mt-4 px-4">
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </Card>
 
@@ -788,7 +727,7 @@ const AdminActivitySummary = () => {
             See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
-          </div>
+      </div>
     </div>
   );
 };

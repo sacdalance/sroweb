@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import StatusPill from "@/components/ui/StatusPill";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,11 +49,11 @@ const AdminPanel = () => {
   const isDateInCurrentWeek = (dateString) => {
     const eventDate = new Date(dateString);
     eventDate.setHours(0, 0, 0, 0); // Normalize time to start of day
-    
+
     const weekStart = new Date(currentWeekStart);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
     weekStart.setHours(0, 0, 0, 0);
-    
+
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
     weekEnd.setHours(23, 59, 59, 999);
@@ -61,7 +62,7 @@ const AdminPanel = () => {
     console.log('Week Start:', weekStart);
     console.log('Week End:', weekEnd);
     console.log('Is in week:', eventDate >= weekStart && eventDate <= weekEnd);
-    
+
     return eventDate >= weekStart && eventDate <= weekEnd;
   };
 
@@ -69,13 +70,13 @@ const AdminPanel = () => {
   const getWeekRange = (date) => {
     const start = new Date(date);
     start.setDate(start.getDate() - start.getDay());
-    
+
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
-    
+
     const startMonth = start.toLocaleString('default', { month: 'long' }).toUpperCase();
     const endMonth = end.toLocaleString('default', { month: 'long' }).toUpperCase();
-    
+
     return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
   };
 
@@ -243,7 +244,7 @@ const AdminPanel = () => {
         setLoading(false);
       }
     };
-  
+
     fetchActivities();
   }, []);
 
@@ -471,10 +472,10 @@ const AdminPanel = () => {
   // Then, for current week, filter for today only
   const eventsToShow = isCurrentWeek
     ? weekEvents.filter((event) => {
-        const eventDate = new Date(event.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate.getTime() === today.getTime();
-      })
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate.getTime() === today.getTime();
+    })
     : weekEvents;
 
   const handleEventClick = async (event) => {
@@ -559,11 +560,11 @@ const AdminPanel = () => {
                         <table className="min-w-full border-separate border-spacing-0">
                           <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Submission<br />Date</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Activity<br />Name</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Organization</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Activity<br />Date</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-20">Status</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Submission<br />Date</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Activity<br />Name</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Activity<br />Date</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Status</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
@@ -573,22 +574,12 @@ const AdminPanel = () => {
                                 className="hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.submissionDate}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityName}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.organization}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityDate}</td>
-                                <td className="px-1 py-2 text-xs text-center">
-                                  <Badge
-                                    className={
-                                      request.status === "Pending"
-                                        ? "bg-[#FFF7D6] text-[#A05A00] pointer-events-none" // Light yellow fill, brown text, no hover
-                                        : request.status === "For Appeal"
-                                        ? "bg-[#F3E0E0] text-[#7B1113] pointer-events-none" // Light red fill, maroon text
-                                        : "bg-gray-100 text-gray-700 pointer-events-none"
-                                    }
-                                  >
-                                    {request.status}
-                                  </Badge>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.submissionDate}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">{request.activityName}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.organization}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.activityDate}</td>
+                                <td className="px-2 py-2 text-xs text-center">
+                                  <StatusPill status={request.status} />
                                 </td>
                               </tr>
                             ))}
@@ -596,7 +587,7 @@ const AdminPanel = () => {
                         </table>
                       </div>
                     )}
-                   </div>
+                  </div>
                   {/* See More Button */}
                   <div className="flex justify-center mt-auto border-t pt-4">
                     <Link to="/admin/pending-requests">
@@ -706,7 +697,7 @@ const AdminPanel = () => {
                                         <div className="flex items-center justify-between mt-1">
                                           <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
                                           {dayEvents.length > 1 && (
-                                            <Badge 
+                                            <Badge
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 // Navigate to activities calendar

@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, ChevronDown } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
+import StatusPill from "@/components/ui/StatusPill";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -251,14 +252,14 @@ const AdminPendingRequests = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity ID</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Submission Date</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Organization</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Type</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Date</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Venue</th>
-                      <th className="px-3 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Status</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity ID</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Submission Date</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Organization</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Type</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Activity Date</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Venue</th>
+                      <th className="px-2 py-2 text-xs font-medium text-black text-center whitespace-nowrap">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -268,40 +269,37 @@ const AdminPendingRequests = () => {
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => handleViewDetails(request)}
                       >
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center">{request.activity_id}</td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center">
-                          {new Date(request.created_at).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric"
-                          })}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.activity_id}>{request.activity_id}</td>
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })}>{new Date(request.created_at).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })}</td>
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.org_name || "N/A"}>
                           <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words">
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words truncate" title={request.activity_name}>
                           <span className="block truncate">{request.activity_name}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
-                          <span className="block truncate">{getActivityTypeLabel(request.activity_type)}</span>
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center">
-                          {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric"
-                          })}
-                        </td>
-                        <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })}>{new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })}</td>
+                        <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.venue}>
                           <span className="block truncate">{request.venue}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-center">
-                          <span className={`inline-block px-2 py-1 rounded-full text-white font-medium ${request.final_status === "For Appeal"
-                              ? "bg-[#7B1113]"
-                              : "bg-[#7B1113]"
-                            }`}>
-                            {request.final_status}
-                          </span>
+                        <td className="px-2 py-2 text-xs text-center">
+                          <StatusPill status={request.final_status} />
                         </td>
                       </tr>
                     ))}
@@ -335,14 +333,14 @@ const AdminPendingRequests = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity ID</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Submission Date</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Organization</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Type</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Date</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Venue</th>
-                        <th className="px-3 py-2 text-xs font-small text-black text-center whitespace-nowrap">Adviser</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity ID</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Submission Date</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Organization</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap max-w-[150px]">Activity Name</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Type</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Activity Date</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Venue</th>
+                        <th className="px-2 py-2 text-xs font-small text-black text-center whitespace-nowrap">Adviser</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -359,34 +357,36 @@ const AdminPendingRequests = () => {
                             className="hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleViewDetails(request)}
                           >
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center">{request.activity_id}</td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center">
-                              {new Date(request.created_at).toLocaleDateString(undefined, {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric"
-                              })}
-                            </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.activity_id}>{request.activity_id}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric"
+                            })}>{new Date(request.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric"
+                            })}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.org_name || "N/A"}>
                               <span className="block truncate">{request.organization?.org_name || "N/A"}</span>
                             </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center max-w-[150px] break-words truncate" title={request.activity_name}>
                               <span className="block truncate">{request.activity_name}</span>
                             </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
-                              <span className="block truncate">{getActivityTypeLabel(request.activity_type)}</span>
-                            </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center">
-                              {new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric"
-                              })}
-                            </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={getActivityTypeLabel(request.activity_type)}>{getActivityTypeLabel(request.activity_type)}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric"
+                            })}>{new Date(request.schedule?.[0]?.start_date).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric"
+                            })}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.venue}>
                               <span className="block truncate">{request.venue}</span>
                             </td>
-                            <td className="px-3 py-2 text-xs text-gray-700 text-center break-words max-w-[120px]">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate" title={request.organization?.adviser_name || "N/A"}>
                               <span className="block truncate">{request.organization?.adviser_name || "N/A"}</span>
                             </td>
                           </tr>

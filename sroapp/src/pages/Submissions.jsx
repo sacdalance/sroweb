@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from 'sonner';
+import StatusPill from "@/components/ui/StatusPill";
 
 // Configure axios defaults
 axios.defaults.baseURL = 'http://localhost:3000';
@@ -263,11 +264,11 @@ const Submissions = () => {
                   <table className="w-full min-w-[10px] text-sm text-left">
                     <thead className="border-b">
                       <tr>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Title</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Date Range</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Venue</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Status</th>
                         <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
                       </tr>
                     </thead>
@@ -290,53 +291,26 @@ const Submissions = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.organization?.org_name || "Unknown"}
                               </span>
                             </td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.activity_name}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {formatDateRange(act.schedule)}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.venue}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                              {act.final_status === "For Appeal" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
-                                  For Appeal
-                                </span>
-                              )}
-                              {act.final_status === "Pending" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
-                                  Pending
-                                </span>
-                              )}
-                              {act.final_status === "Approved" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#014421] text-white font-semibold text-xs">
-                                  Approved
-                                </span>
-                              )}
-                              {act.final_status === "Rejected" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-gray-100 text-[#1C1C1C] font-semibold text-xs border border-gray-200">
-                                  Rejected
-                                </span>
-                              )}
-                              {act.final_status === "For Cancellation" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
-                                  For Cancellation
-                                </span>
-                              )}
-                              {["For Appeal", "Pending", "Approved", "Rejected", "For Cancellation"].indexOf(act.final_status) === -1 && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
-                                  {act.final_status || "Pending"}
-                                </span>
-                              )}
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              <StatusPill status={act.final_status || "Pending"} />
                             </td>
 
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
@@ -395,11 +369,11 @@ const Submissions = () => {
                   <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                     <thead className="border-b">
                       <tr>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Title</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Date Range</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Venue</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Activity ID</th>
                         <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
                       </tr>
                     </thead>
@@ -422,23 +396,27 @@ const Submissions = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.organization?.org_name || "Unknown"}
                               </span>
                             </td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.activity_name}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {formatDateRange(act.schedule)}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.venue}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_id}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {act.activity_id}
+                            </td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">
                               <div className="flex items-center justify-center gap-2">
                                 {/* Edit Button */}
@@ -590,10 +568,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Report ID</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Report ID</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -604,14 +582,18 @@ const Submissions = () => {
                           onClick={() => window.open(report.drive_folder_link, '_blank')}
                           className="border-b cursor-pointer hover:bg-gray-50"
                         >
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                             {report.organization?.org_name || report.org_name || "Unknown"}
                           </td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                            {report.academic_year}
+                          </td>
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                             {new Date(report.submitted_at).toLocaleDateString('en-US')}
                           </td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                            {report.report_id}
+                          </td>
                         </tr>
                       ))
                     ) : (
@@ -638,10 +620,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -650,14 +632,16 @@ const Submissions = () => {
                         .filter((app) => !(app.sro_approved && app.odsa_approved))
                         .map((app) => (
                           <tr key={app.recognition_id} className="border-b">
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">
                               {app.org_name || "Unknown"}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                              {app.academic_year}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                               {new Date(app.submitted_at).toLocaleDateString('en-US')}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">
                               <span className="inline-block px-3 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] text-xs font-semibold border border-[#FFF7D6]">Pending</span>
                             </td>
                           </tr>
@@ -686,10 +670,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Org Status</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">Org Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -698,14 +682,16 @@ const Submissions = () => {
                         .filter((app) => app.sro_approved && app.odsa_approved)
                         .map((app) => (
                           <tr key={app.recognition_id} className="border-b">
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">
                               {app.org_name || "Unknown"}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                              {app.academic_year}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                               {new Date(app.submitted_at).toLocaleDateString('en-US')}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">
                               {app.new_org_status || "N/A"}
                             </td>
                           </tr>

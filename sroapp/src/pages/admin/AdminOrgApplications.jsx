@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Download } from "lucide-react";
 import supabase from "@/lib/supabase"; // Only for fetching, NOT for update!
+import StatusPill from "@/components/ui/StatusPill";
 
 const statusList = [
   "On Probation", "Warning", "Renewed/Duly", "Recognized", "Disaffiliated"
@@ -142,15 +143,15 @@ const AdminOrgApplications = () => {
 
   const getStatus = (app) => {
     if (roleId === 2)
-      return app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending";
+      return <StatusPill status={app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending"} />;
     if (roleId === 3)
-      return app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending";
+      return <StatusPill status={app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending"} />;
     if (roleId === 4)
       return (
         <>
-          {statusPill(app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending")}
+          <StatusPill status={app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending"} />
           <br />
-          {statusPill(app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending")}
+          <StatusPill status={app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending"} />
         </>
       );
     return "-";
@@ -186,19 +187,31 @@ const AdminOrgApplications = () => {
                   className="cursor-pointer hover:bg-gray-50"
                   onClick={() => handleRowClick(app)}
                 >
-                  <TableCell className="text-center">{new Date(app.submitted_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-center">{app.org_name}</TableCell>
-                  <TableCell className="text-center">{getCategoryName(app.org_type)}</TableCell>
-                  <TableCell className="text-center">{app.org_chairperson}</TableCell>
-                  <TableCell className="text-center">{app.academic_year}</TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {new Date(app.submitted_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={app.org_name}>
+                    {app.org_name}
+                  </TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {getCategoryName(app.org_type)}
+                  </TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={app.org_chairperson}>
+                    {app.org_chairperson}
+                  </TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {app.academic_year}
+                  </TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                     {isOrgExisting(app) ? (
                       <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
                     ) : (
                       <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center">{statusPill(getStatus(app))}</TableCell>
+                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                    {getStatus(app)}
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -224,27 +237,37 @@ const AdminOrgApplications = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
                 <div>
                   <p className="font-semibold text-gray-700">Organization</p>
-                  <p>{selectedApp.org_name}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={selectedApp.org_name}>
+                    {selectedApp.org_name}
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700">Type</p>
-                  <p>{getCategoryName(selectedApp.org_type)}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {getCategoryName(selectedApp.org_type)}
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700">Chairperson</p>
-                  <p>{selectedApp.org_chairperson}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={selectedApp.org_chairperson}>
+                    {selectedApp.org_chairperson}
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700">Academic Year</p>
-                  <p>{selectedApp.academic_year}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {selectedApp.academic_year}
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700">Submitted At</p>
-                  <p>{new Date(selectedApp.submitted_at).toLocaleDateString()}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                    {new Date(selectedApp.submitted_at).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-700">Existing Org?</p>
-                  <p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                     {isOrgExisting(selectedApp) ? (
                       <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
                     ) : (
@@ -254,7 +277,9 @@ const AdminOrgApplications = () => {
                 </div>
                 <div className="sm:col-span-2">
                   <p className="font-semibold text-gray-700">Adviser</p>
-                  <p>{selectedApp.org_adviser}</p>
+                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                    {selectedApp.org_adviser}
+                  </p>
                 </div>
                 <div className="sm:col-span-2 pt-2">
                   <p className="font-semibold text-gray-700 mb-2">Drive Folder</p>
