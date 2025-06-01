@@ -143,16 +143,16 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
           </div>
 
           {activity.university_partner === "true" && (
-              <Collapsible className="border border-gray-300 rounded-md">
-                <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
-                  <span>University Partners</span>
-                  <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-                  <p>{activity.partner_name || "None listed"}</p>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
+            <Collapsible className="border border-gray-300 rounded-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+                <span>University Partners</span>
+                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
+                <p>{activity.partner_name || "None listed"}</p>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {sdgs && formatSDGLabels(sdgs).length > 0 && (
             <Collapsible className="border border-gray-300 rounded-md">
@@ -168,6 +168,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
 
           <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || activity.status || "Pending"}</p>
+            <p><strong>Activity ID:</strong> {activity.activity_id || "N/A"}</p>
           </div>
         </div>
       </ScrollArea>

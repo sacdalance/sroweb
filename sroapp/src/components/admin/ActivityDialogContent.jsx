@@ -131,11 +131,11 @@ const ActivityDialogContent = ({
 
   useEffect(() => {
     if (!isModalOpen || !localActivity?.activity_id) return;
-  
+
     const actionTaken =
       (isSRO && localActivity?.sro_approval_status !== null) ||
       (isODSA && localActivity?.odsa_approval_status !== null);
-  
+
     setHasViewedScannedForm(false); // reset on dialog open
     setShowDecisionBox(false);
     setConfirmationOpen(false);
@@ -143,7 +143,7 @@ const ActivityDialogContent = ({
     setComment(
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
-  
+
     if (actionTaken) {
       setTimeout(() => {
         setShowDecisionBox(true);
@@ -181,17 +181,17 @@ const ActivityDialogContent = ({
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
-        <DialogTitle
-          className="text-2xl text-[#7B1113] font-bold break-words"
-          style={{
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-            maxWidth: isNoSpaceLong ? "15%" : "100%",
-          }}
-        >
-          {title}
-        </DialogTitle>
+          <DialogTitle
+            className="text-2xl text-[#7B1113] font-bold break-words"
+            style={{
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              maxWidth: isNoSpaceLong ? "15%" : "100%",
+            }}
+          >
+            {title}
+          </DialogTitle>
           <p className="text-sm font-semibold text-gray-700 mb-2">
             {activity.organization?.org_name || activity.organization || "Organization Name"}
           </p>
@@ -294,22 +294,23 @@ const ActivityDialogContent = ({
             </Collapsible>
           )}
 
-<div className="space-y-2">
+          <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || activity.status || "Pending"}</p>
+            <p><strong>Activity ID:</strong> {activity.activity_id || "N/A"}</p>
             {activity.drive_folder_link && (
               <div className="flex items-center gap-2">
-              <a
-                href={activity.drive_folder_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  setHasViewedScannedForm(true);
-                  setShowDecisionBox(true);
-                }}
-                className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
-              >
-                View Scanned Form
-              </a>
+                <a
+                  href={activity.drive_folder_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    setHasViewedScannedForm(true);
+                    setShowDecisionBox(true);
+                  }}
+                  className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
+                >
+                  View Scanned Form
+                </a>
                 {!readOnly && (
                   <button
                     onClick={() => setShowDecisionBox((prev) => !prev)}
@@ -364,9 +365,9 @@ const ActivityDialogContent = ({
                   </div>
                 ) : (
                   <>
-                  {!hasViewedScannedForm && (
-                    <p className="text-sm text-gray-500 italic">Click “View Scanned Form” to activate approval buttons.</p>
-                  )}
+                    {!hasViewedScannedForm && (
+                      <p className="text-sm text-gray-500 italic">Click "View Scanned Form" to activate approval buttons.</p>
+                    )}
                     <button
                       disabled={!hasViewedScannedForm}
                       onClick={() => {
