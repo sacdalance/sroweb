@@ -271,8 +271,26 @@ const ActivityDialogContent = ({
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
             <div className="pl-4">
-              <p><strong>Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
-              <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+              {activity.schedule?.[0]?.is_recurring === "true" ? (
+                <>
+                  <p><strong>Start Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
+                  <p><strong>End Date:</strong> {formatDate(activity.schedule?.[0]?.end_date)}</p>
+                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+                  <p><strong>Recurring Day/s:</strong> {(() => {
+                    try {
+                      const days = JSON.parse(activity.schedule?.[0]?.recurring_days || "{}");
+                      return Object.keys(days).filter(day => days[day]).join(", ") || "N/A";
+                    } catch {
+                      return "N/A";
+                    }
+                  })()}</p>
+                </>
+              ) : (
+                <>
+                  <p><strong>Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
+                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+                </>
+              )}
             </div>
           </div>
 
