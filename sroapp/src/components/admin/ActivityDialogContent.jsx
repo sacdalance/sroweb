@@ -98,6 +98,7 @@ const ActivityDialogContent = ({
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
+  const isSuperAdmin = userRole === 4;
   const [hasViewedScannedForm, setHasViewedScannedForm] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [comment, setComment] = useState(() =>
@@ -121,6 +122,9 @@ const ActivityDialogContent = ({
 
   const commentRef = useRef(null);
 
+  const [sroComment, setSroComment] = useState(activity?.sro_remarks || "");
+  const [odsaComment, setOdsaComment] = useState(activity?.odsa_remarks || "");
+
   useEffect(() => {
     if (showDecisionBox && commentRef.current) {
       setTimeout(() => {
@@ -134,7 +138,8 @@ const ActivityDialogContent = ({
 
     const actionTaken =
       (isSRO && localActivity?.sro_approval_status !== null) ||
-      (isODSA && localActivity?.odsa_approval_status !== null);
+      (isODSA && localActivity?.odsa_approval_status !== null) ||
+      (isSuperAdmin && localActivity?.sro_approval_status !== null && localActivity?.odsa_approval_status !== null);
 
     setHasViewedScannedForm(false); // reset on dialog open
     setShowDecisionBox(false);
@@ -143,6 +148,8 @@ const ActivityDialogContent = ({
     setComment(
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
+    setSroComment(localActivity?.sro_remarks || "");
+    setOdsaComment(localActivity?.odsa_remarks || "");
 
     if (actionTaken) {
       setTimeout(() => {
@@ -335,20 +342,42 @@ const ActivityDialogContent = ({
                 </div>
               )}
 
-              <label className="text-sm font-medium text-gray-700 block">
-                {isSRO ? "SRO Remarks" : "ODSA Remarks"}
-              </label>
-
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={4}
-                placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
-                  ? "No remark was given."
-                  : "Enter your remarks..."}
-                className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
-                disabled={isActionLocked}
-              />
+              {isSuperAdmin ? (
+                <>
+                  <label className="text-sm font-medium text-gray-700 block">SRO Remarks</label>
+                  <textarea
+                    value={sroComment}
+                    onChange={e => setSroComment(e.target.value)}
+                    rows={3}
+                    placeholder="Enter SRO remarks..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                  />
+                  <label className="text-sm font-medium text-gray-700 block mt-2">ODSA Remarks</label>
+                  <textarea
+                    value={odsaComment}
+                    onChange={e => setOdsaComment(e.target.value)}
+                    rows={3}
+                    placeholder="Enter ODSA remarks..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {isSRO ? "SRO Remarks" : "ODSA Remarks"}
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                    placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                      ? "No remark was given."
+                      : "Enter your remarks..."}
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                    disabled={isActionLocked}
+                  />
+                </>
+              )}
 
               <div className="flex justify-end gap-3">
                 {isActionLocked ? (
@@ -359,7 +388,7 @@ const ActivityDialogContent = ({
                       </span>
                     ) : (
                       <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
-                        {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
+                        {isSRO ? "Waiting for ODSA approval" : isODSA ? "Action already taken" : "Action already taken"}
                       </span>
                     )}
                   </div>
@@ -433,7 +462,9 @@ const ActivityDialogContent = ({
           <div className="mt-2">
             <p className="text-sm text-gray-600 mb-1">With reason:</p>
             <div className="border border-gray-300 p-3 rounded-md text-sm bg-gray-50 whitespace-pre-wrap">
-              {comment.trim() || "No reason provided."}
+              {isSuperAdmin
+                ? `SRO: ${sroComment.trim() || "No reason provided."}\nODSA: ${odsaComment.trim() || "No reason provided."}`
+                : comment.trim() || "No reason provided."}
             </div>
           </div>
 
@@ -453,10 +484,16 @@ const ActivityDialogContent = ({
 
                 try {
                   if (decisionType === "approve") {
-                    await handleApprove(comment, localActivity.activity_id);
+                    await handleApprove(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
                     toast.success("Activity approved successfully!");
                   } else {
-                    await handleReject(comment, localActivity.activity_id);
+                    await handleReject(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
                     toast.error("Activity rejected.");
                   }
                 } catch (error) {

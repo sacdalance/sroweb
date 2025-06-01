@@ -13,6 +13,13 @@ export async function approveActivity(activityId, comment, userRole) {
     updates.odsa_approval_status = "Approved";
     updates.odsa_remarks = comment;
     updates.final_status = "Approved";
+  } else if (userRole === 4) {
+    // comment should be an object: { sro: string, odsa: string }
+    updates.sro_approval_status = "Approved";
+    updates.sro_remarks = comment.sro;
+    updates.odsa_approval_status = "Approved";
+    updates.odsa_remarks = comment.odsa;
+    updates.final_status = "Approved";
   } else {
     throw new Error("Invalid user role");
   }
@@ -42,6 +49,13 @@ export async function rejectActivity(activityId, comment, userRole) {
   } else if (userRole === 3) {
     updates.odsa_approval_status = "Rejected";
     updates.odsa_remarks = comment;
+    updates.final_status = "Rejected";
+  } else if (userRole === 4) {
+    // comment should be an object: { sro: string, odsa: string }
+    updates.sro_approval_status = "Rejected";
+    updates.sro_remarks = comment.sro;
+    updates.odsa_approval_status = "Rejected";
+    updates.odsa_remarks = comment.odsa;
     updates.final_status = "Rejected";
   } else {
     throw new Error("Invalid user role");
