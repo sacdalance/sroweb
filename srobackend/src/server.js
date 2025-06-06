@@ -21,6 +21,10 @@ import orgApplicationRoutes from './routes/orgApplicationRoutes.js';
 import adminOrgApplicationsRoutes from "./routes/adminOrgApplicationsRoutes.js";
 
 import emailServicesRoutes from './routes/emailServicesRoutes.js';
+import activityApprovalSlipRoutes from './routes/activityApprovalSlipRoutes_new.js';
+import testRoute from './routes/testRoute.js';
+
+console.log('📋 Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
 
 
 import dotenv from 'dotenv';
@@ -62,6 +66,13 @@ app.use('/api/org-applications', adminOrgApplicationsRoutes);
 
 // Email Services
 app.use('/api', emailServicesRoutes);
+
+// Test Route
+app.use('/test', testRoute);
+
+// Activity Approval Slip Generation
+app.use('/api', activityApprovalSlipRoutes);
+console.log('🎯 Activity Approval Slip routes mounted at /api');
 
 app.get('/', (req, res) => {
   res.send('🎉 Supabase backend is working!');
