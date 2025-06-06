@@ -4,7 +4,7 @@ import supabase from "@/lib/supabase";
  * Generates HTML email template for activity approval
  */
 const generateApprovalEmailHTML = (activityData) => {
-  const { orgName, activityName, venue, displayDate, formCode, sroComments } = activityData;
+  const { orgName, activityName, venue, displayDate, formCode, sroComments, odsaComments } = activityData;
   
   return `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
@@ -13,7 +13,8 @@ const generateApprovalEmailHTML = (activityData) => {
   <p>Please ensure that you retrieve your OSA-SRO Form 1B - Student Activity Approval Slip from the outgoing bin at OSA. You will need to submit a copy of this slip to the UPB Security Office, and to some of the Venue Approvers to finalize your venue reservation.</p>
   <p>Take note of your Activity Form Id: <strong>#${formCode}</strong>.</p>
   <p>Please refer to these comments for other reminders and notes by the SRO/OSA:<br>
-  SRO Comment: <strong>"${sroComments || 'No additional comments'}"</strong><br></p>
+  SRO Comment: <strong>"${sroComments || 'No additional comments'}"</strong><br>
+  ODSA Comment: <strong>"${odsaComments || 'No additional comments'}"</strong></p>
   <p><strong>REMINDER: This is an automated e-mail. Kindly do not reply to this e-mail.</strong><br>
   If you have concerns, please send a separate e-mail with the subject: "<strong>Activity Concern, #${formCode}</strong>".</p>
   <p>Thank you,<br>
