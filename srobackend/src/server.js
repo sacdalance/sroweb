@@ -75,9 +75,9 @@ app.use('/api', activityApprovalSlipRoutes);
 console.log('🎯 Activity Approval Slip routes mounted at /api');
 
 app.get('/', (req, res) => {
-  res.send('🎉 Supabase backend is working!');
+  res.send('Supabase backend is working!');
 });
 
 app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+  console.log(`erver running at http://localhost:${port}`);
 });
