@@ -27,7 +27,6 @@ router.get("/incoming", verifyAdminRoles, async (req, res) => {
 // Summary of Activities
 router.get("/summary", verifyAdminRoles, async (req, res) => {
   const { activity_type, status, organization, year, month } = req.query;
-
   let query = supabase
     .from("activity")
     .select(`

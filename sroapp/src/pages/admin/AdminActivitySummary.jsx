@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,11 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -32,34 +26,20 @@ import {
 } from "@/components/ui/select";
 import {
   Tabs,
-  TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears } from "@/api/adminActivityAPI";
+import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
+import supabase from "@/lib/supabase";
 import {
   Filter,
   X,
-  Eye,
-  ChevronDown,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
   FileText,
-  Calendar,
-  Clock,
-  User,
-  Check,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { toast, Toaster } from "sonner";
 
 
 
@@ -111,11 +91,9 @@ const AdminActivitySummary = () => {
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState("All Organizations");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);  const [selectedOrg, setSelectedOrg] = useState("All Organizations");
   const [selectedMonth, setSelectedMonth] = useState("All Months");
   const [selectedYear, setSelectedYear] = useState("All Academic Years");
-  const [orgPopoverOpen, setOrgPopoverOpen] = useState(false);
   const [orgSearchTerm, setOrgSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -124,9 +102,11 @@ const AdminActivitySummary = () => {
     month: "All Months",
     year: "All Academic Years"
   });
-
   const [summaryActivities, setSummaryActivities] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // PDF generation state
+  const [generatingPDFs, setGeneratingPDFs] = useState(false);
   useEffect(() => {
     const loadSummary = async () => {
       try {
@@ -214,9 +194,10 @@ const AdminActivitySummary = () => {
   
     return true;
   });
-  
-  // 2. Calculate counts from this filtered list
-  const approvedCount = filteredByOtherFilters.filter(a => a.final_status === "Approved").length;
+    // 2. Calculate counts from this filtered list
+  const approvedCount = filteredByOtherFilters.filter(a => 
+    a.final_status === "Approved" && !a.pdf_generated
+  ).length;
   const pendingCount = filteredByOtherFilters.filter(a =>
     a.final_status === null || a.final_status === "For Appeal"
   ).length;
@@ -238,7 +219,6 @@ const AdminActivitySummary = () => {
     });
     setIsFilterModalOpen(false);
   };
-
   const handleRemoveFilter = (filterType) => {
     setAppliedFilters(prev => {
       const newFilters = { ...prev };
@@ -255,17 +235,93 @@ const AdminActivitySummary = () => {
       return newFilters;
     });
   };
+  // PDF generation handler
+  const handleGenerateApprovalSlips = async () => {
+    try {
+      setGeneratingPDFs(true);
+      
+      const result = await generateApprovalSlips();
+
+      toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
+      
+      // Refresh the summary to update the UI
+      const activities = await fetchSummaryActivities({
+        activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
+        organization: appliedFilters.organization,
+        month: appliedFilters.month,
+        year: appliedFilters.year
+      });
+      setSummaryActivities(activities);
+
+    } catch (error) {
+      console.error('Error generating approval slips:', error);
+      toast.error(`Failed to generate approval slips: ${error.message}`);
+    } finally {
+      setGeneratingPDFs(false);
+    }
+  };  // Google Drive handler
+  const handleViewPDFsInDrive = async () => {
+    try {
+      // Get the folder URL from backend
+      const response = await fetch("/api/approval-slips-folder-url", {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get folder URL');
+      }
+      
+      const { folderUrl } = await response.json();
+      
+      window.open(folderUrl, '_blank');
+      toast.success('Opening Google Drive folder in new tab...');
+    } catch (error) {
+      console.error('Error opening Google Drive:', error);
+      toast.error('Failed to open Google Drive folder. Please contact the administrator.');
+    }
+  };
 
   const startIdx = (currentPage - 1) * rowsPerPage;
   const paginatedActivities = filteredActivities.slice(startIdx, startIdx + rowsPerPage);
   const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
-
   return (
     <div
       className="max-w-[1550px] mx-auto sm:p-4 md:p-6"
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Activity Requests</h1>
+      <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] text-center sm:text-left">Summary of Activity Requests</h1>
+        <div className="flex flex-col sm:flex-row gap-2">          <Button 
+            onClick={handleViewPDFsInDrive}
+            variant="outline"
+            className="border-[#014421] text-[#014421] hover:bg-[#014421] hover:text-white flex items-center gap-2"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z"/>
+            </svg>
+            View PDFs in Drive
+          </Button>
+          <Button 
+            onClick={handleGenerateApprovalSlips}
+            disabled={generatingPDFs || approvedCount === 0}
+            className="bg-[#014421] hover:bg-[#013319] text-white flex items-center gap-2"
+          >
+            {generatingPDFs ? (
+              <>
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Generating PDFs...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4" />
+                Generate Approval Slips ({approvedCount})
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
       
       {/* Filter Section using Tabs */}
       <Card className="mb-6">
@@ -638,8 +694,7 @@ const AdminActivitySummary = () => {
           </div>
         ) : (
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
+          <Table>            <TableHeader>
               <TableRow className="border-b-0">
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
@@ -650,12 +705,12 @@ const AdminActivitySummary = () => {
                 <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
                 <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
                 <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
+                <TableHead className="min-w-[100px] w-[120px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">PDF Status</TableHead>
               </TableRow>
-            </TableHeader>
-            <TableBody>
+            </TableHeader>            <TableBody>
               {paginatedActivities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-sm text-gray-500">
+                  <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
                     No activities found.
                   </TableCell>
                 </TableRow>
@@ -735,8 +790,25 @@ const AdminActivitySummary = () => {
                     <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
                     <TableCell className="py-5 text-sm text-center">
                       {activity.organization?.adviser_name || "N/A"}
+                    </TableCell>                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                    <TableCell className="py-5">
+                      <div className="flex items-center justify-center">
+                        {activity.final_status === "Approved" && (
+                          <Badge
+                            className={
+                              activity.pdf_generated
+                                ? "bg-green-600 text-white"
+                                : "bg-amber-600 text-white"
+                            }
+                          >
+                            {activity.pdf_generated ? "PDF Generated" : "Needs PDF"}
+                          </Badge>
+                        )}
+                        {activity.final_status !== "Approved" && (
+                          <span className="text-gray-400 text-sm">N/A</span>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
                   </TableRow>
                 ))
             )}
