@@ -67,12 +67,9 @@ app.use('/api/org-applications', adminOrgApplicationsRoutes);
 // Email Services
 app.use('/api', emailServicesRoutes);
 
-// Test Route
-app.use('/test', testRoute);
-
 // Activity Approval Slip Generation
 app.use('/api', activityApprovalSlipRoutes);
-console.log('🎯 Activity Approval Slip routes mounted at /api');
+console.log('Activity Approval Slip routes mounted at /api');
 
 app.get('/', (req, res) => {
   res.send('Supabase backend is working!');
