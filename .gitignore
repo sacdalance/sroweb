@@ -28,3 +28,4 @@ dist-ssr
 
 #GDrive Credentials
 gdrive-creds.json
+.github/copilot-instructions.md
