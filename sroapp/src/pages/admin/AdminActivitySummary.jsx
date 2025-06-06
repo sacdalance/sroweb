@@ -194,8 +194,11 @@ const AdminActivitySummary = () => {
   
     return true;
   });
-    // 2. Calculate counts from this filtered list
+  // 2. Calculate counts from this filtered list
   const approvedCount = filteredByOtherFilters.filter(a => 
+    a.final_status === "Approved"
+  ).length;
+  const approvedNoSlipCount = filteredByOtherFilters.filter(a => 
     a.final_status === "Approved" && !a.pdf_generated
   ).length;
   const pendingCount = filteredByOtherFilters.filter(a =>
@@ -205,8 +208,10 @@ const AdminActivitySummary = () => {
   // 3. Now filter by the status tab for display
   const filteredActivities = filteredByOtherFilters.filter((activity) => {
     const isApproved = activity.final_status === "Approved";
+    const isApprovedNoSlip = activity.final_status === "Approved" && !activity.pdf_generated;
     const isPending = activity.final_status === "For Appeal" || activity.final_status === null;
     if (filter === "approved" && !isApproved) return false;
+    if (filter === "approved-no-slip" && !isApprovedNoSlip) return false;
     if (filter === "pending" && !isPending) return false;
     return true;
   });
@@ -302,10 +307,9 @@ const AdminActivitySummary = () => {
               <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z"/>
             </svg>
             View PDFs in Drive
-          </Button>
-          <Button 
+          </Button>          <Button 
             onClick={handleGenerateApprovalSlips}
-            disabled={generatingPDFs || approvedCount === 0}
+            disabled={generatingPDFs || approvedNoSlipCount === 0}
             className="bg-[#014421] hover:bg-[#013319] text-white flex items-center gap-2"
           >
             {generatingPDFs ? (
@@ -316,7 +320,7 @@ const AdminActivitySummary = () => {
             ) : (
               <>
                 <FileText className="h-4 w-4" />
-                Generate Approval Slips ({approvedCount})
+                Generate Approval Slips ({approvedNoSlipCount})
               </>
             )}
           </Button>
@@ -637,9 +641,7 @@ const AdminActivitySummary = () => {
                 </Dialog>
               </div>
             </div>
-          </div>
-
-          <div className="flex justify-center px-0 sm:px-8">
+          </div>          <div className="flex justify-center px-0 sm:px-8">
           <Tabs
           value={filter}
           onValueChange={(val) => {
@@ -652,13 +654,13 @@ const AdminActivitySummary = () => {
               setTabCooldown(false);
             }, 800); // cooldown in ms
           }}
-          className="w-full max-w-[400px]"
+          className="w-full max-w-[600px]"
         >
-          <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
+          <TabsList className="grid w-full grid-cols-4 h-8 p-0 bg-gray-100 rounded-4xl">
             <TabsTrigger
               value="all"
               disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
+              className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
                 loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
               } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
             >
@@ -667,16 +669,24 @@ const AdminActivitySummary = () => {
             <TabsTrigger
               value="approved"
               disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity ${
+              className={`text-xs h-8 flex items-center justify-center transition-opacity ${
                 loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
               } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
             >
               Approved ({approvedCount})
             </TabsTrigger>
             <TabsTrigger
-              value="pending"
+              value="approved-no-slip"
               disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
+              className={`text-xs h-8 flex items-center justify-center transition-opacity ${
+                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+            >
+              No Slip ({approvedNoSlipCount})
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              disabled={loading || tabCooldown}              className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
                 loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
               } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
             >
