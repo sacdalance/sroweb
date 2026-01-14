@@ -22,7 +22,7 @@ import adminOrgApplicationsRoutes from "./routes/adminOrgApplicationsRoutes.js";
 
 import emailServicesRoutes from './routes/emailServicesRoutes.js';
 import activityApprovalSlipRoutes from './routes/activityApprovalSlipRoutes_new.js';
-import testRoute from './routes/testRoute.js';
+
 
 console.log('📋 Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
 
@@ -33,7 +33,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());  
+app.use(cors());
 app.use(express.json());
 
 // Public routes
@@ -76,5 +76,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`erver running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
