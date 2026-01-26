@@ -60,11 +60,11 @@ const ActivityForm = ({
   const buttonClasses = (type = "primary") =>
     type === "primary"
       ? mode === "admin"
-        ? "bg-[#7B1113] text-white hover:bg-[#5e0d0f]"
-        : "bg-[#014421] text-white hover:bg-[#003218]"
+        ? "bg-sro-primary text-white hover:bg-sro-primary/90"
+        : "bg-sro-secondary text-white hover:bg-sro-secondary/90"
       : mode === "admin"
-        ? "text-[#7B1113] hover:text-[#7B1113] hover:bg-[#7B1113]/10"
-        : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10";
+        ? "text-sro-primary hover:text-sro-primary hover:bg-sro-primary/10"
+        : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10";
   const sectionOrder = ["general-info", "date-info", "specifications", "submission"];
   const [formData, setFormData] = useState({
     selectedValue: defaultValues?.selectedValue || "",
@@ -620,7 +620,7 @@ const ActivityForm = ({
               value={currentSection === "general-info" ? 25 :
                 currentSection === "date-info" ? 50 :
                   currentSection === "specifications" ? 75 : 100}
-              className="h-2 bg-[#014421]/20 [&>div]:bg-[#014421]"
+              className="h-2 bg-sro-secondary/20 [&>div]:bg-sro-secondary"
             />
           </div>
 
@@ -694,7 +694,7 @@ const ActivityForm = ({
                     </PopoverContent>
                   </Popover>
                   {fieldErrors.orgSelect && (
-                    <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                       Organization is required.
                     </p>
                   )}
@@ -714,7 +714,7 @@ const ActivityForm = ({
                       }}
                       className={cn(
                         "peer",
-                        fieldErrors.studentPosition && "border-[#7B1113] bg-red-50"
+                        fieldErrors.studentPosition && "border-sro-primary bg-red-50"
                       )}
                       placeholder="(Chairperson, Secretary, etc.)"
                       value={formData.studentPosition}
@@ -727,7 +727,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.studentPosition && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Student Position must be between 3 to 50 characters.
                       </p>
                     )}
@@ -746,10 +746,10 @@ const ActivityForm = ({
                         setFormData((prev) => ({ ...prev, studentContact: value }));
                         if (/^\d+$/.test(value)) setFieldError("studentContact", false);
                       }}
-                      className={fieldErrors.studentContact ? "border-[#7B1113] bg-red-50" : ""}
+                      className={fieldErrors.studentContact ? "border-sro-primary bg-red-50" : ""}
                     />
                     {fieldErrors.studentContact && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Must be a valid 11-digit number (09XXXXXXXXX).
                       </p>
                     )}
@@ -761,7 +761,7 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                     <Input
-                      id="activityName" onBlur={() => setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100)} className={fieldErrors.activityName ? "border-[#7B1113] bg-red-50" : ""}
+                      id="activityName" onBlur={() => setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100)} className={fieldErrors.activityName ? "border-sro-primary bg-red-50" : ""}
                       placeholder="(Mass Orientation, Welcome Party, etc.)"
                       value={formData.activityName}
                       onChange={(e) => {
@@ -772,7 +772,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.activityName && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Must be 3 to 100 characters.
                       </p>
                     )}
@@ -782,7 +782,7 @@ const ActivityForm = ({
                     <Textarea
                       id="activityDescription"
                       onBlur={() => setFieldError("activityDescription", formData.activityDescription.trim().length < 20)}
-                      className={`${fieldErrors.activityDescription ? "border-[#7B1113] bg-red-50" : ""} min-h-[100px]`}
+                      className={`${fieldErrors.activityDescription ? "border-sro-primary bg-red-50" : ""} min-h-[100px]`}
                       placeholder="Enter activity description"
                       value={formData.activityDescription}
                       onChange={(e) => {
@@ -792,7 +792,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.activityDescription && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Must be at least 20 characters.
                       </p>
                     )}

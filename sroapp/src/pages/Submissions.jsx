@@ -133,7 +133,7 @@ const Submissions = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-        <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+        <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
         <p>Loading activities...</p>
       </div>
     );
@@ -173,7 +173,7 @@ const Submissions = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Track Submissions</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Track Submissions</h1>
 
       <Dialog
         open={!!selectedActivity}
@@ -189,7 +189,7 @@ const Submissions = () => {
                     <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
                       {filterOrg}
                       <button onClick={() => setFilterOrg("All")}
-                        className="hover:text-[#7B1113] transition">
+                        className="hover:text-sro-primary transition">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -198,7 +198,7 @@ const Submissions = () => {
                     <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
                       {filterStatus}
                       <button onClick={() => setFilterStatus("All")}
-                        className="hover:text-[#7B1113] transition">
+                        className="hover:text-sro-primary transition">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -249,7 +249,7 @@ const Submissions = () => {
                     </div>
                   </div>
                   <div className="flex justify-end mt-4">
-                    <Button onClick={() => setFilterOpen(false)} className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white">
+                    <Button onClick={() => setFilterOpen(false)} className="bg-sro-primary hover:bg-sro-primary/90 text-white">
                       Apply Filters
                     </Button>
                   </div>
@@ -323,7 +323,7 @@ const Submissions = () => {
                                       setEditingActivity(act);
                                       setIsAppealOpen(true);
                                     }}
-                                    className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                    className="text-gray-600 hover:text-sro-secondary transition-transform transform hover:scale-125"
                                   >
                                     <Pencil className="h-5 w-5" />
                                   </button>
@@ -335,7 +335,7 @@ const Submissions = () => {
                                       setCancelActivity(act);
                                       setIsCancelOpen(true);
                                     }}
-                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                    className="text-gray-600 hover:text-sro-primary transition-transform transform hover:scale-125"
                                   >
                                     <X className="h-5 w-5 font-bold" />
                                   </button>
@@ -493,7 +493,7 @@ const Submissions = () => {
                 disabled={modalAppealReason.trim() === ""}
                 className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${modalAppealReason.trim() === ""
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#014421] hover:bg-[#012f18]"
+                  : "bg-sro-secondary hover:bg-sro-secondary/90"
                   }`}
               >
                 Edit Submission
@@ -527,7 +527,7 @@ const Submissions = () => {
                 disabled={cancelReason.trim() === ""}
                 className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${cancelReason.trim() === ""
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#7B1113] hover:bg-[#5e0d0e]"
+                  : "bg-sro-primary hover:bg-sro-primary/90"
                   }`}
               >
                 Cancel Submission
@@ -545,8 +545,8 @@ const Submissions = () => {
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 mb-4 animate-spin text-[#7B1113]" />
-                <span className="text-[#7B1113] font-semibold">Loading activity details...</span>
+                <Loader2 className="h-8 w-8 mb-4 animate-spin text-sro-primary" />
+                <span className="text-sro-primary font-semibold">Loading activity details...</span>
               </div>
             </DialogContent>
           ) : (

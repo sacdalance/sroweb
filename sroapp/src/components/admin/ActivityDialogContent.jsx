@@ -189,7 +189,7 @@ const ActivityDialogContent = ({
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
           <DialogTitle
-            className="text-2xl text-[#7B1113] font-bold break-words"
+            className="text-2xl text-sro-primary font-bold break-words"
             style={{
               whiteSpace: "normal",
               wordBreak: "break-word",
@@ -233,7 +233,7 @@ const ActivityDialogContent = ({
                 </p>
                 <button
                   onClick={toggleDescription}
-                  className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+                  className="text-sro-primary text-sm font-medium hover:underline mt-1"
                 >
                   Show more
                 </button>
@@ -269,7 +269,7 @@ const ActivityDialogContent = ({
           </div>
 
           <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
+            <h3 className="text-sro-primary font-semibold mb-1">Schedule</h3>
             <div className="pl-4">
               {activity.schedule?.[0]?.is_recurring === "true" ? (
                 <>
@@ -296,9 +296,9 @@ const ActivityDialogContent = ({
 
           {activity.university_partner === "true" && (
             <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
-                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
                 <p>{activity.partner_name || "None listed"}</p>
@@ -309,9 +309,9 @@ const ActivityDialogContent = ({
 
           {sdgs.length > 0 && (
             <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
                 <span>Sustainable Development Goals</span>
-                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
                 {formatSDGLabels(sdgs).join(", ")}
@@ -332,14 +332,14 @@ const ActivityDialogContent = ({
                     setHasViewedScannedForm(true);
                     setShowDecisionBox(true);
                   }}
-                  className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
+                  className="inline-block bg-sro-secondary text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-sro-secondary/90 transition"
                 >
                   View Scanned Form
                 </a>
                 {!readOnly && (
                   <button
                     onClick={() => setShowDecisionBox((prev) => !prev)}
-                    className="text-[#014421] hover:text-[#012f18] transition-transform transform hover:scale-110"
+                    className="text-sro-secondary hover:text-sro-secondary/90 transition-transform transform hover:scale-110"
                     title="Toggle comment and approval options"
                   >
                     <ChevronDown className={`w-5 h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
@@ -398,7 +398,7 @@ const ActivityDialogContent = ({
                     placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
                     disabled={isActionLocked}
                   />
                 </>
@@ -407,7 +407,7 @@ const ActivityDialogContent = ({
                 {isActionLocked ? (
                   <div className="w-full flex justify-end">
                     {localActivity.final_status === "Rejected" ? (
-                      <span className="px-4 py-1 rounded-full border border-[#7B1113] text-sm text-[#7B1113] font-medium italic">
+                      <span className="px-4 py-1 rounded-full border border-sro-primary text-sm text-sro-primary font-medium italic">
                         Activity Rejected
                       </span>
                     ) : (
@@ -428,7 +428,7 @@ const ActivityDialogContent = ({
                           setDecisionType("cancel");
                           setConfirmationOpen(true);
                         }}
-                        className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
                       >
                         Cancel Activity
                       </button>
@@ -440,7 +440,7 @@ const ActivityDialogContent = ({
                             setDecisionType("approve");
                             setConfirmationOpen(true);
                           }}
-                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-secondary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
                         >
                           Approve
                         </button>
@@ -450,7 +450,7 @@ const ActivityDialogContent = ({
                             setDecisionType("reject");
                             setConfirmationOpen(true);
                           }}
-                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
                         >
                           Reject
                         </button>
@@ -466,7 +466,7 @@ const ActivityDialogContent = ({
           <div className="space-y-2 mt-4">
             {activity.sro_remarks && (
               <div>
-                <h3 className="text-[#7B1113] font-semibold text-sm">SRO Remarks</h3>
+                <h3 className="text-sro-primary font-semibold text-sm">SRO Remarks</h3>
                 <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
                   {activity.sro_remarks.trim()}
                 </p>
@@ -487,7 +487,7 @@ const ActivityDialogContent = ({
       <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
         <DialogContent className="max-w-md rounded-lg shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-[#7B1113] font-bold text-lg">
+            <DialogTitle className="text-sro-primary font-bold text-lg">
               {decisionType === "cancel" ? "Cancel Activity" : "Confirmation"}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-700 mt-1">
@@ -495,7 +495,7 @@ const ActivityDialogContent = ({
                 "You are cancelling the activity:"
               ) : (
                 <>
-                  You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"}`}>
+                  You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-sro-secondary" : "text-sro-primary"}`}>
                     {decisionType === "approve" ? "APPROVING" : "REJECTING"}
                   </strong> the request for activity:
                 </>
@@ -555,7 +555,7 @@ const ActivityDialogContent = ({
                   setConfirmationOpen(false);
                 }
               }}
-              className={`${decisionType === "approve" ? "bg-[#014421] hover:bg-[#013a1c]" : "bg-[#7B1113] hover:bg-[#5a0d0f]"} text-white font-semibold cursor-pointer hover:scale-105 transform transition-transform duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${decisionType === "approve" ? "bg-sro-secondary hover:bg-sro-secondary/90" : "bg-sro-primary hover:bg-sro-primary/90"} text-white font-semibold cursor-pointer hover:scale-105 transform transition-transform duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {submitting ? (
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -15,19 +15,19 @@ const AdminOrganizations = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [organizations, setOrganizations] = useState([]);
-useEffect(() => {
-  const fetchOrganizations = async () => {
-    try {
-      const res = await fetch('/api/organization/list');
-      const data = await res.json();
-      setOrganizations(data);
-    } catch (err) {
-      console.error("Failed to fetch organizations:", err);
-    }
-  };
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const res = await fetch('/api/organization/list');
+        const data = await res.json();
+        setOrganizations(data);
+      } catch (err) {
+        console.error("Failed to fetch organizations:", err);
+      }
+    };
 
-  fetchOrganizations();
-}, []);
+    fetchOrganizations();
+  }, []);
 
   const CERTIFICATE_TEMPLATE = `
   <!DOCTYPE html>
@@ -144,16 +144,16 @@ useEffect(() => {
   `
 
   const handleGenerateCertificate = (orgName, acadYear) => {
-  const certHtml = CERTIFICATE_TEMPLATE
-    .replace('[Name of Organization]', orgName)
-    .replace('[YYYY–YYYY]', acadYear || '____________');
+    const certHtml = CERTIFICATE_TEMPLATE
+      .replace('[Name of Organization]', orgName)
+      .replace('[YYYY–YYYY]', acadYear || '____________');
 
-  const certWindow = window.open('', '_blank');
-  certWindow.document.open();
-  certWindow.document.write(certHtml);
-  certWindow.document.close();
+    const certWindow = window.open('', '_blank');
+    certWindow.document.open();
+    certWindow.document.write(certHtml);
+    certWindow.document.close();
 
-  certWindow.onload = () => certWindow.print();
+    certWindow.onload = () => certWindow.print();
   };
 
 
@@ -210,7 +210,7 @@ useEffect(() => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-full md:w-80">
             <SelectValue placeholder="Select category" />
@@ -264,13 +264,13 @@ useEffect(() => {
                   >
                     Generate Certificate
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleViewSummary(org.org_id)}
                     className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
                   >
                     Summary of Events
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleViewAnnualReport(org.org_id)}
                     className="px-3 py-1 h-8 bg-[#014421] hover:bg-[#013319] text-white text-xs"
                   >

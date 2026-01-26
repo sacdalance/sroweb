@@ -34,20 +34,20 @@ const CustomCalendar = ({
     let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
 
     if (selectedDate && isSameDay(day, selectedDate)) {
-      classes += "bg-[#014421] text-white font-bold ";
+      classes += "bg-sro-secondary text-white font-bold ";
     }
     else if (isToday(day)) {
-      classes += "border-2 border-[#014421] text-[#014421] font-bold ";
+      classes += "border-2 border-sro-secondary text-sro-secondary font-bold ";
     }
     else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
         classes += "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 ";
       } else {
-        classes += "bg-[#014421]/20 text-[#014421] font-bold hover:bg-[#014421]/30 ";
+        classes += "bg-sro-secondary/20 text-sro-secondary font-bold hover:bg-sro-secondary/30 ";
       }
     }
     else if (blockedDates.some(date => isSameDay(day, date))) {
-      classes += "text-[#7B1113] font-bold ";
+      classes += "text-sro-primary font-bold ";
     }
     else {
       classes += "text-gray-400 ";
@@ -67,7 +67,7 @@ const CustomCalendar = ({
     }
 
     if (isToday(day)) {
-      classes += "border-2 border-[#014421] ";
+      classes += "border-2 border-sro-secondary ";
     }
 
     return {
@@ -86,7 +86,7 @@ const CustomCalendar = ({
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
+                className="p-2 border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent"
               >
                 {monthOptions.map((month) => (
                   <option key={month} value={month}>
@@ -97,7 +97,7 @@ const CustomCalendar = ({
               <select
                 value={selectedYear}
                 onChange={(e) => onYearChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-[#014421] focus:outline-none focus:ring-2 focus:ring-[#014421] focus:border-transparent"
+                className="p-2 border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
@@ -106,7 +106,7 @@ const CustomCalendar = ({
                 ))}
               </select>
             </div>
-          ) : (<h2 className="text-2xl font-bold text-[#7B1113]">
+          ) : (<h2 className="text-2xl font-bold text-sro-primary">
             {format(currentMonth, 'MMMM').toUpperCase()} {format(currentMonth, 'yyyy')}
           </h2>
           )}
@@ -115,13 +115,13 @@ const CustomCalendar = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
+            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
+            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -130,7 +130,7 @@ const CustomCalendar = ({
 
       <div className="grid grid-cols-7 mb-2">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-          <div key={day} className="text-sm font-medium text-[#014421] py-2">
+          <div key={day} className="text-sm font-medium text-sro-secondary py-2">
             {day}
           </div>
         ))}
@@ -158,12 +158,12 @@ const CustomCalendar = ({
               className={getActivityDayClass(day).containerClass}
             >
               <div className="flex justify-between items-start">
-                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${isToday(day) ? "bg-[#014421] text-white" : ""
+                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${isToday(day) ? "bg-sro-secondary text-white" : ""
                   }`}>
                   {format(day, 'd')}
                 </span>
                 {getActivityDayClass(day).hasEvents && (
-                  <Badge className="bg-[#7B1113] hover:bg-[#7B1113]/90 text-white border-0">
+                  <Badge className="bg-sro-primary hover:bg-sro-primary/90 text-white border-0">
                     {getActivityDayClass(day).events.length}
                   </Badge>
                 )}

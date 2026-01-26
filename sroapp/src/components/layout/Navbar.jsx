@@ -38,12 +38,12 @@ const Navbar = ({ onMenuClick }) => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full bg-[#7B1113] text-white z-50 shadow-md">
+    <div className="fixed top-0 left-0 w-full bg-sro-primary text-white z-50 shadow-md">
       <div className="flex justify-between items-center px-6 py-3">
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="max-xl:block hidden p-2 hover:bg-[#8B2123] rounded-md transition-colors"
+            className="max-xl:block hidden p-2 hover:bg-sro-primary/90 rounded-md transition-colors"
             aria-label="Toggle menu"
           >
             <Menu className="h-6 w-6" />

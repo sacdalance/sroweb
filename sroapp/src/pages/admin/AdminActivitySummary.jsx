@@ -64,19 +64,19 @@ const formatActivityTypeLabel = (id) => {
 };
 
 const activityTypes = [
-  { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-[#7B1113]' },
-  { id: 'A', dbValue: 'charitable', label: 'Charitable', color: 'bg-[#7B1113]' },
-  { id: 'B', dbValue: 'serviceWithinUPB', label: 'Service (within UPB)', color: 'bg-[#7B1113]' },
-  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'Service (outside UPB)', color: 'bg-[#7B1113]' },
-  { id: 'D', dbValue: 'contestWithinUPB', label: 'Contest (within UPB)', color: 'bg-[#7B1113]' },
-  { id: 'E', dbValue: 'contestOutsideUPB', label: 'Contest (outside UPB)', color: 'bg-[#7B1113]' },
-  { id: 'F', dbValue: 'educational', label: 'Educational', color: 'bg-[#7B1113]' },
-  { id: 'G', dbValue: 'incomeGenerating', label: 'Income Generating Project', color: 'bg-[#7B1113]' },
-  { id: 'H', dbValue: 'massOrientation', label: 'Mass Orientation/GA', color: 'bg-[#7B1113]' },
-  { id: 'I', dbValue: 'booth', label: 'Booth', color: 'bg-[#7B1113]' },
-  { id: 'J', dbValue: 'rehearsals', label: 'Rehearsals/Preparation', color: 'bg-[#7B1113]' },
-  { id: 'K', dbValue: 'specialEvents', label: 'Special Events', color: 'bg-[#7B1113]' },
-  { id: 'L', dbValue: 'others', label: 'Others', color: 'bg-[#7B1113]' }
+  { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-sro-primary' },
+  { id: 'A', dbValue: 'charitable', label: 'Charitable', color: 'bg-sro-primary' },
+  { id: 'B', dbValue: 'serviceWithinUPB', label: 'Service (within UPB)', color: 'bg-sro-primary' },
+  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'Service (outside UPB)', color: 'bg-sro-primary' },
+  { id: 'D', dbValue: 'contestWithinUPB', label: 'Contest (within UPB)', color: 'bg-sro-primary' },
+  { id: 'E', dbValue: 'contestOutsideUPB', label: 'Contest (outside UPB)', color: 'bg-sro-primary' },
+  { id: 'F', dbValue: 'educational', label: 'Educational', color: 'bg-sro-primary' },
+  { id: 'G', dbValue: 'incomeGenerating', label: 'Income Generating Project', color: 'bg-sro-primary' },
+  { id: 'H', dbValue: 'massOrientation', label: 'Mass Orientation/GA', color: 'bg-sro-primary' },
+  { id: 'I', dbValue: 'booth', label: 'Booth', color: 'bg-sro-primary' },
+  { id: 'J', dbValue: 'rehearsals', label: 'Rehearsals/Preparation', color: 'bg-sro-primary' },
+  { id: 'K', dbValue: 'specialEvents', label: 'Special Events', color: 'bg-sro-primary' },
+  { id: 'L', dbValue: 'others', label: 'Others', color: 'bg-sro-primary' }
 ];
 
 const months = [
@@ -297,11 +297,11 @@ const AdminActivitySummary = () => {
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
       <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] text-center sm:text-left">Summary of Activity Requests</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary text-center sm:text-left">Summary of Activity Requests</h1>
         <div className="flex flex-col sm:flex-row gap-2">          <Button
           onClick={handleViewPDFsInDrive}
           variant="outline"
-          className="border-[#014421] text-[#014421] hover:bg-[#014421] hover:text-white flex items-center gap-2"
+          className="border-sro-secondary text-sro-secondary hover:bg-sro-secondary hover:text-white flex items-center gap-2"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
@@ -310,7 +310,7 @@ const AdminActivitySummary = () => {
         </Button>          <Button
           onClick={handleGenerateApprovalSlips}
           disabled={generatingPDFs || approvedNoSlipCount === 0}
-          className="bg-[#014421] hover:bg-[#013319] text-white flex items-center gap-2"
+          className="bg-sro-secondary hover:bg-sro-secondary/90 text-white flex items-center gap-2"
         >
             {generatingPDFs ? (
               <>
@@ -450,7 +450,7 @@ const AdminActivitySummary = () => {
                       </Button>
                       <Button
                         onClick={handleApplyFilters}
-                        className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                        className="bg-sro-primary hover:bg-sro-primary/90 text-white"
                       >
                         Apply Filters
                       </Button>
@@ -631,7 +631,7 @@ const AdminActivitySummary = () => {
                       </Button>
                       <Button
                         onClick={handleApplyFilters}
-                        className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                        className="bg-sro-primary hover:bg-sro-primary/90 text-white"
                       >
                         Apply Filters
                       </Button>
@@ -660,7 +660,7 @@ const AdminActivitySummary = () => {
                   value="all"
                   disabled={loading || tabCooldown}
                   className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
                 >
                   Show All
                 </TabsTrigger>
@@ -668,7 +668,7 @@ const AdminActivitySummary = () => {
                   value="approved"
                   disabled={loading || tabCooldown}
                   className={`text-xs h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
                 >
                   Approved ({approvedCount})
                 </TabsTrigger>
@@ -676,14 +676,14 @@ const AdminActivitySummary = () => {
                   value="approved-no-slip"
                   disabled={loading || tabCooldown}
                   className={`text-xs h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
                 >
                   No Slip ({approvedNoSlipCount})
                 </TabsTrigger>
                 <TabsTrigger
                   value="pending"
                   disabled={loading || tabCooldown} className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
                 >
                   Pending ({pendingCount})
                 </TabsTrigger>
@@ -694,7 +694,7 @@ const AdminActivitySummary = () => {
         {/* Table Section */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
-            <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-6 w-6 mb-3 border-2 border-sro-primary border-t-transparent rounded-full animate-spin"></div>
             Loading submissions...
           </div>
         ) : (
@@ -767,7 +767,7 @@ const AdminActivitySummary = () => {
                               key={typeId}
                               variant="secondary"
                               className={`${typeId === selectedType
-                                ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]'
+                                ? 'bg-sro-primary text-white hover:bg-sro-primary'
                                 : ''
                                 } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
                             >

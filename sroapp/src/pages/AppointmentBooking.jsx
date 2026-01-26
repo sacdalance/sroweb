@@ -490,13 +490,13 @@ const AppointmentBooking = () => {
   return (
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-[#7B1113]">
+        <h1 className="text-3xl font-bold text-sro-primary">
           {showExistingAppointments ? "My Appointments" : "Appointment Booking"}
         </h1>
         {user && (
           <Button
             onClick={() => setShowExistingAppointments(!showExistingAppointments)}
-            className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+            className="bg-sro-primary hover:bg-sro-primary/90 text-white"
           >
             {showExistingAppointments ? "← Back" : "My Appointments"}
           </Button>
@@ -507,7 +507,7 @@ const AppointmentBooking = () => {
         <div>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Spinner className="h-8 w-8 text-[#7B1113]" />
+              <Spinner className="h-8 w-8 text-sro-primary" />
               <span className="ml-2">Loading your appointments...</span>
             </div>
           ) : existingAppointments.length === 0 ? (
@@ -528,7 +528,7 @@ const AppointmentBooking = () => {
                   <CardContent className="py-2 px-4">
                     <div className="flex justify-between items-center gap-4">
                       <div className="py-0.5">
-                        <h3 className="font-medium text-[#7B1113] capitalize">
+                        <h3 className="font-medium text-sro-primary capitalize">
                           {appointment.reason || "Not Specified"}
                         </h3>
                         <div className="text-sm text-gray-600">
@@ -550,10 +550,10 @@ const AppointmentBooking = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
-                            appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
-                              appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                                appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                                  "bg-gray-100 text-gray-700"
+                          appointment.status === "confirmed" ? "bg-sro-secondary/20 text-sro-secondary" :
+                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                              appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
+                                "bg-gray-100 text-gray-700"
                           }`}>
                           {appointment.status}
                         </span>
@@ -566,8 +566,8 @@ const AppointmentBooking = () => {
                           disabled={appointment.status !== 'scheduled'}
                           size="sm"
                           className={`text-xs ${appointment.status === 'scheduled'
-                              ? 'bg-[#7b1113] hover:bg-[#5e0d0e] text-white'
-                              : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
+                            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
                             }`}
                         >
                           Reschedule
@@ -579,7 +579,7 @@ const AppointmentBooking = () => {
               ))}
               <Button
                 onClick={() => setShowExistingAppointments(false)}
-                className="w-full bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+                className="w-full bg-sro-primary hover:bg-sro-primary/90 text-white"
               >
                 Book Another Appointment
               </Button>
@@ -589,14 +589,14 @@ const AppointmentBooking = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            <div className="bg-[#014421]/10 border border-[#014421]/20 text-[#014421] rounded-md p-4 mb-6">
+            <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
               <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-[#014421]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="font-medium mb-1 text-[#014421]">Important Information</p>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-[#014421]/90">
+                  <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
                     <li>Appointments must be booked at least one day in advance.</li>
                     <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
                     <li>Available times are shown after selecting a date.</li>
@@ -615,7 +615,7 @@ const AppointmentBooking = () => {
                   name="reason"
                   value={formData.reason}
                   onChange={(e) => handleFieldChange("reason", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  className={`w-full p-2 border rounded-md ${errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                     }`}
                   required
                 >
@@ -637,7 +637,7 @@ const AppointmentBooking = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={(e) => handleFieldChange("subject", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                     }`}
                   placeholder="Specify the reason for visit..."
                   required
@@ -653,7 +653,7 @@ const AppointmentBooking = () => {
                   name="mode"
                   value={formData.mode}
                   onChange={(e) => handleFieldChange("mode", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  className={`w-full p-2 border rounded-md ${errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                     }`}
                   required
                 >
@@ -673,7 +673,7 @@ const AppointmentBooking = () => {
                   name="email"
                   value={formData.email}
                   onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                  className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                     }`}
                   placeholder="delpilarmh@up.edu.ph"
                   required
@@ -696,7 +696,7 @@ const AppointmentBooking = () => {
                         handleFieldChange("contact", value);
                       }
                     }}
-                    className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                       }`}
                     placeholder="(09XXXXXXXXX)"
                     maxLength="11"
@@ -738,19 +738,19 @@ const AppointmentBooking = () => {
 
                 <div className="mt-4 flex flex-wrap gap-4 text-xs">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-[#014421] rounded-full mr-1"></div>
+                    <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
                     <span>Selected</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 border-2 border-[#014421] rounded-full mr-1"></div>
+                    <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
                     <span>Today</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-[#014421]/20 mr-1 flex items-center justify-center font-bold text-[#014421]">A</div>
+                    <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
                     <span>Available</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 text-[#7B1113] mr-1 flex items-center justify-center font-bold">B</div>
+                    <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
                     <span>Blocked</span>
                   </div>
                   <div className="flex items-center">
@@ -779,12 +779,12 @@ const AppointmentBooking = () => {
                         key={slot.time}
                         onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
                         className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
-                            ? 'bg-[#014421] text-white'
-                            : slot.booked
-                              ? 'bg-[#7B1113] text-white cursor-not-allowed'
-                              : slot.blocked
-                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          ? 'bg-sro-secondary text-white'
+                          : slot.booked
+                            ? 'bg-sro-primary text-white cursor-not-allowed'
+                            : slot.blocked
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                           }`}
                         disabled={!slot.available}
                       >
@@ -804,8 +804,8 @@ const AppointmentBooking = () => {
             <Button
               type="submit"
               className={`w-full text-white ${isFormValid()
-                  ? 'bg-[#7B1113] hover:bg-[#5e0d0e]'
-                  : 'bg-gray-400 cursor-not-allowed'
+                ? 'bg-sro-primary hover:bg-sro-primary/90'
+                : 'bg-gray-400 cursor-not-allowed'
                 }`}
               disabled={submitting || !isFormValid()}
               onClick={handleSubmit}
@@ -858,10 +858,10 @@ const AppointmentBooking = () => {
                       type="button"
                       onClick={() => setRescheduleData(prev => ({ ...prev, time: slot.time }))}
                       className={`py-2 px-3 text-sm font-medium rounded ${rescheduleData.time === slot.time
-                          ? 'bg-[#014421] text-white'
-                          : slot.available
-                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'bg-sro-secondary text-white'
+                        : slot.available
+                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                       disabled={!slot.available}
                     >
@@ -886,7 +886,7 @@ const AppointmentBooking = () => {
           <DialogFooter>
             <Button
               onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
-              className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              className="bg-sro-primary hover:bg-sro-primary/90 text-white"
               disabled={!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()}
             >
               Request Reschedule

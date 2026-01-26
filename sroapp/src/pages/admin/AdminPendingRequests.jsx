@@ -236,7 +236,7 @@ const AdminPendingRequests = () => {
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Pending Activity Requests</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
         <TabsList
@@ -256,7 +256,7 @@ const AdminPendingRequests = () => {
           {userRole === 3 ? (
             <TabsTrigger
               value="submissions"
-              className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-4xl text-xs sm:text-base p-1 w-full"
+              className="data-[state=active]:bg-sro-primary data-[state=active]:text-white rounded-4xl text-xs sm:text-base p-1 w-full"
               style={{ gridColumn: "1 / span 2" }}
             >
               Incoming Submissions ({incomingRequests.length})
@@ -265,14 +265,14 @@ const AdminPendingRequests = () => {
             <>
               <TabsTrigger
                 value="submissions"
-                className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
+                className="data-[state=active]:bg-sro-primary data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
               >
                 Incoming Submissions ({incomingRequests.length})
               </TabsTrigger>
               {(userRole === 2 || userRole === 4) && (
                 <TabsTrigger
                   value="appeals"
-                  className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
+                  className="data-[state=active]:bg-sro-primary data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
                 >
                   Appeals and Cancellations ({pendingAppeals.length})
                 </TabsTrigger>
@@ -361,7 +361,7 @@ const AdminPendingRequests = () => {
               <div className="overflow-x-auto">
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
-                    <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="h-6 w-6 mb-3 border-2 border-sro-primary border-t-transparent rounded-full animate-spin"></div>
                     Loading incoming submissions...
                   </div>
                 ) : (

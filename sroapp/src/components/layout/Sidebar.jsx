@@ -59,10 +59,9 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
 
   const linkClass = (path) =>
     `block px-4 py-2 -mr-6 rounded-l-md transition-all duration-200 ease-in-out transform 
-    ${
-      location.pathname === path
-        ? "text-[#7B1113] text-[17px] font-bold bg-white shadow-sm"
-        : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
+    ${location.pathname === path
+      ? "text-sro-primary text-[17px] font-bold bg-white shadow-sm"
+      : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
     }`;
 
   // Responsive: Reset sidebar state on large screens
@@ -121,11 +120,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                   3: "ODSA Staff",
                   4: "Super Admin",
                 }[role] || (
-                  <span className="inline-flex items-center gap-2 text-gray-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Assigning...
-                  </span>
-                )}
+                    <span className="inline-flex items-center gap-2 text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Assigning...
+                    </span>
+                  )}
               </p>
               <p className="text-sm text-center break-all">{user?.email}</p>
             </div>
@@ -231,24 +230,24 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
 
                     {(isSRO || isSuperAdmin) && (
                       <>
-                      <li>
-                        <Link
-                          to="/admin/appointment-settings"
-                          className={linkClass("/admin/appointment-settings")}
-                          onClick={() => isSmallScreen && setIsOpen(false)}
-                        >
-                          Appointments
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          to="/admin/create-activity"
-                          className={linkClass("/admin/create-activity")}
-                          onClick={() => isSmallScreen && setIsOpen(false)}
-                        >
-                          Add an Activity
-                        </Link>
-                      </li>
+                        <li>
+                          <Link
+                            to="/admin/appointment-settings"
+                            className={linkClass("/admin/appointment-settings")}
+                            onClick={() => isSmallScreen && setIsOpen(false)}
+                          >
+                            Appointments
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/admin/create-activity"
+                            className={linkClass("/admin/create-activity")}
+                            onClick={() => isSmallScreen && setIsOpen(false)}
+                          >
+                            Add an Activity
+                          </Link>
+                        </li>
                       </>
                     )}
 
@@ -316,7 +315,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
             <div className="mt-auto px-6 pb-6 border-gray-200">
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#7B1113] hover:bg-[#7B1113] hover:text-white rounded-md transition-colors duration-200"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sro-primary hover:bg-sro-primary hover:text-white rounded-md transition-colors duration-200"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Sign Out</span>
@@ -324,7 +323,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
             </div>
           </div>
         </ScrollArea>
-        
+
       </aside>
     </>
   );

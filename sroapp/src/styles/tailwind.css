@@ -38,6 +38,9 @@
   --destructive-foreground: hsl(0 0% 98%);
   --annual: oklch(0.92 0.14 80);
   --annual-foreground: oklch(0.15 0 0);
+  --sro-primary: #7B1113;
+  --sro-secondary: #014421;
+  --sro-accent: #F3AA2C;
 }
 
 .dark {
@@ -116,13 +119,18 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-annual: var(--annual);
   --color-annual-foreground: var(--annual-foreground);
+  --color-sro-primary: var(--sro-primary);
+  --color-sro-secondary: var(--sro-secondary);
+  --color-sro-accent: var(--sro-accent);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    min-width: 320px;
   }
 }

@@ -389,8 +389,8 @@ const AnnualReport = () => {
                 dragDropDisabled
                   ? "border-gray-300 bg-gray-50 cursor-not-allowed"
                   : isDragActive
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+                    ? "border-green-600 bg-green-50"
+                    : "border-gray-300 hover:border-gray-400 hover:bg-muted"
               )}
               style={{ pointerEvents: dragDropDisabled ? "none" : "auto" }}
             >
@@ -403,8 +403,8 @@ const AnnualReport = () => {
                   {dragDropDisabled
                     ? "You cannot upload or drag files after completion."
                     : isDragActive
-                    ? "Drop the file here"
-                    : "Drag and Drop or Upload PDF File (exactly 2 required)"
+                      ? "Drop the file here"
+                      : "Drag and Drop or Upload PDF File (exactly 2 required)"
                   }
                 </p>
                 <input

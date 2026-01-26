@@ -218,7 +218,7 @@ const UnifiedActivitiesCalendar = ({
   // Only care about recurring or nonrecurring for color
   const getEventColor = (category, event) => {
     if (event && event.isRecurringInstance) return 'bg-orange-200 text-orange-800';
-    return 'bg-red-100 text-[#7B1113]';
+    return 'bg-red-100 text-sro-primary';
   };
 
   const handleEventClick = async (event) => {
@@ -238,19 +238,19 @@ const UnifiedActivitiesCalendar = ({
   // Loading state component
   const LoadingState = () => (
     <div className="flex items-center justify-center p-8">
-      <Loader2 className="h-8 w-8 animate-spin text-[#7B1113]" />
-      <span className="ml-2 text-[#7B1113]">Loading activities...</span>
+      <Loader2 className="h-8 w-8 animate-spin text-sro-primary" />
+      <span className="ml-2 text-sro-primary">Loading activities...</span>
     </div>
   );
 
   // Error state component with prop validation
   const ErrorState = ({ message }) => (
-    <div className="flex flex-col items-center justify-center p-8 text-[#7B1113]">
+    <div className="flex flex-col items-center justify-center p-8 text-sro-primary">
       <p className="text-lg font-semibold">Something went wrong</p>
       <p className="text-sm text-gray-600">{message}</p>
       <Button
         onClick={() => window.location.reload()}
-        className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+        className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white"
       >
         Try Again
       </Button>
@@ -313,7 +313,7 @@ const UnifiedActivitiesCalendar = ({
 
   return (
     <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">{calendarTitle}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">{calendarTitle}</h1>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
@@ -381,8 +381,8 @@ const UnifiedActivitiesCalendar = ({
       {showLegend && (
         <div className="flex flex-wrap gap-2 mb-6">
           <div className="flex items-center gap-2 mt-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-[#7B1113]"></span>
-            <span className="text-xs text-[#7B1113] font-medium">Nonrecurring Event</span>
+            <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-sro-primary"></span>
+            <span className="text-xs text-sro-primary font-medium">Nonrecurring Event</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="inline-block w-4 h-4 rounded-full bg-orange-200 border border-orange-400"></span>
@@ -395,10 +395,10 @@ const UnifiedActivitiesCalendar = ({
         <Card className="rounded-lg shadow-md">
           <CardHeader className="bg-white py-2">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg sm:text-xl font-bold text-[#7B1113]">
+              <CardTitle className="text-lg sm:text-xl font-bold text-sro-primary">
                 Upcoming Activities
               </CardTitle>
-              <Badge variant="outline" className="text-[#014421]">
+              <Badge variant="outline" className="text-sro-secondary">
                 Next 30 Days
               </Badge>
             </div>
@@ -427,7 +427,7 @@ const UnifiedActivitiesCalendar = ({
                       {[...new Set(upcomingEvents.map(event => event.timeframe))].map(timeframe => (
                         <React.Fragment key={timeframe}>
                           <tr className="bg-gray-50">
-                            <td colSpan={6} className="px-4 py-2 font-semibold text-sm text-[#014421]">
+                            <td colSpan={6} className="px-4 py-2 font-semibold text-sm text-sro-secondary">
                               {timeframe}
                             </td>
                           </tr>
@@ -435,10 +435,10 @@ const UnifiedActivitiesCalendar = ({
                             .filter(event => event.timeframe === timeframe)
                             .map((event, index) => (
                               <tr key={`${timeframe}-${index}`} onClick={() => handleEventClick(event)}
-                                className="group hover:bg-[#014421]/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
-                                <td className="w-[100px] text-xs py-2 px-3 group-hover:text-[#014421]">
+                                className="group hover:bg-sro-secondary/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
+                                <td className="w-[100px] text-xs py-2 px-3 group-hover:text-sro-secondary">
                                   <div className="flex flex-col">
-                                    <span className="font-medium text-[#7B1113]">{event.relativeDate}</span>
+                                    <span className="font-medium text-sro-primary">{event.relativeDate}</span>
                                     <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
                                     <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
                                   </div>
@@ -452,7 +452,7 @@ const UnifiedActivitiesCalendar = ({
                                     {event.title.length > 50 && (
                                       <button
                                         onClick={(e) => toggleText(event.id, 'title', e)}
-                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                        className="text-gray-500 hover:text-sro-primary transition-transform"
                                       >
                                         <svg
                                           className={`h-4 w-4 transform transition-transform ${expandedText['title' + event.id] ? 'rotate-180' : ''}`}
@@ -480,7 +480,7 @@ const UnifiedActivitiesCalendar = ({
                                     {event.organization.length > 50 && (
                                       <button
                                         onClick={(e) => toggleText(event.id, 'org', e)}
-                                        className="text-gray-500 hover:text-[#7B1113] transition-transform"
+                                        className="text-gray-500 hover:text-sro-primary transition-transform"
                                       >
                                         <svg
                                           className={`h-4 w-4 transform transition-transform ${expandedText['org' + event.id] ? 'rotate-180' : ''}`}
@@ -528,7 +528,7 @@ const UnifiedActivitiesCalendar = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-10 w-10 animate-spin text-[#7B1113]" />
+            <Loader2 className="h-10 w-10 animate-spin text-sro-primary" />
           </div>
         ) : (
           selectedEvent && (

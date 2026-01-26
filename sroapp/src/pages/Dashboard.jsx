@@ -215,12 +215,12 @@ const Dashboard = () => {
         <Card className="shadow-sm flex flex-col h-full">
           <CardHeader className="pb-3 px-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
-              <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
+              <CardTitle className="text-xl font-bold text-sro-primary">Activities Calendar</CardTitle>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                   onClick={() => handleWeekNavigation("prev")}
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -234,7 +234,7 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                   onClick={() => handleWeekNavigation("next")}
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -243,14 +243,14 @@ const Dashboard = () => {
             </div>
             {/* Legend for recurring activities */}
             <div className="flex items-center gap-2 mt-2">
-              <span className="inline-block w-4 h-4 rounded border-4 border-[#F3AA2C] bg-white"></span>
+              <span className="inline-block w-4 h-4 rounded border-4 border-sro-accent bg-white"></span>
               <span className="text-xs text-gray-700">Recurring Activity</span>
             </div>
           </CardHeader>
           <CardContent className="flex-grow min-w-0">
             {loading ? (
               <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+                <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
                 <p>Loading Calendar...</p>
               </div>
             ) : (
@@ -268,7 +268,7 @@ const Dashboard = () => {
                         <div
                           key={i}
                           className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
-                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
                                   `}
                         >
                           <span className="text-xs">{day}</span>
@@ -295,7 +295,7 @@ const Dashboard = () => {
                           {dayEvents.length > 0 ? (
                             <div
                               key={dayEvents[0].id}
-                              className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-[#8b1416] transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
+                              className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
                               onClick={async () => {
                                 try {
                                   const { data, error } = await supabase
@@ -408,7 +408,7 @@ const Dashboard = () => {
                             dayEvents.map(event => (
                               <div
                                 key={event.id}
-                                className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full relative cursor-pointer hover:bg-[#8b1416] transition-colors ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
+                                className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
                                 style={{ minWidth: 0 }}
                                 onClick={() => {
                                   setSelectedEvent(event);
@@ -453,7 +453,7 @@ const Dashboard = () => {
                                         const date = new Date(event.date);
                                         navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
                                       }}
-                                      className="bg-[#F3AA2C] text-[#7B1113] text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-[#f4b544] transition-colors"
+                                      className="bg-sro-accent text-sro-primary text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-sro-accent/90 transition-colors"
                                     >
                                       +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
                                     </button>
@@ -476,7 +476,7 @@ const Dashboard = () => {
           </CardContent>
           <div className="flex justify-center mt-auto border-t pt-4">
             <Link to="/activities-calendar">
-              <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+              <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                 See Activities Calendar <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>

@@ -552,7 +552,7 @@ const AdminPanel = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Submissions</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Summary of Submissions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <div
@@ -561,11 +561,11 @@ const AdminPanel = () => {
                 >
                   {requestsLoading ? (
                     <div className="flex items-center justify-center h-full">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#7B1113]" />
+                      <Loader2 className="h-6 w-6 animate-spin text-sro-primary" />
                     </div>
                   ) : (
                     <>
-                      <h3 className="text-5xl font-bold mb-1 text-[#7B1113]">{stat.count}</h3>
+                      <h3 className="text-5xl font-bold mb-1 text-sro-primary">{stat.count}</h3>
                       <p className="text-sm text-gray-600">{stat.title}</p>
                     </>
                   )}
@@ -580,7 +580,7 @@ const AdminPanel = () => {
             <div className="flex-1 min-w-0">
               <Card className="shadow-sm h-auto flex flex-col max-h-full">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-xl font-bold text-[#7B1113] flex items-center gap-2">
+                  <CardTitle className="text-xl font-bold text-sro-primary flex items-center gap-2">
                     Incoming Activity Requests
                   </CardTitle>
                 </CardHeader>
@@ -588,7 +588,7 @@ const AdminPanel = () => {
                   <div className="overflow-x-auto w-full flex-1">
                     {(requestsLoading || loading || incomingRequests.length === 0) ? (
                       <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                        <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+                        <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
                         <p>Loading Requests...</p>
                       </div>
                     ) : requestsError ? (
@@ -631,7 +631,7 @@ const AdminPanel = () => {
                   {/* See More Button */}
                   <div className="flex justify-center mt-auto border-t pt-4">
                     <Link to="/admin/pending-requests">
-                      <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+                      <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                         See More <ArrowRight className="w-4 h-4" />
                       </Button>
                     </Link>
@@ -645,12 +645,12 @@ const AdminPanel = () => {
               <Card className="shadow-sm flex flex-col h-full">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
+                    <CardTitle className="text-xl font-bold text-sro-primary">Activities Calendar</CardTitle>
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                         onClick={() => handleWeekNavigation("prev")}
                       >
                         <ChevronLeft className="h-6 w-6" />
@@ -664,7 +664,7 @@ const AdminPanel = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 p-0 border-1 border-[#014421] text-[#014421] rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
                         onClick={() => handleWeekNavigation("next")}
                       >
                         <ChevronRight className="h-6 w-6" />
@@ -673,14 +673,14 @@ const AdminPanel = () => {
                   </div>
                   {/* Legend for recurring activities */}
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-block w-4 h-4 rounded border-4 border-[#F3AA2C] bg-white"></span>
+                    <span className="inline-block w-4 h-4 rounded border-4 border-sro-accent bg-white"></span>
                     <span className="text-xs text-gray-700">Recurring Activity</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow min-w-0">
                   {loading ? (
                     <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                      <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
+                      <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
                       <p>Loading Calendar...</p>
                     </div>
                   ) : (
@@ -700,7 +700,7 @@ const AdminPanel = () => {
                                 <div
                                   key={i}
                                   className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
-                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
                                   `}
                                 >
                                   <span className="text-xs">{day}</span>
@@ -729,7 +729,7 @@ const AdminPanel = () => {
                                       <div
                                         key={dayEvents[0].id}
                                         onClick={() => handleEventClick(dayEvents[0])}
-                                        className={`bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
+                                        className={`bg-sro-primary rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
                                       >
                                         {/* Activity Name and Time */}
                                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -769,7 +769,7 @@ const AdminPanel = () => {
                                                 // Navigate to activities calendar
                                                 window.location.href = '/admin/activities-calendar';
                                               }}
-                                              className="bg-[#F3AA2C] hover:bg-[#F3AA2C]/90 text-[#7B1113] text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
+                                              className="bg-sro-accent hover:bg-sro-accent/90 text-sro-primary text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
                                             >
                                               +{dayEvents.length - 1} More Activities
                                             </Badge>
