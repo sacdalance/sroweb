@@ -289,7 +289,7 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto py-8">
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Organization Application</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Organization Recognition</h1>
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
         <div className="space-y-5">
           {/* Organization Name */}
@@ -360,9 +360,8 @@ const OrgApplication = () => {
                           setOrgTypeOpen(false);
                           setFieldError("orgType", "");
                         }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
-                          orgType === cat.id ? "bg-gray-100 font-medium" : ""
-                        }`}
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${orgType === cat.id ? "bg-gray-100 font-medium" : ""
+                          }`}
                         type="button"
                         disabled={isUploading}
                       >
@@ -420,9 +419,8 @@ const OrgApplication = () => {
                           setYearOpen(false);
                           setFieldError("academicYear", "");
                         }}
-                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
-                          academicYear === year ? "bg-gray-100 font-medium" : ""
-                        }`}
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${academicYear === year ? "bg-gray-100 font-medium" : ""
+                          }`}
                         type="button"
                         disabled={isUploading}
                       >
@@ -583,7 +581,7 @@ const OrgApplication = () => {
           {/* Co-Adviser */}
           <div>
             <label className="text-sm font-medium block mb-1">
-              Co-Adviser 
+              Co-Adviser
             </label>
             <Input
               type="text"
@@ -648,17 +646,17 @@ const OrgApplication = () => {
               Required Forms <span className="text-red-500">*</span>
             </CardTitle>
           </CardHeader>
-            <CardContent className="space-y-4">
-              {formLinks.map((form, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">{form.name}</span>
-                  <Button asChild variant="outline" size="sm">
-                    <a href={form.url} target="_blank" rel="noopener noreferrer">
-                      Download
-                    </a>
-                  </Button>
-                </div>
-              ))}
+          <CardContent className="space-y-4">
+            {formLinks.map((form, idx) => (
+              <div key={idx} className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">{form.name}</span>
+                <Button asChild variant="outline" size="sm">
+                  <a href={form.url} target="_blank" rel="noopener noreferrer">
+                    Download
+                  </a>
+                </Button>
+              </div>
+            ))}
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Constitution and Bylaws</span>
             </div>
@@ -685,8 +683,8 @@ const OrgApplication = () => {
                 dragDropDisabled
                   ? "border-gray-300 bg-gray-50 cursor-not-allowed"
                   : isDragActive
-                  ? "border-green-600 bg-green-50"
-                  : "border-gray-300 hover:border-gray-400 hover:bg-muted"
+                    ? "border-green-600 bg-green-50"
+                    : "border-gray-300 hover:border-gray-400 hover:bg-muted"
               )}
               style={{ pointerEvents: dragDropDisabled ? "none" : "auto" }}
             >
@@ -699,8 +697,8 @@ const OrgApplication = () => {
                   {dragDropDisabled
                     ? "You cannot upload or drag files after completion."
                     : isDragActive
-                    ? "Drop the file here"
-                    : "Drag and Drop or Upload Files (6 required)"
+                      ? "Drop the file here"
+                      : "Drag and Drop or Upload Files (6 required)"
                   }
                 </p>
                 <input
