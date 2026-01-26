@@ -213,8 +213,8 @@ const Dashboard = () => {
 
         {/* Activities Calendar Section */}
         <Card className="shadow-sm flex flex-col h-full">
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
+          <CardHeader className="pb-3 px-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
               <CardTitle className="text-xl font-bold text-[#7B1113]">Activities Calendar</CardTitle>
               <div className="flex items-center space-x-2">
                 <Button
@@ -493,7 +493,7 @@ const Dashboard = () => {
           />
         )}
       </Dialog>
-    </div >
+    </div>
   );
 };
 

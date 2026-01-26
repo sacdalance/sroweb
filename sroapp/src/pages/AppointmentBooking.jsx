@@ -21,7 +21,7 @@ const AppointmentBooking = () => {
     mode: "",
     notes: ""
   });
-  
+
   const [errors, setErrors] = useState({
     email: "",
     contact: "",
@@ -74,7 +74,7 @@ const AppointmentBooking = () => {
     return (
       !Object.values(errors).some(error => error) && // no validation errors
       Object.keys(errors).every(field => formData[field]) && // all required fields filled
-      formData.date && 
+      formData.date &&
       formData.time
     );
   };
@@ -112,7 +112,7 @@ const AppointmentBooking = () => {
             .single();
 
           if (accountError) throw accountError;
-          
+
           if (accountData?.account_id) {
             setUserAccountId(accountData.account_id);
             await loadUserAppointments(accountData.account_id);
@@ -174,7 +174,7 @@ const AppointmentBooking = () => {
           .order('appointment_date');
 
         if (error) throw error;
-        
+
         if (data) {
           const dates = [...new Set(data.map(item => item.appointment_date))];
           setDatesWithAppointments(dates.map(date => new Date(date)));
@@ -191,7 +191,7 @@ const AppointmentBooking = () => {
   const loadTimeSlots = async (date) => {
     try {
       setTimeSlotLoading(true);
-      
+
       const formattedDate = format(date, 'yyyy-MM-dd');
       const { startTime, endTime, interval } = {
         startTime: settings?.start_time || '08:00',
@@ -203,14 +203,14 @@ const AppointmentBooking = () => {
       const slots = [];
       const start = new Date(`2000-01-01T${startTime}`);
       const end = new Date(`2000-01-01T${endTime}`);
-      
+
       let current = new Date(start);
       while (current < end) {
         slots.push({
-          time: current.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
+          time: current.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
           }),
           available: true
         });
@@ -239,26 +239,26 @@ const AppointmentBooking = () => {
         // Check if slot is blocked (either by time or date)
         const isBlocked = blockedSlots?.some(blockedSlot => {
           if (blockedSlot.block_date === formattedDate) return true;
-          
+
           if (blockedSlot.block_time) {
             const blockedTime = new Date(`2000-01-01T${blockedSlot.block_time}`);
-            return blockedTime.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              hour12: true 
+            return blockedTime.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
             }) === slot.time;
           }
-          
+
           return false;
         });
 
         // Check if slot is booked
         const isBooked = existingAppointments?.some(appointment => {
           const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`);
-          return appointmentTime.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: true 
+          return appointmentTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
           }) === slot.time;
         });
 
@@ -287,25 +287,25 @@ const AppointmentBooking = () => {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     // First check for past dates - always unavailable
     if (isPast(date) && !isToday(date)) {
       return false;
     }
-    
+
     // Cannot book for today
     if (isToday(date)) {
       return false;
     }
-    
+
     // Get day of week (0-6, where 0 is Sunday)
     const dayOfWeek = date.getDay();
-    
+
     // Calculate the maximum allowed date (default 14 business days)
     const advanceDays = settings?.advance_days || 14;
     let businessDaysAhead = 0;
     let maxDate = new Date(today);
-    
+
     while (businessDaysAhead < advanceDays) {
       maxDate.setDate(maxDate.getDate() + 1);
       const dayOfWeek = maxDate.getDay();
@@ -313,12 +313,12 @@ const AppointmentBooking = () => {
         businessDaysAhead++;
       }
     }
-    
+
     // Date must be between tomorrow and maxDate
     if (date < tomorrow || date > maxDate) {
       return false;
     }
-    
+
     // Check if day of week is allowed by admin settings
     if (settings && settings.allowed_days) {
       if (!settings.allowed_days.includes(dayOfWeek)) {
@@ -330,16 +330,16 @@ const AppointmentBooking = () => {
         return false;
       }
     }
-    
+
     // Check if date is blocked by admin
-    if (blockedDates.some(blockedDate => 
+    if (blockedDates.some(blockedDate =>
       blockedDate.getFullYear() === date.getFullYear() &&
       blockedDate.getMonth() === date.getMonth() &&
       blockedDate.getDate() === date.getDate()
     )) {
       return false;
     }
-    
+
     return true;
   };
 
@@ -378,7 +378,7 @@ const AppointmentBooking = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all fields first
     const newErrors = {
       email: validateField("email", formData.email),
@@ -401,7 +401,7 @@ const AppointmentBooking = () => {
     }
 
     try {
-      setSubmitting(true);      const appointmentData = {
+      setSubmitting(true); const appointmentData = {
         account_id: userAccountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
@@ -421,7 +421,7 @@ const AppointmentBooking = () => {
       if (appointmentError) throw appointmentError;
 
       toast.success("Appointment booked successfully!");
-      
+
       // Reset form
       setFormData({
         reason: "",
@@ -491,7 +491,7 @@ const AppointmentBooking = () => {
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-[#7B1113]">
-          {showExistingAppointments ? "My Appointments" : "Book an Appointment"}
+          {showExistingAppointments ? "My Appointments" : "Appointment Booking"}
         </h1>
         {user && (
           <Button
@@ -514,7 +514,7 @@ const AppointmentBooking = () => {
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
               <p>You don't have any upcoming appointments.</p>
-              <Button 
+              <Button
                 onClick={() => setShowExistingAppointments(false)}
                 className="mt-4 bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
               >
@@ -549,13 +549,12 @@ const AppointmentBooking = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                          appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
-                          appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
-                          appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                          appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                          "bg-gray-100 text-gray-700"
-                        }`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
+                            appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                              appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
+                                appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
+                                  "bg-gray-100 text-gray-700"
+                          }`}>
                           {appointment.status}
                         </span>
                         <Button
@@ -566,11 +565,10 @@ const AppointmentBooking = () => {
                           }}
                           disabled={appointment.status !== 'scheduled'}
                           size="sm"
-                          className={`text-xs ${
-                            appointment.status === 'scheduled'
+                          className={`text-xs ${appointment.status === 'scheduled'
                               ? 'bg-[#7b1113] hover:bg-[#5e0d0e] text-white'
                               : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
-                          }`}
+                            }`}
                         >
                           Reschedule
                         </Button>
@@ -617,9 +615,8 @@ const AppointmentBooking = () => {
                   name="reason"
                   value={formData.reason}
                   onChange={(e) => handleFieldChange("reason", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
-                  }`}
+                  className={`w-full p-2 border rounded-md ${errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
                   required
                 >
                   <option value="">Select a reason</option>
@@ -640,9 +637,8 @@ const AppointmentBooking = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={(e) => handleFieldChange("subject", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
-                  }`}
+                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
                   placeholder="Specify the reason for visit..."
                   required
                 />
@@ -657,9 +653,8 @@ const AppointmentBooking = () => {
                   name="mode"
                   value={formData.mode}
                   onChange={(e) => handleFieldChange("mode", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
-                  }`}
+                  className={`w-full p-2 border rounded-md ${errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
                   required
                 >
                   <option value="">Select mode</option>
@@ -678,9 +673,8 @@ const AppointmentBooking = () => {
                   name="email"
                   value={formData.email}
                   onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
-                  }`}
+                  className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                    }`}
                   placeholder="delpilarmh@up.edu.ph"
                   required
                 />
@@ -702,9 +696,8 @@ const AppointmentBooking = () => {
                         handleFieldChange("contact", value);
                       }
                     }}
-                    className={`w-full p-2 border rounded-md ${
-                      errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
-                    }`}
+                    className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-[#014421] focus:border-[#014421]'
+                      }`}
                     placeholder="(09XXXXXXXXX)"
                     maxLength="11"
                     required
@@ -728,7 +721,7 @@ const AppointmentBooking = () => {
               </div>
             </form>
           </div>
-          
+
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
@@ -785,15 +778,14 @@ const AppointmentBooking = () => {
                       <button
                         key={slot.time}
                         onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
-                        className={`py-2 px-3 text-sm font-medium rounded ${
-                          formData.time === slot.time 
-                            ? 'bg-[#014421] text-white' 
+                        className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
+                            ? 'bg-[#014421] text-white'
                             : slot.booked
-                            ? 'bg-[#7B1113] text-white cursor-not-allowed'
-                            : slot.blocked
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                        }`}
+                              ? 'bg-[#7B1113] text-white cursor-not-allowed'
+                              : slot.blocked
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                          }`}
                         disabled={!slot.available}
                       >
                         {slot.time}
@@ -809,13 +801,12 @@ const AppointmentBooking = () => {
               </div>
             )}
 
-            <Button 
+            <Button
               type="submit"
-              className={`w-full text-white ${
-                isFormValid() 
-                  ? 'bg-[#7B1113] hover:bg-[#5e0d0e]' 
+              className={`w-full text-white ${isFormValid()
+                  ? 'bg-[#7B1113] hover:bg-[#5e0d0e]'
                   : 'bg-gray-400 cursor-not-allowed'
-              }`}
+                }`}
               disabled={submitting || !isFormValid()}
               onClick={handleSubmit}
             >
@@ -839,7 +830,7 @@ const AppointmentBooking = () => {
               Please select a new date and time, and provide a reason for rescheduling.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4 overflow-y-auto flex-1">
             <div className="rounded-lg border p-4">
               <CustomCalendar
@@ -866,13 +857,12 @@ const AppointmentBooking = () => {
                       key={slot.time}
                       type="button"
                       onClick={() => setRescheduleData(prev => ({ ...prev, time: slot.time }))}
-                      className={`py-2 px-3 text-sm font-medium rounded ${
-                        rescheduleData.time === slot.time 
-                          ? 'bg-[#014421] text-white' 
+                      className={`py-2 px-3 text-sm font-medium rounded ${rescheduleData.time === slot.time
+                          ? 'bg-[#014421] text-white'
                           : slot.available
-                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
+                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
                       disabled={!slot.available}
                     >
                       {slot.time}
