@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+import { API_BASE_URL } from "@/lib/api-config";
+const BASE_URL = API_BASE_URL;
 
 export async function checkOrCreateUser(email, name) {
   const response = await fetch(`${BASE_URL}/auth/check-or-create`, {

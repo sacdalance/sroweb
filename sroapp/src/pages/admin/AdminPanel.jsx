@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import supabase from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
+import { API_BASE_URL } from "@/lib/api-config";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
@@ -121,7 +122,7 @@ const AdminPanel = () => {
           return;
         }
 
-        const res = await axios.get("/api/activities/incoming", {
+        const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
           headers: {
             Authorization: `Bearer ${access_token}`,
           },

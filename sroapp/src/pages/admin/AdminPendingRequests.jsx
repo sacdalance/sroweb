@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/api-config"; // Import config
 import supabase from "@/lib/supabase";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -105,7 +106,7 @@ const AdminPendingRequests = () => {
         return;
       }
 
-      const res = await axios.get("/api/activities/incoming", {
+      const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
         headers: {
           Authorization: `Bearer ${access_token}`,
         },

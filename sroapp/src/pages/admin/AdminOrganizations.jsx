@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api-config";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -18,7 +19,7 @@ const AdminOrganizations = () => {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const res = await fetch('/api/organization/list');
+        const res = await fetch(`${API_BASE_URL}/api/organization/list`);
         const data = await res.json();
         setOrganizations(data);
       } catch (err) {

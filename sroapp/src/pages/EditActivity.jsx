@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api-config";
 import {
     Select,
     SelectContent,
@@ -695,7 +696,7 @@ const EditActivity = () => {
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-                const response = await fetch("/api/organization/list");
+                const response = await fetch(`${API_BASE_URL}/api/organization/list`);
                 const data = await response.json();
                 setOrgOptions(data);
             } catch (err) {

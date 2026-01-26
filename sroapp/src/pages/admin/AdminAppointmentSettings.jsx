@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api-config";
 import supabase from "../../lib/supabase";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,7 +31,7 @@ const AdminAppointmentSettings = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        
+
         // Get appointment settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('appointment_settings')
@@ -38,54 +39,54 @@ const AdminAppointmentSettings = () => {
           .order('id', { ascending: false })
           .limit(1)
           .single();
-        
-        if (settingsError && settingsError.code !== 'PGRST116') { 
+
+        if (settingsError && settingsError.code !== 'PGRST116') {
           // PGRST116 means no rows returned
           throw settingsError;
         }
-        
+
         if (settingsData) {
           setStartTime(settingsData.start_time.substring(0, 5));
           setEndTime(settingsData.end_time.substring(0, 5));
           setInterval(settingsData.interval_minutes);
         }
-        
+
         // Get blocked dates and times
         const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
           .from('blocked_slots')
           .select('*');
-        
+
         if (blockedSlotsError) throw blockedSlotsError;
-        
+
         // Separate dates and times
         const dates = blockedSlotsData
           .filter(slot => slot.block_date)
           .map(slot => slot.block_date);
-        
+
         const times = blockedSlotsData
           .filter(slot => slot.block_time)
           .map(slot => {
             const time = new Date(`2000-01-01T${slot.block_time}`);
-            return time.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              hour12: true 
+            return time.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
             });
           });
-        
+
         setBlockedDates(dates);
         setBlockedTimeSlots(times);
         setLoading(false);
       } catch (error) {
         console.error("Error loading settings:", error);
-        setMessage({ 
-          text: "Failed to load settings. Please refresh the page.", 
-          type: "error" 
+        setMessage({
+          text: "Failed to load settings. Please refresh the page.",
+          type: "error"
         });
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
 
@@ -95,16 +96,16 @@ const AdminAppointmentSettings = () => {
       // Get current date
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
-        // Get appointment settings for interval
+      // Get appointment settings for interval
       const { data: settings, error: settingsError } = await supabase
         .from('appointment_settings')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-        
+
       if (settingsError) throw settingsError;
-      
+
       // Get upcoming appointments
       const { data, error } = await supabase
         .from('appointments')
@@ -124,19 +125,19 @@ const AdminAppointmentSettings = () => {
         .gte('appointment_date', formattedDate)
         .order('appointment_date', { ascending: true })
         .order('appointment_time', { ascending: true });
-      
+
       if (error) throw error;
-      
+
       // Format the appointments with end time based on interval
       const formattedAppointments = data.map(appointment => {
         const startTime = new Date(`2000-01-01T${appointment.appointment_time}`);
         const endTime = new Date(startTime.getTime() + (settings?.interval_minutes || 30) * 60000);
-        
-        const timeRange = `${startTime.toLocaleTimeString('en-US', { 
+
+        const timeRange = `${startTime.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
-        })} - ${endTime.toLocaleTimeString('en-US', { 
+        })} - ${endTime.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
@@ -145,10 +146,10 @@ const AdminAppointmentSettings = () => {
         // Split name into last name and first name
         const fullName = appointment.account?.account_name || '';
         const [lastName, ...firstNames] = fullName.split(',').map(part => part.trim());
-        const formattedName = lastName && firstNames.length 
-          ? `${lastName.toUpperCase()}, ${firstNames.join(' ')}` 
+        const formattedName = lastName && firstNames.length
+          ? `${lastName.toUpperCase()}, ${firstNames.join(' ')}`
           : fullName;
-        
+
         return {
           ...appointment,
           timeRange,
@@ -156,14 +157,14 @@ const AdminAppointmentSettings = () => {
           fullDetails: `${appointment.reason}${appointment.notes ? ` - ${appointment.notes}` : ''}`
         };
       });
-      
+
       setAppointments(formattedAppointments);
       setLoadingAppointments(false);
     } catch (error) {
       console.error("Error loading appointments:", error);
-      setMessage({ 
-        text: "Failed to load appointments", 
-        type: "error" 
+      setMessage({
+        text: "Failed to load appointments",
+        type: "error"
       });
       setLoadingAppointments(false);
     }
@@ -177,7 +178,7 @@ const AdminAppointmentSettings = () => {
   const handleSaveSettings = async () => {
     try {
       setSavingSettings(true);
-      
+
       const { error } = await supabase
         .from('appointment_settings')
         .upsert({
@@ -186,20 +187,20 @@ const AdminAppointmentSettings = () => {
           end_time: endTime + ':00',
           interval_minutes: interval
         });
-      
+
       if (error) throw error;
-      
+
       setMessage({ text: "Settings saved successfully!", type: "success" });
-      
+
       // Clear message after 3 seconds
       setTimeout(() => {
         setMessage({ text: "", type: "" });
       }, 3000);
     } catch (error) {
       console.error("Error saving settings:", error);
-      setMessage({ 
-        text: "Failed to save settings. Please try again.", 
-        type: "error" 
+      setMessage({
+        text: "Failed to save settings. Please try again.",
+        type: "error"
       });
     } finally {
       setSavingSettings(false);
@@ -211,27 +212,27 @@ const AdminAppointmentSettings = () => {
     if (!newBlockedDate || blockedDates.includes(newBlockedDate)) {
       return;
     }
-    
+
     try {
       setAddingDate(true);
-      
+
       // Insert new blocked date into the database
       const { error } = await supabase
         .from('blocked_slots')
         .insert({ block_date: newBlockedDate });
-      
+
       if (error) throw error;
-      
+
       setBlockedDates([...blockedDates, newBlockedDate]);
       setNewBlockedDate("");
       setMessage({ text: "Date blocked successfully!", type: "success" });
-      
+
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       console.error("Error adding blocked date:", error);
-      setMessage({ 
-        text: "Failed to block date. Please try again.", 
-        type: "error" 
+      setMessage({
+        text: "Failed to block date. Please try again.",
+        type: "error"
       });
     } finally {
       setAddingDate(false);
@@ -245,18 +246,18 @@ const AdminAppointmentSettings = () => {
         .from('blocked_slots')
         .delete()
         .eq('block_date', date);
-      
+
       if (error) throw error;
-      
+
       setBlockedDates(blockedDates.filter(d => d !== date));
       setMessage({ text: "Date unblocked successfully!", type: "success" });
-      
+
       setTimeout(() => setMessage({ text: "", type: "" }), 3000);
     } catch (error) {
       console.error("Error removing blocked date:", error);
-      setMessage({ 
-        text: "Failed to unblock date. Please try again.", 
-        type: "error" 
+      setMessage({
+        text: "Failed to unblock date. Please try again.",
+        type: "error"
       });
     }
   };
@@ -266,17 +267,17 @@ const AdminAppointmentSettings = () => {
     const slots = [];
     const start = new Date(`2000-01-01T${startTime}`);
     const end = new Date(`2000-01-01T${endTime}`);
-    
+
     let current = new Date(start);
     while (current < end) {
-      slots.push(current.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
+      slots.push(current.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
       }));
       current = new Date(current.getTime() + interval * 60000);
     }
-    
+
     return slots;
   };
 
@@ -288,37 +289,37 @@ const AdminAppointmentSettings = () => {
       let hours = parseInt(timeStr.match(/^(\d+)/)[1]);
       const minutes = parseInt(timeStr.match(/:(\d+)/)[1]);
       const period = timeStr.match(/([AP]M)$/)[1];
-      
+
       if (period === "PM" && hours < 12) hours += 12;
       if (period === "AM" && hours === 12) hours = 0;
-      
+
       const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
-      
+
       if (blockedTimeSlots.includes(slot)) {
         // Unblock the time slot
         const { error } = await supabase
           .from('blocked_slots')
           .delete()
           .eq('block_time', formattedTime);
-        
+
         if (error) throw error;
-        
+
         setBlockedTimeSlots(blockedTimeSlots.filter(s => s !== slot));
       } else {
         // Block the time slot
         const { error } = await supabase
           .from('blocked_slots')
           .insert({ block_time: formattedTime });
-        
+
         if (error) throw error;
-        
+
         setBlockedTimeSlots([...blockedTimeSlots, slot]);
       }
     } catch (error) {
       console.error("Error toggling time slot:", error);
-      setMessage({ 
-        text: "Failed to update time slot. Please try again.", 
-        type: "error" 
+      setMessage({
+        text: "Failed to update time slot. Please try again.",
+        type: "error"
       });
     }
   };
@@ -332,14 +333,14 @@ const AdminAppointmentSettings = () => {
         .select('*')
         .eq('id', appointmentId)
         .single();
-        
+
       if (fetchError) throw fetchError;
 
       const { error } = await supabase
         .from('appointments')
         .update({
-          status: action === 'approve' ? 
-            (type === 'reschedule' ? 'scheduled' : 'cancelled') : 
+          status: action === 'approve' ?
+            (type === 'reschedule' ? 'scheduled' : 'cancelled') :
             'scheduled',
           ...(type === 'reschedule' && action === 'approve' ? {
             appointment_date: appointment.requested_date,
@@ -413,7 +414,7 @@ const AdminAppointmentSettings = () => {
       });
 
       // Send email notification
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/send-email`, {
+      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -428,9 +429,9 @@ Mode: ${appointment.meeting_mode || 'Face-to-face'}
 
 ${adminComment ? `Admin Notes: ${adminComment}` : ''}
 
-${action === 'confirm' 
-  ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
-  : 'If you would like to schedule another appointment, please visit our website.'}
+${action === 'confirm'
+              ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
+              : 'If you would like to schedule another appointment, please visit our website.'}
 
 Thank you,
 Student Relations Office`,
@@ -449,9 +450,9 @@ Student Relations Office`,
   
   ${adminComment ? `<p><strong>SRO Notes:</strong> ${adminComment}</p>` : ''}
   
-  <p>${action === 'confirm' 
-    ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
-    : 'If you would like to schedule another appointment, please visit our website.'}</p>
+  <p>${action === 'confirm'
+              ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
+              : 'If you would like to schedule another appointment, please visit our website.'}</p>
   
   <p>Thank you,<br>Student Relations Office</p>
 </div>`
@@ -522,8 +523,8 @@ Student Relations Office`,
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {appointments.map((appointment) => (
-                      <tr 
-                        key={appointment.id} 
+                      <tr
+                        key={appointment.id}
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
                           setSelectedAppointment(appointment);
@@ -540,7 +541,7 @@ Student Relations Office`,
                         <td className="px-3 py-2 text-xs text-gray-700 text-center whitespace-nowrap">{appointment.formattedName}</td>
                         <td className="px-3 py-2 text-xs text-gray-700 text-center whitespace-nowrap">
                           {(() => {
-                            switch(appointment.reason) {
+                            switch (appointment.reason) {
                               case 'consultation': return 'Consultation';
                               case 'document': return 'Document';
                               case 'inquiry': return 'Inquiry';
@@ -566,17 +567,17 @@ Student Relations Office`,
                           </div>
                         </td>
                         <td className="px-3 py-2 text-xs text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${                            appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
                             appointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                            appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                            appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>
+                              appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
+                                appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
+                                  "bg-gray-100 text-gray-700"
+                            }`}>
                             {appointment.status === "confirmed" ? "Confirmed" :
-                             appointment.status === "rejected" ? "Rejected" :
-                             appointment.status === "reschedule-pending" ? "Reschedule" :
-                             appointment.status === "cancellation-pending" ? "Cancel Req." :
-                             appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                              appointment.status === "rejected" ? "Rejected" :
+                                appointment.status === "reschedule-pending" ? "Reschedule" :
+                                  appointment.status === "cancellation-pending" ? "Cancel Req." :
+                                    appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </span>
                         </td>
                       </tr>
@@ -646,13 +647,13 @@ Student Relations Office`,
                 <h3 className="text-lg font-semibold mb-4">Blocked Dates</h3>
                 <div className="space-y-4">
                   <div className="flex gap-2">
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       className="flex-1 p-2 border rounded-md"
                       value={newBlockedDate}
                       onChange={(e) => setNewBlockedDate(e.target.value)}
                     />
-                    <button 
+                    <button
                       className="px-4 py-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md whitespace-nowrap"
                       onClick={handleAddBlockedDate}
                       disabled={addingDate || !newBlockedDate}
@@ -667,7 +668,7 @@ Student Relations Office`,
                       )}
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {blockedDates.map((date) => (
                       <div key={date} className="flex items-center justify-between p-2 bg-[#7b1113] rounded-md">
@@ -692,11 +693,10 @@ Student Relations Office`,
                   {timeSlots.map((slot) => (
                     <button
                       key={slot}
-                      className={`p-2 border rounded-md text-sm ${
-                        blockedTimeSlots.includes(slot) 
-                          ? "bg-[#7B1113] text-white hover:bg-[#5e0d0e] transition-colors"
-                          : "bg-[#014421] text-white hover:bg-[#014421]/90 transition-colors"
-                      }`}
+                      className={`p-2 border rounded-md text-sm ${blockedTimeSlots.includes(slot)
+                        ? "bg-[#7B1113] text-white hover:bg-[#5e0d0e] transition-colors"
+                        : "bg-[#014421] text-white hover:bg-[#014421]/90 transition-colors"
+                        }`}
                       onClick={() => toggleTimeSlot(slot)}
                     >
                       {slot}
@@ -733,7 +733,7 @@ Student Relations Office`,
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">Appointment Details</DialogTitle>
           </DialogHeader>
-          
+
           {selectedAppointment && (
             <div className="space-y-4">
               {/* Student Details */}
@@ -749,16 +749,16 @@ Student Relations Office`,
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500">Appointment Status</h3>
                   <div className="mt-1">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${                      selectedAppointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${selectedAppointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
                       selectedAppointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
-                      selectedAppointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                      "bg-gray-100 text-gray-700"
-                    }`}>
+                        selectedAppointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
+                          "bg-gray-100 text-gray-700"
+                      }`}>
                       {selectedAppointment.status === "confirmed" ? "Confirmed" :
-                       selectedAppointment.status === "rejected" ? "Rejected" :
-                       selectedAppointment.status === "reschedule-pending" ? "Reschedule Requested" :
-                       selectedAppointment.status === "cancellation-pending" ? "Cancellation Requested" :
-                       selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1)}
+                        selectedAppointment.status === "rejected" ? "Rejected" :
+                          selectedAppointment.status === "reschedule-pending" ? "Reschedule Requested" :
+                            selectedAppointment.status === "cancellation-pending" ? "Cancellation Requested" :
+                              selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1)}
                     </span>
                   </div>
                 </div>
@@ -771,7 +771,7 @@ Student Relations Office`,
                   <div>
                     <p className="text-sm">
                       <span className="font-medium">Type:</span> {(() => {
-                        switch(selectedAppointment.reason) {
+                        switch (selectedAppointment.reason) {
                           case 'consultation': return 'General Consultation';
                           case 'document': return 'Document Processing';
                           case 'inquiry': return 'General Inquiry';
@@ -829,13 +829,13 @@ Student Relations Office`,
                 </Button>
                 {selectedAppointment.status === 'scheduled' && (
                   <>
-                    <Button 
+                    <Button
                       onClick={() => handleAppointmentResponse(selectedAppointment.id, 'confirm')}
                       className="bg-[#014421] text-white hover:bg-[#014421]/90"
                     >
                       Confirm
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => {
                         setShowConfirmDialog(false);
                         setShowRejectDialog(true);
@@ -848,13 +848,13 @@ Student Relations Office`,
                 )}
                 {selectedAppointment.status === 'reschedule-pending' && (
                   <>
-                    <Button 
+                    <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'reschedule')}
                       className="bg-[#014421] text-white hover:bg-[#014421]/90"
                     >
                       Approve Reschedule
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
                       className="bg-[#7B1113] text-white hover:bg-[#7B1113]/90"
                     >
@@ -864,13 +864,13 @@ Student Relations Office`,
                 )}
                 {selectedAppointment.status === 'cancellation-pending' && (
                   <>
-                    <Button 
+                    <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'cancel')}
                       className="bg-[#014421] text-white hover:bg-[#014421]/90"
                     >
                       Approve Cancellation
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'cancel')}
                       className="bg-[#7B1113] text-white hover:bg-[#7B1113]/90"
                     >
@@ -905,7 +905,7 @@ Student Relations Office`,
             <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'reject')}
               variant="destructive"
             >
@@ -917,9 +917,8 @@ Student Relations Office`,
 
       {/* Message display */}
       {message.text && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${
-          message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-        }`}>
+        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          }`}>
           {message.text}
         </div>
       )}

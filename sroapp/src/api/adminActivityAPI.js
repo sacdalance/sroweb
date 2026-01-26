@@ -1,5 +1,6 @@
 import supabase from "@/lib/supabase";
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export const submitAdminActivity = async (activity, schedule, file) => {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -19,7 +20,7 @@ export const submitAdminActivity = async (activity, schedule, file) => {
     formData.append(key, value ?? "");
   });
 
-  const response = await fetch("/api/admin/activity", {
+  const response = await fetch(`${API_BASE_URL}/api/admin/activity`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,
@@ -42,7 +43,7 @@ export const fetchSummaryActivities = async (filters) => {
   const { data: { session } } = await supabase.auth.getSession();
 
   const params = new URLSearchParams(filters);
-  const res = await fetch(`/api/activities/summary?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/api/activities/summary?${params.toString()}`, {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
     },
@@ -57,7 +58,7 @@ export const fetchSummaryActivities = async (filters) => {
 export const fetchOrganizationNames = async () => {
   const { data: { session } } = await supabase.auth.getSession();
 
-  const res = await fetch("/api/activities/organizations", {
+  const res = await fetch(`${API_BASE_URL}/api/activities/organizations`, {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
     },
@@ -70,7 +71,7 @@ export const fetchOrganizationNames = async () => {
 export const fetchAcademicYears = async () => {
   const { data: { session } } = await supabase.auth.getSession();
 
-  const res = await fetch("/api/activities/academic-years", {
+  const res = await fetch(`${API_BASE_URL}/api/activities/academic-years`, {
     headers: {
       Authorization: `Bearer ${session.access_token}`,
     },
@@ -81,7 +82,7 @@ export const fetchAcademicYears = async () => {
 };
 
 export const fetchIncomingRequests = async (access_token) => {
-  const res = await axios.get("/api/activities/incoming", {
+  const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
     headers: { Authorization: `Bearer ${access_token}` },
   });
   return res.data;
@@ -171,7 +172,7 @@ export const generateApprovalSlips = async () => {
 
   if (!session) throw new Error("No active session");
 
-  const res = await fetch("/api/generate-approval-slips", {
+  const res = await fetch(`${API_BASE_URL}/api/generate-approval-slips`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,

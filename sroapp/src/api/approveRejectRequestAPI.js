@@ -1,11 +1,12 @@
 import supabase from "@/lib/supabase";
+import { API_BASE_URL } from "@/lib/api-config";
 
 /**
  * Generates HTML email template for activity approval
  */
 const generateApprovalEmailHTML = (activityData) => {
   const { orgName, activityName, venue, displayDate, formCode, sroComments, odsaComments } = activityData;
-  
+
   return `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
   <p>Dear, <strong>${orgName}</strong>!</p>
@@ -31,7 +32,7 @@ const generateApprovalEmailHTML = (activityData) => {
  */
 const generateRejectionEmailHTML = (activityData) => {
   const { orgName, activityName, venue, displayDate, formCode, sroComments, odsaComments } = activityData;
-  
+
   return `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
   <p>Dear, <strong>${orgName}</strong>!</p>
@@ -78,16 +79,16 @@ const getActivityEmailData = async (activityId) => {
     const schedule = data.schedule[0];
     const startDate = new Date(schedule.start_date);
     const endDate = schedule.end_date ? new Date(schedule.end_date) : null;
-    
+
     if (endDate && startDate.getTime() !== endDate.getTime()) {
-      displayDate = `${startDate.toLocaleDateString('en-US', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-      })} - ${endDate.toLocaleDateString('en-US', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+      displayDate = `${startDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      })} - ${endDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       })}`;
     } else {
-      displayDate = startDate.toLocaleDateString('en-US', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+      displayDate = startDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
     }
   }
@@ -109,13 +110,13 @@ const getActivityEmailData = async (activityId) => {
  */
 const sendEmailNotification = async (emailData, isApproval) => {
   try {
-    const emailContent = isApproval 
+    const emailContent = isApproval
       ? generateApprovalEmailHTML(emailData)
       : generateRejectionEmailHTML(emailData);
 
     const subject = `Activity ${isApproval ? 'Approved' : 'Rejected'} - ${emailData.activityName}`;
 
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/send-email`, {
+    const response = await fetch(`${API_BASE_URL}/api/send-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+import { API_BASE_URL } from "@/lib/api-config";
 
 export async function editActivity(activity, schedule) {
   const payload = {
@@ -6,7 +6,7 @@ export async function editActivity(activity, schedule) {
     ...schedule,
   };
 
-  const response = await fetch(`${BASE_URL}/activityEdit/edit/${activity.activity_id}`, {
+  const response = await fetch(`${API_BASE_URL}/activityEdit/edit/${activity.activity_id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

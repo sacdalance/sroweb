@@ -9,10 +9,19 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },  },  server: {
+    },
+  }, server: {
     proxy: {
       "/api": "http://localhost:3000", // Proxy API requests to Express backend
-      "/activities": "http://localhost:3000",
+      "/activities": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        bypass: (req) => {
+          if (req.headers.accept && req.headers.accept.includes('text/html')) {
+            return req.url;
+          }
+        }
+      },
     },
   },
   // base: process.env.VITE_BASE_PATH || "/sroapp"

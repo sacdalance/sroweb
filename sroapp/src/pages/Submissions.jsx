@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
@@ -14,7 +15,7 @@ import { toast } from 'sonner';
 import StatusPill from "@/components/ui/StatusPill";
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:3000';
+axios.defaults.baseURL = API_BASE_URL;
 
 const Submissions = () => {
   const [requested, setRequested] = useState([]);
