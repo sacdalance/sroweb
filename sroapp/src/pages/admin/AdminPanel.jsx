@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import StatusPill from "@/components/ui/StatusPill";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,11 +49,11 @@ const AdminPanel = () => {
   const isDateInCurrentWeek = (dateString) => {
     const eventDate = new Date(dateString);
     eventDate.setHours(0, 0, 0, 0); // Normalize time to start of day
-    
+
     const weekStart = new Date(currentWeekStart);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
     weekStart.setHours(0, 0, 0, 0);
-    
+
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
     weekEnd.setHours(23, 59, 59, 999);
@@ -61,7 +62,7 @@ const AdminPanel = () => {
     console.log('Week Start:', weekStart);
     console.log('Week End:', weekEnd);
     console.log('Is in week:', eventDate >= weekStart && eventDate <= weekEnd);
-    
+
     return eventDate >= weekStart && eventDate <= weekEnd;
   };
 
@@ -69,13 +70,13 @@ const AdminPanel = () => {
   const getWeekRange = (date) => {
     const start = new Date(date);
     start.setDate(start.getDate() - start.getDay());
-    
+
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
-    
+
     const startMonth = start.toLocaleString('default', { month: 'long' }).toUpperCase();
     const endMonth = end.toLocaleString('default', { month: 'long' }).toUpperCase();
-    
+
     return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
   };
 
@@ -100,8 +101,8 @@ const AdminPanel = () => {
   // Stats data for the summary section
   const statsSummary = [
     { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
-    { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
-    { title: "Approved Activity Requests", count: requestsCounts.approved || 0 },
+    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
+    { title: "Approved Requests", count: requestsCounts.approved || 0 },
     { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
     { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
@@ -134,24 +135,17 @@ const AdminPanel = () => {
         let pendingCount = 0;
 
         // Filter and transform the data
-        const transformedRequests = allActivities.map((request) => {
-          const isForAppeal = request.final_status === "For Appeal";
-          const isPending = request.final_status === "Pending" || request.final_status === null;
+        const filteredActivities = allActivities.filter(activity => {
+          // Exclude rejected events
+          if (activity.final_status === "Rejected") return false;
+          const isForAppeal = activity.final_status === "For Appeal";
+          const isPending = activity.final_status === "Pending" || activity.final_status === null;
 
           // Increment counters based on status
           if (isForAppeal) forAppealCount++;
           if (isPending) pendingCount++;
 
-          return {
-            id: request.activity_id,
-            submissionDate: new Date(request.created_at).toLocaleDateString(),
-            activityName: request.activity_name,
-            organization: request.organization?.org_name || "N/A",
-            activityDate: request.schedule?.[0]?.start_date
-              ? new Date(request.schedule[0].start_date).toLocaleDateString()
-              : "TBD",
-            status: request.final_status || "Pending", // Treat NULL as "Pending"
-          };
+          return true;
         });
 
         // Log the counts for debugging
@@ -160,9 +154,19 @@ const AdminPanel = () => {
 
         // Update state with transformed requests (limit to 10, sorted by activity_id descending)
         setIncomingRequests(
-          transformedRequests
-            .sort((a, b) => Number(b.id) - Number(a.id))
+          filteredActivities
+            .sort((a, b) => Number(b.activity_id) - Number(a.activity_id))
             .slice(0, 10)
+            .map(activity => ({
+              id: activity.activity_id,
+              submissionDate: new Date(activity.created_at).toLocaleDateString(),
+              activityName: activity.activity_name,
+              organization: activity.organization?.org_name || "N/A",
+              activityDate: activity.schedule?.[0]?.start_date
+                ? new Date(activity.schedule[0].start_date).toLocaleDateString()
+                : "TBD",
+              status: activity.final_status || "Pending",
+            }))
         );
 
         // Update the counts in state without overwriting the approved count
@@ -204,11 +208,45 @@ const AdminPanel = () => {
         ).length;
 
         // Transform the data to match our events structure
-        const transformedEvents = [];
+        let transformedEvents = [];
         data.forEach((activity) => {
           if (Array.isArray(activity.schedule)) {
             activity.schedule.forEach((sched) => {
-              if (sched.start_date) {
+              if (sched.is_recurring === "true" && sched.recurring_days) {
+                // Recurring event: expand to all matching days
+                const recurringDays = JSON.parse(sched.recurring_days);
+                const dayMap = {
+                  Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+                };
+                const start = new Date(sched.start_date);
+                const end = new Date(sched.end_date);
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                  const dayName = Object.keys(dayMap).find(key => dayMap[key] === d.getDay());
+                  if (recurringDays[dayName]) {
+                    const startTime = sched.start_time
+                      ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "00:00";
+                    const endTime = sched.end_time
+                      ? new Date(`1970-01-01T${sched.end_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "00:00";
+                    const categoryLabel = categoryMap[activity.activity_type] || "Others";
+                    transformedEvents.push({
+                      ...activity,
+                      id: activity.activity_id + "_" + d.toISOString().slice(0, 10),
+                      name: activity.activity_name,
+                      time: `${startTime} to ${endTime}`,
+                      location: activity.venue,
+                      category: categoryLabel,
+                      organization: activity.organization?.org_name,
+                      date: d.toISOString().slice(0, 10),
+                      is_recurring: "true",
+                      recurring_days: sched.recurring_days,
+                      schedule: [sched],
+                    });
+                  }
+                }
+              } else if (sched.start_date) {
+                // Non-recurring event
                 const startTime = sched.start_time
                   ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                   : "00:00";
@@ -217,6 +255,7 @@ const AdminPanel = () => {
                   : "00:00";
                 const categoryLabel = categoryMap[activity.activity_type] || "Others";
                 transformedEvents.push({
+                  ...activity,
                   id: activity.activity_id + "_" + sched.activity_schedule_id,
                   name: activity.activity_name,
                   time: `${startTime} to ${endTime}`,
@@ -224,6 +263,8 @@ const AdminPanel = () => {
                   category: categoryLabel,
                   organization: activity.organization?.org_name,
                   date: sched.start_date,
+                  is_recurring: "false",
+                  schedule: [sched],
                 });
               }
             });
@@ -243,7 +284,7 @@ const AdminPanel = () => {
         setLoading(false);
       }
     };
-  
+
     fetchActivities();
   }, []);
 
@@ -471,10 +512,10 @@ const AdminPanel = () => {
   // Then, for current week, filter for today only
   const eventsToShow = isCurrentWeek
     ? weekEvents.filter((event) => {
-        const eventDate = new Date(event.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate.getTime() === today.getTime();
-      })
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate.getTime() === today.getTime();
+    })
     : weekEvents;
 
   const handleEventClick = async (event) => {
@@ -559,11 +600,11 @@ const AdminPanel = () => {
                         <table className="min-w-full border-separate border-spacing-0">
                           <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Submission<br />Date</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Activity<br />Name</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-32">Organization</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-24">Activity<br />Date</th>
-                              <th className="px-1 py-2 text-center text-xs font-medium text-black w-20">Status</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Submission<br />Date</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Activity<br />Name</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Activity<br />Date</th>
+                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Status</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
@@ -573,22 +614,12 @@ const AdminPanel = () => {
                                 className="hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleViewDetails(request)}
                               >
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.submissionDate}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityName}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.organization}</td>
-                                <td className="px-1 py-2 text-xs text-gray-700 text-center break-words">{request.activityDate}</td>
-                                <td className="px-1 py-2 text-xs text-center">
-                                  <Badge
-                                    className={
-                                      request.status === "Pending"
-                                        ? "bg-[#FFF7D6] text-[#A05A00] pointer-events-none" // Light yellow fill, brown text, no hover
-                                        : request.status === "For Appeal"
-                                        ? "bg-[#F3E0E0] text-[#7B1113] pointer-events-none" // Light red fill, maroon text
-                                        : "bg-gray-100 text-gray-700 pointer-events-none"
-                                    }
-                                  >
-                                    {request.status}
-                                  </Badge>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.submissionDate}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">{request.activityName}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.organization}</td>
+                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.activityDate}</td>
+                                <td className="px-2 py-2 text-xs text-center">
+                                  <StatusPill status={request.status} />
                                 </td>
                               </tr>
                             ))}
@@ -596,7 +627,7 @@ const AdminPanel = () => {
                         </table>
                       </div>
                     )}
-                   </div>
+                  </div>
                   {/* See More Button */}
                   <div className="flex justify-center mt-auto border-t pt-4">
                     <Link to="/admin/pending-requests">
@@ -639,6 +670,11 @@ const AdminPanel = () => {
                         <ChevronRight className="h-6 w-6" />
                       </Button>
                     </div>
+                  </div>
+                  {/* Legend for recurring activities */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-block w-4 h-4 rounded border-4 border-[#F3AA2C] bg-white"></span>
+                    <span className="text-xs text-gray-700">Recurring Activity</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow min-w-0">
@@ -693,7 +729,7 @@ const AdminPanel = () => {
                                       <div
                                         key={dayEvents[0].id}
                                         onClick={() => handleEventClick(dayEvents[0])}
-                                        className="bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors"
+                                        className={`bg-[#7B1113] rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-[#5e0d0e] transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
                                       >
                                         {/* Activity Name and Time */}
                                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -704,9 +740,30 @@ const AdminPanel = () => {
                                         <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
                                         {/* Bottom Row: Location and Activity Count */}
                                         <div className="flex items-center justify-between mt-1">
-                                          <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                          {dayEvents[0].is_recurring === "true" ? (
+                                            <>
+                                              <span className="text-white/80 text-xs truncate">
+                                                {(() => {
+                                                  const sched = dayEvents[0].schedule?.[0] || {};
+                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                                })()}
+                                              </span>
+                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                                {(() => {
+                                                  const sched = dayEvents[0].schedule?.[0] || {};
+                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                  return daysList.length > 0 ? daysList.join(", ") : null;
+                                                })()}
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                          )}
                                           {dayEvents.length > 1 && (
-                                            <Badge 
+                                            <Badge
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 // Navigate to activities calendar
@@ -763,8 +820,7 @@ const AdminPanel = () => {
                                     dayEvents.map(event => (
                                       <div
                                         key={event.id}
-                                        className="bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between"
-                                        style={{ minWidth: 0 }}
+                                        className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
                                       >
                                         <div className="flex items-center mb-1 min-w-0">
                                           <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
@@ -774,6 +830,30 @@ const AdminPanel = () => {
                                         <div className="flex flex-row items-start gap-2 min-w-0 w-full">
                                           <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
                                           <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-1">
+                                          {event.is_recurring === "true" ? (
+                                            <>
+                                              <span className="text-white/80 text-xs truncate">
+                                                {(() => {
+                                                  const sched = event.schedule?.[0] || {};
+                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                                })()}
+                                              </span>
+                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                                {(() => {
+                                                  const sched = event.schedule?.[0] || {};
+                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                  return daysList.length > 0 ? daysList.join(", ") : null;
+                                                })()}
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <span className="text-white/80 text-xs truncate">{event.location}</span>
+                                          )}
                                         </div>
                                       </div>
                                     ))

@@ -10,6 +10,11 @@ import { Loader2, Pencil, ChevronDown, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import { toast } from 'sonner';
+import StatusPill from "@/components/ui/StatusPill";
+
+// Configure axios defaults
+axios.defaults.baseURL = 'http://localhost:3000';
 
 const Submissions = () => {
   const [requested, setRequested] = useState([]);
@@ -30,8 +35,8 @@ const Submissions = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const orgOptions = [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))];
   const filteredRequested = requested.filter((act) => {
-  const orgMatch = filterOrg === "All" || act.organization?.org_name === filterOrg;
-  const statusMatch =
+    const orgMatch = filterOrg === "All" || act.organization?.org_name === filterOrg;
+    const statusMatch =
       filterStatus === "All" ||
       act.final_status === filterStatus ||
       (filterStatus === "Pending" && !act.final_status);
@@ -57,7 +62,7 @@ const Submissions = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };  
+  };
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -134,92 +139,124 @@ const Submissions = () => {
     );
   }
 
+  const handleCancel = async () => {
+    try {
+      console.log("Attempting to cancel activity:", cancelActivity);
+      const response = await axios.put(`/activityCancel/cancel/${cancelActivity.activity_id}`, {
+        appeal_reason: cancelReason
+      });
+
+      console.log("Cancel response:", response);
+
+      if (response.status === 200) {
+        // Update the local state to reflect the cancellation
+        setRequested(prev => [...prev, { ...cancelActivity, final_status: "For Cancellation", appeal_reason: cancelReason }]);
+        setApproved(prev => prev.filter(act => act.activity_id !== cancelActivity.activity_id));
+
+        // Close the dialog and reset the form
+        setIsCancelOpen(false);
+        setCancelReason("");
+
+        // Show success message
+        toast.success("Activity marked for cancellation");
+      }
+    } catch (error) {
+      console.error("Error cancelling activity:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      toast.error(error.response?.data?.error || "Failed to cancel activity");
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">My Submissions</h1>
 
       <Dialog
-      open={!!selectedActivity}
-      onOpenChange={() => setSelectedActivity(null)}>
+        open={!!selectedActivity}
+        onOpenChange={() => setSelectedActivity(null)}>
         {/* Requested Activities */}
         <section>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h2 className="text-lg font-semibold">Requested Activities</h2>
-          <div className="flex items-center justify-end gap-2">
-            {(filterOrg !== "All" || filterStatus !== "All") && (
-              <div className="flex items-center gap-2">
-                {filterOrg !== "All" && (
-                  <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
-                    {filterOrg}
-                    <button onClick={() => setFilterOrg("All")}
-                      className="hover:text-[#7B1113] transition">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-                {filterStatus !== "All" && (
-                  <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
-                    {filterStatus}
-                    <button onClick={() => setFilterStatus("All")}
-                      className="hover:text-[#7B1113] transition">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            <FilterDialog open={filterOpen} onOpenChange={setFilterOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-5 w-5" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
-                <DialogHeader>
-                  <DialogTitle>Filter Activities</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Organization</label>
-                    <Select value={filterOrg} onValueChange={setFilterOrg}>
-                      <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
-                        <SelectValue placeholder="Select organization" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">All</SelectItem>
-                        {orgOptions.map((org) => (
-                          <SelectItem key={org} value={org} className="whitespace-normal break-words">
-                            {org}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Status</label>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="For Appeal">For Appeal</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                        <SelectItem value="For Cancellation">For Cancellation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h2 className="text-lg font-semibold">Requested Activities</h2>
+            <div className="flex items-center justify-end gap-2">
+              {(filterOrg !== "All" || filterStatus !== "All") && (
+                <div className="flex items-center gap-2">
+                  {filterOrg !== "All" && (
+                    <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
+                      {filterOrg}
+                      <button onClick={() => setFilterOrg("All")}
+                        className="hover:text-[#7B1113] transition">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  {filterStatus !== "All" && (
+                    <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
+                      {filterStatus}
+                      <button onClick={() => setFilterStatus("All")}
+                        className="hover:text-[#7B1113] transition">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-end mt-4">
-                  <Button onClick={() => setFilterOpen(false)} className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white">
-                    Apply Filters
+              )}
+              <FilterDialog open={filterOpen} onOpenChange={setFilterOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-5 w-5" />
                   </Button>
-                </div>
-              </DialogContent>
-            </FilterDialog>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
+                  <DialogHeader>
+                    <DialogTitle>Filter Activities</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Organization</label>
+                      <Select value={filterOrg} onValueChange={setFilterOrg}>
+                        <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
+                          <SelectValue placeholder="Select organization" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="All">All</SelectItem>
+                          {orgOptions.map((org) => (
+                            <SelectItem key={org} value={org} className="whitespace-normal break-words">
+                              {org}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Status</label>
+                      <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="All">All</SelectItem>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="For Appeal">For Appeal</SelectItem>
+                          <SelectItem value="Rejected">Rejected</SelectItem>
+                          <SelectItem value="For Cancellation">For Cancellation</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <Button onClick={() => setFilterOpen(false)} className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white">
+                      Apply Filters
+                    </Button>
+                  </div>
+                </DialogContent>
+              </FilterDialog>
+            </div>
           </div>
-        </div>
           <Card className="w-full relative">
             <CardContent className="p-0">
               <div className="w-full overflow-x-auto">
@@ -227,11 +264,11 @@ const Submissions = () => {
                   <table className="w-full min-w-[10px] text-sm text-left">
                     <thead className="border-b">
                       <tr>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Title</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Date Range</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Venue</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Status</th>
                         <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
                       </tr>
                     </thead>
@@ -254,82 +291,55 @@ const Submissions = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.organization?.org_name || "Unknown"}
                               </span>
                             </td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.activity_name}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {formatDateRange(act.schedule)}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.venue}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-                              {act.final_status === "For Appeal" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
-                                  For Appeal
-                                </span>
-                              )}
-                              {act.final_status === "Pending" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
-                                  Pending
-                                </span>
-                              )}
-                              {act.final_status === "Approved" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#014421] text-white font-semibold text-xs">
-                                  Approved
-                                </span>
-                              )}
-                              {act.final_status === "Rejected" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-gray-100 text-[#1C1C1C] font-semibold text-xs border border-gray-200">
-                                  Rejected
-                                </span>
-                              )}
-                              {act.final_status === "For Cancellation" && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#7B1113] text-white font-semibold text-xs">
-                                  For Cancellation
-                                </span>
-                              )}
-                              {["For Appeal", "Pending", "Approved", "Rejected", "For Cancellation"].indexOf(act.final_status) === -1 && (
-                                <span className="inline-block px-4 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] font-semibold text-xs border border-[#FFF7D6]">
-                                  {act.final_status || "Pending"}
-                                </span>
-                              )}
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              <StatusPill status={act.final_status || "Pending"} />
                             </td>
 
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5 px-2">
                               {!["For Appeal", "Rejected", "For Cancellation"].includes(act.final_status) && (
                                 <div className="flex items-center justify-center gap-2">
-                                {/* Edit Button */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingActivity(act);
-                                    setIsAppealOpen(true);
-                                  }}
-                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
-                                >
-                                  <Pencil className="h-5 w-5" />
-                                </button>
+                                  {/* Edit Button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingActivity(act);
+                                      setIsAppealOpen(true);
+                                    }}
+                                    className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                  >
+                                    <Pencil className="h-5 w-5" />
+                                  </button>
 
-                                {/* Cancel Button */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCancelActivity(act);
-                                    setIsCancelOpen(true);
-                                  }}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
-                                >
-                                  <X className="h-5 w-5 font-bold" />
-                                </button>
-                              </div>
+                                  {/* Cancel Button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCancelActivity(act);
+                                      setIsCancelOpen(true);
+                                    }}
+                                    className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  >
+                                    <X className="h-5 w-5 font-bold" />
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -359,11 +369,11 @@ const Submissions = () => {
                   <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                     <thead className="border-b">
                       <tr>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Title</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Date Range</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</th>
-                        <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Title</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Date Range</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Venue</th>
+                        <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Activity ID</th>
                         <th className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Actions</th>
                       </tr>
                     </thead>
@@ -386,23 +396,27 @@ const Submissions = () => {
                             }}
                             className="border-b cursor-pointer hover:bg-gray-50"
                           >
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.organization?.org_name || "Unknown"}
                               </span>
                             </td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.activity_name}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{formatDateRange(act.schedule)}</td>
-                            <td className="min-w-[150px] max-w-[180px] text-xs sm:text-sm text-center py-3 sm:py-5 px-4 whitespace-normal break-words">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {formatDateRange(act.schedule)}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
                               <span className="block whitespace-normal break-words">
                                 {act.venue}
                               </span>
                             </td>
-                            <td className="min-w-[120px] w-[150px] text-xs sm:text-sm text-center py-3 sm:py-5">{act.activity_id}</td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                              {act.activity_id}
+                            </td>
                             <td className="w-[70px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">
                               <div className="flex items-center justify-center gap-2">
                                 {/* Edit Button */}
@@ -452,8 +466,8 @@ const Submissions = () => {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
             <p className="text-sm text-red-700">
-              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR APPEAL.</strong> 
-              <br/><br/>
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR APPEAL.</strong>
+              <br /><br />
               <strong>This is IRREVERSIBLE.</strong>
             </p>
           </DialogHeader>
@@ -477,11 +491,10 @@ const Submissions = () => {
                   setModalAppealReason("");
                 }}
                 disabled={modalAppealReason.trim() === ""}
-                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
-                  modalAppealReason.trim() === ""
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#014421] hover:bg-[#012f18]"
-                }`}
+                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${modalAppealReason.trim() === ""
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#014421] hover:bg-[#012f18]"
+                  }`}
               >
                 Edit Submission
               </button>
@@ -495,7 +508,7 @@ const Submissions = () => {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Cancel Submission</DialogTitle>
             <p className="text-sm text-red-700">
-              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR CANCELLATION.</strong> <br/><br/><strong>This is IRREVERSIBLE.</strong>
+              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR CANCELLATION.</strong> <br /><br /><strong>This is IRREVERSIBLE.</strong>
             </p>
           </DialogHeader>
           <div className="space-y-2 mt-1">
@@ -510,18 +523,12 @@ const Submissions = () => {
             />
             <div className="flex justify-end mt-4">
               <button
-                onClick={() => {
-                  // Submit cancel later
-                  console.log("Cancel Submission for:", cancelActivity, "Reason:", cancelReason);
-                  setIsCancelOpen(false);
-                  setCancelReason("");
-                }}
+                onClick={handleCancel}
                 disabled={cancelReason.trim() === ""}
-                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${
-                  cancelReason.trim() === ""
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#7B1113] hover:bg-[#5e0d0e]"
-                }`}
+                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${cancelReason.trim() === ""
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#7B1113] hover:bg-[#5e0d0e]"
+                  }`}
               >
                 Cancel Submission
               </button>
@@ -561,10 +568,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Report ID</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Report ID</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -575,14 +582,18 @@ const Submissions = () => {
                           onClick={() => window.open(report.drive_folder_link, '_blank')}
                           className="border-b cursor-pointer hover:bg-gray-50"
                         >
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
-  {report.organization?.org_name || report.org_name || "Unknown"}
-</td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.academic_year}</td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
+                            {report.organization?.org_name || report.org_name || "Unknown"}
+                          </td>
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                            {report.academic_year}
+                          </td>
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                             {new Date(report.submitted_at).toLocaleDateString('en-US')}
                           </td>
-                          <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{report.report_id}</td>
+                          <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
+                            {report.report_id}
+                          </td>
                         </tr>
                       ))
                     ) : (
@@ -609,10 +620,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -621,14 +632,16 @@ const Submissions = () => {
                         .filter((app) => !(app.sro_approved && app.odsa_approved))
                         .map((app) => (
                           <tr key={app.recognition_id} className="border-b">
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">
                               {app.org_name || "Unknown"}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                              {app.academic_year}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                               {new Date(app.submitted_at).toLocaleDateString('en-US')}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">
                               <span className="inline-block px-3 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] text-xs font-semibold border border-[#FFF7D6]">Pending</span>
                             </td>
                           </tr>
@@ -657,10 +670,10 @@ const Submissions = () => {
                 <table className="w-full min-w-[700px] table-fixed text-sm text-left">
                   <thead className="border-b">
                     <tr>
-                      <th className="min-w-[200px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</th>
-                      <th className="min-w-[150px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Academic Year</th>
-                      <th className="min-w-[180px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</th>
-                      <th className="min-w-[140px] w-[160px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Org Status</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">Organization</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Academic Year</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">Submission Date</th>
+                      <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">Org Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -669,14 +682,16 @@ const Submissions = () => {
                         .filter((app) => app.sro_approved && app.odsa_approved)
                         .map((app) => (
                           <tr key={app.recognition_id} className="border-b">
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[200px] truncate">
                               {app.org_name || "Unknown"}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">{app.academic_year}</td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
+                              {app.academic_year}
+                            </td>
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[180px] truncate">
                               {new Date(app.submitted_at).toLocaleDateString('en-US')}
                             </td>
-                            <td className="text-xs sm:text-sm text-center py-3 sm:py-5 px-4">
+                            <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">
                               {app.new_org_status || "N/A"}
                             </td>
                           </tr>
@@ -698,7 +713,7 @@ const Submissions = () => {
 
     </div>
 
-    
+
   );
 };
 

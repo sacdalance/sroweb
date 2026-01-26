@@ -91,7 +91,7 @@ const AdminActivitySummary = () => {
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);  const [selectedOrg, setSelectedOrg] = useState("All Organizations");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false); const [selectedOrg, setSelectedOrg] = useState("All Organizations");
   const [selectedMonth, setSelectedMonth] = useState("All Months");
   const [selectedYear, setSelectedYear] = useState("All Academic Years");
   const [orgSearchTerm, setOrgSearchTerm] = useState("");
@@ -104,7 +104,7 @@ const AdminActivitySummary = () => {
   });
   const [summaryActivities, setSummaryActivities] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // PDF generation state
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
   useEffect(() => {
@@ -125,7 +125,7 @@ const AdminActivitySummary = () => {
         setLoading(false);
       }
     };
-  
+
     loadSummary();
     setCurrentPage(1);
   }, [selectedType, appliedFilters]);
@@ -140,14 +140,14 @@ const AdminActivitySummary = () => {
         console.error("Failed to load organizations:", err);
       }
     };
-  
+
     loadOrgs();
   }, []);
   const filteredOrgOptions = orgSearchTerm.trim() === ""
     ? organizationOptions
     : organizationOptions.filter((org) =>
-        org.toLowerCase().includes(orgSearchTerm.toLowerCase())
-      );
+      org.toLowerCase().includes(orgSearchTerm.toLowerCase())
+    );
 
   const [academicYears, setAcademicYears] = useState(["All Academic Years"]);
   useEffect(() => {
@@ -159,7 +159,7 @@ const AdminActivitySummary = () => {
         console.error("Failed to load academic years:", err);
       }
     };
-  
+
     loadYears();
   }, []);
 
@@ -167,23 +167,23 @@ const AdminActivitySummary = () => {
   const filteredByOtherFilters = summaryActivities.filter((activity) => {
     const startDateStr = activity.schedule?.[0]?.start_date;
     if (!startDateStr) return false;
-  
+
     const startDate = new Date(startDateStr);
     const startYear = startDate.getFullYear();
     const activityMonth = startDate.toLocaleString("default", { month: "long" });
-  
+
     // Academic year filter
     if (appliedFilters.year !== "All Academic Years") {
       const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
       if (startYear !== selectedStartYear) return false;
     }
 
-  
+
     // Month filter
     if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
       return false;
     }
-  
+
     // Organization filter
     if (
       appliedFilters.organization !== "All Organizations" &&
@@ -191,11 +191,11 @@ const AdminActivitySummary = () => {
     ) {
       return false;
     }
-  
+
     return true;
   });
-    // 2. Calculate counts from this filtered list
-  const approvedCount = filteredByOtherFilters.filter(a => 
+  // 2. Calculate counts from this filtered list
+  const approvedCount = filteredByOtherFilters.filter(a =>
     a.final_status === "Approved" && !a.pdf_generated
   ).length;
   const pendingCount = filteredByOtherFilters.filter(a =>
@@ -210,7 +210,7 @@ const AdminActivitySummary = () => {
     if (filter === "pending" && !isPending) return false;
     return true;
   });
-  
+
   const handleApplyFilters = () => {
     setAppliedFilters({
       organization: selectedOrg,
@@ -239,11 +239,11 @@ const AdminActivitySummary = () => {
   const handleGenerateApprovalSlips = async () => {
     try {
       setGeneratingPDFs(true);
-      
+
       const result = await generateApprovalSlips();
 
       toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
-      
+
       // Refresh the summary to update the UI
       const activities = await fetchSummaryActivities({
         activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
@@ -268,13 +268,13 @@ const AdminActivitySummary = () => {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to get folder URL');
       }
-      
+
       const { folderUrl } = await response.json();
-      
+
       window.open(folderUrl, '_blank');
       toast.success('Opening Google Drive folder in new tab...');
     } catch (error) {
@@ -293,17 +293,17 @@ const AdminActivitySummary = () => {
     >
       <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] text-center sm:text-left">Summary of Activity Requests</h1>
-        <div className="flex flex-col sm:flex-row gap-2">          <Button 
-            onClick={handleViewPDFsInDrive}
-            variant="outline"
-            className="border-[#014421] text-[#014421] hover:bg-[#014421] hover:text-white flex items-center gap-2"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z"/>
-            </svg>
-            View PDFs in Drive
-          </Button>
-          <Button 
+        <div className="flex flex-col sm:flex-row gap-2">          <Button
+          onClick={handleViewPDFsInDrive}
+          variant="outline"
+          className="border-[#014421] text-[#014421] hover:bg-[#014421] hover:text-white flex items-center gap-2"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
+          </svg>
+          View PDFs in Drive
+        </Button>
+          <Button
             onClick={handleGenerateApprovalSlips}
             disabled={generatingPDFs || approvedCount === 0}
             className="bg-[#014421] hover:bg-[#013319] text-white flex items-center gap-2"
@@ -322,7 +322,6 @@ const AdminActivitySummary = () => {
           </Button>
         </div>
       </div>
-      
       {/* Filter Section using Tabs */}
       <Card className="mb-6">
         <div className="p-2 sm:px-4 md:px-8">
@@ -445,7 +444,7 @@ const AdminActivitySummary = () => {
                       <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleApplyFilters}
                         className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
                       >
@@ -457,64 +456,64 @@ const AdminActivitySummary = () => {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(appliedFilters.organization !== "All Organizations" || 
-                appliedFilters.month !== "All Months" || 
+              {(appliedFilters.organization !== "All Organizations" ||
+                appliedFilters.month !== "All Months" ||
                 appliedFilters.year !== "All Academic Years") && (
-                <div className="flex items-center gap-2">
-                  {appliedFilters.organization !== "All Organizations" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.organization}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('organization')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {appliedFilters.month !== "All Months" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.month}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('month')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {appliedFilters.year !== "All Academic Years" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {appliedFilters.year}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveFilter('year')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {selectedType !== "all" && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {activityTypes.find((t) => t.id === selectedType)?.label}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => setSelectedType("all")}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-              </div>
-              )}
+                  <div className="flex items-center gap-2">
+                    {appliedFilters.organization !== "All Organizations" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.organization}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('organization')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {appliedFilters.month !== "All Months" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.month}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('month')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {appliedFilters.year !== "All Academic Years" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {appliedFilters.year}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => handleRemoveFilter('year')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                    {selectedType !== "all" && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {activityTypes.find((t) => t.id === selectedType)?.label}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setSelectedType("all")}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )}
+                  </div>
+                )}
               {/* Filter Button: hidden on mobile, visible on sm+ */}
               <div className="hidden sm:block">
                 <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
@@ -626,7 +625,7 @@ const AdminActivitySummary = () => {
                       <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleApplyFilters}
                         className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
                       >
@@ -640,63 +639,60 @@ const AdminActivitySummary = () => {
           </div>
 
           <div className="flex justify-center px-0 sm:px-8">
-          <Tabs
-          value={filter}
-          onValueChange={(val) => {
-            if (tabCooldown || loading) return;
+            <Tabs
+              value={filter}
+              onValueChange={(val) => {
+                if (tabCooldown || loading) return;
 
-            setFilter(val);
-            setTabCooldown(true);
+                setFilter(val);
+                setTabCooldown(true);
 
-            setTimeout(() => {
-              setTabCooldown(false);
-            }, 800); // cooldown in ms
-          }}
-          className="w-full max-w-[400px]"
-        >
-          <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
-            <TabsTrigger
-              value="all"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                setTimeout(() => {
+                  setTabCooldown(false);
+                }, 800); // cooldown in ms
+              }}
+              className="w-full max-w-[400px]"
             >
-              Show All
-            </TabsTrigger>
-            <TabsTrigger
-              value="approved"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-            >
-              Approved ({approvedCount})
-            </TabsTrigger>
-            <TabsTrigger
-              value="pending"
-              disabled={loading || tabCooldown}
-              className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${
-                loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-              } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-            >
-              Pending ({pendingCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <TabsList className="grid w-full grid-cols-3 h-8 p-0 bg-gray-100 rounded-4xl">
+                <TabsTrigger
+                  value="all"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Show All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="approved"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Approved ({approvedCount})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pending"
+                  disabled={loading || tabCooldown}
+                  className={`text-sm h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
+                    } data-[state=active]:bg-[#7B1113] data-[state=active]:text-white relative data-[state=active]:shadow-none`}
+                >
+                  Pending ({pendingCount})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
-      {/* Table Section */}
-      {loading ? (
+        {/* Table Section */}
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
             <div className="h-6 w-6 mb-3 border-2 border-[#7B1113] border-t-transparent rounded-full animate-spin"></div>
             Loading submissions...
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <Table>            <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>            <TableHeader>
               <TableRow className="border-b-0">
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead> 
+                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead>
                 <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</TableHead>
                 <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Name</TableHead>
@@ -707,140 +703,145 @@ const AdminActivitySummary = () => {
                 <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
                 <TableHead className="min-w-[100px] w-[120px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">PDF Status</TableHead>
               </TableRow>
-            </TableHeader>            <TableBody>
-              {paginatedActivities.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
-                    No activities found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedActivities.map((activity, index) => (
-                  <TableRow
-                    key={index}
-                    className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
-                    onClick={() => {
-                      setSelectedActivity(activity);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <TableCell className="py-5">
-                      <div className="flex items-center justify-center">
-                        <Badge
-                          className={
-                            (activity.final_status === "Approved"
-                              ? "bg-[#014421] text-white"
-                              : "bg-[#FFF7D6] text-[#A05A00]")
-                            + " text-sm px-4 py-1 pointer-events-none" // Prevents hover/focus/active styles
-                          }
-                        >
-                          {activity.final_status === "Approved"
-                            ? "Approved"
-                            : "Pending"}
-                        </Badge>
-                      </div>
+            </TableHeader>
+              <TableBody>
+                {paginatedActivities.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
+                      No activities found.
                     </TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {new Date(activity.created_at).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                      })}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.activity_name}
-                    </TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
-                        {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
-                          <Badge
-                            key={typeId}
-                            variant="secondary"
-                            className={`${
-                              typeId === selectedType
+                  </TableRow>
+
+                ) : (
+                  paginatedActivities.map((activity, index) => (
+                    <TableRow
+                      key={index}
+                      className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        setSelectedActivity(activity);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <TableCell className="py-5 text-sm text-center">
+                        <div className="flex justify-center">
+                          {/* Assuming StatusPill is imported or using similar logic to AdminPendingRequests */}
+                          {/* Since StatusPill might not be imported in this file, we check imports or use badge. 
+                                HEAD didn't show StatusPill usage. kyle-fixes used it. 
+                                Let's check imports. Lines 1-42 showed Badge, but not StatusPill?
+                                Wait, kyle-fixes line 803 usage: <StatusPill ... />.
+                                Functionally, I should probably check if StatusPill is available.
+                                If not, I'll use Badge. 
+                                BUT, if I look at imports in file (step 223), line 25, 33... StatusPill is NOT imported in HEAD.
+                                So I should probably use Badge logic for Status if StatusPill isn't there.
+                                OR, rely on HEAD's PDF Status logic? 
+                                HEAD header has "Status". 
+                                Let's just use a Badge for Status similar to HEAD's other badges.
+                            */}
+                          {activity.final_status || "Pending"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5 text-sm text-center">
+                        {new Date(activity.created_at).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric"
+                        })}
+                      </TableCell>
+                      <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
+                      <TableCell className="py-5 text-sm text-center">
+                        {activity.activity_name}
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
+                          {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
+                            <Badge
+                              key={typeId}
+                              variant="secondary"
+                              className={`${typeId === selectedType
                                 ? 'bg-[#7B1113] text-white hover:bg-[#7B1113]'
                                 : ''
-                            } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
-                          >
-                            <span className="inline-block truncate max-w-[200px]">
-                              {formatActivityTypeLabel(typeId)}
-                            </span>
-                          </Badge>
-                        ))}
-                        {(activity.activity_type?.split(",") || []).length > 3 && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                              +{activity.activity_type.split(",").length - 3}
+                                } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
+                            >
+                              <span className="inline-block truncate max-w-[200px]">
+                                {formatActivityTypeLabel(typeId)}
+                              </span>
+                            </Badge>
+                          ))}
+                          {(activity.activity_type?.split(",") || []).length > 3 && (
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                                +{activity.activity_type.split(",").length - 3}
+                              </div>
+                              more
                             </div>
-                            more
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.schedule?.[0]?.start_date
-                        ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5 text-sm text-center">
+                        {activity.schedule?.[0]?.start_date
+                          ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "long",
                             day: "numeric"
                           })
-                        : "TBD"}
-                    </TableCell>
-                    <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
-                    <TableCell className="py-5 text-sm text-center">
-                      {activity.organization?.adviser_name || "N/A"}
-                    </TableCell>                    <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
-                    <TableCell className="py-5">
-                      <div className="flex items-center justify-center">
-                        {activity.final_status === "Approved" && (
-                          <Badge
-                            className={
-                              activity.pdf_generated
-                                ? "bg-green-600 text-white"
-                                : "bg-amber-600 text-white"
-                            }
-                          >
-                            {activity.pdf_generated ? "PDF Generated" : "Needs PDF"}
-                          </Badge>
-                        )}
-                        {activity.final_status !== "Approved" && (
-                          <span className="text-gray-400 text-sm">N/A</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-            )}
-          </TableBody>
-        </Table>
-        <div className="flex justify-between items-center mt-4 px-4">
-        <div className="text-sm text-gray-600">
-          Page {currentPage} of {totalPages}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-        </div>
-      )}
+                          : "TBD"}
+                      </TableCell>
+                      <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
+                      <TableCell className="py-5 text-sm text-center">
+                        {activity.organization?.adviser_name || "N/A"}
+                      </TableCell>
+                      <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
+                      <TableCell className="py-5">
+                        <div className="flex items-center justify-center">
+                          {activity.final_status === "Approved" && (
+                            <Badge
+                              className={
+                                activity.pdf_generated
+                                  ? "bg-green-600 text-white"
+                                  : "bg-amber-600 text-white"
+                              }
+                            >
+                              {activity.pdf_generated ? "PDF Generated" : "Needs PDF"}
+                            </Badge>
+                          )}
+                          {activity.final_status !== "Approved" && (
+                            <span className="text-gray-400 text-sm">N/A</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <div className="flex justify-between items-center mt-4 px-4">
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+        }
 
-      </Card>
+      </Card >
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {selectedActivity && (
@@ -860,8 +861,8 @@ const AdminActivitySummary = () => {
             See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
-          </div>
-    </div>
+      </div>
+    </div >
   );
 };
 

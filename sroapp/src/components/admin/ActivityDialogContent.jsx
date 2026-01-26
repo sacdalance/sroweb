@@ -98,6 +98,7 @@ const ActivityDialogContent = ({
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
+  const isSuperAdmin = userRole === 4;
   const [hasViewedScannedForm, setHasViewedScannedForm] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [comment, setComment] = useState(() =>
@@ -121,6 +122,9 @@ const ActivityDialogContent = ({
 
   const commentRef = useRef(null);
 
+  const [sroComment, setSroComment] = useState(activity?.sro_remarks || "");
+  const [odsaComment, setOdsaComment] = useState(activity?.odsa_remarks || "");
+
   useEffect(() => {
     if (showDecisionBox && commentRef.current) {
       setTimeout(() => {
@@ -131,11 +135,12 @@ const ActivityDialogContent = ({
 
   useEffect(() => {
     if (!isModalOpen || !localActivity?.activity_id) return;
-  
+
     const actionTaken =
       (isSRO && localActivity?.sro_approval_status !== null) ||
-      (isODSA && localActivity?.odsa_approval_status !== null);
-  
+      (isODSA && localActivity?.odsa_approval_status !== null) ||
+      (isSuperAdmin && localActivity?.sro_approval_status !== null && localActivity?.odsa_approval_status !== null);
+
     setHasViewedScannedForm(false); // reset on dialog open
     setShowDecisionBox(false);
     setConfirmationOpen(false);
@@ -143,7 +148,9 @@ const ActivityDialogContent = ({
     setComment(
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
-  
+    setSroComment(localActivity?.sro_remarks || "");
+    setOdsaComment(localActivity?.odsa_remarks || "");
+
     if (actionTaken) {
       setTimeout(() => {
         setShowDecisionBox(true);
@@ -181,17 +188,17 @@ const ActivityDialogContent = ({
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
-        <DialogTitle
-          className="text-2xl text-[#7B1113] font-bold break-words"
-          style={{
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-            maxWidth: isNoSpaceLong ? "15%" : "100%",
-          }}
-        >
-          {title}
-        </DialogTitle>
+          <DialogTitle
+            className="text-2xl text-[#7B1113] font-bold break-words"
+            style={{
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              maxWidth: isNoSpaceLong ? "15%" : "100%",
+            }}
+          >
+            {title}
+          </DialogTitle>
           <p className="text-sm font-semibold text-gray-700 mb-2">
             {activity.organization?.org_name || activity.organization || "Organization Name"}
           </p>
@@ -264,8 +271,26 @@ const ActivityDialogContent = ({
           <div className="space-y-1">
             <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
             <div className="pl-4">
-              <p><strong>Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
-              <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+              {activity.schedule?.[0]?.is_recurring === "true" ? (
+                <>
+                  <p><strong>Start Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
+                  <p><strong>End Date:</strong> {formatDate(activity.schedule?.[0]?.end_date)}</p>
+                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+                  <p><strong>Recurring Day/s:</strong> {(() => {
+                    try {
+                      const days = JSON.parse(activity.schedule?.[0]?.recurring_days || "{}");
+                      return Object.keys(days).filter(day => days[day]).join(", ") || "N/A";
+                    } catch {
+                      return "N/A";
+                    }
+                  })()}</p>
+                </>
+              ) : (
+                <>
+                  <p><strong>Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
+                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+                </>
+              )}
             </div>
           </div>
 
@@ -294,22 +319,23 @@ const ActivityDialogContent = ({
             </Collapsible>
           )}
 
-<div className="space-y-2">
+          <div className="space-y-2">
             <p><strong>Status:</strong> {activity.final_status || activity.status || "Pending"}</p>
+            <p><strong>Activity ID:</strong> {activity.activity_id || "N/A"}</p>
             {activity.drive_folder_link && (
               <div className="flex items-center gap-2">
-              <a
-                href={activity.drive_folder_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  setHasViewedScannedForm(true);
-                  setShowDecisionBox(true);
-                }}
-                className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
-              >
-                View Scanned Form
-              </a>
+                <a
+                  href={activity.drive_folder_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    setHasViewedScannedForm(true);
+                    setShowDecisionBox(true);
+                  }}
+                  className="inline-block bg-[#014421] text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-[#012f18] transition"
+                >
+                  View Scanned Form
+                </a>
                 {!readOnly && (
                   <button
                     onClick={() => setShowDecisionBox((prev) => !prev)}
@@ -325,6 +351,14 @@ const ActivityDialogContent = ({
 
           {!readOnly && showDecisionBox && (
             <div className="mt-4 space-y-3" ref={commentRef}>
+              {(activity.final_status === "For Appeal" || activity.final_status === "For Cancellation") && activity.appeal_reason && (
+                <div className="mb-2">
+                  <label className="text-sm font-medium text-gray-700 block">Appeal/Cancellation Reason</label>
+                  <div className="border p-2 rounded bg-gray-50 text-gray-800 text-sm">
+                    {activity.appeal_reason}
+                  </div>
+                </div>
+              )}
               {isODSA && (
                 <div className="text-sm">
                   <p className="text-gray-600 mb-1 font-medium">SRO Remarks:</p>
@@ -333,22 +367,42 @@ const ActivityDialogContent = ({
                   </div>
                 </div>
               )}
-
-              <label className="text-sm font-medium text-gray-700 block">
-                {isSRO ? "SRO Remarks" : "ODSA Remarks"}
-              </label>
-
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={4}
-                placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
-                  ? "No remark was given."
-                  : "Enter your remarks..."}
-                className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
-                disabled={isActionLocked}
-              />
-
+              {isSuperAdmin ? (
+                <>
+                  <label className="text-sm font-medium text-gray-700 block">SRO Remarks</label>
+                  <textarea
+                    value={sroComment}
+                    onChange={e => setSroComment(e.target.value)}
+                    rows={3}
+                    placeholder="Enter SRO remarks..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                  />
+                  <label className="text-sm font-medium text-gray-700 block mt-2">ODSA Remarks</label>
+                  <textarea
+                    value={odsaComment}
+                    onChange={e => setOdsaComment(e.target.value)}
+                    rows={3}
+                    placeholder="Enter ODSA remarks..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {isSRO ? "SRO Remarks" : "ODSA Remarks"}
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                    placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                      ? "No remark was given."
+                      : "Enter your remarks..."}
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                    disabled={isActionLocked}
+                  />
+                </>
+              )}
               <div className="flex justify-end gap-3">
                 {isActionLocked ? (
                   <div className="w-full flex justify-end">
@@ -358,35 +412,50 @@ const ActivityDialogContent = ({
                       </span>
                     ) : (
                       <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
-                        {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
+                        {isSRO ? "Waiting for ODSA approval" : isODSA ? "Action already taken" : "Action already taken"}
                       </span>
                     )}
                   </div>
                 ) : (
                   <>
-                  {!hasViewedScannedForm && (
-                    <p className="text-sm text-gray-500 italic">Click “View Scanned Form” to activate approval buttons.</p>
-                  )}
-                    <button
-                      disabled={!hasViewedScannedForm}
-                      onClick={() => {
-                        setDecisionType("approve");
-                        setConfirmationOpen(true);
-                      }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      disabled={!hasViewedScannedForm}
-                      onClick={() => {
-                        setDecisionType("reject");
-                        setConfirmationOpen(true);
-                      }}
-                      className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
-                    >
-                      Reject
-                    </button>
+                    {!hasViewedScannedForm && (
+                      <p className="text-sm text-gray-500 italic">Click "View Scanned Form" to activate approval buttons.</p>
+                    )}
+                    {activity.final_status === "For Cancellation" ? (
+                      <button
+                        disabled={!hasViewedScannedForm}
+                        onClick={() => {
+                          setDecisionType("cancel");
+                          setConfirmationOpen(true);
+                        }}
+                        className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                      >
+                        Cancel Activity
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          disabled={!hasViewedScannedForm}
+                          onClick={() => {
+                            setDecisionType("approve");
+                            setConfirmationOpen(true);
+                          }}
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#014421] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          disabled={!hasViewedScannedForm}
+                          onClick={() => {
+                            setDecisionType("reject");
+                            setConfirmationOpen(true);
+                          }}
+                          className="px-5 py-2 rounded-full font-semibold text-sm bg-[#7B1113] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -419,12 +488,18 @@ const ActivityDialogContent = ({
         <DialogContent className="max-w-md rounded-lg shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-[#7B1113] font-bold text-lg">
-              Confirmation
+              {decisionType === "cancel" ? "Cancel Activity" : "Confirmation"}
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-700 mt-1">
-              You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"}`}>
-                {decisionType === "approve" ? "APPROVING" : "REJECTING"}
-              </strong> the request for activity:
+              {decisionType === "cancel" ? (
+                "You are cancelling the activity:"
+              ) : (
+                <>
+                  You are <strong className={`uppercase font-bold ${decisionType === "approve" ? "text-[#014421]" : "text-[#7B1113]"}`}>
+                    {decisionType === "approve" ? "APPROVING" : "REJECTING"}
+                  </strong> the request for activity:
+                </>
+              )}
             </DialogDescription>
             <p className="text-base mt-2 font-semibold text-black">{activity.activity_name}</p>
           </DialogHeader>
@@ -432,7 +507,9 @@ const ActivityDialogContent = ({
           <div className="mt-2">
             <p className="text-sm text-gray-600 mb-1">With reason:</p>
             <div className="border border-gray-300 p-3 rounded-md text-sm bg-gray-50 whitespace-pre-wrap">
-              {comment.trim() || "No reason provided."}
+              {isSuperAdmin
+                ? `SRO: ${sroComment.trim() || "No reason provided."}\nODSA: ${odsaComment.trim() || "No reason provided."}`
+                : comment.trim() || "No reason provided."}
             </div>
           </div>
 
@@ -451,15 +528,27 @@ const ActivityDialogContent = ({
                 }
 
                 try {
-                  if (decisionType === "approve") {
-                    await handleApprove(comment, localActivity.activity_id);
+                  if (decisionType === "cancel") {
+                    await handleReject(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
+                    toast.error("Activity cancelled.");
+                  } else if (decisionType === "approve") {
+                    await handleApprove(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
                     toast.success("Activity approved successfully!");
                   } else {
-                    await handleReject(comment, localActivity.activity_id);
+                    await handleReject(
+                      isSuperAdmin ? { sro: sroComment, odsa: odsaComment } : comment,
+                      localActivity.activity_id
+                    );
                     toast.error("Activity rejected.");
                   }
                 } catch (error) {
-                  console.error("Reject Error:", error);
+                  console.error("Error:", error);
                   toast.error(`Something went wrong: ${error.message}`);
                 } finally {
                   setSubmitting(false);

@@ -51,14 +51,14 @@ const AdminPendingRequests = () => {
     const fetchRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-  
+
       const { data: { user } } = await supabase.auth.getUser();
       const { data: account, error } = await supabase
-      .from("account")
-      .select("role_id")
-      .eq("email", user.email)
-      .single();
-  
+        .from("account")
+        .select("role_id")
+        .eq("email", user.email)
+        .single();
+
       if (error) {
         console.error("Error fetching role:", error);
       } else {
@@ -66,22 +66,22 @@ const AdminPendingRequests = () => {
         console.log("Fetched user role:", account?.role_id);
       }
     };
-  
+
     fetchRole();
   }, []);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
-    .from("activity")
-    .select(`
+      .from("activity")
+      .select(`
       *,
       account:account (*),
       schedule:activity_schedule(*),
       organization:organization(*)
     `)
-    .eq("activity_id", id)
-    .single();
-    
+      .eq("activity_id", id)
+      .single();
+
     if (error) {
       console.error("Failed to refresh activity:", error);
     } else {
@@ -94,34 +94,33 @@ const AdminPendingRequests = () => {
   };
 
   const [incomingRequests, setIncomingRequests] = useState([]);
-  useEffect(() => {
-    if (!userRole) return; // Wait until role is available
+  const fetchIncoming = async () => {
+    try {
+      setLoading(true);
+      const { data: sessionData, error } = await supabase.auth.getSession();
+      const access_token = sessionData?.session?.access_token;
 
-    const fetchIncoming = async () => {
-      try {
-        setLoading(true);
-        const { data: sessionData, error } = await supabase.auth.getSession();
-        const access_token = sessionData?.session?.access_token;
+      if (!access_token) {
+        console.error("No access token found");
+        return;
+      }
 
-        if (!access_token) {
-          console.error("No access token found");
-          return;
-        }
+      const res = await axios.get("/api/activities/incoming", {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
 
-        const res = await axios.get("/api/activities/incoming", {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        });
+      const allActivities = res.data;
+      setAllActivities(allActivities);
 
-        const allActivities = res.data;
-        setAllActivities(allActivities);
-
-        const filtered = allActivities.filter((a) => {
-          const isAppeal = a.final_status === "For Appeal";
-          if (isAppeal) return false;
-
-          if (userRole === 2) {
+      let filtered;
+      if (userRole === 4) {
+        // Superadmin: filter based on superadminView
+        if (superadminView === 'sro') {
+          filtered = allActivities.filter((a) => {
+            const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+            if (isAppealOrCancel) return false;
             return (
               a.sro_approval_status === null ||
               (a.sro_approval_status === "Approved" &&
@@ -129,57 +128,80 @@ const AdminPendingRequests = () => {
                   a.odsa_approval_status === "" ||
                   typeof a.odsa_approval_status === "undefined"))
             );
-          } else if (userRole === 3) {
-            // ODSA sees only activities approved by SRO and not yet acted on by them
+          });
+        } else if (superadminView === 'odsa') {
+          filtered = allActivities.filter((a) => {
+            const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+            if (isAppealOrCancel) return false;
             return (
               a.sro_approval_status === "Approved" &&
               (a.odsa_approval_status === null ||
                 a.odsa_approval_status === "" ||
                 typeof a.odsa_approval_status === "undefined")
             );
-          } else if (userRole === 4) {
-            // Superadmin sees all
-            return true;
-          }
-          return false;
+          });
+        } else {
+          filtered = allActivities;
+        }
+      } else if (userRole === 2) {
+        filtered = allActivities.filter((a) => {
+          const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+          if (isAppealOrCancel) return false;
+          return (
+            a.sro_approval_status === null ||
+            (a.sro_approval_status === "Approved" && a.odsa_approval_status === null)
+          );
         });
-
-        setIncomingRequests(filtered);
-
-      } catch (error) {
-        console.error("Failed to fetch incoming submissions:", error);
-      } finally {
-        setLoading(false);
+      } else if (userRole === 3) {
+        // ODSA sees only activities approved by SRO and not yet acted on by them
+        filtered = allActivities.filter((a) => {
+          const isAppealOrCancel = a.final_status === "For Appeal" || a.final_status === "For Cancellation";
+          if (isAppealOrCancel) return false;
+          return (
+            a.sro_approval_status === "Approved" &&
+            a.odsa_approval_status === null
+          );
+        });
+      } else {
+        filtered = allActivities;
       }
-    };
 
-    fetchIncoming();
-  }, [userRole]);
-  
-  
+      setIncomingRequests(filtered);
+
+    } catch (error) {
+      console.error("Failed to fetch incoming submissions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const appeals = allActivities.filter(a => a.final_status === "For Appeal");
+    fetchIncoming();
+  }, [userRole, superadminView]);
+
+  useEffect(() => {
+    const appeals = allActivities.filter(a => a.final_status === "For Appeal" || a.final_status === "For Cancellation");
     setPendingAppeals(appeals);
   }, [allActivities]);
 
   const handleViewDetails = async (activity) => {
     const { data, error } = await supabase
-    .from("activity")
-    .select(`
+      .from("activity")
+      .select(`
       *,
       account:account (*),
       schedule:activity_schedule(*),
       organization:organization(*)
     `)
-    .eq("activity_id", activity.activity_id)
-    .single();
-  
+      .eq("activity_id", activity.activity_id)
+      .single();
+
     if (error) {
       console.error("Failed to fetch latest activity:", error);
       toast.error("Something went wrong loading this activity.");
       return;
     }
-  
+
     setSelectedActivity(data);
     setIsModalOpen(true);
   };
@@ -189,21 +211,21 @@ const AdminPendingRequests = () => {
       console.error("Missing activityId or userRole.");
       throw new Error("Activity or role not ready.");
     }
-  
+
     await approveActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
   };
-  
+
   const handleReject = async (comment, activityId) => {
     if (!activityId || !userRole) {
       console.error("Missing activityId or userRole.");
       throw new Error("Activity or role not ready.");
     }
-  
+
     await rejectActivity(activityId, comment, userRole);
     await refreshSelectedActivity(activityId);
   };
-  
+
 
 
   if (!userRole) return null;
@@ -213,7 +235,7 @@ const AdminPendingRequests = () => {
       className="container mx-auto py-4 max-w-[1800px]"
       style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
     >
-      <Toaster/>
+      <Toaster />
       <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Pending Activity Requests</h1>
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
@@ -232,8 +254,8 @@ const AdminPendingRequests = () => {
           "
         >
           {userRole === 3 ? (
-            <TabsTrigger  
-              value="submissions" 
+            <TabsTrigger
+              value="submissions"
               className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-4xl text-xs sm:text-base p-1 w-full"
               style={{ gridColumn: "1 / span 2" }}
             >
@@ -241,15 +263,15 @@ const AdminPendingRequests = () => {
             </TabsTrigger>
           ) : (
             <>
-              <TabsTrigger  
-                value="submissions" 
+              <TabsTrigger
+                value="submissions"
                 className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-l-4xl text-xs sm:text-base p-1"
               >
                 Incoming Submissions ({incomingRequests.length})
               </TabsTrigger>
               {(userRole === 2 || userRole === 4) && (
-                <TabsTrigger 
-                  value="appeals" 
+                <TabsTrigger
+                  value="appeals"
                   className="data-[state=active]:bg-[#7B1113] data-[state=active]:text-white rounded-r-4xl text-xs sm:text-base p-1"
                 >
                   Appeals and Cancellations ({pendingAppeals.length})
@@ -258,7 +280,7 @@ const AdminPendingRequests = () => {
             </>
           )}
         </TabsList>
-        
+
         <TabsContent value="appeals">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
@@ -322,7 +344,7 @@ const AdminPendingRequests = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="submissions">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">

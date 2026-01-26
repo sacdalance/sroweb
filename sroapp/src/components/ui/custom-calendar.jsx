@@ -32,10 +32,10 @@ const CustomCalendar = ({
 
   const getAppointmentDayClass = (day) => {
     let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
-    
+
     if (selectedDate && isSameDay(day, selectedDate)) {
       classes += "bg-[#014421] text-white font-bold ";
-    } 
+    }
     else if (isToday(day)) {
       classes += "border-2 border-[#014421] text-[#014421] font-bold ";
     }
@@ -45,31 +45,31 @@ const CustomCalendar = ({
       } else {
         classes += "bg-[#014421]/20 text-[#014421] font-bold hover:bg-[#014421]/30 ";
       }
-    } 
+    }
     else if (blockedDates.some(date => isSameDay(day, date))) {
       classes += "text-[#7B1113] font-bold ";
-    } 
+    }
     else {
       classes += "text-gray-400 ";
     }
-    
+
     return classes;
   };
 
   const getActivityDayClass = (day) => {
     const dayEvents = events.filter(event => isSameDay(new Date(event.date), day));
     let classes = "min-h-[100px] p-2 relative ";
-    
+
     if (!isSameMonth(day, currentMonth)) {
       classes += "bg-gray-50 text-gray-400 ";
     } else {
       classes += "bg-white ";
     }
-    
+
     if (isToday(day)) {
       classes += "border-2 border-[#014421] ";
     }
-    
+
     return {
       containerClass: classes,
       hasEvents: dayEvents.length > 0,
@@ -106,20 +106,20 @@ const CustomCalendar = ({
                 ))}
               </select>
             </div>
-          ) : (            <h2 className="text-2xl font-bold text-[#7B1113]">
+          ) : (<h2 className="text-2xl font-bold text-[#7B1113]">
             {format(currentMonth, 'MMMM').toUpperCase()} {format(currentMonth, 'yyyy')}
           </h2>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={handlePrevMonth}
             className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button 
+          <button
             onClick={handleNextMonth}
             className="p-1.5 rounded-full bg-white text-[#014421] hover:bg-gray-100 border border-[#014421]"
           >
@@ -140,10 +140,10 @@ const CustomCalendar = ({
         {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
           <div key={`empty-${index}`} className="h-10"></div>
         ))}
-        
+
         {generateCalendarDays().map((day, i) => (
           mode === 'appointments' ? (
-            <div 
+            <div
               key={i}
               onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
               className="p-1"
@@ -153,14 +153,13 @@ const CustomCalendar = ({
               </div>
             </div>
           ) : (
-            <div 
+            <div
               key={i}
               className={getActivityDayClass(day).containerClass}
             >
               <div className="flex justify-between items-start">
-                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${
-                  isToday(day) ? "bg-[#014421] text-white" : ""
-                }`}>
+                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${isToday(day) ? "bg-[#014421] text-white" : ""
+                  }`}>
                   {format(day, 'd')}
                 </span>
                 {getActivityDayClass(day).hasEvents && (
@@ -174,7 +173,7 @@ const CustomCalendar = ({
                   {getActivityDayClass(day).events.map((event, index) => (
                     <div
                       key={index}
-                      className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category)}`}
+                      className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category, event)}`}
                       onClick={() => onDateSelect && onDateSelect(event)}
                       title={event.title}
                     >
