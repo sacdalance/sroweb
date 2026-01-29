@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "sonner";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("16:00");
@@ -489,6 +490,7 @@ Student Relations Office`,
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         {/* Appointments Tab */}
@@ -619,16 +621,17 @@ Student Relations Office`,
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Interval (minutes)</label>
-                    <select
-                      className="w-full p-2 border rounded-md"
-                      value={interval}
-                      onChange={(e) => setInterval(Number(e.target.value))}
-                    >
-                      <option value={15}>15 minutes</option>
-                      <option value={30}>30 minutes</option>
-                      <option value={45}>45 minutes</option>
-                      <option value={60}>1 hour</option>
-                    </select>
+                    <UnifiedDropdown
+                      options={[
+                        { value: "15", label: "15 minutes" },
+                        { value: "30", label: "30 minutes" },
+                        { value: "45", label: "45 minutes" },
+                        { value: "60", label: "1 hour" }
+                      ]}
+                      value={String(interval)}
+                      onChange={(val) => setInterval(Number(val))}
+                      placeholder="Select interval"
+                    />
                   </div>
                 </div>
               </div>
