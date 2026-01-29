@@ -199,8 +199,8 @@ const AdminOrganizations = () => {
   };
 
   return (
-    <div className="container mx-auto py-4 max-w-6xl">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Summary of Organizations</h1>
+    <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
+      <h1 className="page-header">Summary of Organizations</h1>
 
       {/* Search and Category Filter */}
       <div className="mb-8 flex flex-col md:flex-row gap-4">

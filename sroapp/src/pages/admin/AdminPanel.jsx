@@ -556,12 +556,12 @@ const AdminPanel = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#ffffff]">
       {/* Responsive Flex Layout */}
-      <div className="flex flex-col md:flex-row flex-wrap w-full max-w-[1500px] mx-auto p-4 md:p-6 gap-6 min-h-[80vh]">
+      <div className="flex flex-col md:flex-row flex-wrap w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6 min-h-[80vh]">
         {/* Main Content */}
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Summary of Submissions</h2>
+            <h2 className="page-header">Summary of Submissions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <Link

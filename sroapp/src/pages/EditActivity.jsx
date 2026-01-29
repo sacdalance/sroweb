@@ -776,7 +776,7 @@ const EditActivity = () => {
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
-                <h1 className="text-2xl font-bold mb-6 text-left">Edit Submission</h1>
+                <h1 className="page-header">Edit Submission</h1>
                 <form onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
 
                     {/* Sonner, side pop up */}

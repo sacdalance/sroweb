@@ -199,7 +199,7 @@ const Dashboard = () => {
     <div className="max-w-[1350px] mx-auto mb-8" >
       <Card className="shadow-sm px-6 py-4 mb-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">
+          <h2 className="page-header">
             Welcome to SRO All-in-One Web App
           </h2>
           <p className="text-sm text-muted-foreground">

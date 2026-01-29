@@ -312,8 +312,8 @@ const UnifiedActivitiesCalendar = ({
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl sm:px-4 md:px-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">{calendarTitle}</h1>
+    <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
+      <h1 className="page-header">{calendarTitle}</h1>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">

@@ -295,11 +295,10 @@ const AdminActivitySummary = () => {
   const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
   return (
     <div
-      className="max-w-[1550px] mx-auto sm:p-4 md:p-6"
-      style={{ transform: "scale(0.9)", transformOrigin: "top center" }}
+      className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
     >
       <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary text-center sm:text-left">Summary of Activity Requests</h1>
+        <h1 className="page-header">Summary of Activity Requests</h1>
         <div className="flex flex-col sm:flex-row gap-2">          <Button
           onClick={handleViewPDFsInDrive}
           variant="outline"

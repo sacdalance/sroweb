@@ -566,7 +566,7 @@ const ActivityForm = ({
   return (
     <div className="min-h-screen flex flex-col items-start justify-start py-8">
       <div className="w-full max-w-2xl mx-auto px-6">
-        <h1 className="text-2xl font-bold mb-6 text-left">
+        <h1 className="page-header">
           {mode === "edit"
             ? "Edit Submission"
             : mode === "admin"

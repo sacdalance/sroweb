@@ -134,3 +134,9 @@
     min-width: 320px;
   }
 }
+
+@layer components {
+  .page-header {
+    @apply text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left;
+  }
+}
