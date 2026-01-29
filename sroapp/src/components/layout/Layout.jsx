@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import { useState, useCallback } from "react";
 import NetworkGuard from "@/components/NetworkGuard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const SIDEBAR_WIDTH = 256; // Tailwind's w-64
 
@@ -44,9 +45,11 @@ const Layout = () => {
           sidebarOpen={sidebarOpen}
         />
         <main className="pt-20 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-5rem)] overflow-auto">
-          <NetworkGuard>
-            <Outlet />
-          </NetworkGuard>
+          <ErrorBoundary>
+            <NetworkGuard>
+              <Outlet />
+            </NetworkGuard>
+          </ErrorBoundary>
         </main>
       </div>
     </div>
