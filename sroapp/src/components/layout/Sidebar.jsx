@@ -87,7 +87,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
     <>
       <aside
         className={`
-          bg-[#F3F4F6] border-r h-screen flex flex-col
+          bg-gray-100 border-r h-screen flex flex-col
           fixed z-30 top-0 left-0 transition-transform duration-300 
           w-[${SIDEBAR_WIDTH}px]
           -translate-x-full
@@ -132,7 +132,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
               {/* Student & Super Admin: Student sidebar */}
               {(isUser || isSuperAdmin) && (
                 <>
-                  <hr className="border-t border-[#DBDBDB] my-4" />
+                  <hr className="border-t border-sro-border-light my-4" />
                   <div className="mb-4 mt-4 font-medium">
                     <Link
                       to={dashboardLink}
@@ -213,7 +213,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
               {(isSRO || isODSA || isSuperAdmin) && (
                 <div className="mb-6">
                   <ul className="space-y-2 text-[15px] font-medium">
-                    <hr className="border-t border-[#DBDBDB] my-4" />
+                    <hr className="border-t border-sro-border-light my-4" />
                     <li>
                       <Link
                         to="/admin"
@@ -223,7 +223,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Admin Dashboard
                       </Link>
                     </li>
-                    <hr className="border-t border-[#DBDBDB] my-4" />
+                    <hr className="border-t border-sro-border-light my-4" />
                     <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
 
                     {(isSRO || isSuperAdmin) && (
@@ -304,7 +304,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                       </Link>
                     </li>
                   </ul>
-                  <hr className="border-t border-[#DBDBDB] my-4" />
+                  <hr className="border-t border-sro-border-light my-4" />
                 </div>
               )}
             </div>

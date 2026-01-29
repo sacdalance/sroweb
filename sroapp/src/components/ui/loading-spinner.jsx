@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  */
 const LoadingSpinner = ({ text, variant = "section", className }) => {
   // Shared visual styles
-  const spinnerClass = "h-10 w-10 animate-spin text-[#7B1113]";
+  const spinnerClass = "h-10 w-10 animate-spin text-sro-primary";
   const textClass = "mt-4 text-sm font-medium text-gray-600";
   const containerClass = "flex flex-col items-center justify-center";
 

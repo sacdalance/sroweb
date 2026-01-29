@@ -566,7 +566,7 @@ const ActivityForm = ({
   return (
     <div className="min-h-screen flex flex-col items-start justify-start py-8">
       <div className="w-full max-w-2xl mx-auto px-6">
-        <h1 className="page-header">
+        <h1 className={cn("page-header", mode === "admin" ? "text-sro-primary" : "text-black")}>
           {mode === "edit"
             ? "Edit Submission"
             : mode === "admin"
@@ -819,7 +819,7 @@ const ActivityForm = ({
                       id="activityType"
                       className={cn(
                         "w-full",
-                        fieldErrors.activityType && "border-[#7B1113] bg-red-50"
+                        fieldErrors.activityType && "border-sro-primary bg-red-50"
                       )}
                     >
                       <SelectValue placeholder="Select activity type" />
@@ -833,7 +833,7 @@ const ActivityForm = ({
                     </SelectContent>
                   </Select>
                   {fieldErrors.activityType && (
-                    <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                       Please select an activity type.
                     </p>
                   )}
@@ -844,9 +844,9 @@ const ActivityForm = ({
                 <div>
                   <h3 className="text-sm font-medium mb-2">Sustainable Development Goals <span className="text-red-500">*</span></h3>
                   <div className="mb-4 border border-gray-200 rounded-md">
-                    <details id="sdgGoals" className={fieldErrors.sdgGoals ? "border-[#7B1113] bg-red-50" : ""} open>
+                    <details id="sdgGoals" className={fieldErrors.sdgGoals ? "border-sro-primary bg-red-50" : ""} open>
                       {fieldErrors.sdgGoals && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           Please select at least one SDG goal.
                         </p>
                       )}
@@ -890,10 +890,10 @@ const ActivityForm = ({
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, chargingFees1: value }))
                     }
-                    className={`${fieldErrors.chargingFees ? "border-[#7B1113] bg-red-50" : ""} space-y-3`}
+                    className={`${fieldErrors.chargingFees ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
                     {fieldErrors.chargingFees && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Please indicate if you are charging fees.
                       </p>
                     )}
@@ -923,7 +923,7 @@ const ActivityForm = ({
                       setFormData((prev) => ({ ...prev, partnering: val }));
                       if (val.trim() !== "") setFieldError("partnering", false);
                     }}
-                    className={`${fieldErrors.partnering ? "border-[#7B1113] bg-red-50" : ""} space-y-3`}
+                    className={`${fieldErrors.partnering ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="yes" id="partnering-yes" />
@@ -939,7 +939,7 @@ const ActivityForm = ({
                     </div>
                   </RadioGroup>
                   {fieldErrors.partnering && (
-                    <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                       Please indicate if you're partnering with a unit.
                     </p>
                   )}
@@ -971,9 +971,9 @@ const ActivityForm = ({
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, recurring: value }))
                     }
-                    className={`${fieldErrors.recurring ? "border-[#7B1113] bg-red-50" : ""} space-y-3`}                                        >
+                    className={`${fieldErrors.recurring ? "border-sro-primary bg-red-50" : ""} space-y-3`}                                        >
                     {fieldErrors.recurring && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Please select if the activity is recurring.
                       </p>
                     )}
@@ -1012,7 +1012,7 @@ const ActivityForm = ({
                       }}
                       className={cn(
                         fieldErrors.startDate
-                          ? "border-[#7B1113] bg-red-50"
+                          ? "border-sro-primary bg-red-50"
                           : (() => {
                             const today = new Date();
                             const chosen = new Date(formData.startDate);
@@ -1051,7 +1051,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.startDate && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         {formData.startDate
                           ? "Start date cannot be in the past."
                           : "Start date is required."}
@@ -1097,7 +1097,7 @@ const ActivityForm = ({
                           const invalid = !formData.endDate || (formData.recurring === "recurring" && formData.startDate && formData.endDate && end < start);
                           setFieldError("endDate", invalid);
                         }}
-                        className={fieldErrors.endDate ? "border-[#7B1113] bg-red-50" : ""}
+                        className={fieldErrors.endDate ? "border-sro-primary bg-red-50" : ""}
                         type="date"
                         min={new Date().toISOString().split("T")[0]}
                         value={formData.endDate}
@@ -1113,7 +1113,7 @@ const ActivityForm = ({
                         }}
                       />
                       {fieldErrors.endDate && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           {formData.endDate === ""
                             ? "End date is required for recurring activities."
                             : "End date cannot be before start date."}
@@ -1128,7 +1128,7 @@ const ActivityForm = ({
                     <h3 className="text-sm font-medium mb-2">Activity Start Time <span className="text-red-500">*</span> </h3>
 
                     <Input
-                      id="startTime" onBlur={() => setFieldError("startTime", !formData.startTime)} className={fieldErrors.startTime ? "border-[#7B1113] bg-red-50" : ""}
+                      id="startTime" onBlur={() => setFieldError("startTime", !formData.startTime)} className={fieldErrors.startTime ? "border-sro-primary bg-red-50" : ""}
                       type="time"
                       value={formData.startTime}
                       onChange={(e) => {
@@ -1138,7 +1138,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.startTime && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Start time is required.
                       </p>
                     )}
@@ -1149,7 +1149,7 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Activity End Time <span className="text-red-500">*</span></h3>
                     <Input
-                      id="endTime" onBlur={() => setFieldError("endTime", !formData.endTime)} className={fieldErrors.endTime ? "border-[#7B1113] bg-red-50" : ""}
+                      id="endTime" onBlur={() => setFieldError("endTime", !formData.endTime)} className={fieldErrors.endTime ? "border-sro-primary bg-red-50" : ""}
                       type="time"
                       value={formData.endTime}
                       onChange={(e) => {
@@ -1159,7 +1159,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.endTime && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         End time is required.
                       </p>
                     )}
@@ -1168,9 +1168,9 @@ const ActivityForm = ({
 
                 {/* Recurring Days */}
                 {formData.recurring === "recurring" && (
-                  <div id="recurringDays" className={fieldErrors.recurringDays ? "border-[#7B1113] bg-red-50 p-2 rounded-md" : ""}>
+                  <div id="recurringDays" className={fieldErrors.recurringDays ? "border-sro-primary bg-red-50 p-2 rounded-md" : ""}>
                     {fieldErrors.recurringDays && (
-                      <p className="text-xs text-[#7B1113] mt-2 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-2 px-1 font-medium">
                         Please select at least one recurring day.
                       </p>
                     )}
@@ -1230,9 +1230,9 @@ const ActivityForm = ({
                       setFormData((prev) => ({ ...prev, isOffCampus: val }));
                       if (val.trim() !== "") setFieldError("offcampus", false);
                     }}
-                    className={`${fieldErrors.offcampus ? "border-[#7B1113] bg-red-50" : ""} space-y-3`}                                        >
+                    className={`${fieldErrors.offcampus ? "border-sro-primary bg-red-50" : ""} space-y-3`}                                        >
                     {fieldErrors.offcampus && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Please indicate if the activity is off-campus.
                       </p>
                     )}
@@ -1257,7 +1257,7 @@ const ActivityForm = ({
                     <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                     <Input
                       id="venue" onBlur={() => setFieldError("venue", formData.venue.trim() === "" || formData.venue.length > 100)}
-                      className={fieldErrors.venue ? "border-[#7B1113] bg-red-50" : ""}
+                      className={fieldErrors.venue ? "border-sro-primary bg-red-50" : ""}
                       type="text"
                       placeholder="(Teatro Amianan, CS AVR, etc.)"
                       value={formData.venue}
@@ -1269,7 +1269,7 @@ const ActivityForm = ({
                       }}
                     />
                     {fieldErrors.venue && (
-                      <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Venue must not exceed 100 characters.
                       </p>
                     )}
@@ -1280,7 +1280,7 @@ const ActivityForm = ({
                       <Input
                         id="venueApprover"
                         onBlur={() => setFieldError("venueApprover", formData.venueApprover.trim().length < 3 || formData.venueApprover.length > 50)}
-                        className={`${fieldErrors.venueApprover ? "border-[#7B1113] bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                        className={`${fieldErrors.venueApprover ? "border-sro-primary bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         type="text"
                         placeholder="Ex. Lance Gabriel Sacdalan"
                         value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApprover}
@@ -1293,7 +1293,7 @@ const ActivityForm = ({
                         }}
                       />
                       {fieldErrors.venueApprover && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           Venue approver must be 3 to 50 characters.
                         </p>
                       )}
@@ -1308,7 +1308,7 @@ const ActivityForm = ({
                             !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(formData.venueApproverContact)
                           )
                         }
-                        className={`${fieldErrors.venueApproverContact ? "border-[#7B1113] bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                        className={`${fieldErrors.venueApproverContact ? "border-sro-primary bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         type="text"
                         placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                         value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApproverContact}
@@ -1321,7 +1321,7 @@ const ActivityForm = ({
                         }}
                       />
                       {fieldErrors.venueApproverContact && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           Must be a valid mobile number or UP/Gmail email.
                         </p>
                       )}
@@ -1418,7 +1418,7 @@ const ActivityForm = ({
                                           <Button
                                             type="button"
                                             variant="ghost"
-                                            className="text-[#7B1113]"
+                                            className="text-sro-primary"
                                             onClick={() => {
                                               const updated = [...formData.selectedPublicAffairs["Others"]];
                                               updated.splice(index, 1);
@@ -1494,7 +1494,7 @@ const ActivityForm = ({
                     <div>
                       <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                       <Input
-                        id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-[#7B1113] bg-red-50" : ""} type="text"
+                        id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-sro-primary bg-red-50" : ""} type="text"
                         placeholder="Ex. Clarence Kyle Pagunsan"
                         value={formData.greenCampusMonitor}
                         onChange={(e) => {
@@ -1505,7 +1505,7 @@ const ActivityForm = ({
                         }}
                       />
                       {fieldErrors.greenCampusMonitor && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           Must be 3 to 50 characters.
                         </p>
                       )}
@@ -1514,7 +1514,7 @@ const ActivityForm = ({
                       <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
                       <Input
                         id="greenCampusMonitorContact" onBlur={() => setFieldError("greenCampusMonitorContact", !/^09\d{9}$|^[a-zA-Z0-9._%+-]{3,}@(up\.edu\.ph|gmail\.com)$/.test(formData.greenCampusMonitorContact))}
-                        className={fieldErrors.greenCampusMonitorContact ? "border-[#7B1113] bg-red-50" : ""}
+                        className={fieldErrors.greenCampusMonitorContact ? "border-sro-primary bg-red-50" : ""}
                         type="text"
                         placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                         value={formData.greenCampusMonitorContact}
@@ -1526,7 +1526,7 @@ const ActivityForm = ({
                         }}
                       />
                       {fieldErrors.greenCampusMonitorContact && (
-                        <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                           Must be a valid mobile number or UP/Gmail email.
                         </p>
                       )}
@@ -1589,7 +1589,7 @@ const ActivityForm = ({
                 </p>
 
                 <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
-                  <h4 className="font-medium text-base mb-2 text-[#7B1113]">
+                  <h4 className="font-medium text-base mb-2 text-sro-primary">
                     What to include in your single PDF file:
                   </h4>
                   <ul className="list-disc list-inside space-y-1">
@@ -1749,11 +1749,11 @@ const ActivityForm = ({
           </AlertDialog>
 
           <AlertDialog open={showSuccessDialog}>
-            <AlertDialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white/90 border border-[#014421]/10 shadow-2xl text-center">
+            <AlertDialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white/90 border border-sro-secondary/10 shadow-2xl text-center">
               <AlertDialogHeader>
                 <div className="flex flex-col items-center">
-                  <Check className="h-12 w-12 text-[#014421] mb-3" />
-                  <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-3 text-center">
+                  <Check className="h-12 w-12 text-sro-secondary mb-3" />
+                  <AlertDialogTitle className="text-sro-secondary text-2xl font-bold mb-3 text-center">
                     {mode === "edit"
                       ? "Edited Successfully!"
                       : mode === "admin"
@@ -1771,7 +1771,7 @@ const ActivityForm = ({
           <AlertDialog open={showRemindersDialog} onOpenChange={setShowRemindersDialog}>
             <AlertDialogContent className="max-h-[90vh] overflow-hidden">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-[#7B1113]">
+                <AlertDialogTitle className="text-sro-primary">
                   SRO Activity Request Guidelines
                 </AlertDialogTitle>
               </AlertDialogHeader>
@@ -1796,7 +1796,7 @@ const ActivityForm = ({
               </ScrollArea>
 
               <AlertDialogFooter className="mt-4">
-                <Button onClick={() => setShowRemindersDialog(false)} className="bg-[#7B1113] text-white hover:bg-[#5e0d0f]">
+                <Button onClick={() => setShowRemindersDialog(false)} className="bg-sro-primary text-white hover:bg-sro-primary/90">
                   I Understand
                 </Button>
               </AlertDialogFooter>

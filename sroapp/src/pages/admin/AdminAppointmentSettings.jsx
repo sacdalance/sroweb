@@ -437,11 +437,11 @@ Thank you,
 Student Relations Office`,
           html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: ${action === 'confirm' ? '#014421' : '#7B1113'}">Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'}</h2>
+  <h2 className={action === 'confirm' ? 'text-sro-secondary' : 'text-sro-primary'}>Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'}</h2>
   
   <p>Your appointment has been <strong>${action === 'confirm' ? 'confirmed' : 'rejected'}</strong>.</p>
   
-  <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+  <div className="bg-sro-bg-off-white p-4 rounded-md my-4">
     <p><strong>Date:</strong> ${appointmentDate}</p>
     <p><strong>Time:</strong> ${appointmentTime}</p>
     <p><strong>Purpose:</strong> ${appointment.reason}${appointment.specified_reason ? ' - ' + appointment.specified_reason : ''}</p>
@@ -484,7 +484,7 @@ Student Relations Office`,
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster />
-      <h1 className="page-header">Appointment Management</h1>
+      <h1 className="page-header text-sro-primary">Appointment Management</h1>
 
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList>
@@ -503,14 +503,14 @@ Student Relations Office`,
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Timestamp</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Student</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Type</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Mode</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Date</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Time</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center">Contact</th>
-                      <th className="px-3 py-2 text-xs font-medium text-[#014421] text-center w-[100px]">Status</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Timestamp</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Student</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Type</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Mode</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Date</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Time</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center">Contact</th>
+                      <th className="px-3 py-2 text-xs font-medium text-sro-secondary text-center w-[100px]">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -559,8 +559,8 @@ Student Relations Office`,
                           </div>
                         </td>
                         <td className="px-3 py-2 text-xs text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${appointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
-                            appointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${appointment.status === "confirmed" ? "bg-sro-secondary/20 text-sro-secondary" :
+                            appointment.status === "rejected" ? "bg-sro-primary/20 text-sro-primary" :
                               appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                                 appointment.status === "scheduled" ? "bg-gray-100 text-gray-700" :
                                   "bg-gray-100 text-gray-700"
@@ -646,7 +646,7 @@ Student Relations Office`,
                       onChange={(e) => setNewBlockedDate(e.target.value)}
                     />
                     <button
-                      className="px-4 py-2 bg-[#7B1113] hover:bg-[#5e0d0e] text-white rounded-md whitespace-nowrap"
+                      className="px-4 py-2 bg-sro-primary hover:bg-sro-primary/90 text-white rounded-md whitespace-nowrap"
                       onClick={handleAddBlockedDate}
                       disabled={addingDate || !newBlockedDate}
                     >
@@ -663,7 +663,7 @@ Student Relations Office`,
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {blockedDates.map((date) => (
-                      <div key={date} className="flex items-center justify-between p-2 bg-[#7b1113] rounded-md">
+                      <div key={date} className="flex items-center justify-between p-2 bg-sro-primary rounded-md">
                         <span className="text-white">{new Date(date).toLocaleDateString()}</span>
                         <button
                           onClick={() => handleRemoveBlockedDate(date)}
@@ -686,8 +686,8 @@ Student Relations Office`,
                     <button
                       key={slot}
                       className={`p-2 border rounded-md text-sm ${blockedTimeSlots.includes(slot)
-                        ? "bg-[#7B1113] text-white hover:bg-[#5e0d0e] transition-colors"
-                        : "bg-[#014421] text-white hover:bg-[#014421]/90 transition-colors"
+                        ? "bg-sro-primary text-white hover:bg-sro-primary/90 transition-colors"
+                        : "bg-sro-secondary text-white hover:bg-sro-secondary/90 transition-colors"
                         }`}
                       onClick={() => toggleTimeSlot(slot)}
                     >
@@ -700,7 +700,7 @@ Student Relations Office`,
               {/* Save Settings Button */}
               <div className="pt-4 border-t">
                 <button
-                  className="px-4 py-2 bg-[#7B1113] text-white rounded-md hover:bg-[#5e0d0e] transition-colors"
+                  className="px-4 py-2 bg-sro-primary text-white rounded-md hover:bg-sro-primary/90 transition-colors"
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
                 >
@@ -741,8 +741,8 @@ Student Relations Office`,
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500">Appointment Status</h3>
                   <div className="mt-1">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${selectedAppointment.status === "confirmed" ? "bg-[#014421]/20 text-[#014421]" :
-                      selectedAppointment.status === "rejected" ? "bg-[#7B1113]/20 text-[#7B1113]" :
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${selectedAppointment.status === "confirmed" ? "bg-sro-secondary/20 text-sro-secondary" :
+                      selectedAppointment.status === "rejected" ? "bg-sro-primary/20 text-sro-primary" :
                         selectedAppointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
                           "bg-gray-100 text-gray-700"
                       }`}>
@@ -823,7 +823,7 @@ Student Relations Office`,
                   <>
                     <Button
                       onClick={() => handleAppointmentResponse(selectedAppointment.id, 'confirm')}
-                      className="bg-[#014421] text-white hover:bg-[#014421]/90"
+                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
                     >
                       Confirm
                     </Button>
@@ -832,7 +832,7 @@ Student Relations Office`,
                         setShowConfirmDialog(false);
                         setShowRejectDialog(true);
                       }}
-                      className="bg-[#7B1113] text-white hover:bg-[#7B1113]/90"
+                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
                     >
                       Reject
                     </Button>
@@ -842,13 +842,13 @@ Student Relations Office`,
                   <>
                     <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'reschedule')}
-                      className="bg-[#014421] text-white hover:bg-[#014421]/90"
+                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
                     >
                       Approve Reschedule
                     </Button>
                     <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
-                      className="bg-[#7B1113] text-white hover:bg-[#7B1113]/90"
+                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
                     >
                       Reject Reschedule
                     </Button>
@@ -858,13 +858,13 @@ Student Relations Office`,
                   <>
                     <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'cancel')}
-                      className="bg-[#014421] text-white hover:bg-[#014421]/90"
+                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
                     >
                       Approve Cancellation
                     </Button>
                     <Button
                       onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'cancel')}
-                      className="bg-[#7B1113] text-white hover:bg-[#7B1113]/90"
+                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
                     >
                       Reject Cancellation
                     </Button>

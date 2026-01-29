@@ -1,9 +1,9 @@
 import React from 'react';
 
 const STATUS_COLORS = {
-  'For Appeal': 'bg-gray-100 text-[#1C1C1C]',
-  'For Cancellation': 'bg-gray-100 text-[#1C1C1C]',
-  'Pending': 'bg-[#FFF7D6] text-[#A05A00]',
+  'For Appeal': 'bg-gray-100 text-status-neutral-text',
+  'For Cancellation': 'bg-gray-100 text-status-neutral-text',
+  'Pending': 'bg-status-pending text-status-pending-text',
   'ODSA Pending': 'bg-sro-primary text-white',
   'Approved': 'bg-sro-secondary text-white',
   'Rejected': 'bg-sro-primary text-white',

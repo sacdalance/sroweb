@@ -32,13 +32,13 @@ const FAQCard = () => {
   return (
     <Card className="shadow-sm rounded-lg">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl font-bold text-[#7B1113]">Frequently Asked Questions</CardTitle>
+        <CardTitle className="text-xl font-bold text-sro-primary">Frequently Asked Questions</CardTitle>
       </CardHeader>
       <CardContent>
         <Accordion type="single" collapsible className="space-y-4">
           {faqs.map((faq, index) => (
             <AccordionItem key={index} value={`faq-${index}`}>
-              <AccordionTrigger className="text-sm font-medium text-[#7B1113]">
+              <AccordionTrigger className="text-sm font-medium text-sro-primary">
                 {faq.question}
               </AccordionTrigger>
               <AccordionContent className="text-sm text-gray-600">

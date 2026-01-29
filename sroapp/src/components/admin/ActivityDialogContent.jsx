@@ -213,7 +213,7 @@ const ActivityDialogContent = ({
                 <p className="whitespace-pre-wrap break-words">{description}</p>
                 <button
                   onClick={toggleDescription}
-                  className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+                  className="text-sro-primary text-sm font-medium hover:underline mt-1"
                 >
                   Show less
                 </button>
@@ -244,7 +244,7 @@ const ActivityDialogContent = ({
 
 
           <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
+            <h3 className="text-sro-primary font-semibold mb-1">General Information</h3>
             <div className="pl-4">
               <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
               <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
@@ -257,7 +257,7 @@ const ActivityDialogContent = ({
           </div>
 
           <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">Specifications</h3>
+            <h3 className="text-sro-primary font-semibold mb-1">Specifications</h3>
             <div className="pl-4">
               <p><strong>Venue:</strong> {activity.venue || "N/A"}</p>
               <p><strong>Venue Approver:</strong> {activity.venue_approver || "N/A"}</p>
@@ -375,7 +375,7 @@ const ActivityDialogContent = ({
                     onChange={e => setSroComment(e.target.value)}
                     rows={3}
                     placeholder="Enter SRO remarks..."
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
                   />
                   <label className="text-sm font-medium text-gray-700 block mt-2">ODSA Remarks</label>
                   <textarea
@@ -383,7 +383,7 @@ const ActivityDialogContent = ({
                     onChange={e => setOdsaComment(e.target.value)}
                     rows={3}
                     placeholder="Enter ODSA remarks..."
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7B1113]"
+                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
                   />
                 </>
               ) : (
@@ -474,7 +474,7 @@ const ActivityDialogContent = ({
             )}
             {activity.odsa_remarks && (
               <div>
-                <h3 className="text-[#7B1113] font-semibold text-sm">ODSA Remarks</h3>
+                <h3 className="text-sro-primary font-semibold text-sm">ODSA Remarks</h3>
                 <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
                   {activity.odsa_remarks.trim()}
                 </p>

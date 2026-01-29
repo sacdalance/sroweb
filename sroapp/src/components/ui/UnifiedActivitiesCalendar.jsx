@@ -313,7 +313,7 @@ const UnifiedActivitiesCalendar = ({
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header">{calendarTitle}</h1>
+      <h1 className={`page-header ${window.location.pathname.includes('/admin') ? 'text-sro-primary' : 'text-black'}`}>{calendarTitle}</h1>
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">

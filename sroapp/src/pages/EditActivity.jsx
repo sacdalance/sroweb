@@ -776,7 +776,7 @@ const EditActivity = () => {
     return (
         <div className="min-h-screen flex flex-col items-start justify-start py-8">
             <div className="w-full max-w-2xl mx-auto px-6">
-                <h1 className="page-header">Edit Submission</h1>
+                <h1 className="page-header text-black">Edit Submission</h1>
                 <form onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
 
                     {/* Sonner, side pop up */}
@@ -787,7 +787,7 @@ const EditActivity = () => {
                         <Button
                             type="button"
                             variant={currentSection === "general-info" ? "default" : "ghost"}
-                            className={`${currentSection === "general-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`${currentSection === "general-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
                         >
                             General Information
@@ -796,7 +796,7 @@ const EditActivity = () => {
                         <Button
                             type="button"
                             variant={currentSection === "date-info" ? "default" : "ghost"}
-                            className={`${currentSection === "date-info" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`${currentSection === "date-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
                         >
                             Date Information
@@ -805,7 +805,7 @@ const EditActivity = () => {
                         <Button
                             type="button"
                             variant={currentSection === "specifications" ? "default" : "ghost"}
-                            className={`${currentSection === "specifications" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`${currentSection === "specifications" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
                         >
                             Specifications
@@ -814,7 +814,7 @@ const EditActivity = () => {
                         <Button
                             type="button"
                             variant={currentSection === "submission" ? "default" : "ghost"}
-                            className={`${currentSection === "submission" ? "bg-[#014421] text-white" : "text-[#014421] hover:text-[#014421] hover:bg-[#014421]/10"}`}
+                            className={`${currentSection === "submission" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
                         >
                             Submission
@@ -827,7 +827,7 @@ const EditActivity = () => {
                             value={currentSection === "general-info" ? 25 :
                                 currentSection === "date-info" ? 50 :
                                     currentSection === "specifications" ? 75 : 100}
-                            className="h-2 bg-[#014421]/20 [&>div]:bg-[#014421]"
+                            className="h-2 bg-sro-secondary/20 [&>div]:bg-sro-secondary"
                         />
                     </div>
 
@@ -1037,7 +1037,7 @@ const EditActivity = () => {
                                 <div className="flex justify-end">
                                     <Button
                                         type="button"
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
                                         onClick={() => handleNextSection("date-info")}
                                     >
                                         Next
@@ -1197,7 +1197,7 @@ const EditActivity = () => {
                                     </Button>
                                     <Button
                                         type="button"
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
                                         onClick={() => handleNextSection("specifications")}
                                     >
                                         Next
@@ -1378,7 +1378,7 @@ const EditActivity = () => {
                                                                                     <Button
                                                                                         type="button"
                                                                                         variant="ghost"
-                                                                                        className="text-[#7B1113]"
+                                                                                        className="text-sro-primary"
                                                                                         onClick={() => {
                                                                                             const updated = [...selectedPublicAffairs["Others"]];
                                                                                             updated.splice(index, 1);
@@ -1495,7 +1495,7 @@ const EditActivity = () => {
                                     </Button>
                                     <Button
                                         type="button"
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
                                         onClick={() => handleNextSection("submission")}
                                     >
                                         Next
@@ -1536,7 +1536,7 @@ const EditActivity = () => {
 
                                         <div className="mt-4">
                                             <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
-                                                <h4 className="font-medium text-base mb-2 text-[#7B1113]">What to include in your single PDF file:</h4>
+                                                <h4 className="font-medium text-base mb-2 text-sro-primary">What to include in your single PDF file:</h4>
                                                 <ul className="list-disc list-inside space-y-1">
                                                     {getRequiredDocuments().map((item, index) => (
                                                         <li key={index}>{item}</li>
@@ -1629,7 +1629,7 @@ const EditActivity = () => {
                                     <AlertDialogAction
                                         onClick={handleSubmit}
                                         disabled={isSubmitting}
-                                        className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                                        className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
                                     >
                                         {isSubmitting ? "Submitting..." : "Yes"}
                                     </AlertDialogAction>
@@ -1641,7 +1641,7 @@ const EditActivity = () => {
                         <AlertDialog open={showSuccessDialog}>
                             <AlertDialogContent className="backdrop-blur-md bg-white/90 border-none shadow-lg text-center">
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-[#014421] text-2xl font-bold mb-6 text-left">
+                                    <AlertDialogTitle className="text-sro-secondary text-2xl font-bold mb-6 text-left">
                                         Edited Successfully!
                                     </AlertDialogTitle>
                                     <AlertDialogDescription className="text-sm font-medium mb-2">

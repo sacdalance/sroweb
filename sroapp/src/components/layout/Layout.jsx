@@ -12,7 +12,7 @@ const Layout = () => {
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div className="fixed w-full h-screen flex bg-[#ffffff]">
+    <div className="fixed w-full h-screen flex bg-white">
       {/* Sidebar: always visible on lg+, toggleable on mobile */}
       <Sidebar
         isOpen={sidebarOpen}

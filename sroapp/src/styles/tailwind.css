@@ -41,6 +41,16 @@
   --sro-primary: #7B1113;
   --sro-secondary: #014421;
   --sro-accent: #F3AA2C;
+
+  /* Status Colors */
+  --status-pending-bg: #FFF7D6;
+  --status-pending-text: #A05A00;
+  --status-neutral-text: #1C1C1C;
+
+  /* Neutrals */
+  --sro-text-dark: #3F3F3F;
+  --sro-border-light: #DBDBDB;
+  --sro-bg-off-white: #F8F9FA;
 }
 
 .dark {
@@ -137,6 +147,6 @@
 
 @layer components {
   .page-header {
-    @apply text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left;
+    @apply text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left;
   }
 }

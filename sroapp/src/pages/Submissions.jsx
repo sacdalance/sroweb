@@ -170,7 +170,7 @@ const Submissions = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Track Submissions</h1>
+      <h1 className="page-header text-black">Track Submissions</h1>
 
       <Dialog
         open={!!selectedActivity}
@@ -423,7 +423,7 @@ const Submissions = () => {
                                     setEditingActivity(act);
                                     setIsAppealOpen(true);
                                   }}
-                                  className="text-gray-600 hover:text-[#014421] transition-transform transform hover:scale-125"
+                                  className="text-gray-600 hover:text-sro-secondary transition-transform transform hover:scale-125"
                                 >
                                   <Pencil className="h-5 w-5" />
                                 </button>
@@ -435,7 +435,7 @@ const Submissions = () => {
                                     setCancelActivity(act);
                                     setIsCancelOpen(true);
                                   }}
-                                  className="text-gray-600 hover:text-[#7B1113] transition-transform transform hover:scale-125"
+                                  className="text-gray-600 hover:text-sro-primary transition-transform transform hover:scale-125"
                                 >
                                   <X className="h-5 w-5 font-bold" />
                                 </button>
@@ -636,7 +636,7 @@ const Submissions = () => {
                               {new Date(app.submitted_at).toLocaleDateString('en-US')}
                             </td>
                             <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[140px] truncate">
-                              <span className="inline-block px-3 py-1 rounded-full bg-[#FFF7D6] text-[#A05A00] text-xs font-semibold border border-[#FFF7D6]">Pending</span>
+                              <span className="inline-block px-3 py-1 rounded-full bg-status-pending text-status-pending-text text-xs font-semibold border border-status-pending">Pending</span>
                             </td>
                           </tr>
                         ))

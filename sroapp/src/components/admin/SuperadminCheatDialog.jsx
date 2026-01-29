@@ -34,8 +34,7 @@ export default function SuperadminCheatDialog({ userEmail, currentRoleId, onRole
     <>
       {/* Navbar-style button */}
       <button
-        className="ml-4 px-4 py-2 rounded bg-[#7B1113] hover:bg-[#5e0d0e] text-white font-semibold text-sm shadow transition"
-        style={{ border: "1px solid #fff", marginLeft: 16 }}
+        className="ml-4 px-4 py-2 rounded bg-sro-primary hover:bg-sro-primary/90 text-white font-semibold text-sm shadow transition border border-white ml-4"
         onClick={() => setOpen(true)}
       >
         Super Idol Cheats
@@ -60,7 +59,7 @@ export default function SuperadminCheatDialog({ userEmail, currentRoleId, onRole
               </Select>
             </div>
             <Button
-              className="w-full bg-[#014421] hover:bg-[#013a1c] text-white"
+              className="w-full bg-sro-secondary hover:bg-sro-secondary/90 text-white"
               onClick={() => {
                 onRoleChange(selectedRole);
                 setOpen(false);

@@ -200,7 +200,7 @@ const AdminOrganizations = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header">Summary of Organizations</h1>
+      <h1 className="page-header text-sro-primary">Summary of Organizations</h1>
 
       {/* Search and Category Filter */}
       <div className="mb-8 flex flex-col md:flex-row gap-4">
@@ -240,13 +240,13 @@ const AdminOrganizations = () => {
           {filteredOrganizations.map((org) => (
             <Card key={org.org_id} className="rounded-lg overflow-hidden shadow-md">
               <CardHeader className="py-1">
-                <CardTitle className="text-lg font-bold text-[#7B1113]">{org.org_name}</CardTitle>
+                <CardTitle className="text-lg font-bold text-sro-primary">{org.org_name}</CardTitle>
                 <p className="text-xs text-gray-600 mt-1">Org Category</p> {/* Placeholder category */}
               </CardHeader>
               <CardContent className="p-4">
                 <div className="space-y-3 text-sm">
                   <div>
-                    <p className="font-semibold text-[#014421]">Chairperson</p>
+                    <p className="font-semibold text-sro-secondary">Chairperson</p>
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                       <span>{org.chairperson_name}</span>
                       <span className="text-gray-500">{org.chairperson_email}</span>
@@ -254,7 +254,7 @@ const AdminOrganizations = () => {
                   </div>
 
                   <div>
-                    <p className="font-semibold text-[#014421]">Adviser</p>
+                    <p className="font-semibold text-sro-secondary">Adviser</p>
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                       <span>{org.adviser_name}</span>
                       <span className="text-gray-500">{org.adviser_email}</span>
@@ -262,26 +262,26 @@ const AdminOrganizations = () => {
                   </div>
 
                   <div>
-                    <p className="font-semibold text-[#014421]">Email</p>
+                    <p className="font-semibold text-sro-secondary">Email</p>
                     <p className="text-gray-500">{org.org_email}</p>
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-4">
                     <Button
                       onClick={() => handleGenerateCertificate(org.org_name, org.academic_year)}
-                      className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
+                      className="px-3 py-1 h-8 bg-sro-primary hover:bg-sro-primary/90 text-white text-xs"
                     >
                       Generate Certificate
                     </Button>
                     <Button
                       onClick={() => handleViewSummary(org.org_id)}
-                      className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
+                      className="px-3 py-1 h-8 bg-sro-primary hover:bg-sro-primary/90 text-white text-xs"
                     >
                       Summary of Events
                     </Button>
                     <Button
                       onClick={() => handleViewAnnualReport(org.org_id)}
-                      className="px-3 py-1 h-8 bg-[#014421] hover:bg-[#013319] text-white text-xs"
+                      className="px-3 py-1 h-8 bg-sro-secondary hover:bg-sro-secondary/90 text-white text-xs"
                     >
                       View Annual Report
                     </Button>

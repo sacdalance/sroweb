@@ -63,7 +63,7 @@ const AdminAnnualReports = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header">Organization Annual Reports</h1>
+      <h1 className="page-header text-sro-primary">Organization Annual Reports</h1>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-2 mb-6">
@@ -100,7 +100,7 @@ const AdminAnnualReports = () => {
       {/* Table */}
       <Card className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <CardHeader className="py-4">
-          <CardTitle className="text-xl font-bold text-[#7B1113]">Submitted Reports</CardTitle>
+          <CardTitle className="text-xl font-bold text-sro-primary">Submitted Reports</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -110,10 +110,10 @@ const AdminAnnualReports = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Organization</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Academic Year</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Submission Date</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-[#014421]">Actions</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Organization</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Academic Year</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Submission Date</th>
+                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -128,7 +128,7 @@ const AdminAnnualReports = () => {
                             <Button
                               key={i}
                               asChild
-                              className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs flex items-center gap-1"
+                              className="px-3 py-1 h-8 bg-sro-primary hover:bg-sro-primary/90 text-white text-xs flex items-center gap-1"
                             >
                               <a href={url} target="_blank" rel="noopener noreferrer">
                                 <Eye className="h-3 w-3 inline mr-1" />
@@ -140,7 +140,7 @@ const AdminAnnualReports = () => {
                           {report.viewLink && (
                             <Button
                               asChild
-                              className="px-3 py-1 rounded-md bg-[#014421] hover:bg-[#013319] text-white text-xs flex items-center gap-1"
+                              className="px-3 py-1 rounded-md bg-sro-secondary hover:bg-sro-secondary/90 text-white text-xs flex items-center gap-1"
                             >
                               <a href={report.viewLink} target="_blank" rel="noopener noreferrer">
                                 <Download className="h-3 w-3" />

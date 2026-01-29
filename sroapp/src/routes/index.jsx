@@ -129,7 +129,7 @@ const PrivateRoute = () => {
         <p className="text-gray-700 mb-6">The email <strong>{user.email}</strong> is not a valid UP Mail address.</p>
         <button
           onClick={handleSignOut}
-          className="bg-[#7B1113] text-white px-6 py-2 rounded-md hover:bg-[#5e0d0e] transition"
+          className="bg-sro-primary text-white px-6 py-2 rounded-md hover:bg-sro-primary/90 transition"
         >Sign Out</button>
       </div>
     );

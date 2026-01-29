@@ -37,9 +37,9 @@ const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.nam
 
 const statusPill = (status) => {
   let pillColor = "bg-gray-200 text-gray-700";
-  if (status === "Approved") pillColor = "bg-[#014421] text-white";
-  else if (status === "Pending") pillColor = "bg-[#FFF7D6] text-[#A05A00]";
-  else if (status === "Declined" || status === "Rejected") pillColor = "bg-[#800000] text-white";
+  if (status === "Approved") pillColor = "bg-sro-secondary text-white";
+  else if (status === "Pending") pillColor = "bg-status-pending text-status-pending-text";
+  else if (status === "Declined" || status === "Rejected") pillColor = "bg-sro-primary text-white";
 
   return (
     <span className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${pillColor}`}>
@@ -166,7 +166,7 @@ const AdminOrgApplications = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header">Organization Recognition Applications</h1>
+      <h1 className="page-header text-sro-primary">Organization Recognition Applications</h1>
       <div className="rounded-lg overflow-hidden shadow-md bg-white border border-gray-200">
         <Table>
           <TableHeader>
@@ -217,7 +217,7 @@ const AdminOrgApplications = () => {
                   </TableCell>
                   <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                     {isOrgExisting(app) ? (
-                      <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
+                      <span className="bg-sro-secondary text-white text-xs px-3 py-1 rounded-full">Yes</span>
                     ) : (
                       <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
                     )}
@@ -236,7 +236,7 @@ const AdminOrgApplications = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-[#3F3F3F]">
+            <DialogTitle className="text-sro-text-dark">
               {(roleId === 2 && "SRO") || (roleId === 3 && "ODSA") || (roleId === 4 && "Superadmin")} Approval
             </DialogTitle>
             <DialogDescription>
@@ -282,7 +282,7 @@ const AdminOrgApplications = () => {
                   <p className="font-semibold text-gray-700">Existing Org?</p>
                   <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
                     {isOrgExisting(selectedApp) ? (
-                      <span className="bg-[#014421] text-white text-xs px-3 py-1 rounded-full">Yes</span>
+                      <span className="bg-sro-secondary text-white text-xs px-3 py-1 rounded-full">Yes</span>
                     ) : (
                       <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
                     )}
@@ -296,7 +296,7 @@ const AdminOrgApplications = () => {
                 </div>
                 <div className="sm:col-span-2 pt-2">
                   <p className="font-semibold text-gray-700 mb-2">Drive Folder</p>
-                  <Button className="bg-[#014421] hover:bg-[#013319] text-white font-medium px-4 py-2" asChild>
+                  <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white font-medium px-4 py-2" asChild>
                     <a href={selectedApp.drive_folder_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                       <Download className="h-4 w-4" />
                       Drive Folder
@@ -350,7 +350,7 @@ const AdminOrgApplications = () => {
                 </div>
               )}
               <DialogFooter className="pt-4">
-                <Button onClick={handleConfirm} className="bg-[#014421] hover:bg-green-900 text-white" disabled={loading}>Confirm</Button>
+                <Button onClick={handleConfirm} className="bg-sro-secondary hover:bg-sro-secondary/90 text-white" disabled={loading}>Confirm</Button>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               </DialogFooter>
             </div>

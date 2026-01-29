@@ -290,7 +290,7 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto py-8">
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-center sm:text-left">Organization Recognition</h1>
+      <h1 className="page-header text-black">Organization Recognition</h1>
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
         <div className="space-y-5">
           {/* Organization Name */}
@@ -310,15 +310,15 @@ const OrgApplication = () => {
                 else if (!isValidOrg(e.target.value)) setFieldError("orgName", "length");
                 else setFieldError("orgName", "");
               }}
-              className={fieldErrors.orgName ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.orgName ? "border-sro-primary bg-red-50" : ""}
               placeholder="Samahan ng Organisasyon UPB (SO - UPB)"
               disabled={isUploading}
             />
             {fieldErrors.orgName === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.orgName === "length" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 100 characters.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 100 characters.</p>
             )}
           </div>
           {/* Organization Type (searchable dropdown, with error) */}
@@ -333,7 +333,7 @@ const OrgApplication = () => {
                   aria-expanded={orgTypeOpen}
                   className={cn(
                     "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400",
-                    fieldErrors.orgType && "border-[#7B1113] bg-red-50"
+                    fieldErrors.orgType && "border-sro-primary bg-red-50"
                   )}
                 >
                   <span className={!selectedOrgTypeName ? "text-muted-foreground" : ""}>
@@ -378,7 +378,7 @@ const OrgApplication = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {fieldErrors.orgType === "required" && <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>}
+            {fieldErrors.orgType === "required" && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>}
           </div>
           {/* Academic Year (searchable dropdown, with error) */}
           <div>
@@ -392,7 +392,7 @@ const OrgApplication = () => {
                   aria-expanded={yearOpen}
                   className={cn(
                     "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400",
-                    fieldErrors.academicYear && "border-[#7B1113] bg-red-50"
+                    fieldErrors.academicYear && "border-sro-primary bg-red-50"
                   )}
                 >
                   <span className={!selectedYear ? "text-muted-foreground" : ""}>
@@ -437,7 +437,7 @@ const OrgApplication = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {fieldErrors.academicYear === "required" && <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>}
+            {fieldErrors.academicYear === "required" && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>}
           </div>
           {/* Organization E-mail */}
           <div>
@@ -457,14 +457,14 @@ const OrgApplication = () => {
                 else setFieldError("orgEmail", "");
               }}
               placeholder="orgemail@gmail.com"
-              className={fieldErrors.orgEmail ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.orgEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
             {fieldErrors.orgEmail === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.orgEmail === "invalid" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
           </div>
           {/* Chairperson */}
@@ -484,15 +484,15 @@ const OrgApplication = () => {
                 else if (!isValidName(e.target.value)) setFieldError("chairperson", "length");
                 else setFieldError("chairperson", "");
               }}
-              className={fieldErrors.chairperson ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.chairperson ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
             {fieldErrors.chairperson === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.chairperson === "length" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
             )}
           </div>
           {/* Chairperson Email */}
@@ -513,14 +513,14 @@ const OrgApplication = () => {
                 else setFieldError("chairpersonEmail", "");
               }}
               placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.chairpersonEmail ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.chairpersonEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
             {fieldErrors.chairpersonEmail === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.chairpersonEmail === "invalid" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
           </div>
           {/* Adviser */}
@@ -540,15 +540,15 @@ const OrgApplication = () => {
                 else if (!isValidName(e.target.value)) setFieldError("adviser", "length");
                 else setFieldError("adviser", "");
               }}
-              className={fieldErrors.adviser ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.adviser ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
             {fieldErrors.adviser === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.adviser === "length" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
             )}
           </div>
           {/* Adviser Email */}
@@ -569,14 +569,14 @@ const OrgApplication = () => {
                 else setFieldError("adviserEmail", "");
               }}
               placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.adviserEmail ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.adviserEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
             {fieldErrors.adviserEmail === "required" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Required.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
             )}
             {fieldErrors.adviserEmail === "invalid" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
           </div>
           {/* Co-Adviser */}
@@ -601,12 +601,12 @@ const OrgApplication = () => {
                   setFieldError("coAdviser", "");
                 }
               }}
-              className={fieldErrors.coAdviser ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.coAdviser ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
             {fieldErrors.coAdviser === "length" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
             )}
           </div>
           {/* Co-Adviser Email */}
@@ -632,11 +632,11 @@ const OrgApplication = () => {
                 }
               }}
               placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.coAdviserEmail ? "border-[#7B1113] bg-red-50" : ""}
+              className={fieldErrors.coAdviserEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
             {fieldErrors.coAdviserEmail === "invalid" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
             )}
           </div>
         </div>
@@ -714,7 +714,7 @@ const OrgApplication = () => {
               </label>
             </div>
             {fieldErrors.files === "invalid" && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">Please upload exactly 6 PDF files.</p>
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Please upload exactly 6 PDF files.</p>
             )}
             {files.length > 0 && (
               <div>
@@ -749,7 +749,7 @@ const OrgApplication = () => {
             <Button
               onClick={handleSubmit}
               disabled={isUploading}
-              className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
+              className="bg-sro-primary hover:bg-sro-primary/90 text-white"
             >
               {isUploading ? (
                 <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
@@ -775,7 +775,7 @@ const OrgApplication = () => {
                   await handleSubmit(e);
                 }}
                 disabled={isUploading}
-                className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
               >
                 {isUploading ? "Submitting..." : "Submit"}
               </AlertDialogAction>
@@ -794,8 +794,8 @@ const OrgApplication = () => {
         <DialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white shadow-lg border border-gray-100">
           <DialogHeader>
             <div className="flex flex-col items-center">
-              <Check className="h-10 w-10 text-[#014421] mb-2" /> {/* Forest Green */}
-              <DialogTitle className="text-center text-2xl font-semibold text-[#800000] mb-2">Submission Successful</DialogTitle> {/* UP Maroon */}
+              <Check className="h-10 w-10 text-sro-secondary mb-2" /> {/* Forest Green */}
+              <DialogTitle className="text-center text-2xl font-semibold text-sro-primary mb-2">Submission Successful</DialogTitle> {/* UP Maroon */}
               <DialogDescription className="text-center text-base text-gray-700 mb-4">
                 Your application was submitted.<br />
                 Would you like to schedule your interview now?
@@ -804,14 +804,14 @@ const OrgApplication = () => {
           </DialogHeader>
           <DialogFooter className="flex flex-row justify-center gap-6 mt-4">
             <Button
-              className="bg-[#014421] hover:bg-[#012d21] text-white font-semibold px-6 py-2 rounded-xl shadow-none"
+              className="bg-sro-secondary hover:bg-sro-secondary/90 text-white font-semibold px-6 py-2 rounded-xl shadow-none"
               onClick={() => handleInterviewResponse(true)}
             >
               Schedule Now
             </Button>
             <Button
               variant="outline"
-              className="border-[#800000] text-[#800000] hover:bg-[#fff7d6] font-semibold px-6 py-2 rounded-xl"
+              className="border-sro-primary text-sro-primary hover:bg-status-pending font-semibold px-6 py-2 rounded-xl"
               onClick={() => handleInterviewResponse(false)}
             >
               Not Now

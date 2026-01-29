@@ -87,7 +87,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
     <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
       <ScrollArea className="max-h-[80vh] px-6 py-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-[#7B1113] font-bold">
+          <DialogTitle className="text-2xl text-sro-primary font-bold">
             {activity.activity_name || activity.activityName}
           </DialogTitle>
           <p className="text-sm font-semibold text-gray-700 mb-2">
@@ -103,7 +103,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
                   <p className="whitespace-pre-wrap">{activity.activity_description.slice(0, 300)}...</p>
                   <button
                     onClick={() => setIsFullDescriptionShown(true)}
-                    className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+                    className="text-sro-primary text-sm font-medium hover:underline mt-1"
                   >
                     Show more
                   </button>
@@ -114,7 +114,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
                   {activity.activity_description.length > 300 && (
                     <button
                       onClick={() => setIsFullDescriptionShown(false)}
-                      className="text-[#7B1113] text-sm font-medium hover:underline mt-1"
+                      className="text-sro-primary text-sm font-medium hover:underline mt-1"
                     >
                       Show less
                     </button>
@@ -125,7 +125,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
           )}
 
           <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">General Information</h3>
+            <h3 className="text-sro-primary font-semibold mb-1">General Information</h3>
             <div className="pl-4 space-y-1">
               <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
               <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
@@ -135,7 +135,7 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
           </div>
 
           <div className="space-y-1">
-            <h3 className="text-[#7B1113] font-semibold mb-1">Schedule</h3>
+            <h3 className="text-sro-primary font-semibold mb-1">Schedule</h3>
             <div className="pl-4">
               {activity.schedule?.[0]?.is_recurring === "true" ? (
                 <>
@@ -162,9 +162,9 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
 
           {activity.university_partner === "true" && (
             <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
                 <span>University Partners</span>
-                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
                 <p>{activity.partner_name || "None listed"}</p>
@@ -174,9 +174,9 @@ const StudentActivityDialogContent = ({ activity, isModalOpen }) => {
 
           {sdgs && formatSDGLabels(sdgs).length > 0 && (
             <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-[#7B1113] flex justify-between items-center bg-white rounded-t-md">
+              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
                 <span>Sustainable Development Goals</span>
-                <ChevronDown className="h-4 w-4 text-[#7B1113] transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
                 {formatSDGLabels(sdgs).join(", ")}

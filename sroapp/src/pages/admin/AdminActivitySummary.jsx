@@ -298,7 +298,7 @@ const AdminActivitySummary = () => {
       className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
     >
       <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <h1 className="page-header">Summary of Activity Requests</h1>
+        <h1 className="page-header text-sro-primary">Summary of Activity Requests</h1>
         <div className="flex flex-col sm:flex-row gap-2">          <Button
           onClick={handleViewPDFsInDrive}
           variant="outline"
@@ -861,7 +861,7 @@ const AdminActivitySummary = () => {
       {/* See Activities Calendar Button */}
       <div className="flex justify-end mt-4">
         <Link to="/admin/activities-calendar">
-          <Button className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-sm">
+          <Button className="bg-sro-primary hover:bg-sro-primary/90 text-white text-sm">
             See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>

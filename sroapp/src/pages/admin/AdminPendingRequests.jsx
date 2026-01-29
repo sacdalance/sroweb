@@ -243,7 +243,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
     >
       <Toaster />
-      <h1 className="page-header">Pending Activity Requests</h1>
+      <h1 className="page-header text-sro-primary">Pending Activity Requests</h1>
 
       {userRole === 4 && (
         <div className="flex justify-end mb-4">
@@ -310,7 +310,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         <TabsContent value="appeals">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#000000]">
+              <CardTitle className="text-xl font-bold text-black">
                 Appeals and Cancellations
               </CardTitle>
             </CardHeader>
@@ -374,7 +374,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         <TabsContent value="submissions">
           <Card className="rounded-lg overflow-hidden shadow-md">
             <CardHeader className="py-3 px-6">
-              <CardTitle className="text-xl font-bold text-[#000000]">
+              <CardTitle className="text-xl font-bold text-black">
                 Incoming Submissions
               </CardTitle>
               {userRole === 3 && (

@@ -199,7 +199,7 @@ const Dashboard = () => {
     <div className="max-w-[1350px] mx-auto mb-8" >
       <Card className="shadow-sm px-6 py-4 mb-6">
         <div className="space-y-1">
-          <h2 className="page-header">
+          <h2 className="page-header text-black">
             Welcome to SRO All-in-One Web App
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -220,7 +220,7 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
                   onClick={() => handleWeekNavigation("prev")}
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -234,7 +234,7 @@ const Dashboard = () => {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
                   onClick={() => handleWeekNavigation("next")}
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -355,7 +355,7 @@ const Dashboard = () => {
                                       const date = new Date(dayEvents[0].date);
                                       navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
                                     }}
-                                    className="bg-[#F3AA2C] text-[#7B1113] text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-[#f4b544] transition-colors"
+                                    className="bg-sro-accent text-sro-primary text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-sro-accent/90 transition-colors"
                                   >
                                     +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
                                   </button>
@@ -393,7 +393,7 @@ const Dashboard = () => {
                         {/* Day label aligned with cards */}
                         <div
                           className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
-                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
                                   `}
                         >
                           <span className="text-xs">{day}</span>

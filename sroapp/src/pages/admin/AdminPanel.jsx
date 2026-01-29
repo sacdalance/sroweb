@@ -554,20 +554,20 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#ffffff]">
+    <div className="flex flex-col min-h-screen bg-white">
       {/* Responsive Flex Layout */}
       <div className="flex flex-col md:flex-row flex-wrap w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6 min-h-[80vh]">
         {/* Main Content */}
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="page-header">Summary of Submissions</h2>
+            <h2 className="page-header text-sro-primary">Summary of Submissions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <Link
                   to={stat.path || "#"}
                   key={index}
-                  className={`block p-4 bg-[#F8F9FA] border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
+                  className={`block p-4 bg-sro-bg-off-white border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
                 >
                   <>
                     <h3 className="text-5xl font-bold mb-1 text-sro-primary">{stat.count}</h3>
@@ -649,7 +649,7 @@ const AdminPanel = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
                         onClick={() => handleWeekNavigation("prev")}
                       >
                         <ChevronLeft className="h-6 w-6" />
@@ -663,7 +663,7 @@ const AdminPanel = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-[#f3f4f6] shadow-none"
+                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
                         onClick={() => handleWeekNavigation("next")}
                       >
                         <ChevronRight className="h-6 w-6" />
@@ -801,7 +801,7 @@ const AdminPanel = () => {
                               {/* Day label aligned with cards */}
                               <div
                                 className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
-                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
                                   `}
                               >
                                 <span className="text-xs">{day}</span>
@@ -813,7 +813,7 @@ const AdminPanel = () => {
                                   dayEvents.map(event => (
                                     <div
                                       key={event.id}
-                                      className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
+                                      className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
                                     >
                                       <div className="flex items-center mb-1 min-w-0">
                                         <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
@@ -865,7 +865,7 @@ const AdminPanel = () => {
                 </CardContent>
                 <div className="flex justify-center mt-auto border-t pt-4">
                   <Link to="/admin/activities-calendar">
-                    <Button className="bg-[#014421] hover:bg-[#013319] text-white text-sm flex items-center gap-1">
+                    <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                       See More Activities <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>

@@ -182,7 +182,7 @@ const AnnualReport = () => {
   return (
     <div className="max-w-3xl mx-auto py-8">
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#7B1113] mb-8 text-left">Annual Report</h1>
+      <h1 className="page-header text-black">Annual Report</h1>
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Fields Section */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
@@ -196,7 +196,7 @@ const AnnualReport = () => {
                 <div
                   className={cn(
                     "w-full flex items-center justify-between border bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400 transition-colors",
-                    fieldErrors.org && "border-[#7B1113] bg-red-50"
+                    fieldErrors.org && "border-sro-primary bg-red-50"
                   )}
                 >
                   <span className={cn(!selectedOrg && "text-muted-foreground")}>
@@ -245,7 +245,7 @@ const AnnualReport = () => {
               </PopoverContent>
             </Popover>
             {fieldErrors.org && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                 Please select your organization.
               </p>
             )}
@@ -269,12 +269,12 @@ const AnnualReport = () => {
               disabled={!!selectedOrg || isUploading} // disables after org is picked
               className={cn(
                 "w-full px-3 py-2 rounded-md text-sm",
-                fieldErrors.annualReportEmail && "border-[#7B1113] bg-red-50"
+                fieldErrors.annualReportEmail && "border-sro-primary bg-red-50"
               )}
               autoComplete="email"
             />
             {fieldErrors.annualReportEmail && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                 Must be a valid UP or Gmail address.
               </p>
             )}
@@ -290,7 +290,7 @@ const AnnualReport = () => {
                 <div
                   className={cn(
                     "w-full flex items-center justify-between border bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400 transition-colors",
-                    fieldErrors.academicYear && "border-[#7B1113] bg-red-50"
+                    fieldErrors.academicYear && "border-sro-primary bg-red-50"
                   )}
                 >
                   <span className={cn(!academicYear && "text-muted-foreground")}>
@@ -337,7 +337,7 @@ const AnnualReport = () => {
               </PopoverContent>
             </Popover>
             {fieldErrors.academicYear && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                 Please select an academic year.
               </p>
             )}
@@ -421,7 +421,7 @@ const AnnualReport = () => {
               </label>
             </div>
             {fieldErrors.files && (
-              <p className="text-xs text-[#7B1113] mt-1 px-1 font-medium">
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                 Please upload exactly 2 PDF files.
               </p>
             )}
@@ -463,7 +463,7 @@ const AnnualReport = () => {
                 files.length !== 2 ||
                 isUploading
               }
-              className="w-full py-2 rounded-md text-base bg-[#014421] text-white hover:bg-[#003218]"
+              className="w-full py-2 rounded-md text-base bg-sro-secondary text-white hover:bg-sro-secondary/90"
             >
               {isUploading ? (
                 <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
@@ -491,7 +491,7 @@ const AnnualReport = () => {
                   await handleSubmit(e);
                 }}
                 disabled={isUploading}
-                className="bg-[#014421] text-white hover:bg-[#003218] px-6"
+                className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
               >
                 {isUploading ? "Submitting..." : "Submit"}
               </AlertDialogAction>
