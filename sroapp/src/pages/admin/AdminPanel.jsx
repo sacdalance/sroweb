@@ -103,7 +103,7 @@ const AdminPanel = () => {
   // Stats data for the summary section
   const statsSummary = [
     { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
-    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
+    { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
     { title: "Approved Requests", count: requestsCounts.approved || 0 },
     { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
@@ -561,7 +561,7 @@ const AdminPanel = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="page-header text-sro-primary">Summary of Submissions</h2>
+            <h2 className="page-header text-sro-primary">Admin Dashboard</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <Link

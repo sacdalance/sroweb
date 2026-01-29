@@ -200,7 +200,7 @@ const AdminOrganizations = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header text-sro-primary">Summary of Organizations</h1>
+      <h1 className="page-header text-sro-primary">Organization Summary</h1>
 
       {/* Search and Category Filter */}
       <div className="mb-8 flex flex-col md:flex-row gap-4">

@@ -151,7 +151,9 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           className={linkClass("/activity-request")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
                         >
-                          Submit a Request
+                          <span className="flex-1 whitespace-nowrap">
+                            New Activity Request
+                          </span>
                         </Link>
                       </li>
                       <li>
@@ -160,7 +162,9 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           className={linkClass("/submissions")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
                         >
-                          My Submissions
+                          <span className="flex-1 whitespace-nowrap">
+                            My Activity Requests
+                          </span>
                         </Link>
                       </li>
                       <li>
@@ -178,7 +182,9 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           className={linkClass("/appointment-booking")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
                         >
-                          Book an Appointment
+                          <span className="flex-1 whitespace-nowrap">
+                            Book Appointment
+                          </span>
                         </Link>
                       </li>
                     </ul>
@@ -192,7 +198,9 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           className={linkClass("/org-application")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
                         >
-                          Application for Recognition
+                          <span className="flex-1 whitespace-nowrap">
+                            Recognition Application
+                          </span>
                         </Link>
                       </li>
                       <li>
@@ -243,7 +251,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                             className={linkClass("/admin/create-activity")}
                             onClick={() => isSmallScreen && setIsOpen(false)}
                           >
-                            Add an Activity
+                            Create Activity
                           </Link>
                         </li>
                       </>
@@ -255,7 +263,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/pending-requests")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Pending Requests
+                        Pending Activity Requests
                       </Link>
                     </li>
                     <li>
@@ -264,7 +272,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/activity-summary")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Summary of Activities
+                        Activity Summary
                       </Link>
                     </li>
                     <li>
@@ -282,7 +290,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/org-applications")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Organization Applications
+                        Recognition Applications
                       </Link>
                     </li>
                     <li>
@@ -291,7 +299,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/organizations")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Summary of Organizations
+                        Organization Summary
                       </Link>
                     </li>
                     <li>

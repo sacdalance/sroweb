@@ -290,7 +290,7 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto py-8">
       <Toaster />
-      <h1 className="page-header text-black">Organization Recognition</h1>
+      <h1 className="page-header text-black">Recognition Application</h1>
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
         <div className="space-y-5">
           {/* Organization Name */}

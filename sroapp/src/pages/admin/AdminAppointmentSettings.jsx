@@ -484,12 +484,11 @@ Student Relations Office`,
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster />
-      <h1 className="page-header text-sro-primary">Appointment Management</h1>
+      <h1 className="page-header text-sro-primary">Appointments Management</h1>
 
       <Tabs defaultValue="appointments" className="space-y-4">
         <TabsList>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         {/* Appointments Tab */}

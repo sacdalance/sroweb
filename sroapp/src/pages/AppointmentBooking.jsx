@@ -491,7 +491,7 @@ const AppointmentBooking = () => {
     <div className="container mx-auto py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="page-header text-black">
-          {showExistingAppointments ? "My Appointments" : "Appointment Booking"}
+          {showExistingAppointments ? "My Appointments" : "Book Appointment"}
         </h1>
         {user && (
           <Button
@@ -515,7 +515,7 @@ const AppointmentBooking = () => {
                 onClick={() => setShowExistingAppointments(false)}
                 className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white"
               >
-                Book an Appointment
+                Book Appointment
               </Button>
             </div>
           ) : (

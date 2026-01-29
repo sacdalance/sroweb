@@ -63,7 +63,7 @@ const AdminAnnualReports = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header text-sro-primary">Organization Annual Reports</h1>
+      <h1 className="page-header text-sro-primary">Annual Reports</h1>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-2 mb-6">

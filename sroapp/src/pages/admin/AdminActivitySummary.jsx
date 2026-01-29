@@ -298,7 +298,7 @@ const AdminActivitySummary = () => {
       className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
     >
       <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <h1 className="page-header text-sro-primary">Summary of Activity Requests</h1>
+        <h1 className="page-header text-sro-primary">Activity Summary</h1>
         <div className="flex flex-col sm:flex-row gap-2">          <Button
           onClick={handleViewPDFsInDrive}
           variant="outline"

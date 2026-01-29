@@ -570,7 +570,7 @@ const ActivityForm = ({
           {mode === "edit"
             ? "Edit Submission"
             : mode === "admin"
-              ? "Admin: Add Activity"
+              ? "Create Activity"
               : "New Activity Request"}
         </h1>
         <form onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} className="space-y-8">

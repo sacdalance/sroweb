@@ -166,7 +166,7 @@ const AdminOrgApplications = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header text-sro-primary">Organization Recognition Applications</h1>
+      <h1 className="page-header text-sro-primary">Recognition Applications</h1>
       <div className="rounded-lg overflow-hidden shadow-md bg-white border border-gray-200">
         <Table>
           <TableHeader>
