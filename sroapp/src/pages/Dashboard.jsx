@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Loader2, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import FAQCard from "@/components/FAQCard";
@@ -249,10 +249,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="flex-grow min-w-0">
             {loading ? (
-              <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
-                <p>Loading Calendar...</p>
-              </div>
+              <LoadingSpinner text="Loading Calendar..." variant="section" />
             ) : (
               <div className="w-full">
                 {/* Desktop/tablet: Days left, cards right (vertical) */}

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import PropTypes from 'prop-types';
@@ -238,8 +239,7 @@ const UnifiedActivitiesCalendar = ({
   // Loading state component
   const LoadingState = () => (
     <div className="flex items-center justify-center p-8">
-      <Loader2 className="h-8 w-8 animate-spin text-sro-primary" />
-      <span className="ml-2 text-sro-primary">Loading activities...</span>
+      <LoadingSpinner text="Loading activities..." variant="section" />
     </div>
   );
 
@@ -528,7 +528,7 @@ const UnifiedActivitiesCalendar = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-10 w-10 animate-spin text-sro-primary" />
+            <LoadingSpinner text="Loading details..." variant="section" />
           </div>
         ) : (
           selectedEvent && (

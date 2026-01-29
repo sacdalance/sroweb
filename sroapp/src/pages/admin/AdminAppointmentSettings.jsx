@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
 import supabase from "../../lib/supabase";
-import { Spinner } from "@/components/ui/spinner";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -478,12 +478,7 @@ Student Relations Office`,
   const timeSlots = generateTimeSlots();
 
   if (loading) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <Spinner className="h-8 w-8 text-[#7B1113]" />
-        <span className="ml-2">Loading appointment settings...</span>
-      </div>
-    );
+    return <LoadingSpinner text="Loading appointment settings..." variant="section" />;
   }
 
   return (
@@ -502,10 +497,7 @@ Student Relations Office`,
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
             {loadingAppointments ? (
-              <div className="flex items-center justify-center py-4">
-                <Spinner className="h-6 w-6 text-[#7B1113]" />
-                <span className="ml-2">Loading appointments...</span>
-              </div>
+              <LoadingSpinner text="Loading appointments..." variant="section" />
             ) : appointments.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -660,7 +652,7 @@ Student Relations Office`,
                     >
                       {addingDate ? (
                         <div className="flex items-center">
-                          <Spinner className="h-4 w-4 mr-2" />
+                          <LoadingSpinner className="h-4 w-4 mr-2" variant="inline" text="" />
                           <span>Adding...</span>
                         </div>
                       ) : (
@@ -714,7 +706,7 @@ Student Relations Office`,
                 >
                   {savingSettings ? (
                     <div className="flex items-center">
-                      <Spinner className="h-4 w-4 mr-2" />
+                      <LoadingSpinner className="h-4 w-4 mr-2" variant="inline" text="" />
                       <span>Saving...</span>
                     </div>
                   ) : (

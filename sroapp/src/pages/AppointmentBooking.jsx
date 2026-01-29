@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
-import { Spinner } from "@/components/ui/spinner";
+import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
@@ -506,10 +506,7 @@ const AppointmentBooking = () => {
       {showExistingAppointments ? (
         <div>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="h-8 w-8 text-sro-primary" />
-              <span className="ml-2">Loading your appointments...</span>
-            </div>
+            <LoadingSpinner text="Loading your appointments..." variant="section" />
           ) : existingAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />

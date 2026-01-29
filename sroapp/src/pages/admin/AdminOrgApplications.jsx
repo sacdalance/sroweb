@@ -15,6 +15,7 @@ import {
 import { Download } from "lucide-react";
 import supabase from "@/lib/supabase"; // Only for fetching, NOT for update!
 import StatusPill from "@/components/ui/StatusPill";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const statusList = [
   "On Probation", "Warning", "Renewed/Duly", "Recognized", "Disaffiliated"
@@ -58,6 +59,7 @@ const AdminOrgApplications = () => {
   const [odsaDecision, setOdsaDecision] = useState(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // 1. Fetch roleId from account using supabase_uid
   useEffect(() => {
@@ -78,18 +80,23 @@ const AdminOrgApplications = () => {
   // 2. Fetch applications and recognized orgs
   useEffect(() => {
     if (!roleId) return;
-    const fetchApplications = async () => {
-      let query = supabase.from("org_recognition").select("*").order("submitted_at", { ascending: false });
-      if (roleId === 3) query = query.eq("sro_approved", true);
-      const { data, error } = await query;
-      if (!error) setApplications(data || []);
+    const fetchData = async () => {
+      setDataLoading(true);
+      try {
+        let query = supabase.from("org_recognition").select("*").order("submitted_at", { ascending: false });
+        if (roleId === 3) query = query.eq("sro_approved", true);
+        const { data: appData, error: appError } = await query;
+        if (!appError) setApplications(appData || []);
+
+        const { data: orgData, error: orgError } = await supabase.from("organization").select("org_name, academic_year");
+        if (!orgError) setExistingOrgs(orgData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setDataLoading(false);
+      }
     };
-    const fetchExistingOrgs = async () => {
-      const { data, error } = await supabase.from("organization").select("org_name, academic_year");
-      if (!error) setExistingOrgs(data || []);
-    };
-    fetchApplications();
-    fetchExistingOrgs();
+    fetchData();
   }, [roleId]);
 
   const handleRowClick = (app) => {
@@ -174,7 +181,13 @@ const AdminOrgApplications = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {applications.length === 0 ? (
+            {dataLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-64 text-center">
+                  <LoadingSpinner text="Loading applications..." variant="section" />
+                </TableCell>
+              </TableRow>
+            ) : applications.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-gray-500">
                   No applications found for your role.

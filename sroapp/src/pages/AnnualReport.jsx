@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, UploadCloud, Loader2, Check, ChevronDown } from "lucide-react";
+import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
@@ -454,8 +455,7 @@ const AnnualReport = () => {
               </div>
             )}
             <Button
-              type="button"
-              className="w-full py-2 rounded-md text-base bg-[#014421] text-white hover:bg-[#003218]"
+              onClick={() => setShowConfirmDialog(true)}
               disabled={
                 !selectedOrg ||
                 !annualReportEmail.trim() ||
@@ -463,13 +463,10 @@ const AnnualReport = () => {
                 files.length !== 2 ||
                 isUploading
               }
-              onClick={() => setShowConfirmDialog(true)}
+              className="w-full py-2 rounded-md text-base bg-[#014421] text-white hover:bg-[#003218]"
             >
               {isUploading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin h-4 w-4" />
-                  Uploading...
-                </span>
+                <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
               ) : (
                 "Submit Form"
               )}

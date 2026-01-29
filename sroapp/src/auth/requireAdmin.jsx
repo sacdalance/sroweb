@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import {
@@ -50,10 +50,10 @@ const RequireAdminRole = ({ childrenByRole }) => {
     fetchRole();
   }, [navigate, childrenByRole]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
 
   return role && childrenByRole[role] ? (
-    childrenByRole[role]
+    cloneElement(childrenByRole[role], { userRole: role })
   ) : (
     <Dialog open={showDialog}>
       <DialogContent className="z-[100] backdrop-blur-md bg-white/80">

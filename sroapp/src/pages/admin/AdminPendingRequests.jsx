@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, ChevronDown } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -39,16 +40,20 @@ const activityTypeOptions = [
   { id: "others", label: "Others" },
 ];
 
-const AdminPendingRequests = () => {
+const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const [loading, setLoading] = useState(true);
+  const [superadminView, setSuperadminView] = useState('sro'); // 'sro' or 'odsa'
   const [activeTab, setActiveTab] = useState("appeals");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(initialUserRole || null);
   const [allActivities, setAllActivities] = useState([]);
   const [pendingAppeals, setPendingAppeals] = useState([]);
 
   useEffect(() => {
+    // If userRole is already passed via props or set, skip fetching
+    if (userRole) return;
+
     const fetchRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -69,7 +74,7 @@ const AdminPendingRequests = () => {
     };
 
     fetchRole();
-  }, []);
+  }, [userRole]);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
@@ -229,7 +234,9 @@ const AdminPendingRequests = () => {
 
 
 
-  if (!userRole) return null;
+  if (!userRole) {
+    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+  }
 
   return (
     <div
@@ -238,6 +245,25 @@ const AdminPendingRequests = () => {
     >
       <Toaster />
       <h1 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Pending Activity Requests</h1>
+
+      {userRole === 4 && (
+        <div className="flex justify-end mb-4">
+          <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+            <button
+              onClick={() => setSuperadminView('sro')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'sro' ? 'bg-sro-primary text-white shadow' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              SRO View
+            </button>
+            <button
+              onClick={() => setSuperadminView('odsa')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'odsa' ? 'bg-sro-primary text-white shadow' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              ODSA View
+            </button>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue="submissions" className="w-full mb-8">
         <TabsList
@@ -361,10 +387,7 @@ const AdminPendingRequests = () => {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
-                    <div className="h-6 w-6 mb-3 border-2 border-sro-primary border-t-transparent rounded-full animate-spin"></div>
-                    Loading incoming submissions...
-                  </div>
+                  <LoadingSpinner text="Loading incoming submissions..." variant="section" />
                 ) : (
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">

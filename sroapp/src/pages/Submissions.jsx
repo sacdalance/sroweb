@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -132,12 +133,7 @@ const Submissions = () => {
   }, [accountId]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-        <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
-        <p>Loading activities...</p>
-      </div>
-    );
+    return <LoadingSpinner text="Loading activities..." variant="section" />;
   }
 
   const handleCancel = async () => {
@@ -545,10 +541,7 @@ const Submissions = () => {
               className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 mb-4 animate-spin text-sro-primary" />
-                <span className="text-sro-primary font-semibold">Loading activity details...</span>
-              </div>
+              <LoadingSpinner text="Loading activity details..." variant="section" />
             </DialogContent>
           ) : (
             <ActivityDialogContent

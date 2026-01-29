@@ -101,7 +101,7 @@ const PrivateRoute = () => {
       setLoading(false);
     };
     checkUser();
-    
+
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user || null);
@@ -164,7 +164,7 @@ const RedirectIfLoggedIn = ({ element }) => {
     };
   }, []);
 
-  if (loading) return <h1 className="flex justify-center">Loading...</h1>;
+  if (loading) return <LoadingSpinner />;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };
@@ -192,25 +192,43 @@ const router = createBrowserRouter([
           { path: "email-test-button", element: <RequireUser><EmailTestButton /></RequireUser> },
 
           // Admin routes using unified RequireAdminRole
-          { path: "admin", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} /> },
-          { path: "admin/appointment-settings", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminAppointmentSettings/>, 4: <AdminAppointmentSettings /> }} /> },
-          { path: "admin/create-activity", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} /> },
-          { path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} /> },
+          {
+            path: "admin", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} />
+          },
+          {
+            path: "admin/appointment-settings", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminAppointmentSettings />, 4: <AdminAppointmentSettings /> }} />
+          },
+          {
+            path: "admin/create-activity", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} />
+          },
+          {
+            path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} />
+          },
 
-          { path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} /> },
-          { path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminActivitiesCalendar />, 3: <AdminActivitiesCalendar />, 4: <AdminActivitiesCalendar /> }} /> },
-          { path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} /> },
-          { path: "admin/organizations", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminOrganizations />, 3: <AdminOrganizations />, 4: <AdminOrganizations /> }} /> },
-          { path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
-            { 2: <AdminAnnualReports/>, 3: <AdminAnnualReports />, 4: <AdminAnnualReports /> }} /> },
+          {
+            path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} />
+          },
+          {
+            path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminActivitiesCalendar />, 3: <AdminActivitiesCalendar />, 4: <AdminActivitiesCalendar /> }} />
+          },
+          {
+            path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
+          },
+          {
+            path: "admin/organizations", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminOrganizations />, 3: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
+          },
+          {
+            path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminAnnualReports />, 3: <AdminAnnualReports />, 4: <AdminAnnualReports /> }} />
+          },
         ],
       },
     ],

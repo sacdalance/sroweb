@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { ArrowRight, ChevronLeft, ChevronRight, Loader2, Eye } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,16 +23,22 @@ const AdminPanel = () => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Activities
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState([]);
-  const [requestsLoading, setRequestsLoading] = useState(true);
+
+  // Specific loading states for each fetch
+  const [incomingLoading, setIncomingLoading] = useState(true);
+  const [pendingStatsLoading, setPendingStatsLoading] = useState(true);
+  const [approvedStatsLoading, setApprovedStatsLoading] = useState(true);
+  const [reportsStatsLoading, setReportsStatsLoading] = useState(true);
+
   const [requestsError, setRequestsError] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
-  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  // announcementsLoading removed as it was unused and causing infinite load
   const [announcementsError, setAnnouncementsError] = useState(null);
   const [requestsCounts, setRequestsCounts] = useState({
     approved: 0,
@@ -58,11 +64,6 @@ const AdminPanel = () => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
     weekEnd.setHours(23, 59, 59, 999);
-
-    console.log('Event Date:', eventDate);
-    console.log('Week Start:', weekStart);
-    console.log('Week End:', weekEnd);
-    console.log('Is in week:', eventDate >= weekStart && eventDate <= weekEnd);
 
     return eventDate >= weekStart && eventDate <= weekEnd;
   };
@@ -113,7 +114,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchIncomingRequests = async () => {
       try {
-        setRequestsLoading(true);
+        setIncomingLoading(true);
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         const access_token = sessionData?.session?.access_token;
 
@@ -180,7 +181,7 @@ const AdminPanel = () => {
         console.error("Error fetching incoming requests:", error);
         setRequestsError(error.message);
       } finally {
-        setRequestsLoading(false);
+        setIncomingLoading(false);
       }
     };
 
@@ -371,7 +372,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchPendingOrgRequests = async () => {
       try {
-        setRequestsLoading(true);
+        setPendingStatsLoading(true);
 
         // Fetch pending applications with these combinations:
         // (sro_approved: null, odsa_approved: null)
@@ -399,7 +400,7 @@ const AdminPanel = () => {
       } catch (error) {
         console.error("Error fetching pending organization requests:", error);
       } finally {
-        setRequestsLoading(false);
+        setPendingStatsLoading(false);
       }
     };
 
@@ -409,7 +410,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchApprovedOrgRequests = async () => {
       try {
-        setRequestsLoading(true);
+        setApprovedStatsLoading(true);
 
         const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
           .from("org_recognition")
@@ -430,7 +431,7 @@ const AdminPanel = () => {
       } catch (error) {
         console.error("Error fetching approved organization requests:", error);
       } finally {
-        setRequestsLoading(false);
+        setApprovedStatsLoading(false);
       }
     };
 
@@ -440,7 +441,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchAnnualReports = async () => {
       try {
-        setRequestsLoading(true); // Optional: Show loading state if needed
+        setReportsStatsLoading(true); // Optional: Show loading state if needed
 
         // Get the current year
         const currentYear = new Date().getFullYear();
@@ -464,7 +465,7 @@ const AdminPanel = () => {
       } catch (error) {
         console.error("Error fetching annual reports:", error);
       } finally {
-        setRequestsLoading(false); // Optional: Hide loading state if needed
+        setReportsStatsLoading(false); // Optional: Hide loading state if needed
       }
     };
 
@@ -545,6 +546,13 @@ const AdminPanel = () => {
     setModalLoading(false);
   };
 
+  // Consolidate loading states
+  const isPageLoading = loading || incomingLoading || pendingStatsLoading || approvedStatsLoading || reportsStatsLoading;
+
+  if (isPageLoading) {
+    return <LoadingSpinner text="Loading dashboard..." variant="section" />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#ffffff]">
       {/* Responsive Flex Layout */}
@@ -556,21 +564,16 @@ const AdminPanel = () => {
             <h2 className="text-2xl sm:text-3xl font-bold text-sro-primary mb-8 text-center sm:text-left">Summary of Submissions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
-                <div
+                <Link
+                  to={stat.path || "#"}
                   key={index}
-                  className="block p-4 bg-[#F8F9FA] border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start"
+                  className={`block p-4 bg-[#F8F9FA] border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
                 >
-                  {requestsLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <Loader2 className="h-6 w-6 animate-spin text-sro-primary" />
-                    </div>
-                  ) : (
-                    <>
-                      <h3 className="text-5xl font-bold mb-1 text-sro-primary">{stat.count}</h3>
-                      <p className="text-sm text-gray-600">{stat.title}</p>
-                    </>
-                  )}
-                </div>
+                  <>
+                    <h3 className="text-5xl font-bold mb-1 text-sro-primary">{stat.count}</h3>
+                    <p className="text-sm text-gray-600">{stat.title}</p>
+                  </>
+                </Link>
               ))}
             </div>
           </section>
@@ -587,12 +590,7 @@ const AdminPanel = () => {
                 </CardHeader>
                 <CardContent className="p-0 flex-1 min-w-0 flex flex-col">
                   <div className="overflow-x-auto w-full flex-1">
-                    {(requestsLoading || loading || incomingRequests.length === 0) ? (
-                      <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                        <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
-                        <p>Loading Requests...</p>
-                      </div>
-                    ) : requestsError ? (
+                    {requestsError ? (
                       <div className="text-center py-4 text-red-500">
                         Error loading requests: {requestsError}
                       </div>
@@ -679,124 +677,37 @@ const AdminPanel = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow min-w-0">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-                      <Loader2 className="h-6 w-6 mb-2 animate-spin text-sro-primary" />
-                      <p>Loading Calendar...</p>
-                    </div>
-                  ) : (
+                  <div className="w-full">
+                    {/* Responsive: horizontal scroll for cards on small screens, vertical grid on large */}
                     <div className="w-full">
-                      {/* Responsive: horizontal scroll for cards on small screens, vertical grid on large */}
-                      <div className="w-full">
-                        {/* Desktop/tablet: Days left, cards right (vertical) */}
-                        <div className="hidden sm:grid grid-cols-[70px_1fr] gap-2">
-                          {/* Days of the week */}
-                          <div className="flex flex-col gap-2 h-full">
-                            {Array.from({ length: 7 }, (_, i) => {
-                              const date = new Date(currentWeekStart);
-                              date.setDate(date.getDate() - date.getDay() + i);
-                              const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                              const isToday = new Date().toDateString() === date.toDateString();
-                              return (
-                                <div
-                                  key={i}
-                                  className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
+                      {/* Desktop/tablet: Days left, cards right (vertical) */}
+                      <div className="hidden sm:grid grid-cols-[70px_1fr] gap-2">
+                        {/* Days of the week */}
+                        <div className="flex flex-col gap-2 h-full">
+                          {Array.from({ length: 7 }, (_, i) => {
+                            const date = new Date(currentWeekStart);
+                            date.setDate(date.getDate() - date.getDay() + i);
+                            const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
+                            const isToday = new Date().toDateString() === date.toDateString();
+                            return (
+                              <div
+                                key={i}
+                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
                                     ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
                                   `}
-                                >
-                                  <span className="text-xs">{day}</span>
-                                  <span className="text-base">{date.getDate()}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {/* Activity cards in vertical stack */}
-                          <div className="flex flex-col gap-2 h-full min-w-0">
-                            {Array.from({ length: 7 }, (_, i) => {
-                              const date = new Date(currentWeekStart);
-                              date.setDate(date.getDate() - date.getDay() + i);
-                              date.setHours(0, 0, 0, 0);
-
-                              const dayEvents = events.filter(event => {
-                                const eventDate = new Date(event.date);
-                                eventDate.setHours(0, 0, 0, 0);
-                                return eventDate.getTime() === date.getTime();
-                              });
-
-                              return (
-                                <div key={i} className="flex-1 min-w-0">
-                                  {dayEvents.length > 0 ? (
-                                    <div className="h-[100px] w-full max-w-full mx-auto">
-                                      <div
-                                        key={dayEvents[0].id}
-                                        onClick={() => handleEventClick(dayEvents[0])}
-                                        className={`bg-sro-primary rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
-                                      >
-                                        {/* Activity Name and Time */}
-                                        <div className="flex items-center justify-between gap-2 mb-1">
-                                          <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
-                                          <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
-                                        </div>
-                                        {/* Organization Name */}
-                                        <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
-                                        {/* Bottom Row: Location and Activity Count */}
-                                        <div className="flex items-center justify-between mt-1">
-                                          {dayEvents[0].is_recurring === "true" ? (
-                                            <>
-                                              <span className="text-white/80 text-xs truncate">
-                                                {(() => {
-                                                  const sched = dayEvents[0].schedule?.[0] || {};
-                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
-                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
-                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                                })()}
-                                              </span>
-                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                                {(() => {
-                                                  const sched = dayEvents[0].schedule?.[0] || {};
-                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                                  return daysList.length > 0 ? daysList.join(", ") : null;
-                                                })()}
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
-                                          )}
-                                          {dayEvents.length > 1 && (
-                                            <Badge
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Navigate to activities calendar
-                                                window.location.href = '/admin/activities-calendar';
-                                              }}
-                                              className="bg-sro-accent hover:bg-sro-accent/90 text-sro-primary text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
-                                            >
-                                              +{dayEvents.length - 1} More Activities
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] w-full max-w-full mx-auto flex items-center justify-center">
-                                      <span className="text-gray-500 text-sm truncate">No Activities</span>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                              >
+                                <span className="text-xs">{day}</span>
+                                <span className="text-base">{date.getDate()}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                        {/* Mobile: Days left, cards horizontally aligned with no scroll */}
-                        <div className="sm:hidden flex flex-col gap-2">
+                        {/* Activity cards in vertical stack */}
+                        <div className="flex flex-col gap-2 h-full min-w-0">
                           {Array.from({ length: 7 }, (_, i) => {
                             const date = new Date(currentWeekStart);
                             date.setDate(date.getDate() - date.getDay() + i);
                             date.setHours(0, 0, 0, 0);
-
-                            const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                            const isToday = new Date().toDateString() === date.toDateString();
 
                             const dayEvents = events.filter(event => {
                               const eventDate = new Date(event.date);
@@ -805,72 +716,152 @@ const AdminPanel = () => {
                             });
 
                             return (
-                              <div key={i} className="flex flex-row items-center gap-2 w-full">
-                                {/* Day label aligned with cards */}
-                                <div
-                                  className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
-                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
-                                  `}
-                                >
-                                  <span className="text-xs">{day}</span>
-                                  <span className="text-base">{date.getDate()}</span>
-                                </div>
-                                {/* Cards for this day, wrap if needed */}
-                                <div className="flex flex-row flex-wrap gap-2 w-full min-w-0">
-                                  {dayEvents.length > 0 ? (
-                                    dayEvents.map(event => (
-                                      <div
-                                        key={event.id}
-                                        className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
-                                      >
-                                        <div className="flex items-center mb-1 min-w-0">
-                                          <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
-                                          <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
-                                        </div>
-                                        <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
-                                        <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                          <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
-                                          <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between mt-1">
-                                          {event.is_recurring === "true" ? (
-                                            <>
-                                              <span className="text-white/80 text-xs truncate">
-                                                {(() => {
-                                                  const sched = event.schedule?.[0] || {};
-                                                  const start = sched.start_date ? new Date(sched.start_date) : null;
-                                                  const end = sched.end_date ? new Date(sched.end_date) : null;
-                                                  return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                                })()}
-                                              </span>
-                                              <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                                {(() => {
-                                                  const sched = event.schedule?.[0] || {};
-                                                  const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                                  const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                                  return daysList.length > 0 ? daysList.join(", ") : null;
-                                                })()}
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <span className="text-white/80 text-xs truncate">{event.location}</span>
-                                          )}
-                                        </div>
+                              <div key={i} className="flex-1 min-w-0">
+                                {dayEvents.length > 0 ? (
+                                  <div className="h-[100px] w-full max-w-full mx-auto">
+                                    <div
+                                      key={dayEvents[0].id}
+                                      onClick={() => handleEventClick(dayEvents[0])}
+                                      className={`bg-sro-primary rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
+                                    >
+                                      {/* Activity Name and Time */}
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
+                                        <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
                                       </div>
-                                    ))
-                                  ) : (
-                                    <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] flex-1 basis-[220px] max-w-full flex items-center justify-center min-w-0">
-                                      <span className="text-gray-500 text-sm truncate">No Activities</span>
+                                      {/* Organization Name */}
+                                      <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
+                                      {/* Bottom Row: Location and Activity Count */}
+                                      <div className="flex items-center justify-between mt-1">
+                                        {dayEvents[0].is_recurring === "true" ? (
+                                          <>
+                                            <span className="text-white/80 text-xs truncate">
+                                              {(() => {
+                                                const sched = dayEvents[0].schedule?.[0] || {};
+                                                const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                              })()}
+                                            </span>
+                                            <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                              {(() => {
+                                                const sched = dayEvents[0].schedule?.[0] || {};
+                                                const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                return daysList.length > 0 ? daysList.join(", ") : null;
+                                              })()}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
+                                        )}
+                                        {dayEvents.length > 1 && (
+                                          <Badge
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              // Navigate to activities calendar
+                                              window.location.href = '/admin/activities-calendar';
+                                            }}
+                                            className="bg-sro-accent hover:bg-sro-accent/90 text-sro-primary text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
+                                          >
+                                            +{dayEvents.length - 1} More Activities
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                ) : (
+                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] w-full max-w-full mx-auto flex items-center justify-center">
+                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                       </div>
+                      {/* Mobile: Days left, cards horizontally aligned with no scroll */}
+                      <div className="sm:hidden flex flex-col gap-2">
+                        {Array.from({ length: 7 }, (_, i) => {
+                          const date = new Date(currentWeekStart);
+                          date.setDate(date.getDate() - date.getDay() + i);
+                          date.setHours(0, 0, 0, 0);
+
+                          const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
+                          const isToday = new Date().toDateString() === date.toDateString();
+
+                          const dayEvents = events.filter(event => {
+                            const eventDate = new Date(event.date);
+                            eventDate.setHours(0, 0, 0, 0);
+                            return eventDate.getTime() === date.getTime();
+                          });
+
+                          return (
+                            <div key={i} className="flex flex-row items-center gap-2 w-full">
+                              {/* Day label aligned with cards */}
+                              <div
+                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
+                                    ${isToday ? "bg-[#F3AA2C] text-[#7B1113] font-bold border-2 border-[#F3AA2C] shadow" : ""}
+                                  `}
+                              >
+                                <span className="text-xs">{day}</span>
+                                <span className="text-base">{date.getDate()}</span>
+                              </div>
+                              {/* Cards for this day, wrap if needed */}
+                              <div className="flex flex-row flex-wrap gap-2 w-full min-w-0">
+                                {dayEvents.length > 0 ? (
+                                  dayEvents.map(event => (
+                                    <div
+                                      key={event.id}
+                                      className={`bg-[#7B1113] rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-[#F3AA2C]" : ""}`}
+                                    >
+                                      <div className="flex items-center mb-1 min-w-0">
+                                        <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
+                                        <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
+                                      </div>
+                                      <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
+                                      <div className="flex flex-row items-start gap-2 min-w-0 w-full">
+                                        <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
+                                        <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
+                                      </div>
+                                      <div className="flex items-center justify-between mt-1">
+                                        {event.is_recurring === "true" ? (
+                                          <>
+                                            <span className="text-white/80 text-xs truncate">
+                                              {(() => {
+                                                const sched = event.schedule?.[0] || {};
+                                                const start = sched.start_date ? new Date(sched.start_date) : null;
+                                                const end = sched.end_date ? new Date(sched.end_date) : null;
+                                                return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
+                                              })()}
+                                            </span>
+                                            <span className="block text-white/80 text-[11px] mt-1 truncate">
+                                              {(() => {
+                                                const sched = event.schedule?.[0] || {};
+                                                const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
+                                                const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
+                                                return daysList.length > 0 ? daysList.join(", ") : null;
+                                              })()}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-white/80 text-xs truncate">{event.location}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] flex-1 basis-[220px] max-w-full flex items-center justify-center min-w-0">
+                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
                 <div className="flex justify-center mt-auto border-t pt-4">
                   <Link to="/admin/activities-calendar">
@@ -889,7 +880,7 @@ const AdminPanel = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-10 w-10 animate-spin text-[#7B1113]" />
+            <LoadingSpinner text="Loading details..." variant="section" />
           </div>
         ) : (
           selectedActivity && (
@@ -902,7 +893,7 @@ const AdminPanel = () => {
           )
         )}
       </Dialog>
-    </div>
+    </div >
   );
 };
 

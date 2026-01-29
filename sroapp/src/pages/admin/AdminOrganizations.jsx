@@ -11,11 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const AdminOrganizations = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
@@ -24,6 +27,8 @@ const AdminOrganizations = () => {
         setOrganizations(data);
       } catch (err) {
         console.error("Failed to fetch organizations:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -228,61 +233,65 @@ const AdminOrganizations = () => {
       </div>
 
       {/* Organizations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredOrganizations.map((org) => (
-          <Card key={org.org_id} className="rounded-lg overflow-hidden shadow-md">
-            <CardHeader className="py-1">
-              <CardTitle className="text-lg font-bold text-[#7B1113]">{org.org_name}</CardTitle>
-              <p className="text-xs text-gray-600 mt-1">Org Category</p> {/* Placeholder category */}
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="font-semibold text-[#014421]">Chairperson</p>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                    <span>{org.chairperson_name}</span>
-                    <span className="text-gray-500">{org.chairperson_email}</span>
+      {loading ? (
+        <LoadingSpinner text="Loading organizations..." variant="section" />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredOrganizations.map((org) => (
+            <Card key={org.org_id} className="rounded-lg overflow-hidden shadow-md">
+              <CardHeader className="py-1">
+                <CardTitle className="text-lg font-bold text-[#7B1113]">{org.org_name}</CardTitle>
+                <p className="text-xs text-gray-600 mt-1">Org Category</p> {/* Placeholder category */}
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p className="font-semibold text-[#014421]">Chairperson</p>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                      <span>{org.chairperson_name}</span>
+                      <span className="text-gray-500">{org.chairperson_email}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-[#014421]">Adviser</p>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                      <span>{org.adviser_name}</span>
+                      <span className="text-gray-500">{org.adviser_email}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-[#014421]">Email</p>
+                    <p className="text-gray-500">{org.org_email}</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-4">
+                    <Button
+                      onClick={() => handleGenerateCertificate(org.org_name, org.academic_year)}
+                      className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
+                    >
+                      Generate Certificate
+                    </Button>
+                    <Button
+                      onClick={() => handleViewSummary(org.org_id)}
+                      className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
+                    >
+                      Summary of Events
+                    </Button>
+                    <Button
+                      onClick={() => handleViewAnnualReport(org.org_id)}
+                      className="px-3 py-1 h-8 bg-[#014421] hover:bg-[#013319] text-white text-xs"
+                    >
+                      View Annual Report
+                    </Button>
                   </div>
                 </div>
-
-                <div>
-                  <p className="font-semibold text-[#014421]">Adviser</p>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                    <span>{org.adviser_name}</span>
-                    <span className="text-gray-500">{org.adviser_email}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="font-semibold text-[#014421]">Email</p>
-                  <p className="text-gray-500">{org.org_email}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-4">
-                  <Button
-                    onClick={() => handleGenerateCertificate(org.org_name, org.academic_year)}
-                    className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
-                  >
-                    Generate Certificate
-                  </Button>
-                  <Button
-                    onClick={() => handleViewSummary(org.org_id)}
-                    className="px-3 py-1 h-8 bg-[#7B1113] hover:bg-[#5e0d0e] text-white text-xs"
-                  >
-                    Summary of Events
-                  </Button>
-                  <Button
-                    onClick={() => handleViewAnnualReport(org.org_id)}
-                    className="px-3 py-1 h-8 bg-[#014421] hover:bg-[#013319] text-white text-xs"
-                  >
-                    View Annual Report
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

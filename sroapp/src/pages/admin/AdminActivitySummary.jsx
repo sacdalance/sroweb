@@ -41,6 +41,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 
 
@@ -314,10 +315,7 @@ const AdminActivitySummary = () => {
           className="bg-sro-secondary hover:bg-sro-secondary/90 text-white flex items-center gap-2"
         >
             {generatingPDFs ? (
-              <>
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Generating PDFs...
-              </>
+              <LoadingSpinner text="Generating PDFs..." variant="inline" className="text-white" />
             ) : (
               <>
                 <FileText className="h-4 w-4" />
@@ -694,10 +692,7 @@ const AdminActivitySummary = () => {
         </div>
         {/* Table Section */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500 text-sm">
-            <div className="h-6 w-6 mb-3 border-2 border-sro-primary border-t-transparent rounded-full animate-spin"></div>
-            Loading submissions...
-          </div>
+          <LoadingSpinner text="Loading submissions..." variant="section" />
         ) : (
           <div className="overflow-x-auto">
             <Table>            <TableHeader>

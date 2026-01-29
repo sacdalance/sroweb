@@ -15,7 +15,8 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -1695,23 +1696,16 @@ const ActivityForm = ({
                 </Button>
 
                 <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowConfirmDialog(true);
-                  }}
-                  type="submit"
-                  className={`${buttonClasses()} px-6`}
+                  onClick={handleSubmit}
                   disabled={isSubmitting}
+                  className={buttonClasses()}
                 >
                   {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="animate-spin h-4 w-4" />
-                      Uploading...
-                    </span>
+                    <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
                   ) : mode === "edit" ? (
-                    "Confirm Appeal"
+                    "Save Changes"
                   ) : mode === "admin" ? (
-                    "Create Activity"
+                    "Add Activity"
                   ) : (
                     "Submit Request"
                   )}

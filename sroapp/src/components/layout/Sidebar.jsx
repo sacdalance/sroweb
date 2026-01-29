@@ -4,6 +4,7 @@ import supabase from "@/lib/supabase";
 import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import PropTypes from 'prop-types';
 import React from "react";
 
@@ -120,10 +121,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                   3: "ODSA Staff",
                   4: "Super Admin",
                 }[role] || (
-                    <span className="inline-flex items-center gap-2 text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Assigning...
-                    </span>
+                    <LoadingSpinner text="Assigning..." variant="inline" />
                   )}
               </p>
               <p className="text-sm text-center break-all">{user?.email}</p>

@@ -12,7 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { FileText, UploadCloud, Loader2, ChevronDown, Check } from "lucide-react";
+import { FileText, UploadCloud, ChevronDown, Check } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -746,21 +747,14 @@ const OrgApplication = () => {
             )}
             {/* Confirmation Dialog trigger */}
             <Button
-              type="button"
-              className="w-full py-2 rounded-md text-base bg-[#014421] text-white hover:bg-[#003218]"
-              disabled={
-                isUploading ||
-                files.length !== 6
-              }
-              onClick={() => setShowConfirmDialog(true)}
+              onClick={handleSubmit}
+              disabled={isUploading}
+              className="bg-[#7B1113] hover:bg-[#5e0d0e] text-white"
             >
               {isUploading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin h-4 w-4" />
-                  Uploading...
-                </span>
+                <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
               ) : (
-                "Submit Form"
+                "Submit Application"
               )}
             </Button>
           </CardContent>

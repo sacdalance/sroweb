@@ -30,10 +30,12 @@ import {
     AlertDialogAction
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, Loader2, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { editActivity } from "../api/activityEditAPI";
+import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+
 const EditActivity = () => {
     const [selectedValue, setSelectedValue] = useState("");
     const [studentPosition, setStudentPosition] = useState("");
@@ -1603,10 +1605,7 @@ const EditActivity = () => {
                                         disabled={isSubmitting}
                                     >
                                         {isSubmitting ? (
-                                            <span className="flex items-center gap-2">
-                                                <Loader2 className="animate-spin h-4 w-4" />
-                                                Uploading...
-                                            </span>
+                                            <LoadingSpinner text="Uploading..." variant="inline" className="" />
                                         ) : (
                                             "Submit Form"
                                         )}

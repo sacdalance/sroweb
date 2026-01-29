@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, AlertTriangle } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const RequireUser = ({ children }) => {
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ const RequireUser = ({ children }) => {
         .eq("email", user.email)
         .single();
 
-    if (!error && (data?.role_id === 1 || data?.role_id === 4)) {
+      if (!error && (data?.role_id === 1 || data?.role_id === 4)) {
         setHasAccess(true);
       } else {
         setShowDialog(true);
@@ -47,13 +47,8 @@ const RequireUser = ({ children }) => {
   }, [navigate]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-10 text-center text-gray-600">
-        <Loader2 className="h-6 w-6 mb-2 animate-spin text-[#7B1113]" />
-        <p>Checking access...</p>
-      </div>
-    );
-  }  
+    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+  }
 
   return hasAccess ? (
     children
