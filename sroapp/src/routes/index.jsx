@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
 import LoadingSpinner from "../components/ui/loading-spinner";
-import Home from "../pages/Home";
-import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
+import Login from "../pages/Login";
 
 // user 
 import Dashboard from "../pages/Dashboard";
@@ -179,7 +178,6 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
-          { path: "home", element: <Home /> },
           // ✅ USER ROUTES (User + SuperAdmin)
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
@@ -234,6 +232,7 @@ const router = createBrowserRouter([
     ],
   },
   { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
+  { path: "/offline", element: <NotFound /> },
   { path: "*", element: <NotFound /> },
 ]);
 

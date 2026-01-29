@@ -30,10 +30,10 @@ const NotFound = () => {
                     Please check the link or go back to the homepage.
                 </p>
                 <Button
-                    onClick={() => navigate("/home")}
+                    onClick={() => navigate("/")}
                     className="cursor-pointer bg-sro-primary text-white px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:bg-sro-primary/90"
                 >
-                    Back to Homepage
+                    Back to Dashboard
                 </Button>
             </div>
         </div>

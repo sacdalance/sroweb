@@ -73,6 +73,11 @@ app.use('/api', emailServicesRoutes);
 app.use('/api', activityApprovalSlipRoutes);
 console.log('Activity Approval Slip routes mounted at /api');
 
+// Health check endpoint for connectivity monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.get('/', (req, res) => {
   res.send('Supabase backend is working!');
 });
