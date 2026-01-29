@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import {
   Tabs,
   TabsList,
@@ -343,96 +343,58 @@ const AdminActivitySummary = () => {
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">Organization</label>
-                        <Select
+                        <UnifiedDropdown
+                          options={filteredOrgOptions}
                           value={selectedOrg}
-                          onValueChange={(val) => {
+                          onChange={(val) => {
                             setSelectedOrg(val);
-                            setOrgSearchTerm(""); // reset search term on select
+                            setOrgSearchTerm("");
                           }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select organization" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredOrgOptions.length > 0 ? (
-                              filteredOrgOptions.map((org) => (
-                                <SelectItem
-                                  key={org}
-                                  value={org}
-                                  className="hover:bg-gray-100 cursor-pointer"
-                                >
-                                  {org}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <div className="px-4 py-2 text-sm text-muted-foreground">No results found</div>
-                            )}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select organization"
+                          searchable
+                          searchPlaceholder="Search organization..."
+                        />
                       </div>
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">Activity Category</label>
-                        <Select value={selectedType} onValueChange={setSelectedType}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activityTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <UnifiedDropdown
+                          options={activityTypes.map(t => ({ value: t.id, label: t.label }))}
+                          value={selectedType}
+                          onChange={setSelectedType}
+                          placeholder="Select category"
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Month</label>
-                          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {months.map((month) => (
-                                <SelectItem key={month} value={month}>
-                                  {month}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={months}
+                            value={selectedMonth}
+                            onChange={setSelectedMonth}
+                            placeholder="Select month"
+                          />
                         </div>
 
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Rows per Page</label>
-                          <Select value={String(rowsPerPage)} onValueChange={(val) => {
-                            setRowsPerPage(Number(val));
-                            setCurrentPage(1);
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Rows per page" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="5">5</SelectItem>
-                              <SelectItem value="10">10</SelectItem>
-                              <SelectItem value="25">25</SelectItem>
-                              <SelectItem value="50">50</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={["5", "10", "25", "50"]}
+                            value={String(rowsPerPage)}
+                            onChange={(val) => {
+                              setRowsPerPage(Number(val));
+                              setCurrentPage(1);
+                            }}
+                            placeholder="Rows per page"
+                          />
                         </div>
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Academic Year</label>
-                          <Select value={selectedYear} onValueChange={setSelectedYear}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select academic year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {academicYears.map((year) => (
-                                <SelectItem key={year} value={year}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={academicYears}
+                            value={selectedYear}
+                            onChange={setSelectedYear}
+                            placeholder="Select academic year"
+                          />
                         </div>
                       </div>
                     </div>
@@ -525,95 +487,57 @@ const AdminActivitySummary = () => {
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">Organization</label>
-                        <Select
+                        <UnifiedDropdown
+                          options={filteredOrgOptions}
                           value={selectedOrg}
-                          onValueChange={(val) => {
+                          onChange={(val) => {
                             setSelectedOrg(val);
-                            setOrgSearchTerm(""); // reset search term on select
+                            setOrgSearchTerm("");
                           }}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select organization" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredOrgOptions.length > 0 ? (
-                              filteredOrgOptions.map((org) => (
-                                <SelectItem
-                                  key={org}
-                                  value={org}
-                                  className="hover:bg-gray-100 cursor-pointer"
-                                >
-                                  {org}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <div className="px-4 py-2 text-sm text-muted-foreground">No results found</div>
-                            )}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select organization"
+                          searchable
+                          searchPlaceholder="Search organization..."
+                        />
                       </div>
                       <div className="grid gap-2">
                         <label className="text-sm font-medium">Activity Category</label>
-                        <Select value={selectedType} onValueChange={setSelectedType}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activityTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <UnifiedDropdown
+                          options={activityTypes.map(t => ({ value: t.id, label: t.label }))}
+                          value={selectedType}
+                          onChange={setSelectedType}
+                          placeholder="Select category"
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Month</label>
-                          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {months.map((month) => (
-                                <SelectItem key={month} value={month}>
-                                  {month}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={months}
+                            value={selectedMonth}
+                            onChange={setSelectedMonth}
+                            placeholder="Select month"
+                          />
                         </div>
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Rows per Page</label>
-                          <Select value={String(rowsPerPage)} onValueChange={(val) => {
-                            setRowsPerPage(Number(val));
-                            setCurrentPage(1);
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Rows per page" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="5">5</SelectItem>
-                              <SelectItem value="10">10</SelectItem>
-                              <SelectItem value="25">25</SelectItem>
-                              <SelectItem value="50">50</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={["5", "10", "25", "50"]}
+                            value={String(rowsPerPage)}
+                            onChange={(val) => {
+                              setRowsPerPage(Number(val));
+                              setCurrentPage(1);
+                            }}
+                            placeholder="Rows per page"
+                          />
                         </div>
                         <div className="grid gap-2">
                           <label className="text-sm font-medium">Academic Year</label>
-                          <Select value={selectedYear} onValueChange={setSelectedYear}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select academic year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {academicYears.map((year) => (
-                                <SelectItem key={year} value={year}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <UnifiedDropdown
+                            options={academicYears}
+                            value={selectedYear}
+                            onChange={setSelectedYear}
+                            placeholder="Select academic year"
+                          />
                         </div>
                       </div>
                     </div>
