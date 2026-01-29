@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 
 // Editable list of superadmin emails
 export const SUPERADMIN_EMAILS = [
@@ -47,16 +47,12 @@ export default function SuperadminCheatDialog({ userEmail, currentRoleId, onRole
           <div className="space-y-4 mt-2">
             <div>
               <label className="block mb-1 text-sm font-medium">Set Role</label>
-              <Select value={String(selectedRole)} onValueChange={val => setSelectedRole(Number(val))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map(opt => (
-                    <SelectItem key={opt.id} value={String(opt.id)}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <UnifiedDropdown
+                options={ROLE_OPTIONS.map(opt => ({ value: String(opt.id), label: opt.label }))}
+                value={String(selectedRole)}
+                onChange={val => setSelectedRole(Number(val))}
+                placeholder="Select role"
+              />
             </div>
             <Button
               className="w-full bg-sro-secondary hover:bg-sro-secondary/90 text-white"

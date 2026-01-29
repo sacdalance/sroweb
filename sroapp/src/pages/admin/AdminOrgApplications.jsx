@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from "@/components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Download } from "lucide-react";
 import supabase from "@/lib/supabase"; // Only for fetching, NOT for update!
 import StatusPill from "@/components/ui/StatusPill";
@@ -321,16 +319,12 @@ const AdminOrgApplications = () => {
                   </div>
                   <div>
                     <label className="font-semibold block mb-1 text-gray-800">New Organization Status</label>
-                    <Select value={status} onValueChange={setStatus}>
-                      <SelectTrigger className="w-full border rounded px-3 py-2">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusList.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <UnifiedDropdown
+                      options={statusList}
+                      value={status}
+                      onChange={setStatus}
+                      placeholder="Select status"
+                    />
                   </div>
                 </>
               )}

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import PropTypes from 'prop-types';
 import { Dialog } from "@/components/ui/dialog";
@@ -317,45 +317,31 @@ const UnifiedActivitiesCalendar = ({
 
       <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
-          <Select value={selectedMonth} onValueChange={handleMonthChange}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map((month) => (
-                <SelectItem key={month} value={month}>
-                  {month}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <UnifiedDropdown
+            options={months}
+            value={selectedMonth}
+            onChange={handleMonthChange}
+            placeholder="Select month"
+            className="w-full sm:w-48"
+          />
 
-          <Select value={selectedYear} onValueChange={handleYearChange}>
-            <SelectTrigger className="w-full sm:w-32">
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <UnifiedDropdown
+            options={years}
+            value={selectedYear}
+            onChange={handleYearChange}
+            placeholder="Select year"
+            className="w-full sm:w-32"
+          />
 
-          <Select value={selectedOrganization} onValueChange={setSelectedOrganization}>
-            <SelectTrigger className="w-full sm:w-64">
-              <SelectValue placeholder="Select organization" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Organizations</SelectItem>
-              {organizations.map((org) => (
-                <SelectItem key={org} value={org}>
-                  {org}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <UnifiedDropdown
+            options={[{ value: "all", label: "All Organizations" }, ...organizations.map(org => ({ value: org, label: org }))]}
+            value={selectedOrganization}
+            onChange={setSelectedOrganization}
+            placeholder="Select organization"
+            searchable
+            searchPlaceholder="Search organization..."
+            className="w-full sm:w-64"
+          />
         </div>
       </div>
 

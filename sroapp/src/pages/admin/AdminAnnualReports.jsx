@@ -3,13 +3,7 @@ import supabase from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Search, Download, Eye } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
@@ -81,18 +75,15 @@ const AdminAnnualReports = () => {
         </div>
 
         <div className="w-full md:w-[200px]">
-          <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger className="w-full h-9 text-sm">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024-2025">2024-2025</SelectItem>
-              <SelectItem value="2025-2026">2025-2026</SelectItem>
-              <SelectItem value="2026-2027">2026-2027</SelectItem>
-              <SelectItem value="2027-2028">2027-2028</SelectItem>
-              <SelectItem value="all">All years</SelectItem>
-            </SelectContent>
-          </Select>
+          <UnifiedDropdown
+            options={["2024-2025", "2025-2026", "2026-2027", "2027-2028", "all"].map(y => ({
+              value: y,
+              label: y === "all" ? "All years" : y
+            }))}
+            value={yearFilter}
+            onChange={setYearFilter}
+            placeholder="All Categories"
+          />
         </div>
       </div>
 

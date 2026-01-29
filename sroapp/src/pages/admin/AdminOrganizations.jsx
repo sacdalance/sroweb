@@ -4,13 +4,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Search } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
 const AdminOrganizations = () => {
@@ -217,19 +211,18 @@ const AdminOrganizations = () => {
           />
         </div>
 
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-full md:w-80">
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <UnifiedDropdown
+          options={[
+            { value: "all", label: "All Categories" },
+            ...categories.map(cat => ({ value: cat.id, label: cat.name }))
+          ]}
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          placeholder="Select category"
+          searchable
+          searchPlaceholder="Search category..."
+          className="w-full md:w-80"
+        />
       </div>
 
       {/* Organizations Grid */}

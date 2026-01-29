@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Pencil, ChevronDown, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from 'sonner';
 import StatusPill from "@/components/ui/StatusPill";
@@ -215,34 +215,25 @@ const Submissions = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Organization</label>
-                      <Select value={filterOrg} onValueChange={setFilterOrg}>
-                        <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
-                          <SelectValue placeholder="Select organization" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="All">All</SelectItem>
-                          {orgOptions.map((org) => (
-                            <SelectItem key={org} value={org} className="whitespace-normal break-words">
-                              {org}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <UnifiedDropdown
+                        options={["All", ...orgOptions]}
+                        value={filterOrg}
+                        onChange={setFilterOrg}
+                        placeholder="Select organization"
+                        searchable
+                        searchPlaceholder="Search organization..."
+                        className="mt-1"
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium">Status</label>
-                      <Select value={filterStatus} onValueChange={setFilterStatus}>
-                        <SelectTrigger className="mt-1 w-full whitespace-normal break-words min-h-[40px]">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="All">All</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="For Appeal">For Appeal</SelectItem>
-                          <SelectItem value="Rejected">Rejected</SelectItem>
-                          <SelectItem value="For Cancellation">For Cancellation</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <UnifiedDropdown
+                        options={["All", "Pending", "For Appeal", "Rejected", "For Cancellation"]}
+                        value={filterStatus}
+                        onChange={setFilterStatus}
+                        placeholder="Select status"
+                        className="mt-1"
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end mt-4">
