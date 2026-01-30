@@ -43,10 +43,36 @@ const Requests = () => {
     }
   };
 
-  // Get unique org options for filter
+  // Get unique org options for filter (Activity Requests)
   const orgOptions = useMemo(() =>
     [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))].sort(),
     [requested]
+  );
+
+  // Get unique org options for Approved Activities filter
+  const approvedOrgOptions = useMemo(() =>
+    [...new Set(approved.map((a) => a.organization?.org_name || "Unknown"))].sort(),
+    [approved]
+  );
+
+  // Get unique options for Recognition filters
+  const recognitionOrgOptions = useMemo(() =>
+    [...new Set(recognitionApps?.map((a) => a.org_name || "Unknown") || [])].sort(),
+    [recognitionApps]
+  );
+  const recognitionYearOptions = useMemo(() =>
+    [...new Set(recognitionApps?.map((a) => a.academic_year) || [])].sort().reverse(),
+    [recognitionApps]
+  );
+
+  // Get unique options for Annual Reports filters
+  const reportsOrgOptions = useMemo(() =>
+    [...new Set(annualReports.map((r) => r.organization?.org_name || r.org_name || "Unknown"))].sort(),
+    [annualReports]
+  );
+  const reportsYearOptions = useMemo(() =>
+    [...new Set(annualReports.map((r) => r.academic_year))].sort().reverse(),
+    [annualReports]
   );
 
   useEffect(() => {
@@ -254,6 +280,10 @@ const Requests = () => {
       header: "Organization",
       width: "w-[18%]",
       sortable: true,
+      filterable: true,
+      filterOptions: approvedOrgOptions,
+      filterLabel: "Organizations",
+      filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
         <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
@@ -342,6 +372,10 @@ const Requests = () => {
       header: "Organization",
       width: "w-[35%]",
       sortable: true,
+      filterable: true,
+      filterOptions: recognitionOrgOptions,
+      filterLabel: "Organizations",
+      filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
         <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
@@ -353,6 +387,9 @@ const Requests = () => {
       header: "Academic Year",
       width: "w-[20%]",
       sortable: true,
+      filterable: true,
+      filterOptions: recognitionYearOptions,
+      filterLabel: "Years",
       render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
     },
     {
@@ -382,6 +419,10 @@ const Requests = () => {
       header: "Organization",
       width: "w-[35%]",
       sortable: true,
+      filterable: true,
+      filterOptions: recognitionOrgOptions,
+      filterLabel: "Organizations",
+      filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
         <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
@@ -393,6 +434,9 @@ const Requests = () => {
       header: "Academic Year",
       width: "w-[20%]",
       sortable: true,
+      filterable: true,
+      filterOptions: recognitionYearOptions,
+      filterLabel: "Years",
       render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
     },
     {
@@ -424,6 +468,10 @@ const Requests = () => {
       header: "Organization",
       width: "w-[35%]",
       sortable: true,
+      filterable: true,
+      filterOptions: reportsOrgOptions,
+      filterLabel: "Organizations",
+      filterAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       render: (row) => (
         <span className="truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
@@ -436,6 +484,9 @@ const Requests = () => {
       header: "Academic Year",
       width: "w-[20%]",
       sortable: true,
+      filterable: true,
+      filterOptions: reportsYearOptions,
+      filterLabel: "Years",
       render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
     },
     {
