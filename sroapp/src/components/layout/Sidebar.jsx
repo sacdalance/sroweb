@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import PropTypes from 'prop-types';
 import React from "react";
@@ -114,14 +113,14 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
               <h2 className="text-xl font-semibold mt-3 text-center">
                 {user?.user_metadata?.full_name || "User"}
               </h2>
-              <p className="text-base italic text-center">
+              <p className="text-base italic text-center text-sro-primary">
                 {{
                   1: "Student",
                   2: "SRO Staff",
                   3: "ODSA Staff",
                   4: "Super Admin",
                 }[role] || (
-                    <LoadingSpinner text="Assigning..." variant="inline" />
+                    <LoadingSpinner text="Assigning..." variant="inline" className="text-sro-primary" />
                   )}
               </p>
               <p className="text-sm text-center break-all">{user?.email}</p>
