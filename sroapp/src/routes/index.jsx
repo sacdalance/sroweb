@@ -182,7 +182,7 @@ const router = createBrowserRouter([
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
           { path: "edit-activity", element: <RequireUser><EditActivity /></RequireUser> },
-          { path: "submissions", element: <RequireUser><Submissions /></RequireUser> },
+          { path: "requests", element: <RequireUser><Submissions /></RequireUser> },
           { path: "activities-calendar", element: <RequireUser><ActivitiesCalendar /></RequireUser> },
           { path: "org-application", element: <RequireUser><OrgApplication /></RequireUser> },
           { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },

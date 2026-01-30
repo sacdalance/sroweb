@@ -170,7 +170,7 @@ const Submissions = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-10">
-      <h1 className="page-header text-black">My Activity Requests</h1>
+      <h1 className="page-header text-black">My Requests</h1>
 
       <Dialog
         open={!!selectedActivity}

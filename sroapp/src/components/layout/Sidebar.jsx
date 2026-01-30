@@ -146,6 +146,17 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                     <ul className="space-y-2 text-[15px] font-medium">
                       <li>
                         <Link
+                          to="/requests"
+                          className={linkClass("/requests")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          <span className="flex-1 whitespace-nowrap">
+                            My Requests
+                          </span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
                           to="/activity-request"
                           className={linkClass("/activity-request")}
                           onClick={() => isSmallScreen && setIsOpen(false)}
@@ -153,26 +164,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           <span className="flex-1 whitespace-nowrap">
                             New Activity Request
                           </span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          to="/submissions"
-                          className={linkClass("/submissions")}
-                          onClick={() => isSmallScreen && setIsOpen(false)}
-                        >
-                          <span className="flex-1 whitespace-nowrap">
-                            My Activity Requests
-                          </span>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          to="/activities-calendar"
-                          className={linkClass("/activities-calendar")}
-                          onClick={() => isSmallScreen && setIsOpen(false)}
-                        >
-                          Activities Calendar
                         </Link>
                       </li>
                       <li>
@@ -186,10 +177,19 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                           </span>
                         </Link>
                       </li>
+                      <li>
+                        <Link
+                          to="/activities-calendar"
+                          className={linkClass("/activities-calendar")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Activities Calendar
+                        </Link>
+                      </li>
                     </ul>
                   </div>
                   <div className="mb-6">
-                    <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Organizational Requirements</h3>
+                    <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Org Requirements</h3>
                     <ul className="space-y-2 text-[15px] font-medium">
                       <li>
                         <Link
