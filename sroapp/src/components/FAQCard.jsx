@@ -13,7 +13,7 @@ const FAQCard = () => {
     },
     {
       question: "What happens after I submit my activity request?",
-      answer: "The SRO and ODA will review it. Once reviewed, the SRO will approve and the ODSA will provide the final confirmation.",
+      answer: "The SRO and ODSA will review it. Once reviewed, the SRO will approve and the ODSA will provide the final confirmation.",
     },
     {
       question: "What forms do I need to submit for the annual report?",
@@ -21,7 +21,7 @@ const FAQCard = () => {
     },
     {
       question: "What are the requirements for organization recognition?",
-      answer: "You need to submit several forms, such as officer/member rosters and proposed activities. These are provided in the Aplication for Recognition section.",
+      answer: "You need to submit several forms, such as officer/member rosters and proposed activities. These are provided in the Application for Recognition section.",
     },
     {
       question: "How do I book an interview for recognition?",
