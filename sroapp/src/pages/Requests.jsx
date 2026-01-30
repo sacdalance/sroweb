@@ -1,23 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, Dialog as FilterDialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Pencil, X, Filter } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
+import { Pencil, X } from "lucide-react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from 'sonner';
-import StatusPill from "@/components/ui/StatusPill";
+import DataTable from "@/components/ui/DataTable";
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
 
-const Submissions = () => {
+const Requests = () => {
   const [requested, setRequested] = useState([]);
   const [approved, setApproved] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,18 +28,8 @@ const Submissions = () => {
   const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
   const [accountId, setAccountId] = useState(null);
-  const [filterOrg, setFilterOrg] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const orgOptions = [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))];
-  const filteredRequested = requested.filter((act) => {
-    const orgMatch = filterOrg === "All" || act.organization?.org_name === filterOrg;
-    const statusMatch =
-      filterStatus === "All" ||
-      act.final_status === filterStatus ||
-      (filterStatus === "Pending" && !act.final_status);
-    return orgMatch && statusMatch;
-  });
+  const [annualReports, setAnnualReports] = useState([]);
+  const [recognitionApps, setRecognitionApps] = useState([]);
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -55,6 +42,12 @@ const Submissions = () => {
       return "TBD";
     }
   };
+
+  // Get unique org options for filter
+  const orgOptions = useMemo(() =>
+    [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))].sort(),
+    [requested]
+  );
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -85,7 +78,6 @@ const Submissions = () => {
     fetchActivities();
   }, []);
 
-  const [annualReports, setAnnualReports] = useState([]);
   useEffect(() => {
     const fetchAnnualReports = async () => {
       const { data, error } = await supabase
@@ -98,8 +90,6 @@ const Submissions = () => {
 
     if (accountId) fetchAnnualReports();
   }, [accountId]);
-
-  const [recognitionApps, setRecognitionApps] = useState([]);
 
   useEffect(() => {
     const fetchRecognitionApps = async () => {
@@ -146,6 +136,331 @@ const Submissions = () => {
   // Approved recognition apps
   const approvedRecognitions = recognitionApps?.filter((app) => app.sro_approved && app.odsa_approved) || [];
 
+  // Handle row click for activity tables
+  const handleActivityRowClick = async (act) => {
+    setDialogLoading(true);
+    try {
+      const res = await axios.get(`/activities/user/${accountId}`);
+      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+      setSelectedActivity(fullActivity);
+    } catch (err) {
+      console.error("Error fetching activity with account info:", err);
+    } finally {
+      setDialogLoading(false);
+    }
+  };
+
+  // Column definitions for Activity Requests table
+  const requestedColumns = [
+    {
+      key: "organization",
+      header: "Organization",
+      width: "w-[18%]",
+      sortable: true,
+      filterable: true,
+      filterOptions: orgOptions,
+      filterLabel: "Organizations",
+      filterAccessor: (row) => row.organization?.org_name || "Unknown",
+      sortAccessor: (row) => row.organization?.org_name || "Unknown",
+      render: (row) => (
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+          {row.organization?.org_name || "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "activity_name",
+      header: "Title",
+      width: "w-[22%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
+          {row.activity_name}
+        </span>
+      ),
+    },
+    {
+      key: "schedule",
+      header: "Activity Date",
+      width: "w-[15%]",
+      sortable: true,
+      sortAccessor: (row) => row.schedule?.[0]?.start_date || "",
+      render: (row) => (
+        <span className="text-gray-600">{formatDateRange(row.schedule)}</span>
+      ),
+    },
+    {
+      key: "venue",
+      header: "Venue",
+      width: "w-[18%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-600" title={row.venue}>
+          {row.venue}
+        </span>
+      ),
+    },
+    {
+      key: "final_status",
+      header: "Status",
+      width: "w-[12%]",
+      sortable: true,
+      filterable: true,
+      filterOptions: ["Pending", "For Appeal", "Rejected", "For Cancellation"],
+      filterLabel: "Statuses",
+      filterAccessor: (row) => row.final_status || "Pending",
+      isStatus: true,
+      accessor: (row) => row.final_status || "Pending",
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "w-[15%]",
+      render: (row) => (
+        !["For Appeal", "Rejected", "For Cancellation"].includes(row.final_status) && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingActivity(row);
+                setIsAppealOpen(true);
+              }}
+              className="p-1.5 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCancelActivity(row);
+                setIsCancelOpen(true);
+              }}
+              className="p-1.5 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
+              title="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )
+      ),
+    },
+  ];
+
+  // Column definitions for Approved Activities table
+  const approvedColumns = [
+    {
+      key: "organization",
+      header: "Organization",
+      width: "w-[18%]",
+      sortable: true,
+      sortAccessor: (row) => row.organization?.org_name || "Unknown",
+      render: (row) => (
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+          {row.organization?.org_name || "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "activity_name",
+      header: "Title",
+      width: "w-[22%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
+          {row.activity_name}
+        </span>
+      ),
+    },
+    {
+      key: "schedule",
+      header: "Activity Date",
+      width: "w-[15%]",
+      sortable: true,
+      sortAccessor: (row) => row.schedule?.[0]?.start_date || "",
+      render: (row) => (
+        <span className="text-gray-600">{formatDateRange(row.schedule)}</span>
+      ),
+    },
+    {
+      key: "venue",
+      header: "Venue",
+      width: "w-[18%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-600" title={row.venue}>
+          {row.venue}
+        </span>
+      ),
+    },
+    {
+      key: "activity_id",
+      header: "Activity ID",
+      width: "w-[12%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600 font-mono text-xs">{row.activity_id}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "w-[15%]",
+      render: (row) => (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingActivity(row);
+              setIsAppealOpen(true);
+            }}
+            className="p-1.5 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
+            title="Edit"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCancelActivity(row);
+              setIsCancelOpen(true);
+            }}
+            className="p-1.5 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
+            title="Cancel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  // Column definitions for Recognition tables
+  const pendingRecognitionColumns = [
+    {
+      key: "org_name",
+      header: "Organization",
+      width: "w-[35%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
+          {row.org_name || "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "academic_year",
+      header: "Academic Year",
+      width: "w-[20%]",
+      sortable: true,
+      render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
+    },
+    {
+      key: "submitted_at",
+      header: "Submission Date",
+      width: "w-[25%]",
+      sortable: true,
+      sortAccessor: (row) => new Date(row.submitted_at).getTime(),
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.submitted_at).toLocaleDateString('en-US')}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "w-[20%]",
+      isStatus: true,
+      accessor: () => "Pending",
+    },
+  ];
+
+  const approvedRecognitionColumns = [
+    {
+      key: "org_name",
+      header: "Organization",
+      width: "w-[35%]",
+      sortable: true,
+      render: (row) => (
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
+          {row.org_name || "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "academic_year",
+      header: "Academic Year",
+      width: "w-[20%]",
+      sortable: true,
+      render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
+    },
+    {
+      key: "submitted_at",
+      header: "Submission Date",
+      width: "w-[25%]",
+      sortable: true,
+      sortAccessor: (row) => new Date(row.submitted_at).getTime(),
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.submitted_at).toLocaleDateString('en-US')}
+        </span>
+      ),
+    },
+    {
+      key: "new_org_status",
+      header: "Org Status",
+      width: "w-[20%]",
+      sortable: true,
+      isStatus: true,
+      accessor: (row) => row.new_org_status || "Pending",
+    },
+  ];
+
+  // Column definitions for Annual Reports table
+  const annualReportsColumns = [
+    {
+      key: "organization",
+      header: "Organization",
+      width: "w-[35%]",
+      sortable: true,
+      sortAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
+      render: (row) => (
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
+          {row.organization?.org_name || row.org_name || "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "academic_year",
+      header: "Academic Year",
+      width: "w-[20%]",
+      sortable: true,
+      render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
+    },
+    {
+      key: "submitted_at",
+      header: "Submission Date",
+      width: "w-[25%]",
+      sortable: true,
+      sortAccessor: (row) => new Date(row.submitted_at).getTime(),
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.submitted_at).toLocaleDateString('en-US')}
+        </span>
+      ),
+    },
+    {
+      key: "report_id",
+      header: "Report ID",
+      width: "w-[20%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600 font-mono text-xs">{row.report_id}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="page-header text-black">My Requests</h1>
@@ -160,399 +475,53 @@ const Submissions = () => {
 
         {/* Activity Requests Tab */}
         <TabsContent value="requested">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <h2 className="text-lg font-semibold">Activity Requests ({filteredRequested.length})</h2>
-            <div className="flex items-center justify-end gap-2">
-              {(filterOrg !== "All" || filterStatus !== "All") && (
-                <div className="flex items-center gap-2">
-                  {filterOrg !== "All" && (
-                    <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
-                      {filterOrg}
-                      <button onClick={() => setFilterOrg("All")}
-                        className="hover:text-sro-primary transition">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                  {filterStatus !== "All" && (
-                    <div className="flex items-center gap-1 border px-3 py-1 rounded-full text-sm">
-                      {filterStatus}
-                      <button onClick={() => setFilterStatus("All")}
-                        className="hover:text-sro-primary transition">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-              <FilterDialog open={filterOpen} onOpenChange={setFilterOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
-                  <DialogHeader>
-                    <DialogTitle>Filter Activities</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Organization</label>
-                      <UnifiedDropdown
-                        options={["All", ...orgOptions]}
-                        value={filterOrg}
-                        onChange={setFilterOrg}
-                        placeholder="Select organization"
-                        searchable
-                        searchPlaceholder="Search organization..."
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Status</label>
-                      <UnifiedDropdown
-                        options={["All", "Pending", "For Appeal", "Rejected", "For Cancellation"]}
-                        value={filterStatus}
-                        onChange={setFilterStatus}
-                        placeholder="Select status"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={() => setFilterOpen(false)} className="bg-sro-primary hover:bg-sro-primary/90 text-white">
-                      Apply Filters
-                    </Button>
-                  </div>
-                </DialogContent>
-              </FilterDialog>
-            </div>
-          </div>
-          <Card className="w-full shadow-sm border">
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[18%]">Organization</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[25%]">Title</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[15%]">Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[20%]">Venue</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[12%]">Status</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[10%]">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredRequested.length > 0 ? (
-                      filteredRequested.map((act) => (
-                        <tr
-                          key={act.activity_id}
-                          onClick={async () => {
-                            setDialogLoading(true);
-                            try {
-                              const res = await axios.get(`/activities/user/${accountId}`);
-                              const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                              setSelectedActivity(fullActivity);
-                            } catch (err) {
-                              console.error("Error fetching activity with account info:", err);
-                            } finally {
-                              setDialogLoading(false);
-                            }
-                          }}
-                          className="cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm text-gray-700 truncate">
-                            {act.organization?.org_name || "Unknown"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 font-medium truncate">
-                            {act.activity_name}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {formatDateRange(act.schedule)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 truncate">
-                            {act.venue}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <StatusPill status={act.final_status || "Pending"} />
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {!["For Appeal", "Rejected", "For Cancellation"].includes(act.final_status) && (
-                              <div className="flex items-center justify-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingActivity(act);
-                                    setIsAppealOpen(true);
-                                  }}
-                                  className="p-1 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
-                                  title="Edit"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCancelActivity(act);
-                                    setIsCancelOpen(true);
-                                  }}
-                                  className="p-1 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
-                                  title="Cancel"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-500">
-                          No activity requests found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <h2 className="text-lg font-semibold mb-4">Activity Requests</h2>
+          <DataTable
+            columns={requestedColumns}
+            data={requested.map(act => ({ ...act, id: act.activity_id }))}
+            onRowClick={handleActivityRowClick}
+            emptyMessage="No activity requests found."
+          />
         </TabsContent>
 
         {/* Approved Activities Tab */}
         <TabsContent value="approved">
-          <h2 className="text-lg font-semibold mb-4">Approved Activities ({approved.length})</h2>
-          <Card className="w-full shadow-sm border">
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[18%]">Organization</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[25%]">Title</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[15%]">Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[20%]">Venue</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[12%]">Activity ID</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[10%]">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {approved.length > 0 ? (
-                      approved.map((act) => (
-                        <tr
-                          key={act.activity_id}
-                          onClick={async () => {
-                            setDialogLoading(true);
-                            try {
-                              const res = await axios.get(`/activities/user/${accountId}`);
-                              const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
-                              setSelectedActivity(fullActivity);
-                            } catch (err) {
-                              console.error("Error fetching activity with account info:", err);
-                            } finally {
-                              setDialogLoading(false);
-                            }
-                          }}
-                          className="cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm text-gray-700 truncate">
-                            {act.organization?.org_name || "Unknown"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 font-medium truncate">
-                            {act.activity_name}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {formatDateRange(act.schedule)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 truncate">
-                            {act.venue}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center font-mono">
-                            {act.activity_id}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingActivity(act);
-                                  setIsAppealOpen(true);
-                                }}
-                                className="p-1 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
-                                title="Edit"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setCancelActivity(act);
-                                  setIsCancelOpen(true);
-                                }}
-                                className="p-1 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
-                                title="Cancel"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-500">
-                          No approved activities found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <h2 className="text-lg font-semibold mb-4">Approved Activities</h2>
+          <DataTable
+            columns={approvedColumns}
+            data={approved.map(act => ({ ...act, id: act.activity_id }))}
+            onRowClick={handleActivityRowClick}
+            emptyMessage="No approved activities found."
+          />
         </TabsContent>
 
         {/* Org Recognition Tab */}
         <TabsContent value="recognition">
-          <h2 className="text-lg font-semibold mb-4">Pending Recognition Applications ({pendingRecognitions.length})</h2>
-          <Card className="w-full shadow-sm border mb-8">
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[35%]">Organization</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Academic Year</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[25%]">Submission Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {pendingRecognitions.length > 0 ? (
-                      pendingRecognitions.map((app) => (
-                        <tr key={app.recognition_id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-sm text-gray-700 truncate">
-                            {app.org_name || "Unknown"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {app.academic_year}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {new Date(app.submitted_at).toLocaleDateString('en-US')}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <StatusPill status="Pending" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500">
-                          No pending recognition applications found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <h2 className="text-lg font-semibold mb-4">Pending Recognition Applications</h2>
+          <DataTable
+            columns={pendingRecognitionColumns}
+            data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
+            emptyMessage="No pending recognition applications found."
+            className="mb-8"
+          />
 
-          <h2 className="text-lg font-semibold mb-4">Approved Recognition Applications ({approvedRecognitions.length})</h2>
-          <Card className="w-full shadow-sm border">
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[35%]">Organization</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Academic Year</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[25%]">Submission Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Org Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {approvedRecognitions.length > 0 ? (
-                      approvedRecognitions.map((app) => (
-                        <tr key={app.recognition_id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-sm text-gray-700 truncate">
-                            {app.org_name || "Unknown"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {app.academic_year}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {new Date(app.submitted_at).toLocaleDateString('en-US')}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {app.new_org_status || "N/A"}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500">
-                          No approved recognition applications found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <h2 className="text-lg font-semibold mb-4">Approved Recognition Applications</h2>
+          <DataTable
+            columns={approvedRecognitionColumns}
+            data={approvedRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
+            emptyMessage="No approved recognition applications found."
+          />
         </TabsContent>
 
         {/* Annual Reports Tab */}
         <TabsContent value="reports">
-          <h2 className="text-lg font-semibold mb-4">Annual Reports ({annualReports.length})</h2>
-          <Card className="w-full shadow-sm border">
-            <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-left w-[35%]">Organization</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Academic Year</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[25%]">Submission Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-center w-[20%]">Report ID</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {annualReports?.length > 0 ? (
-                      annualReports.map((report) => (
-                        <tr
-                          key={report.report_id}
-                          onClick={() => window.open(report.drive_folder_link, '_blank')}
-                          className="cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-sm text-gray-700 truncate">
-                            {report.organization?.org_name || report.org_name || "Unknown"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {report.academic_year}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {new Date(report.submitted_at).toLocaleDateString('en-US')}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-center font-mono">
-                            {report.report_id}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500">
-                          No annual reports found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <h2 className="text-lg font-semibold mb-4">Annual Reports</h2>
+          <DataTable
+            columns={annualReportsColumns}
+            data={annualReports.map(report => ({ ...report, id: report.report_id }))}
+            onRowClick={(row) => window.open(row.drive_folder_link, '_blank')}
+            emptyMessage="No annual reports found."
+          />
         </TabsContent>
       </Tabs>
 
@@ -655,4 +624,4 @@ const Submissions = () => {
   );
 };
 
-export default Submissions;
+export default Requests;

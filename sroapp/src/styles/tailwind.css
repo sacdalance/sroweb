@@ -149,4 +149,95 @@
   .page-header {
     @apply text-2xl sm:text-3xl font-bold mb-8 text-center sm:text-left;
   }
+
+  /* Status Badge Base - apply these styles directly */
+  .status-badge,
+  .status-badge-approved,
+  .status-badge-recognized,
+  .status-badge-completed,
+  .status-badge-pending,
+  .status-badge-odsa-pending,
+  .status-badge-in-progress,
+  .status-badge-rejected,
+  .status-badge-cancelled,
+  .status-badge-expired,
+  .status-badge-for-appeal,
+  .status-badge-for-cancellation,
+  .status-badge-draft,
+  .status-badge-on-probation,
+  .status-badge-suspended,
+  .status-badge-inactive,
+  .status-badge-default {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    padding: 0.25rem 1rem;
+    min-width: 110px;
+    height: 1.75rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* Approved / Success States - Green */
+  .status-badge-approved,
+  .status-badge-recognized,
+  .status-badge-completed {
+    background-color: var(--sro-secondary);
+    color: white;
+  }
+
+  /* Pending / Warning States - Yellow */
+  .status-badge-pending,
+  .status-badge-in-progress {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending-text);
+  }
+
+  /* ODSA Pending - Red */
+  .status-badge-odsa-pending {
+    background-color: var(--sro-primary);
+    color: white;
+  }
+
+  /* Rejected / Error States - Red */
+  .status-badge-rejected,
+  .status-badge-cancelled,
+  .status-badge-expired {
+    background-color: var(--sro-primary);
+    color: white;
+  }
+
+  /* Neutral / Info States - Gray */
+  .status-badge-for-appeal,
+  .status-badge-for-cancellation,
+  .status-badge-draft {
+    background-color: #f3f4f6;
+    color: var(--status-neutral-text);
+  }
+
+  /* Special States */
+  .status-badge-on-probation {
+    background-color: var(--sro-accent);
+    color: black;
+  }
+
+  .status-badge-suspended {
+    background-color: #ffedd5;
+    color: #9a3412;
+  }
+
+  .status-badge-inactive {
+    background-color: #e5e7eb;
+    color: #4b5563;
+  }
+
+  /* Default fallback - Gray */
+  .status-badge-default {
+    background-color: #d1d5db;
+    color: black;
+  }
 }
