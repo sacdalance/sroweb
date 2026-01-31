@@ -1,32 +1,26 @@
-import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { ArrowRight, ChevronLeft, ChevronRight, Eye } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight } from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
-import { Input } from "@/components/ui/input";
 import { API_BASE_URL } from "@/lib/api-config";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import StatusPill from "@/components/ui/StatusPill";
+import WeeklyCalendar from "@/components/ui/WeeklyCalendar";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
-  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
-  const [loading, setLoading] = useState(true); // Activities
+  const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState([]);
+  const navigate = useNavigate();
 
   // Specific loading states for each fetch
   const [incomingLoading, setIncomingLoading] = useState(true);
@@ -35,11 +29,6 @@ const AdminPanel = () => {
   const [reportsStatsLoading, setReportsStatsLoading] = useState(true);
 
   const [requestsError, setRequestsError] = useState(null);
-  const [announcements, setAnnouncements] = useState([]);
-  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
-  // announcementsLoading removed as it was unused and causing infinite load
-  const [announcementsError, setAnnouncementsError] = useState(null);
   const [requestsCounts, setRequestsCounts] = useState({
     approved: 0,
     forAppeal: 0,
@@ -48,57 +37,6 @@ const AdminPanel = () => {
     approvedApplications: 0,
     annualReports: 0,
   });
-
-  // State for filtered events
-  const [filteredEvents, setFilteredEvents] = useState([]);
-
-  // Function to check if a date falls within the current week
-  const isDateInCurrentWeek = (dateString) => {
-    const eventDate = new Date(dateString);
-    eventDate.setHours(0, 0, 0, 0); // Normalize time to start of day
-
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-    weekStart.setHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
-    weekEnd.setHours(23, 59, 59, 999);
-
-    return eventDate >= weekStart && eventDate <= weekEnd;
-  };
-
-  // Function to format date range
-  const getWeekRange = (date) => {
-    const start = new Date(date);
-    start.setDate(start.getDate() - start.getDay());
-
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-
-    const startMonth = start.toLocaleString('default', { month: 'long' }).toUpperCase();
-    const endMonth = end.toLocaleString('default', { month: 'long' }).toUpperCase();
-
-    return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
-  };
-
-  // Function to get current day of week
-  const getCurrentDay = () => {
-    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    return days[new Date().getDay()];
-  };
-
-  // Function to handle week navigation
-  const handleWeekNavigation = (direction) => {
-    const newDate = new Date(currentWeekStart);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else {
-      newDate.setDate(newDate.getDate() + 7);
-    }
-    newDate.setDate(newDate.getDate() - newDate.getDay());
-    setCurrentWeekStart(newDate);
-  };
 
   // Stats data for the summary section
   const statsSummary = [
@@ -109,6 +47,21 @@ const AdminPanel = () => {
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
     { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
   ];
+
+  const categoryMap = {
+    charitable: "Charitable",
+    serviceWithinUPB: "Service (within UPB)",
+    serviceOutsideUPB: "Service (outside UPB)",
+    contestWithinUPB: "Contest (within UPB)",
+    contestOutsideUPB: "Contest (outside UPB)",
+    educational: "Educational",
+    incomeGenerating: "Income-Generating Project",
+    massOrientation: "Mass Orientation/General Assembly",
+    booth: "Booth",
+    rehearsals: "Rehearsals/Preparation",
+    specialEvents: "Special Event",
+    others: "Others",
+  };
 
   // Fetch incoming activity requests
   useEffect(() => {
@@ -132,29 +85,20 @@ const AdminPanel = () => {
         console.log("Fetched incoming requests:", res.data);
         const allActivities = res.data;
 
-        // Initialize counters for "For Appeal" and "Pending" statuses
         let forAppealCount = 0;
         let pendingCount = 0;
 
-        // Filter and transform the data
         const filteredActivities = allActivities.filter(activity => {
-          // Exclude rejected events
           if (activity.final_status === "Rejected") return false;
           const isForAppeal = activity.final_status === "For Appeal";
           const isPending = activity.final_status === "Pending" || activity.final_status === null;
 
-          // Increment counters based on status
           if (isForAppeal) forAppealCount++;
           if (isPending) pendingCount++;
 
           return true;
         });
 
-        // Log the counts for debugging
-        console.log("For Appeal Count:", forAppealCount);
-        console.log("Pending Count:", pendingCount);
-
-        // Update state with transformed requests (limit to 10, sorted by activity_id descending)
         setIncomingRequests(
           filteredActivities
             .sort((a, b) => Number(b.activity_id) - Number(a.activity_id))
@@ -171,7 +115,6 @@ const AdminPanel = () => {
             }))
         );
 
-        // Update the counts in state without overwriting the approved count
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
           forAppeal: forAppealCount,
@@ -200,22 +143,19 @@ const AdminPanel = () => {
             organization:organization(*),
             schedule:activity_schedule(*)
           `)
-          .eq("final_status", "Approved"); // Fetch only approved activities
+          .eq("final_status", "Approved");
 
         if (error) throw error;
 
-        // Count approved activities
         const approvedCount = data.filter(
           (activity) => activity.final_status?.toLowerCase() === "approved"
         ).length;
 
-        // Transform the data to match our events structure
         let transformedEvents = [];
         data.forEach((activity) => {
           if (Array.isArray(activity.schedule)) {
             activity.schedule.forEach((sched) => {
               if (sched.is_recurring === "true" && sched.recurring_days) {
-                // Recurring event: expand to all matching days
                 const recurringDays = JSON.parse(sched.recurring_days);
                 const dayMap = {
                   Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
@@ -248,7 +188,6 @@ const AdminPanel = () => {
                   }
                 }
               } else if (sched.start_date) {
-                // Non-recurring event
                 const startTime = sched.start_time
                   ? new Date(`1970-01-01T${sched.start_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                   : "00:00";
@@ -274,10 +213,9 @@ const AdminPanel = () => {
         });
         setEvents(transformedEvents);
 
-        // Update the approved count in state
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
-          approved: approvedCount, // Update the approved count
+          approved: approvedCount,
         }));
       } catch (err) {
         console.error("Error fetching activities:", err);
@@ -290,94 +228,10 @@ const AdminPanel = () => {
     fetchActivities();
   }, []);
 
-  // Recalculate filtered events whenever `events` or `currentWeekStart` changes
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize time to start of the day
-
-    const currentWeekStartDate = new Date(currentWeekStart);
-    const currentWeekEndDate = new Date(currentWeekStart);
-    currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6); // End of the week
-
-    const isCurrentWeek = today >= currentWeekStartDate && today <= currentWeekEndDate;
-
-    const newFilteredEvents = events.filter((event) => {
-      const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0); // Normalize time to start of the day
-
-      if (isCurrentWeek) {
-        // Show only today's events for the current week
-        return eventDate.getTime() === today.getTime();
-      } else {
-        // Show all events for the selected week
-        return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-      }
-    });
-
-    setFilteredEvents(newFilteredEvents);
-  }, [events, currentWeekStart]);
-
-  // Filter events for the current week
-  const filteredEventsForCurrentWeek = events.filter(event => isDateInCurrentWeek(event.date));
-
-  const handleViewDetails = async (request) => {
-    setModalLoading(true);
-    setIsModalOpen(true);
-    setSelectedActivity(null);
-
-    // Fetch full activity details from Supabase
-    const { data, error } = await supabase
-      .from("activity")
-      .select(`
-        *,
-        account:account(*),
-        schedule:activity_schedule(*),
-        organization:organization(*)
-      `)
-      .eq("activity_id", request.id)
-      .single();
-
-    if (error) {
-      console.error("Failed to fetch activity details:", error);
-      setSelectedActivity(request); // fallback to minimal
-    } else {
-      setSelectedActivity(data);
-    }
-    setModalLoading(false);
-  };
-
-  const handleApprove = async () => {
-    try {
-      // API call to approve activity
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error approving activity:", error);
-    }
-  };
-
-  const handleReject = async () => {
-    try {
-      // API call to reject activity
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Error rejecting activity:", error);
-    }
-  };
-
-  // Current week range for the calendar (e.g., April 6 - 12)
-  const currentWeekRange = "APRIL 6 - 12";
-  const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const activeDay = "WED"; // Highlighted day
-
   useEffect(() => {
     const fetchPendingOrgRequests = async () => {
       try {
         setPendingStatsLoading(true);
-
-        // Fetch pending applications with these combinations:
-        // (sro_approved: null, odsa_approved: null)
-        // (sro_approved: true, odsa_approved: null)
-        // (sro_approved: true, odsa_approved: false)
         const { data, error } = await supabase
           .from("org_recognition")
           .select("*", { count: "exact" })
@@ -388,11 +242,6 @@ const AdminPanel = () => {
           );
 
         if (error) throw error;
-
-        // Log the count of pending applications
-        console.log(`Pending Applications Count:`, data.length);
-
-        // Update the counts in state
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
           pendingApplications: data.length,
@@ -411,7 +260,6 @@ const AdminPanel = () => {
     const fetchApprovedOrgRequests = async () => {
       try {
         setApprovedStatsLoading(true);
-
         const { data: approvedApplicationsData, error: approvedApplicationsError } = await supabase
           .from("org_recognition")
           .select("*", { count: "exact" })
@@ -419,14 +267,9 @@ const AdminPanel = () => {
           .eq("odsa_approved", true);
 
         if (approvedApplicationsError) throw approvedApplicationsError;
-
-        // Log the count of approved applications
-        console.log(`Approved Applications Count:`, approvedApplicationsData.length);
-
-        // Update the counts in state
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
-          approvedApplications: approvedApplicationsData.length, // <-- use the correct variable
+          approvedApplications: approvedApplicationsData.length,
         }));
       } catch (error) {
         console.error("Error fetching approved organization requests:", error);
@@ -441,91 +284,33 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchAnnualReports = async () => {
       try {
-        setReportsStatsLoading(true); // Optional: Show loading state if needed
-
-        // Get the current year
+        setReportsStatsLoading(true);
         const currentYear = new Date().getFullYear();
-
-        // Fetch and count annual reports where the last 4 digits of academic_year match the current year
         const { data, error } = await supabase
           .from("org_annual_report")
           .select("*", { count: "exact" })
-          .ilike("academic_year", `%${currentYear}`); // Match rows where academic_year ends with the current year
+          .ilike("academic_year", `%${currentYear}`);
 
         if (error) throw error;
-
-        // Log the count of annual reports
-        console.log(`Annual Reports Count for ${currentYear}:`, data.length);
-
-        // Update the counts in state
         setRequestsCounts((prevCounts) => ({
           ...prevCounts,
-          annualReports: data.length, // Update the annualReports count
+          annualReports: data.length,
         }));
       } catch (error) {
         console.error("Error fetching annual reports:", error);
       } finally {
-        setReportsStatsLoading(false); // Optional: Hide loading state if needed
+        setReportsStatsLoading(false);
       }
     };
 
     fetchAnnualReports();
   }, []);
 
-  const categoryMap = {
-    charitable: "Charitable",
-    serviceWithinUPB: "Service (within UPB)",
-    serviceOutsideUPB: "Service (outside UPB)",
-    contestWithinUPB: "Contest (within UPB)",
-    contestOutsideUPB: "Contest (outside UPB)",
-    educational: "Educational",
-    incomeGenerating: "Income-Generating Project",
-    massOrientation: "Mass Orientation/General Assembly",
-    booth: "Booth",
-    rehearsals: "Rehearsals/Preparation",
-    specialEvents: "Special Event",
-    others: "Others",
-  };
-
-  // --- Activities Calendar Filtering Logic (same as Dashboard.jsx fix) ---
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const currentWeekStartDate = new Date(currentWeekStart);
-  currentWeekStartDate.setHours(0, 0, 0, 0);
-  const currentWeekEndDate = new Date(currentWeekStart);
-  currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
-  currentWeekEndDate.setHours(23, 59, 59, 999);
-
-  const isCurrentWeek =
-    today >= currentWeekStartDate && today <= currentWeekEndDate;
-
-  // Always filter events for the current week
-  const weekEvents = useMemo(
-    () =>
-      events.filter((event) => {
-        const eventDate = new Date(event.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-      }),
-    [events, currentWeekStart]
-  );
-
-  // Then, for current week, filter for today only
-  const eventsToShow = isCurrentWeek
-    ? weekEvents.filter((event) => {
-      const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0);
-      return eventDate.getTime() === today.getTime();
-    })
-    : weekEvents;
-
-  const handleEventClick = async (event) => {
+  const handleViewDetails = async (request) => {
     setModalLoading(true);
     setIsModalOpen(true);
     setSelectedActivity(null);
 
-    // Fetch full activity details from Supabase
     const { data, error } = await supabase
       .from("activity")
       .select(`
@@ -534,16 +319,48 @@ const AdminPanel = () => {
         schedule:activity_schedule(*),
         organization:organization(*)
       `)
-      .eq("activity_id", event.id.split("_")[0])
+      .eq("activity_id", request.id)
       .single();
 
     if (error) {
       console.error("Failed to fetch activity details:", error);
-      setSelectedActivity(event); // fallback to minimal
+      setSelectedActivity(request);
     } else {
       setSelectedActivity(data);
     }
     setModalLoading(false);
+  };
+
+  // Handle event click from WeeklyCalendar
+  const handleEventClick = async (event) => {
+    setModalLoading(true);
+    setIsModalOpen(true);
+    setSelectedActivity(null);
+
+    const activityId = String(event.id).split("_")[0];
+    const { data, error } = await supabase
+      .from("activity")
+      .select(`
+        *,
+        account:account(*),
+        schedule:activity_schedule(*),
+        organization:organization(*)
+      `)
+      .eq("activity_id", activityId)
+      .single();
+
+    if (error) {
+      console.error("Failed to fetch activity details:", error);
+      setSelectedActivity(event);
+    } else {
+      setSelectedActivity(data);
+    }
+    setModalLoading(false);
+  };
+
+  // Handle more activities click - navigate to admin calendar with selected date
+  const handleMoreActivitiesClick = (date) => {
+    navigate('/admin/activities-calendar', { state: { selectedDate: new Date(date).toISOString() } });
   };
 
   // Consolidate loading states
@@ -555,9 +372,7 @@ const AdminPanel = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      {/* Responsive Flex Layout */}
       <div className="flex flex-col md:flex-row flex-wrap w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6 min-h-[80vh]">
-        {/* Main Content */}
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
@@ -607,7 +422,7 @@ const AdminPanel = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {incomingRequests.map((request, idx) => (
+                            {incomingRequests.map((request) => (
                               <tr
                                 key={request.id}
                                 className="hover:bg-gray-100 cursor-pointer"
@@ -627,7 +442,6 @@ const AdminPanel = () => {
                       </div>
                     )}
                   </div>
-                  {/* See More Button */}
                   <div className="flex justify-center mt-auto border-t pt-4">
                     <Link to="/admin/pending-requests">
                       <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
@@ -639,238 +453,15 @@ const AdminPanel = () => {
               </Card>
             </div>
 
-            {/* Right: Activities Calendar */}
+            {/* Right: Activities Calendar - Unified Component */}
             <div className="flex-1 min-w-0">
-              <Card className="shadow-sm flex flex-col h-full">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl font-bold text-sro-primary">Activities Calendar</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
-                        onClick={() => handleWeekNavigation("prev")}
-                      >
-                        <ChevronLeft className="h-6 w-6" />
-                      </Button>
-                      <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
-                        {(() => {
-                          const range = getWeekRange(currentWeekStart);
-                          return range;
-                        })()}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
-                        onClick={() => handleWeekNavigation("next")}
-                      >
-                        <ChevronRight className="h-6 w-6" />
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Legend for recurring activities */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-block w-4 h-4 rounded border-4 border-sro-accent bg-white"></span>
-                    <span className="text-xs text-gray-700">Recurring Activity</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow min-w-0">
-                  <div className="w-full">
-                    {/* Responsive: horizontal scroll for cards on small screens, vertical grid on large */}
-                    <div className="w-full">
-                      {/* Desktop/tablet: Days left, cards right (vertical) */}
-                      <div className="hidden sm:grid grid-cols-[70px_1fr] gap-2">
-                        {/* Days of the week */}
-                        <div className="flex flex-col gap-2 h-full">
-                          {Array.from({ length: 7 }, (_, i) => {
-                            const date = new Date(currentWeekStart);
-                            date.setDate(date.getDate() - date.getDay() + i);
-                            const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                            const isToday = new Date().toDateString() === date.toDateString();
-                            return (
-                              <div
-                                key={i}
-                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
-                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
-                                  `}
-                              >
-                                <span className="text-xs">{day}</span>
-                                <span className="text-base">{date.getDate()}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {/* Activity cards in vertical stack */}
-                        <div className="flex flex-col gap-2 h-full min-w-0">
-                          {Array.from({ length: 7 }, (_, i) => {
-                            const date = new Date(currentWeekStart);
-                            date.setDate(date.getDate() - date.getDay() + i);
-                            date.setHours(0, 0, 0, 0);
-
-                            const dayEvents = events.filter(event => {
-                              const eventDate = new Date(event.date);
-                              eventDate.setHours(0, 0, 0, 0);
-                              return eventDate.getTime() === date.getTime();
-                            });
-
-                            return (
-                              <div key={i} className="flex-1 min-w-0">
-                                {dayEvents.length > 0 ? (
-                                  <div className="h-[100px] w-full max-w-full mx-auto">
-                                    <div
-                                      key={dayEvents[0].id}
-                                      onClick={() => handleEventClick(dayEvents[0])}
-                                      className={`bg-sro-primary rounded-lg p-3 flex flex-col min-w-0 h-full w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
-                                    >
-                                      {/* Activity Name and Time */}
-                                      <div className="flex items-center justify-between gap-2 mb-1">
-                                        <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
-                                        <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
-                                      </div>
-                                      {/* Organization Name */}
-                                      <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
-                                      {/* Bottom Row: Location and Activity Count */}
-                                      <div className="flex items-center justify-between mt-1">
-                                        {dayEvents[0].is_recurring === "true" ? (
-                                          <>
-                                            <span className="text-white/80 text-xs truncate">
-                                              {(() => {
-                                                const sched = dayEvents[0].schedule?.[0] || {};
-                                                const start = sched.start_date ? new Date(sched.start_date) : null;
-                                                const end = sched.end_date ? new Date(sched.end_date) : null;
-                                                return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                              })()}
-                                            </span>
-                                            <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                              {(() => {
-                                                const sched = dayEvents[0].schedule?.[0] || {};
-                                                const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                                const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                                return daysList.length > 0 ? daysList.join(", ") : null;
-                                              })()}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
-                                        )}
-                                        {dayEvents.length > 1 && (
-                                          <Badge
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              // Navigate to activities calendar
-                                              window.location.href = '/admin/activities-calendar';
-                                            }}
-                                            className="bg-sro-accent hover:bg-sro-accent/90 text-sro-primary text-xs font-bold px-1.5 rounded-full ml-2 cursor-pointer"
-                                          >
-                                            +{dayEvents.length - 1} More Activities
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] w-full max-w-full mx-auto flex items-center justify-center">
-                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {/* Mobile: Days left, cards horizontally aligned with no scroll */}
-                      <div className="sm:hidden flex flex-col gap-2">
-                        {Array.from({ length: 7 }, (_, i) => {
-                          const date = new Date(currentWeekStart);
-                          date.setDate(date.getDate() - date.getDay() + i);
-                          date.setHours(0, 0, 0, 0);
-
-                          const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                          const isToday = new Date().toDateString() === date.toDateString();
-
-                          const dayEvents = events.filter(event => {
-                            const eventDate = new Date(event.date);
-                            eventDate.setHours(0, 0, 0, 0);
-                            return eventDate.getTime() === date.getTime();
-                          });
-
-                          return (
-                            <div key={i} className="flex flex-row items-center gap-2 w-full">
-                              {/* Day label aligned with cards */}
-                              <div
-                                className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
-                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
-                                  `}
-                              >
-                                <span className="text-xs">{day}</span>
-                                <span className="text-base">{date.getDate()}</span>
-                              </div>
-                              {/* Cards for this day, wrap if needed */}
-                              <div className="flex flex-row flex-wrap gap-2 w-full min-w-0">
-                                {dayEvents.length > 0 ? (
-                                  dayEvents.map(event => (
-                                    <div
-                                      key={event.id}
-                                      className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
-                                    >
-                                      <div className="flex items-center mb-1 min-w-0">
-                                        <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
-                                        <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
-                                      </div>
-                                      <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
-                                      <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                        <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
-                                        <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between mt-1">
-                                        {event.is_recurring === "true" ? (
-                                          <>
-                                            <span className="text-white/80 text-xs truncate">
-                                              {(() => {
-                                                const sched = event.schedule?.[0] || {};
-                                                const start = sched.start_date ? new Date(sched.start_date) : null;
-                                                const end = sched.end_date ? new Date(sched.end_date) : null;
-                                                return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                              })()}
-                                            </span>
-                                            <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                              {(() => {
-                                                const sched = event.schedule?.[0] || {};
-                                                const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                                const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                                return daysList.length > 0 ? daysList.join(", ") : null;
-                                              })()}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-white/80 text-xs truncate">{event.location}</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] flex-1 basis-[220px] max-w-full flex items-center justify-center min-w-0">
-                                    <span className="text-gray-500 text-sm truncate">No Activities</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="flex justify-center mt-auto border-t pt-4">
-                  <Link to="/admin/activities-calendar">
-                    <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
-                      See More Activities <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
+              <WeeklyCalendar
+                events={events}
+                loading={false}
+                onEventClick={handleEventClick}
+                calendarLink="/admin/activities-calendar"
+                onMoreActivitiesClick={handleMoreActivitiesClick}
+              />
             </div>
           </section>
         </main>
@@ -893,7 +484,7 @@ const AdminPanel = () => {
           )
         )}
       </Dialog>
-    </div >
+    </div>
   );
 };
 

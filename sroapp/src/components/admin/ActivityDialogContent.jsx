@@ -1,10 +1,12 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, User, MapPin, Calendar, GraduationCap, Building2, FileText, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import StatusPill from "@/components/ui/StatusPill";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -47,9 +49,7 @@ const formatLabel = (id, options) => {
 
 const formatSDGLabels = (sdgRaw) => {
   let ids = [];
-
   try {
-    // Case: valid JSON string
     if (typeof sdgRaw === "string") {
       try {
         const parsed = JSON.parse(sdgRaw);
@@ -61,31 +61,65 @@ const formatSDGLabels = (sdgRaw) => {
           ids = sdgRaw.split(",").map((s) => s.trim());
         }
       } catch {
-        // fallback if not JSON parsable
         ids = sdgRaw.split(",").map((s) => s.trim());
       }
-    }
-
-    // Case: directly passed as array
-    else if (Array.isArray(sdgRaw)) {
+    } else if (Array.isArray(sdgRaw)) {
       ids = sdgRaw;
-    }
-
-    // Case: object like { genderEquality: true }
-    else if (typeof sdgRaw === "object" && sdgRaw !== null) {
+    } else if (typeof sdgRaw === "object" && sdgRaw !== null) {
       ids = Object.keys(sdgRaw).filter((key) => sdgRaw[key]);
     }
   } catch {
     ids = [];
   }
-
   return ids.map((id) => {
     const match = sdgOptions.find((opt) => opt.id === id);
     return match ? match.label : id;
   });
 };
 
+// Reusable InfoCard component
+const InfoCard = ({ icon: Icon, title, children }) => (
+  <div className="info-card">
+    <div className="info-card-header">
+      {Icon && <Icon className="h-4 w-4" />}
+      <span>{title}</span>
+    </div>
+    <div className="info-card-content">
+      {children}
+    </div>
+  </div>
+);
 
+// Reusable InfoRow component
+const InfoRow = ({ label, value }) => (
+  <div className="info-card-row">
+    <span className="info-card-label">{label}</span>
+    <span className="info-card-value">{value || "N/A"}</span>
+  </div>
+);
+
+// Generate Google Calendar URL
+const generateGoogleCalendarUrl = (activity) => {
+  const schedule = activity.schedule?.[0];
+  if (!schedule) return null;
+
+  const title = encodeURIComponent(activity.activity_name || activity.activityName || "Activity");
+  const startDate = new Date(schedule.start_date);
+  const endDate = schedule.end_date ? new Date(schedule.end_date) : startDate;
+
+  // Format dates for Google Calendar (YYYYMMDD format)
+  const formatGoogleDate = (date) => {
+    return date.toISOString().split('T')[0].replace(/-/g, '');
+  };
+
+  const dates = `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`;
+  const location = encodeURIComponent(activity.venue || "");
+  const description = encodeURIComponent(
+    `${activity.activity_description || activity.activityDescription || ""}\n\nOrganized by: ${activity.organization?.org_name || activity.organization || "Unknown"}`
+  );
+
+  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}&details=${description}`;
+};
 
 const ActivityDialogContent = ({
   activity,
@@ -94,7 +128,8 @@ const ActivityDialogContent = ({
   userRole = null,
   handleApprove,
   handleReject,
-  readOnly = false
+  readOnly = false,
+  publicView = false
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
@@ -120,6 +155,8 @@ const ActivityDialogContent = ({
   const [localActivity, setLocalActivity] = useState(activity);
   useEffect(() => setLocalActivity(activity), [activity]);
 
+  const googleCalendarUrl = generateGoogleCalendarUrl(activity);
+
   const commentRef = useRef(null);
 
   const [sroComment, setSroComment] = useState(activity?.sro_remarks || "");
@@ -141,7 +178,7 @@ const ActivityDialogContent = ({
       (isODSA && localActivity?.odsa_approval_status !== null) ||
       (isSuperAdmin && localActivity?.sro_approval_status !== null && localActivity?.odsa_approval_status !== null);
 
-    setHasViewedScannedForm(false); // reset on dialog open
+    setHasViewedScannedForm(false);
     setShowDecisionBox(false);
     setConfirmationOpen(false);
     setDecisionType(null);
@@ -180,246 +217,337 @@ const ActivityDialogContent = ({
     });
   };
 
+  const getRecurringDays = () => {
+    try {
+      const days = JSON.parse(activity.schedule?.[0]?.recurring_days || "{}");
+      return Object.keys(days).filter(day => days[day]).join(", ") || "N/A";
+    } catch {
+      return "N/A";
+    }
+  };
+
   const sdgs = activity.sdg_goals;
   const title = activity.activity_name || activity.activityName || "";
-  const isNoSpaceLong = title.length > 40 && !/\s/.test(title);
+  const isRecurring = activity.schedule?.[0]?.is_recurring === "true";
 
   return (
-    <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden">
-      <ScrollArea className="max-h-[80vh] px-6 py-4">
-        <DialogHeader>
-          <DialogTitle
-            className="text-2xl text-sro-primary font-bold break-words"
-            style={{
-              whiteSpace: "normal",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              maxWidth: isNoSpaceLong ? "15%" : "100%",
-            }}
-          >
-            {title}
-          </DialogTitle>
-          <p className="text-sm font-semibold text-gray-700 mb-2">
-            {activity.organization?.org_name || activity.organization || "Organization Name"}
-          </p>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-y-6 text-sm">
-          <div className="text-gray-800">
-            {!isLong ? (
-              <p className="whitespace-pre-wrap break-words">{description}</p>
-            ) : showFullDescription ? (
-              <>
-                <p className="whitespace-pre-wrap break-words">{description}</p>
-                <button
-                  onClick={toggleDescription}
-                  className="text-sro-primary text-sm font-medium hover:underline mt-1"
-                >
-                  Show less
-                </button>
-              </>
-            ) : (
-              <>
-                <p
-                  className="whitespace-pre-wrap break-words overflow-hidden"
-                  style={{
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    maxHeight: "4.5em",
-                  }}
-                >
-                  {description}
+    <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] h-auto max-h-[90vh] sm:max-h-[80vh] p-0 overflow-hidden">
+      <ScrollArea className="h-full max-h-[85vh] sm:max-h-[75vh] overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
+          {/* Header Section */}
+          <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
+            <div className="flex flex-col items-center sm:items-start sm:flex-row sm:justify-between gap-2">
+              <div className="flex-1 min-w-0 text-center sm:text-left w-full overflow-hidden">
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl text-sro-primary font-bold leading-tight w-full">
+                  <span
+                    className="block"
+                    style={{ maxWidth: "100%", display: "block", overflowWrap: "anywhere", wordBreak: "break-word" }}
+                  >
+                    {title}
+                  </span>
+                </DialogTitle>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  {activity.organization?.org_name || activity.organization || "Organization"}
                 </p>
-                <button
-                  onClick={toggleDescription}
-                  className="text-sro-primary text-sm font-medium hover:underline mt-1"
-                >
-                  Show more
-                </button>
-              </>
-            )}
-          </div>
-
-
-
-          <div className="space-y-1">
-            <h3 className="text-sro-primary font-semibold mb-1">General Information</h3>
-            <div className="pl-4">
-              <p><strong>Submitted by:</strong> {activity.account?.account_name || "N/A"}</p>
-              <p><strong>Position:</strong> {activity.student_position || "N/A"}</p>
-              <p><strong>Contact:</strong> {activity.student_contact || "N/A"}</p>
-              <p><strong>Activity Type:</strong> {formatLabel(activity.activity_type, activityTypeOptions)}</p>
-              <p><strong>Charge Fee:</strong> {activity.charge_fee === "true" ? "Yes" : "No"}</p>
-              <p><strong>Adviser Name:</strong> {activity.organization?.adviser_name || "N/A"}</p>
-              <p><strong>Adviser Contact:</strong> {activity.organization?.adviser_email || "N/A"}</p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  {formatLabel(activity.activity_type, activityTypeOptions)}
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <StatusPill status={activity.final_status || activity.status || "Pending"} />
+              </div>
             </div>
-          </div>
+          </DialogHeader>
 
-          <div className="space-y-1">
-            <h3 className="text-sro-primary font-semibold mb-1">Specifications</h3>
-            <div className="pl-4">
-              <p><strong>Venue:</strong> {activity.venue || "N/A"}</p>
-              <p><strong>Venue Approver:</strong> {activity.venue_approver || "N/A"}</p>
-              <p><strong>Venue Contact:</strong> {activity.venue_approver_contact || "N/A"}</p>
-              <p><strong>Green Monitor:</strong> {activity.green_monitor_name || "N/A"}</p>
-              <p><strong>Monitor Contact:</strong> {activity.green_monitor_contact || "N/A"}</p>
-              <p><strong>Off-Campus:</strong> {activity.is_off_campus === "true" ? "Yes" : "No"}</p>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="text-sro-primary font-semibold mb-1">Schedule</h3>
-            <div className="pl-4">
-              {activity.schedule?.[0]?.is_recurring === "true" ? (
+          {/* Description */}
+          {description && (
+            <div className="mb-3 p-2 sm:p-3 bg-gray-50 rounded-lg overflow-hidden max-w-full">
+              {!isLong ? (
+                <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{description}</p>
+              ) : showFullDescription ? (
                 <>
-                  <p><strong>Start Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
-                  <p><strong>End Date:</strong> {formatDate(activity.schedule?.[0]?.end_date)}</p>
-                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
-                  <p><strong>Recurring Day/s:</strong> {(() => {
-                    try {
-                      const days = JSON.parse(activity.schedule?.[0]?.recurring_days || "{}");
-                      return Object.keys(days).filter(day => days[day]).join(", ") || "N/A";
-                    } catch {
-                      return "N/A";
-                    }
-                  })()}</p>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{description}</p>
+                  <button
+                    onClick={toggleDescription}
+                    className="text-sro-primary text-xs sm:text-sm font-medium hover:underline mt-2"
+                  >
+                    Show less
+                  </button>
                 </>
               ) : (
                 <>
-                  <p><strong>Date:</strong> {formatDate(activity.schedule?.[0]?.start_date)}</p>
-                  <p><strong>Time:</strong> {`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`}</p>
+                  <p
+                    className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap overflow-hidden"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {description}
+                  </p>
+                  <button
+                    onClick={toggleDescription}
+                    className="text-sro-primary text-xs sm:text-sm font-medium hover:underline mt-1"
+                  >
+                    Show more
+                  </button>
                 </>
               )}
             </div>
+          )}
+
+          {/* Info Cards Grid */}
+          <div className="info-card-grid mb-3">
+            {/* Submitter Card */}
+            <InfoCard icon={User} title="Submitter">
+              <InfoRow label="Name" value={activity.account?.account_name} />
+              <InfoRow label="Position" value={activity.student_position} />
+              {!publicView && <InfoRow label="Contact" value={activity.student_contact} />}
+            </InfoCard>
+
+            {/* Venue Card */}
+            <InfoCard icon={MapPin} title="Venue & Location">
+              <InfoRow label="Venue" value={activity.venue} />
+              <InfoRow label="Approver" value={activity.venue_approver} />
+              <InfoRow label="Off-Campus" value={activity.is_off_campus === "true" ? "Yes" : "No"} />
+            </InfoCard>
+
+            {/* Schedule Card */}
+            <InfoCard icon={Calendar} title="Schedule">
+              {isRecurring ? (
+                <>
+                  <InfoRow label="Start" value={formatDate(activity.schedule?.[0]?.start_date)} />
+                  <InfoRow label="End" value={formatDate(activity.schedule?.[0]?.end_date)} />
+                  <InfoRow label="Time" value={`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`} />
+                  <InfoRow label="Days" value={getRecurringDays()} />
+                </>
+              ) : (
+                <>
+                  <InfoRow label="Date" value={formatDate(activity.schedule?.[0]?.start_date)} />
+                  <InfoRow label="Time" value={`${formatTime(activity.schedule?.[0]?.start_time)} - ${formatTime(activity.schedule?.[0]?.end_time)}`} />
+                </>
+              )}
+            </InfoCard>
+
+            {/* Adviser Card */}
+            <InfoCard icon={GraduationCap} title="Adviser & Fees">
+              <InfoRow label="Name" value={activity.organization?.adviser_name} />
+              {!publicView && <InfoRow label="Email" value={activity.organization?.adviser_email} />}
+              <InfoRow label="Charge Fee" value={activity.charge_fee === "true" ? "Yes" : "No"} />
+            </InfoCard>
+
+            {/* Green Monitor Card - Hide completely if public */}
+            {!publicView && (
+              <InfoCard icon={User} title="Green Monitor">
+                <InfoRow label="Name" value={activity.green_monitor_name} />
+                <InfoRow label="Contact" value={activity.green_monitor_contact} />
+                <InfoRow label="Venue Contact" value={activity.venue_approver_contact} />
+              </InfoCard>
+            )}
           </div>
 
-          {activity.university_partner === "true" && (
-            <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
-                <span>University Partners</span>
-                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-                <p>{activity.partner_name || "None listed"}</p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          {/* Collapsible Sections */}
+          <div className="space-y-2 mb-3">
+            {activity.university_partner === "true" && (
+              <Collapsible className="border border-gray-200 rounded-lg overflow-hidden">
+                <CollapsibleTrigger className="group w-full px-3 py-2 text-xs sm:text-sm font-semibold text-sro-primary flex justify-between items-center bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>University Partners</span>
+                  </div>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-3 py-2 text-xs sm:text-sm bg-gray-50 border-t border-gray-200">
+                  <p className="text-gray-700">{activity.partner_name || "None listed"}</p>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
+            {sdgs && sdgs.length > 0 && (
+              <Collapsible className="border border-gray-200 rounded-lg overflow-hidden">
+                <CollapsibleTrigger className="group w-full px-3 py-2 text-xs sm:text-sm font-semibold text-sro-primary flex justify-between items-center bg-white hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Sustainable Development Goals</span>
+                  </div>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-3 py-2 text-xs sm:text-sm bg-gray-50 border-t border-gray-200">
+                  <p className="text-gray-700">{formatSDGLabels(sdgs).join(", ")}</p>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </div>
 
-          {sdgs.length > 0 && (
-            <Collapsible className="border border-gray-300 rounded-md">
-              <CollapsibleTrigger className="group w-full px-4 py-2 text-sm font-semibold text-sro-primary flex justify-between items-center bg-white rounded-t-md">
-                <span>Sustainable Development Goals</span>
-                <ChevronDown className="h-4 w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-6 py-3 text-sm bg-white border-t border-gray-300">
-                {formatSDGLabels(sdgs).join(", ")}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          <div className="space-y-2">
-            <p><strong>Status:</strong> {activity.final_status || activity.status || "Pending"}</p>
-            <p><strong>Activity ID:</strong> {activity.activity_id || "N/A"}</p>
-            {activity.drive_folder_link && (
-              <div className="flex items-center gap-2">
-                <a
-                  href={activity.drive_folder_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    setHasViewedScannedForm(true);
-                    setShowDecisionBox(true);
-                  }}
-                  className="inline-block bg-sro-secondary text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-sro-secondary/90 transition"
-                >
-                  View Scanned Form
-                </a>
-                {!readOnly && (
-                  <button
-                    onClick={() => setShowDecisionBox((prev) => !prev)}
-                    className="text-sro-secondary hover:text-sro-secondary/90 transition-transform transform hover:scale-110"
-                    title="Toggle comment and approval options"
+          {/* Meta Info & Actions */}
+          <div className="border-t border-gray-200 pt-3 space-y-2">
+            <div className="flex flex-col items-center sm:flex-row sm:justify-between gap-2 text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-gray-500">
+                <span className="font-medium">Activity ID:</span> {activity.activity_id || "N/A"}
+              </p>
+              {activity.drive_folder_link && !publicView && (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={activity.drive_folder_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      setHasViewedScannedForm(true);
+                      setShowDecisionBox(true);
+                    }}
+                    className="inline-block bg-sro-secondary text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg hover:bg-sro-secondary/90 transition"
                   >
-                    <ChevronDown className={`w-5 h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
-                  </button>
-                )}
+                    View Scanned Form
+                  </a>
+                  {!readOnly && (
+                    <button
+                      onClick={() => setShowDecisionBox((prev) => !prev)}
+                      className="text-sro-secondary hover:text-sro-secondary/90 transition-transform transform hover:scale-110 p-2"
+                      title="Toggle comment and approval options"
+                    >
+                      <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Add to Calendar Button (Read-Only Mode) */}
+            {readOnly && googleCalendarUrl && (
+              <div className="flex justify-center sm:justify-end pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-sro-secondary border-sro-secondary hover:bg-sro-secondary/10 w-full sm:w-auto"
+                  onClick={() => window.open(googleCalendarUrl, '_blank')}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Add to Google Calendar
+                  <ExternalLink className="h-3 w-3 ml-1.5" />
+                </Button>
+              </div>
+            )}
+            {/* Scanned Form Button in Read-Only Mode (if exists but not usually shown in footer for admin) */}
+            {readOnly && activity.drive_folder_link && !publicView && (
+              <div className="hidden">
+                {/* Kept hidden or maybe you want it? The design in ActivitiesCalendar.jsx usually just has the link. 
+                      Actually, let's leave it as part of the Meta Info section above. 
+                      I see the Meta Info section handles the drive link visibility. 
+                  */}
               </div>
             )}
           </div>
 
+          {/* Remarks Section (Read-Only) */}
+          {readOnly && !publicView && (activity.sro_remarks || activity.odsa_remarks) && (
+            <div className="mt-3 space-y-2">
+              {activity.sro_remarks && (
+                <div className="info-card">
+                  <div className="info-card-header">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>SRO Remarks</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{activity.sro_remarks.trim()}</p>
+                </div>
+              )}
+              {activity.odsa_remarks && (
+                <div className="info-card">
+                  <div className="info-card-header">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>ODSA Remarks</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{activity.odsa_remarks.trim()}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Admin Decision Box */}
           {!readOnly && showDecisionBox && (
-            <div className="mt-4 space-y-3" ref={commentRef}>
+            <div className="mt-3 space-y-2 border-t border-gray-200 pt-3" ref={commentRef}>
+              {/* Appeal/Cancellation Reason */}
               {(activity.final_status === "For Appeal" || activity.final_status === "For Cancellation") && activity.appeal_reason && (
-                <div className="mb-2">
-                  <label className="text-sm font-medium text-gray-700 block">Appeal/Cancellation Reason</label>
-                  <div className="border p-2 rounded bg-gray-50 text-gray-800 text-sm">
-                    {activity.appeal_reason}
+                <div className="info-card bg-amber-50 border-amber-200">
+                  <div className="info-card-header text-amber-700 border-amber-200">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Appeal/Cancellation Reason</span>
                   </div>
+                  <p className="text-xs sm:text-sm text-amber-800">{activity.appeal_reason}</p>
                 </div>
               )}
+
+              {/* ODSA viewing SRO remarks */}
               {isODSA && (
-                <div className="text-sm">
-                  <p className="text-gray-600 mb-1 font-medium">SRO Remarks:</p>
-                  <div className="border p-2 rounded bg-gray-50">
-                    {activity.sro_remarks?.trim() || "No comment provided."}
+                <div className="info-card bg-gray-50">
+                  <div className="info-card-header">
+                    <span>SRO Remarks</span>
                   </div>
+                  <p className="text-xs sm:text-sm text-gray-700">{activity.sro_remarks?.trim() || "No comment provided."}</p>
                 </div>
               )}
+
+              {/* Remarks Textareas */}
               {isSuperAdmin ? (
-                <>
-                  <label className="text-sm font-medium text-gray-700 block">SRO Remarks</label>
-                  <textarea
-                    value={sroComment}
-                    onChange={e => setSroComment(e.target.value)}
-                    rows={3}
-                    placeholder="Enter SRO remarks..."
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
-                  />
-                  <label className="text-sm font-medium text-gray-700 block mt-2">ODSA Remarks</label>
-                  <textarea
-                    value={odsaComment}
-                    onChange={e => setOdsaComment(e.target.value)}
-                    rows={3}
-                    placeholder="Enter ODSA remarks..."
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
-                  />
-                </>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">SRO Remarks</label>
+                    <textarea
+                      value={sroComment}
+                      onChange={e => setSroComment(e.target.value)}
+                      rows={2}
+                      placeholder="Enter SRO remarks..."
+                      className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">ODSA Remarks</label>
+                    <textarea
+                      value={odsaComment}
+                      onChange={e => setOdsaComment(e.target.value)}
+                      rows={2}
+                      placeholder="Enter ODSA remarks..."
+                      className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    />
+                  </div>
+                </div>
               ) : (
-                <>
-                  <label className="text-sm font-medium text-gray-700 block">
+                <div>
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
                     {isSRO ? "SRO Remarks" : "ODSA Remarks"}
                   </label>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    rows={4}
+                    rows={2}
                     placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
-                    className="w-full border border-gray-300 rounded-md p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
                     disabled={isActionLocked}
                   />
-                </>
+                </div>
               )}
-              <div className="flex justify-end gap-3">
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1">
                 {isActionLocked ? (
                   <div className="w-full flex justify-end">
                     {localActivity.final_status === "Rejected" ? (
-                      <span className="px-4 py-1 rounded-full border border-sro-primary text-sm text-sro-primary font-medium italic">
+                      <span className="px-3 py-1.5 rounded-lg border border-sro-primary text-xs sm:text-sm text-sro-primary font-medium italic">
                         Activity Rejected
                       </span>
                     ) : (
-                      <span className="px-4 py-1 rounded-full border border-gray-400 text-sm text-gray-500 font-medium italic">
-                        {isSRO ? "Waiting for ODSA approval" : isODSA ? "Action already taken" : "Action already taken"}
+                      <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">
+                        {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
                       </span>
                     )}
                   </div>
                 ) : (
                   <>
                     {!hasViewedScannedForm && (
-                      <p className="text-sm text-gray-500 italic">Click "View Scanned Form" to activate approval buttons.</p>
+                      <p className="text-xs text-gray-500 italic w-full sm:w-auto">Click "View Scanned Form" first.</p>
                     )}
                     {activity.final_status === "For Cancellation" ? (
                       <button
@@ -428,7 +556,7 @@ const ActivityDialogContent = ({
                           setDecisionType("cancel");
                           setConfirmationOpen(true);
                         }}
-                        className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                        className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-primary/90 transition"
                       >
                         Cancel Activity
                       </button>
@@ -440,7 +568,7 @@ const ActivityDialogContent = ({
                             setDecisionType("approve");
                             setConfirmationOpen(true);
                           }}
-                          className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-secondary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-secondary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-secondary/90 transition"
                         >
                           Approve
                         </button>
@@ -450,7 +578,7 @@ const ActivityDialogContent = ({
                             setDecisionType("reject");
                             setConfirmationOpen(true);
                           }}
-                          className="px-5 py-2 rounded-full font-semibold text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:scale-105 transform transition-transform duration-200"
+                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-primary/90 transition"
                         >
                           Reject
                         </button>
@@ -462,28 +590,9 @@ const ActivityDialogContent = ({
             </div>
           )}
         </div>
-        {readOnly && (activity.sro_remarks || activity.odsa_remarks) && (
-          <div className="space-y-2 mt-4">
-            {activity.sro_remarks && (
-              <div>
-                <h3 className="text-sro-primary font-semibold text-sm">SRO Remarks</h3>
-                <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                  {activity.sro_remarks.trim()}
-                </p>
-              </div>
-            )}
-            {activity.odsa_remarks && (
-              <div>
-                <h3 className="text-sro-primary font-semibold text-sm">ODSA Remarks</h3>
-                <p className="bg-gray-50 border p-3 rounded text-sm text-gray-700 whitespace-pre-wrap">
-                  {activity.odsa_remarks.trim()}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
       </ScrollArea>
 
+      {/* Confirmation Dialog */}
       <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
         <DialogContent className="max-w-md rounded-lg shadow-lg">
           <DialogHeader>
@@ -506,7 +615,7 @@ const ActivityDialogContent = ({
 
           <div className="mt-2">
             <p className="text-sm text-gray-600 mb-1">With reason:</p>
-            <div className="border border-gray-300 p-3 rounded-md text-sm bg-gray-50 whitespace-pre-wrap">
+            <div className="border border-gray-300 p-3 rounded-lg text-sm bg-gray-50 whitespace-pre-wrap">
               {isSuperAdmin
                 ? `SRO: ${sroComment.trim() || "No reason provided."}\nODSA: ${odsaComment.trim() || "No reason provided."}`
                 : comment.trim() || "No reason provided."}
@@ -514,7 +623,7 @@ const ActivityDialogContent = ({
           </div>
 
           <DialogFooter className="flex justify-end gap-2 mt-6">
-            <Button variant="ghost" className="cursor-pointer hover:scale-105 transform transition-transform duration-200" onClick={() => setConfirmationOpen(false)}>
+            <Button variant="ghost" className="cursor-pointer hover:bg-gray-100" onClick={() => setConfirmationOpen(false)}>
               Cancel
             </Button>
             <Button
@@ -555,7 +664,7 @@ const ActivityDialogContent = ({
                   setConfirmationOpen(false);
                 }
               }}
-              className={`${decisionType === "approve" ? "bg-sro-secondary hover:bg-sro-secondary/90" : "bg-sro-primary hover:bg-sro-primary/90"} text-white font-semibold cursor-pointer hover:scale-105 transform transition-transform duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${decisionType === "approve" ? "bg-sro-secondary hover:bg-sro-secondary/90" : "bg-sro-primary hover:bg-sro-primary/90"} text-white font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {submitting ? (
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

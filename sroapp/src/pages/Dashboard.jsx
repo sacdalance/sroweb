@@ -1,64 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import FAQCard from "@/components/FAQCard";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import StudentActivityDialogContent from "@/components/admin/StudentActivityDialogContent";
+import { Dialog } from "@/components/ui/dialog";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
+import WeeklyCalendar from "@/components/ui/WeeklyCalendar";
 
 const Dashboard = () => {
-  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const navigate = useNavigate();
-
-  // Function to check if a date falls within the current week
-  const isDateInCurrentWeek = (dateString) => {
-    const eventDate = new Date(dateString);
-    eventDate.setHours(0, 0, 0, 0); // Normalize time to start of day
-
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-    weekStart.setHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
-    weekEnd.setHours(23, 59, 59, 999);
-
-    return eventDate >= weekStart && eventDate <= weekEnd;
-  };
-
-  // Function to format date range
-  const getWeekRange = (date) => {
-    const start = new Date(date);
-    start.setDate(start.getDate() - start.getDay());
-
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-
-    const startMonth = start.toLocaleString('default', { month: 'long' }).toUpperCase();
-    const endMonth = end.toLocaleString('default', { month: 'long' }).toUpperCase();
-
-    return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
-  };
-
-  // Function to handle week navigation
-  const handleWeekNavigation = (direction) => {
-    const newDate = new Date(currentWeekStart);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else {
-      newDate.setDate(newDate.getDate() + 7);
-    }
-    newDate.setDate(newDate.getDate() - newDate.getDay());
-    setCurrentWeekStart(newDate);
-  };
 
   const categoryMap = {
     charitable: "Charitable",
@@ -160,40 +115,35 @@ const Dashboard = () => {
     fetchActivities();
   }, []);
 
-  // Filter events for the current week
-  const filteredEvents = events.filter(event => isDateInCurrentWeek(event.date));
+  // Handle event click - fetch full activity details and open dialog
+  const handleEventClick = async (event) => {
+    try {
+      const { data, error } = await supabase
+        .from("activity")
+        .select(`
+          *,
+          account:account(*),
+          schedule:activity_schedule(*),
+          organization:organization(*)
+        `)
+        .eq("activity_id", event.activity_id)
+        .single();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+      if (!error) {
+        setSelectedEvent(data);
+        setIsDialogOpen(true);
+      } else {
+        console.error("Error loading full activity:", error.message);
+      }
+    } catch (err) {
+      console.error("Unexpected error loading activity:", err);
+    }
+  };
 
-  const currentWeekStartDate = new Date(currentWeekStart);
-  currentWeekStartDate.setHours(0, 0, 0, 0);
-  const currentWeekEndDate = new Date(currentWeekStart);
-  currentWeekEndDate.setDate(currentWeekEndDate.getDate() + 6);
-  currentWeekEndDate.setHours(23, 59, 59, 999);
-
-  const isCurrentWeek =
-    today >= currentWeekStartDate && today <= currentWeekEndDate;
-
-  // Always filter events for the current week
-  const weekEvents = useMemo(
-    () =>
-      events.filter((event) => {
-        const eventDate = new Date(event.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= currentWeekStartDate && eventDate <= currentWeekEndDate;
-      }),
-    [events, currentWeekStart]
-  );
-
-  // Then, for current week, filter for today only
-  const eventsToShow = isCurrentWeek
-    ? weekEvents.filter((event) => {
-      const eventDate = new Date(event.date);
-      eventDate.setHours(0, 0, 0, 0);
-      return eventDate.getTime() === today.getTime();
-    })
-    : weekEvents;
+  // Handle more activities click - navigate to calendar with selected date
+  const handleMoreActivitiesClick = (date) => {
+    navigate('/activities-calendar', { state: { selectedDate: new Date(date).toISOString() } });
+  };
 
   return (
     <div className="max-w-[1350px] mx-auto mb-8" >
@@ -211,282 +161,24 @@ const Dashboard = () => {
         {/* FAQ Section */}
         <FAQCard />
 
-        {/* Activities Calendar Section */}
-        <Card className="shadow-sm flex flex-col h-full">
-          <CardHeader className="pb-3 px-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
-              <CardTitle className="text-xl font-bold text-sro-primary">Activities Calendar</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
-                  onClick={() => handleWeekNavigation("prev")}
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-                <span className="text-xs font-medium px-1 text-center leading-tight whitespace-nowrap">
-                  {(() => {
-                    const range = getWeekRange(currentWeekStart);
-                    return range;
-                  })()}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 p-0 border-1 border-sro-secondary text-sro-secondary rounded-full bg-white hover:bg-gray-100 shadow-none"
-                  onClick={() => handleWeekNavigation("next")}
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
-              </div>
-            </div>
-            {/* Legend for recurring activities */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="inline-block w-4 h-4 rounded border-4 border-sro-accent bg-white"></span>
-              <span className="text-xs text-gray-700">Recurring Activity</span>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow min-w-0">
-            {loading ? (
-              <LoadingSpinner text="Loading Calendar..." variant="section" />
-            ) : (
-              <div className="w-full">
-                {/* Desktop/tablet: Days left, cards right (vertical) */}
-                <div className="hidden sm:grid grid-cols-[70px_1fr] gap-2">
-                  {/* Days of the week */}
-                  <div className="flex flex-col gap-2 h-full">
-                    {Array.from({ length: 7 }, (_, i) => {
-                      const date = new Date(currentWeekStart);
-                      date.setDate(date.getDate() - date.getDay() + i);
-                      const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                      const isToday = new Date().toDateString() === date.toDateString();
-                      return (
-                        <div
-                          key={i}
-                          className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px]
-                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
-                                  `}
-                        >
-                          <span className="text-xs">{day}</span>
-                          <span className="text-base">{date.getDate()}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Activity cards in vertical stack */}
-                  <div className="flex flex-col gap-2 h-full min-w-0">
-                    {Array.from({ length: 7 }, (_, i) => {
-                      const date = new Date(currentWeekStart);
-                      date.setDate(date.getDate() - date.getDay() + i);
-                      date.setHours(0, 0, 0, 0);
-
-                      const dayEvents = events.filter(event => {
-                        const eventDate = new Date(event.date);
-                        eventDate.setHours(0, 0, 0, 0);
-                        return eventDate.getTime() === date.getTime();
-                      });
-
-                      return (
-                        <div key={i} className="flex-1 min-w-0">
-                          {dayEvents.length > 0 ? (
-                            <div
-                              key={dayEvents[0].id}
-                              className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${dayEvents[0].is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
-                              onClick={async () => {
-                                try {
-                                  const { data, error } = await supabase
-                                    .from("activity")
-                                    .select(`
-                                                *,
-                                                account:account(*),
-                                                schedule:activity_schedule(*),
-                                                organization:organization(*)
-                                              `)
-                                    .eq("activity_id", dayEvents[0].activity_id)
-                                    .single();
-
-                                  if (!error) {
-                                    setSelectedEvent(data);
-                                    setIsDialogOpen(true);
-                                  } else {
-                                    console.error("Error loading full activity:", error.message);
-                                  }
-                                } catch (err) {
-                                  console.error("Unexpected error loading activity:", err);
-                                }
-                              }}
-                            >
-                              {/* Activity Name and Time */}
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <h3 className="text-white font-bold text-base truncate flex-1">{dayEvents[0].name}</h3>
-                                <span className="text-white text-xs flex-shrink-0">{dayEvents[0].time}</span>
-                              </div>
-                              {/* Organization Name */}
-                              <span className="text-white/90 text-sm truncate mb-auto">{dayEvents[0].organization}</span>
-                              {/* Bottom Row: Location and Activity Count */}
-                              <div className="flex items-center justify-between mt-1">
-                                {dayEvents[0].is_recurring === "true" ? (
-                                  <>
-                                    <span className="text-white/80 text-xs truncate">
-                                      {(() => {
-                                        const sched = dayEvents[0].schedule?.[0] || {};
-                                        const start = sched.start_date ? new Date(sched.start_date) : null;
-                                        const end = sched.end_date ? new Date(sched.end_date) : null;
-                                        return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                      })()}
-                                    </span>
-                                    <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                      {(() => {
-                                        const sched = dayEvents[0].schedule?.[0] || {};
-                                        const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                        const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                        return daysList.length > 0 ? daysList.join(", ") : null;
-                                      })()}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-white/80 text-xs truncate">{dayEvents[0].location}</span>
-                                )}
-                                {dayEvents.length > 1 && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation(); // Prevent card click
-                                      const date = new Date(dayEvents[0].date);
-                                      navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
-                                    }}
-                                    className="bg-sro-accent text-sro-primary text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-sro-accent/90 transition-colors"
-                                  >
-                                    +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] w-full max-w-full mx-auto flex items-center justify-center">
-                              <span className="text-gray-500 text-sm truncate">No Activities</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* Mobile: Days left, cards horizontally aligned with no scroll */}
-                <div className="sm:hidden flex flex-col gap-2">
-                  {Array.from({ length: 7 }, (_, i) => {
-                    const date = new Date(currentWeekStart);
-                    date.setDate(date.getDate() - date.getDay() + i);
-                    date.setHours(0, 0, 0, 0);
-
-                    const day = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][i];
-                    const isToday = new Date().toDateString() === date.toDateString();
-
-                    const dayEvents = events.filter(event => {
-                      const eventDate = new Date(event.date);
-                      eventDate.setHours(0, 0, 0, 0);
-                      return eventDate.getTime() === date.getTime();
-                    });
-
-                    return (
-                      <div key={i} className="flex flex-row items-center gap-2 w-full">
-                        {/* Day label aligned with cards */}
-                        <div
-                          className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] flex-shrink-0
-                                    ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
-                                  `}
-                        >
-                          <span className="text-xs">{day}</span>
-                          <span className="text-base">{date.getDate()}</span>
-                        </div>
-                        {/* Cards for this day (no horizontal scroll) */}
-                        <div className="flex flex-row flex-wrap gap-2 w-full min-w-0">
-                          {dayEvents.length > 0 ? (
-                            dayEvents.map(event => (
-                              <div
-                                key={event.id}
-                                className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
-                                style={{ minWidth: 0 }}
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setIsDialogOpen(true);
-                                }}
-                              >
-                                {/* Activity Name and Time */}
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                  <h3 className="text-white font-bold text-base truncate flex-1">{event.name}</h3>
-                                  <span className="text-white text-xs flex-shrink-0">{event.time}</span>
-                                </div>
-                                {/* Organization Name */}
-                                <span className="text-white/90 text-sm truncate mb-auto">{event.organization}</span>
-                                {/* Bottom Row: Location and Activity Count */}
-                                <div className="flex items-center justify-between mt-1">
-                                  {event.is_recurring === "true" ? (
-                                    <>
-                                      <span className="text-white/80 text-xs truncate">
-                                        {(() => {
-                                          const sched = event.schedule?.[0] || {};
-                                          const start = sched.start_date ? new Date(sched.start_date) : null;
-                                          const end = sched.end_date ? new Date(sched.end_date) : null;
-                                          return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                        })()}
-                                      </span>
-                                      <span className="block text-white/80 text-[11px] mt-1 truncate">
-                                        {(() => {
-                                          const sched = event.schedule?.[0] || {};
-                                          const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                          const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                          return daysList.length > 0 ? daysList.join(", ") : null;
-                                        })()}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="text-white/80 text-xs truncate">{event.location}</span>
-                                  )}
-                                  {dayEvents.length > 1 && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // Prevent card click
-                                        const date = new Date(event.date);
-                                        navigate('/activities-calendar', { state: { selectedDate: date.toISOString() } });
-                                      }}
-                                      className="bg-sro-accent text-sro-primary text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-sro-accent/90 transition-colors"
-                                    >
-                                      +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="rounded-lg overflow-hidden border border-gray-200 h-[100px] flex-1 basis-[220px] max-w-full flex items-center justify-center min-w-0">
-                              <span className="text-gray-500 text-sm truncate">No Activities</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </CardContent>
-          <div className="flex justify-center mt-auto border-t pt-4">
-            <Link to="/activities-calendar">
-              <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
-                See Activities Calendar <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </Card>
+        {/* Activities Calendar Section - Unified Component */}
+        <WeeklyCalendar
+          events={events}
+          loading={loading}
+          onEventClick={handleEventClick}
+          calendarLink="/activities-calendar"
+          onMoreActivitiesClick={handleMoreActivitiesClick}
+        />
       </div>
 
       {/* Activity Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {selectedEvent && (
-          <StudentActivityDialogContent
+          <ActivityDialogContent
             activity={selectedEvent}
             isModalOpen={isDialogOpen}
+            readOnly={true}
+            publicView={true}
           />
         )}
       </Dialog>

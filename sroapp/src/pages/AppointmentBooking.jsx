@@ -1,14 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import DataTable from "@/components/ui/DataTable";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
+import StatusPill from "@/components/ui/StatusPill";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -83,7 +87,6 @@ const AppointmentBooking = () => {
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
-  const [showExistingAppointments, setShowExistingAppointments] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userAccountId, setUserAccountId] = useState(null);
@@ -95,6 +98,8 @@ const AppointmentBooking = () => {
   const [rescheduleData, setRescheduleData] = useState({ date: null, time: "" });
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
+  const [activeTab, setActiveTab] = useState("booking");
+  const [lastBooking, setLastBooking] = useState(null); // For confirmation card
 
   // Fetch initial data
   useEffect(() => {
@@ -117,6 +122,9 @@ const AppointmentBooking = () => {
             setUserAccountId(accountData.account_id);
             await loadUserAppointments(accountData.account_id);
           }
+
+          // Auto-fill email from logged-in user
+          setFormData(prev => ({ ...prev, email: currentUser.email }));
         }
 
         // Get appointment settings
@@ -422,11 +430,21 @@ const AppointmentBooking = () => {
 
       toast.success("Appointment booked successfully!");
 
-      // Reset form
+      // Store booking details for confirmation card
+      setLastBooking({
+        date: format(selectedDate, 'MMMM d, yyyy'),
+        time: formData.time,
+        reason: formData.reason,
+        subject: formData.subject,
+        mode: formData.mode
+      });
+
+      // Reset form but keep email
+      const userEmail = formData.email;
       setFormData({
         reason: "",
         subject: "",
-        email: "",
+        email: userEmail,
         contact: "",
         date: null,
         time: "",
@@ -446,7 +464,8 @@ const AppointmentBooking = () => {
       // Refresh appointments list if user is logged in
       if (user && userAccountId) {
         loadUserAppointments(userAccountId);
-        setShowExistingAppointments(true);
+        // Switch to My Appointments tab to show the new booking
+        setActiveTab("appointments");
       }
     } catch (error) {
       console.error("Error booking appointment:", error);
@@ -487,205 +506,294 @@ const AppointmentBooking = () => {
     }
   };
 
+  // Column definitions for appointments table
+  const appointmentColumns = useMemo(() => [
+    {
+      key: "reason",
+      header: "Reason",
+      width: "w-[18%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium capitalize" title={row.reason || "Not Specified"}>
+          {row.reason || "Not Specified"}
+        </span>
+      ),
+    },
+    {
+      key: "specified_reason",
+      header: "Subject",
+      width: "w-[22%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.specified_reason || "No Specified Reason"}>
+          {row.specified_reason || "No Specified Reason"}
+        </span>
+      ),
+    },
+    {
+      key: "appointment_date",
+      header: "Date",
+      width: "w-[12%]",
+      sortable: true,
+      sortAccessor: (row) => row.appointment_date,
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.appointment_date).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "appointment_time",
+      header: "Time",
+      width: "w-[10%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(`2000-01-01T${row.appointment_time}`).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "meeting_mode",
+      header: "Mode",
+      width: "w-[10%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600 capitalize">
+          {row.meeting_mode || "Face-to-face"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "w-[13%]",
+      sortable: true,
+      isStatus: true,
+      accessor: (row) => row.status || "scheduled",
+      render: (row) => {
+        const statusTooltips = {
+          'scheduled': 'Awaiting confirmation from the SRO.',
+          'confirmed': 'Confirmed by the SRO. Please arrive on time.',
+          'reschedule-pending': 'Your reschedule request is pending SRO approval.',
+          'cancelled': 'This appointment has been cancelled.',
+          'completed': 'This appointment has been completed.'
+        };
+        const status = row.status || 'scheduled';
+        return (
+          <div title={statusTooltips[status] || 'Status information'}>
+            <StatusPill status={status} />
+          </div>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "w-[15%]",
+      render: (row) => (
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            setReschedulingAppointment(row);
+            setRescheduleData({ date: null, time: "" });
+            setRescheduleReason("");
+          }}
+          disabled={row.status !== 'scheduled'}
+          size="sm"
+          className={`text-xs ${row.status === 'scheduled'
+            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
+            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
+            }`}
+        >
+          Reschedule
+        </Button>
+      ),
+    },
+  ], []);
+
   return (
     <div className="container mx-auto py-8 max-w-6xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="page-header text-black">
-          {showExistingAppointments ? "My Appointments" : "Book Appointment"}
-        </h1>
-        {user && (
-          <Button
-            onClick={() => setShowExistingAppointments(!showExistingAppointments)}
-            className="bg-sro-primary hover:bg-sro-primary/90 text-white"
-          >
-            {showExistingAppointments ? "← Back" : "My Appointments"}
-          </Button>
-        )}
-      </div>
+      <Toaster position="top-center" richColors />
+      <h1 className="page-header text-black text-center md:text-left">Appointments</h1>
 
-      {showExistingAppointments ? (
-        <div>
-          {loading ? (
-            <LoadingSpinner text="Loading your appointments..." variant="section" />
-          ) : existingAppointments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You don't have any upcoming appointments.</p>
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white"
-              >
-                Book Appointment
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {existingAppointments.map((appointment) => (
-                <Card key={appointment.id} className="shadow-sm">
-                  <CardContent className="py-2 px-4">
-                    <div className="flex justify-between items-center gap-4">
-                      <div className="py-0.5">
-                        <h3 className="font-medium text-sro-primary capitalize">
-                          {appointment.reason || "Not Specified"}
-                        </h3>
-                        <div className="text-sm text-gray-600">
-                          <span>{new Date(appointment.appointment_date).toLocaleDateString()}</span>
-                          <span className="mx-2">|</span>
-                          <span>
-                            {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
-                          </span>
-                          <span className="mx-2">|</span>
-                          <span>{appointment.meeting_mode || "Face-to-face"}</span>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {appointment.specified_reason || "No Specified Reason"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
-                          appointment.status === "confirmed" ? "bg-sro-secondary/20 text-sro-secondary" :
-                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                              appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                                "bg-gray-100 text-gray-700"
-                          }`}>
-                          {appointment.status}
-                        </span>
-                        <Button
-                          onClick={() => {
-                            setReschedulingAppointment(appointment);
-                            setRescheduleData({ date: null, time: "" });
-                            setRescheduleReason("");
-                          }}
-                          disabled={appointment.status !== 'scheduled'}
-                          size="sm"
-                          className={`text-xs ${appointment.status === 'scheduled'
-                            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
-                            }`}
-                        >
-                          Reschedule
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="w-full bg-sro-primary hover:bg-sro-primary/90 text-white"
-              >
-                Book Another Appointment
-              </Button>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
+          <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
+          {user && (
+            <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* My Appointments Tab */}
+        <TabsContent value="appointments">
+          {/* Confirmation Card after booking */}
+          {lastBooking && (
+            <div className="bg-sro-secondary/10 border border-sro-secondary/30 rounded-lg p-4 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start">
+                  <div className="w-10 h-10 rounded-full bg-sro-secondary/20 flex items-center justify-center mr-3 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-sro-secondary">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sro-secondary">Appointment Confirmed!</h3>
+                    <p className="text-sm text-sro-secondary/80 mt-1">
+                      <strong>{lastBooking.reason}</strong> — {lastBooking.subject}
+                    </p>
+                    <p className="text-sm text-sro-secondary/80">
+                      {lastBooking.date} at {lastBooking.time} ({lastBooking.mode === 'online' ? 'Online' : 'Face-to-face'})
+                    </p>
+                    <p className="text-xs text-sro-secondary/70 mt-2">
+                      You'll receive an email confirmation once approved by the SRO.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setLastBooking(null)}
+                  className="text-sro-secondary/60 hover:text-sro-secondary p-1"
+                  aria-label="Dismiss"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
-              <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+
+          {loading ? (
+            <LoadingSpinner text="Loading your appointments..." variant="section" />
+          ) : (
+            <>
+              <DataTable
+                columns={appointmentColumns}
+                data={existingAppointments.map(apt => ({ ...apt, id: apt.id }))}
+                emptyMessage="You don't have any upcoming appointments."
+              />
+
+              {/* Cancellation Policy Note */}
+              <div className="mt-4 text-xs text-gray-500 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 flex-shrink-0">
+                  <path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" />
                 </svg>
-                <div>
-                  <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
-                    <li>Appointments must be booked at least one day in advance.</li>
-                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
-                    <li>Available times are shown after selecting a date.</li>
-                    <li>Your booking will be confirmed by the SRO via E-mail.</li>
-                  </ul>
+                <span>
+                  <strong>Need to cancel?</strong> Appointments are final. Please contact the SRO via email if you need to cancel.
+                </span>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        {/* Book Appointment Tab */}
+        <TabsContent value="booking">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
+                <div className="flex items-start">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
+                    <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
+                      <li>Appointments must be booked at least one day in advance.</li>
+                      <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
+                      <li>Available times are shown after selecting a date.</li>
+                      <li>Your booking will be confirmed by the SRO via E-mail.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Reason for Visit
-                </label>
-                <select
-                  name="reason"
-                  value={formData.reason}
-                  onChange={(e) => handleFieldChange("reason", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  required
-                >
-                  <option value="">Select a reason</option>
-                  <option value="Consultation">Consultation</option>
-                  <option value="Document Processing">Document Processing</option>
-                  <option value="Org Recognition Interview">Org Recognition Interview</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Reason for Visit <span className="text-red-500">*</span>
+                  </label>
+                  <UnifiedDropdown
+                    options={[
+                      { value: "Consultation", label: "Consultation" },
+                      { value: "Document Processing", label: "Document Processing" },
+                      { value: "Org Recognition Interview", label: "Org Recognition Interview" },
+                      { value: "Other", label: "Other" }
+                    ]}
+                    value={formData.reason}
+                    onChange={(val) => handleFieldChange("reason", val)}
+                    placeholder="Select a reason"
+                    error={!!errors.reason}
+                  />
+                  {errors.reason && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.reason}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={(e) => handleFieldChange("subject", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  placeholder="Specify the reason for visit..."
-                  required
-                />
-                {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Subject <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={(e) => handleFieldChange("subject", e.target.value)}
+                    className={errors.subject ? 'border-sro-primary bg-red-50' : ''}
+                    placeholder="Specify the reason for visit..."
+                  />
+                  {errors.subject && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.subject}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Meeting Mode
-                </label>
-                <select
-                  name="mode"
-                  value={formData.mode}
-                  onChange={(e) => handleFieldChange("mode", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  required
-                >
-                  <option value="">Select mode</option>
-                  <option value="face-to-face">Face-to-face</option>
-                  <option value="online">Online</option>
-                </select>
-                {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Meeting Mode <span className="text-red-500">*</span>
+                  </label>
+                  <UnifiedDropdown
+                    options={[
+                      { value: "face-to-face", label: "Face-to-face" },
+                      { value: "online", label: "Online" }
+                    ]}
+                    value={formData.mode}
+                    onChange={(val) => handleFieldChange("mode", val)}
+                    placeholder="Select mode"
+                    error={!!errors.mode}
+                  />
+                  {errors.mode && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.mode}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  placeholder="delpilarmh@up.edu.ph"
-                  required
-                />
-                {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                    className={errors.email ? 'border-sro-primary bg-red-50' : ''}
+                    placeholder="delpilarmh@up.edu.ph"
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.email}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Contact Number
-                </label>
-                <div className="space-y-1">
-                  <input
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Contact Number <span className="text-red-500">*</span>
+                  </label>
+                  <Input
                     type="tel"
                     name="contact"
+                    inputMode="numeric"
                     value={formData.contact}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, '');
@@ -693,35 +801,33 @@ const AppointmentBooking = () => {
                         handleFieldChange("contact", value);
                       }
                     }}
-                    className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                      }`}
-                    placeholder="(09XXXXXXXXX)"
+                    className={errors.contact ? 'border-sro-primary bg-red-50' : ''}
+                    placeholder="09XXXXXXXXX"
                     maxLength="11"
-                    required
                   />
-                  {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
-                  <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
+                  {errors.contact && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.contact}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Format: 09XXXXXXXXX (11 digits)</p>
                 </div>
-              </div>
 
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Additional Notes
+                  </label>
+                  <Textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    className="min-h-[100px]"
+                    placeholder="Add any additional information that might be helpful..."
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Additional Notes (Optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full p-2 border rounded-md text-sm h-24"
-                  placeholder="Add any additional information that might be helpful..."
-                ></textarea>
-              </div>
-            </form>
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
                 <CustomCalendar
                   mode="appointments"
                   currentMonth={currentMonth}
@@ -733,92 +839,86 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
-                    <span>Selected</span>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Selected</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
-                    <span>Today</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full border-2 border-sro-secondary"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Today</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
-                    <span>Available</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary/20 border border-sro-secondary/40"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Available</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
-                    <span>Blocked</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-primary/10 border border-sro-primary"></span>
+                    <span className="text-xs text-sro-primary font-medium">Blocked</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
-                    <span>Unavailable</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-gray-200 border border-gray-400"></span>
+                    <span className="text-xs text-gray-600 font-medium">Unavailable</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
-                    <span>Has Appointments</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-amber-100 border border-amber-400"></span>
+                    <span className="text-xs text-amber-700 font-medium">Has Appointments</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {selectedDate && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
-                {timeSlotLoading ? (
-                  <div className="text-center py-4">
-                    <span className="text-sm text-gray-600">Loading available time slots...</span>
-                  </div>
-                ) : timeSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map((slot) => (
-                      <button
-                        key={slot.time}
-                        onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
-                        className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
-                          ? 'bg-sro-secondary text-white'
-                          : slot.booked
-                            ? 'bg-sro-primary text-white cursor-not-allowed'
-                            : slot.blocked
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          }`}
-                        disabled={!slot.available}
-                      >
-                        {slot.time}
-                        {slot.booked && <span className="block text-xs">(Booked)</span>}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <span className="text-sm text-red-600">No time slots available for this date</span>
-                  </div>
-                )}
               </div>
-            )}
 
-            <Button
-              type="submit"
-              className={`w-full text-white ${isFormValid()
-                ? 'bg-sro-primary hover:bg-sro-primary/90'
-                : 'bg-gray-400 cursor-not-allowed'
-                }`}
-              disabled={submitting || !isFormValid()}
-              onClick={handleSubmit}
-            >
-              {submitting ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Booking Appointment...
-                </>
-              ) : (
-                'Book Appointment'
+              {selectedDate && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
+                  {timeSlotLoading ? (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-gray-600">Loading available time slots...</span>
+                    </div>
+                  ) : timeSlots.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
+                          className={`py-3 sm:py-2 px-3 text-sm font-medium rounded min-h-[44px] ${formData.time === slot.time
+                            ? 'bg-sro-secondary text-white'
+                            : slot.booked
+                              ? 'bg-sro-primary text-white cursor-not-allowed'
+                              : slot.blocked
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                          disabled={!slot.available}
+                        >
+                          {slot.time}
+                          {slot.booked && <span className="block text-xs">(Booked)</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-red-600">No time slots available for this date</span>
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
+
+              <Button
+                type="submit"
+                className={`w-full text-white ${submitting || !isFormValid()
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-sro-primary hover:bg-sro-primary/90'
+                  }`}
+                disabled={submitting || !isFormValid()}
+                onClick={handleSubmit}
+              >
+                {submitting ? 'Booking...' : 'Book Appointment'}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
+
       <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>

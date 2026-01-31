@@ -9,7 +9,7 @@ import Login from "../pages/Login";
 // user 
 import Dashboard from "../pages/Dashboard";
 import ActivityRequest from "../pages/ActivityRequest";
-import Submissions from "../pages/Submissions";
+import Requests from "../pages/Requests";
 import OrgApplication from "../pages/OrgApplication";
 import AnnualReport from "../pages/AnnualReport";
 import AppointmentBooking from "../pages/AppointmentBooking";
@@ -26,6 +26,7 @@ import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
+import SuperAdminPage from "../pages/admin/SuperAdminPage";
 
 // route
 import { checkOrCreateUser } from "@/api/authAPI";
@@ -182,7 +183,7 @@ const router = createBrowserRouter([
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
           { path: "edit-activity", element: <RequireUser><EditActivity /></RequireUser> },
-          { path: "submissions", element: <RequireUser><Submissions /></RequireUser> },
+          { path: "requests", element: <RequireUser><Requests /></RequireUser> },
           { path: "activities-calendar", element: <RequireUser><ActivitiesCalendar /></RequireUser> },
           { path: "org-application", element: <RequireUser><OrgApplication /></RequireUser> },
           { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },
@@ -190,6 +191,9 @@ const router = createBrowserRouter([
           { path: "email-test-button", element: <RequireUser><EmailTestButton /></RequireUser> },
 
           // Admin routes using unified RequireAdminRole
+          {
+            path: "admin/super-admin", element: <RequireUser><SuperAdminPage /></RequireUser>
+          },
           {
             path: "admin", element: <RequireAdminRole childrenByRole={
               { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} />
@@ -227,6 +231,7 @@ const router = createBrowserRouter([
             path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
               { 2: <AdminAnnualReports />, 3: <AdminAnnualReports />, 4: <AdminAnnualReports /> }} />
           },
+
         ],
       },
     ],

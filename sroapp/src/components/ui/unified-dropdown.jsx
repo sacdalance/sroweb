@@ -85,21 +85,21 @@ function UnifiedDropdown({
                     aria-expanded={open}
                     aria-disabled={disabled}
                     className={cn(
-                        "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm transition-colors cursor-pointer",
+                        "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm transition-colors cursor-pointer h-auto min-h-[2.5rem]",
                         "focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400",
                         disabled && "opacity-50 cursor-not-allowed",
                         error && "border-sro-primary bg-red-50",
                         className
                     )}
                 >
-                    <span className={cn(!displayLabel && "text-muted-foreground")}>
+                    <span className={cn("flex-1 text-left break-words whitespace-normal leading-tight", !displayLabel && "text-muted-foreground")}>
                         {displayLabel || placeholder}
                     </span>
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </div>
             </PopoverTrigger>
 
-            <PopoverContent align="start" className={cn("w-full max-w-md p-0", contentClassName)}>
+            <PopoverContent align="start" className={cn("w-full max-w-[90vw] sm:max-w-md p-0", contentClassName)}>
                 {searchable && (
                     <Input
                         placeholder={searchPlaceholder}
@@ -108,7 +108,7 @@ function UnifiedDropdown({
                         className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                     />
                 )}
-                <div className="max-h-48 overflow-y-auto">
+                <div className="max-h-60 overflow-y-auto">
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map((opt) => (
                             <button
@@ -117,13 +117,15 @@ function UnifiedDropdown({
                                 onClick={() => handleSelect(opt)}
                                 disabled={disabled}
                                 className={cn(
-                                    "w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors",
+                                    "w-full text-left px-4 py-3 hover:bg-gray-100 transition-colors flex items-center justify-between gap-2 border-b border-gray-50 last:border-0",
                                     value === opt[valueKey] && "bg-gray-100 font-medium"
                                 )}
                             >
-                                {opt[labelKey]}
+                                <span className="flex-1 break-words whitespace-normal text-sm leading-snug" title={opt[labelKey]}>
+                                    {opt[labelKey]}
+                                </span>
                                 {value === opt[valueKey] && (
-                                    <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                                    <Check className="h-4 w-4 text-green-600 shrink-0 self-start mt-0.5" />
                                 )}
                             </button>
                         ))

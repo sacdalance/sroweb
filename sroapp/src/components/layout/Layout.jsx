@@ -24,7 +24,7 @@ const Layout = () => {
       {/* Overlay for mobile */}
       <div
         className={`
-          fixed inset-0 bg-black/30 z-10 transition-opacity duration-300 mt-14
+          fixed inset-0 bg-black/30 z-[55] transition-opacity duration-300 mt-14
           ${sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
           xl:hidden
         `}
@@ -34,7 +34,6 @@ const Layout = () => {
       <div
         className={`
           flex-1 min-w-0 transition-all duration-300
-          xl:ml-[${SIDEBAR_WIDTH}px]
           flex flex-col
           h-screen
         `}
