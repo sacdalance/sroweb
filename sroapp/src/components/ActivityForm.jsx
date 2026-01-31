@@ -15,9 +15,10 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn } from "@/lib/utils";
+import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
@@ -52,7 +53,6 @@ const ActivityForm = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [orgs, setOrgs] = useState([]);
-  const fileInputRef = useRef(null);
   const today = new Date();
   const minStartDate = addBusinessDays(today, 5).toISOString().split("T")[0];
   const tomorrow = new Date();
@@ -106,7 +106,6 @@ const ActivityForm = ({
     greenCampusMonitor: defaultValues?.greenCampusMonitor || "",
     greenCampusMonitorContact: defaultValues?.greenCampusMonitorContact || "",
     selectedFile: defaultValues?.selectedFile || null,
-    isDragActive: false,
     appealReason: defaultValues?.appealReason || ""
   });
 
@@ -1599,90 +1598,13 @@ const ActivityForm = ({
                   </ul>
                 </div>
 
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setFormData((prev) => ({ ...prev, isDragActive: true }));
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    setFormData((prev) => ({ ...prev, isDragActive: false }));
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file?.type !== "application/pdf") {
-                      toast.error("Only PDF files are allowed.");
-                      return;
-                    }
-                    setFormData((prev) => ({ ...prev, selectedFile: file, isDragActive: false }));
-                  }}
-                  className={cn(
-                    "border-2 border-dashed p-4 rounded-md text-center transition-colors",
-                    formData.selectedFile
-                      ? "border-gray-300 bg-gray-50 cursor-not-allowed"
-                      : formData.isDragActive
-                        ? "border-green-600 bg-green-50"
-                        : "border-gray-300 hover:border-gray-400 hover:bg-muted"
-                  )}
-                >
-                  <label
-                    htmlFor="activityUpload"
-                    className={cn(
-                      "cursor-pointer flex flex-col items-center",
-                      formData.selectedFile && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                    <p className="text-sm">
-                      {formData.selectedFile
-                        ? "You cannot upload or drag files after completion."
-                        : formData.isDragActive
-                          ? "Drop the file here"
-                          : "Drag and Drop or Click to Upload File (1 required)"}
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      id="activityUpload"
-                      type="file"
-                      accept=".pdf"
-                      disabled={!!formData.selectedFile || isSubmitting}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file || file.type !== "application/pdf") {
-                          toast.error("Only PDF files are allowed.");
-                          return;
-                        }
-                        setFormData((prev) => ({ ...prev, selectedFile: file }));
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {formData.selectedFile && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-1">Selected File</h4>
-                    <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
-                      <div className="flex items-center gap-2 truncate">
-                        <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                        <span className="truncate max-w-[240px]">{formData.selectedFile.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, selectedFile: null }));
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = null;
-                          }
-                        }}
-                        className="text-muted-foreground hover:text-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <FileDropzone
+                  files={formData.selectedFile ? [formData.selectedFile] : []}
+                  onFilesChange={(files) => setFormData((prev) => ({ ...prev, selectedFile: files[0] || null }))}
+                  maxFiles={1}
+                  disabled={isSubmitting}
+                  error={fieldErrors.selectedFile}
+                />
 
               </div>
 

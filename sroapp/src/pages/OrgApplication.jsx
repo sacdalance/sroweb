@@ -12,13 +12,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { FileText, UploadCloud, ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { submitOrgApplication } from "@/api/orgApplicationAPI";
 import supabase from "@/lib/supabase";
+import FileDropzone from "@/components/ui/file-dropzone";
 
 const categoriesList = [
   { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
@@ -87,7 +88,6 @@ const OrgApplication = () => {
   const [orgTypeSearch, setOrgTypeSearch] = useState("");
   const [yearOpen, setYearOpen] = useState(false);
   const [yearSearch, setYearSearch] = useState("");
-  const [isDragActive, setIsDragActive] = useState(false);
 
   // Field error states for visual feedback (error type: "", "required", "length", "invalid")
   const [fieldErrors, setFieldErrors] = useState({});
@@ -124,32 +124,15 @@ const OrgApplication = () => {
   const isValidName = (str) =>
     typeof str === "string" && str.trim().length >= 3 && str.trim().length <= 50;
 
-  // Field error setter for specific error types
   const setFieldError = (field, errorType) =>
     setFieldErrors((prev) => ({ ...prev, [field]: errorType }));
 
-  // === FILE UPLOAD ===
-  const dragDropDisabled = files.length === 6 || isUploading;
-  const handleFileChange = (e) => {
-    if (dragDropDisabled) return;
-    const incomingFiles = Array.from(e.target.files);
-    const pdfFiles = incomingFiles.filter((file) => file.type === "application/pdf");
-    if (pdfFiles.length === 0) {
-      toast.error("Only PDF files are allowed.");
-      setFieldError("files", "invalid");
-      return;
+  // === FILE UPLOAD HANDLER (for FileDropzone onFilesChange) ===
+  const handleFilesChange = (newFiles) => {
+    setFiles(newFiles);
+    if (newFiles.length === 6) {
+      setFieldError("files", "");
     }
-    if (files.length + pdfFiles.length > 6) {
-      toast.error("You can only upload exactly 6 PDF files.");
-      setFieldError("files", "invalid");
-      return;
-    }
-    setFiles([...files, ...pdfFiles]);
-    setFieldError("files", "");
-  };
-  const handleRemoveFile = (idx) => {
-    if (isUploading) return;
-    setFiles(files.filter((_, i) => i !== idx));
   };
 
   // === VALIDATION LOGIC (LIKE ActivityForm) ===
@@ -661,102 +644,31 @@ const OrgApplication = () => {
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Constitution and Bylaws</span>
             </div>
-            {/* Drag and Drop File Upload (disabled after 6 or during upload) */}
-            <div
-              onDragOver={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(true);
-              }}
-              onDragLeave={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(false);
-              }}
-              onDrop={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(false);
-                handleFileChange({ target: { files: e.dataTransfer.files } });
-              }}
-              className={cn(
-                "border-2 border-dashed p-4 rounded-md text-center transition-colors",
-                dragDropDisabled
-                  ? "border-gray-300 bg-gray-50 cursor-not-allowed"
-                  : isDragActive
-                    ? "border-green-600 bg-green-50"
-                    : "border-gray-300 hover:border-gray-400 hover:bg-muted"
-              )}
-              style={{ pointerEvents: dragDropDisabled ? "none" : "auto" }}
-            >
-              <label htmlFor="orgAppFileUpload" className={cn(
-                "cursor-pointer flex flex-col items-center",
-                dragDropDisabled && "cursor-not-allowed opacity-70"
-              )}>
-                <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm">
-                  {dragDropDisabled
-                    ? "You cannot upload or drag files after completion."
-                    : isDragActive
-                      ? "Drop the file here"
-                      : "Drag and Drop or Upload Files (6 required)"
-                  }
-                </p>
-                <input
-                  id="orgAppFileUpload"
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={dragDropDisabled}
-                />
-              </label>
-            </div>
+            {/* File Dropzone */}
+            <FileDropzone
+              files={files}
+              onFilesChange={handleFilesChange}
+              maxFiles={6}
+              disabled={isUploading}
+              error={fieldErrors.files === "invalid"}
+            />
             {fieldErrors.files === "invalid" && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Please upload exactly 6 PDF files.</p>
             )}
-            {files.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-1">Selected Files ({files.length}/6)</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {files.map((file, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center justify-between bg-muted px-3 py-2 rounded-md"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-red-500" />
-                        <span className="truncate max-w-[200px]">{file.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(idx)}
-                        className={cn(
-                          "text-gray-500 hover:text-red-600",
-                          isUploading && "cursor-not-allowed opacity-50"
-                        )}
-                        disabled={isUploading}
-                      >
-                        &times;
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {/* Confirmation Dialog trigger */}
-            <Button
-              onClick={handleSubmit}
-              disabled={isUploading}
-              className="bg-sro-primary hover:bg-sro-primary/90 text-white"
-            >
-              {isUploading ? (
-                <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
-              ) : (
-                "Submit Application"
-              )}
-            </Button>
+            <div className="flex justify-center sm:justify-end">
+              <Button
+                onClick={handleSubmit}
+                disabled={isUploading}
+                className="bg-sro-primary hover:bg-sro-primary/90 text-white w-full sm:w-auto"
+              >
+                {isUploading ? (
+                  <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
+                ) : (
+                  "Submit Application"
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
         {/* Submission Confirmation Dialog (UI/UX match) */}
