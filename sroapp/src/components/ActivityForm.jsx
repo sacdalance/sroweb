@@ -9,12 +9,12 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Check, ChevronDown, FileText } from "lucide-react";
+import { Check, ChevronDown, FileText, AlertTriangle } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn, sanitizeInput } from "@/lib/utils";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -106,6 +106,9 @@ const ActivityForm = ({
     selectedFile: defaultValues?.selectedFile || null,
     appealReason: defaultValues?.appealReason || ""
   });
+
+  // Track initial state for "Unsaved Changes" warning
+  const [initialFormData, setInitialFormData] = useState(formData);
 
   const [focusedField, setFocusedField] = useState(null);
 
@@ -309,6 +312,37 @@ const ActivityForm = ({
     };
     fetchOrgs();
   }, []);
+
+  // === UNSAVED CHANGES PROTECTION ===
+
+  // Calculate dirtiness (ignoring UI state like 'open' or 'searchTerm')
+  const isDirty = React.useMemo(() => {
+    // Helper to strip UI keys
+    const stripUI = (data) => {
+      const { open, searchTerm, ...rest } = data;
+      return rest;
+    };
+
+    return JSON.stringify(stripUI(formData)) !== JSON.stringify(stripUI(initialFormData));
+  }, [formData, initialFormData]);
+
+  // Block navigation if dirty, not submitting, not success, and not a pending draft restore
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && !isSubmitting && !showSuccessDialog && !pendingDraft && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle browser refresh/close
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (isDirty && !isSubmitting && !showSuccessDialog) {
+        e.preventDefault();
+        e.returnValue = ""; // Chrome requires this
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty, isSubmitting, showSuccessDialog]);
 
   useEffect(() => {
     const seen = sessionStorage.getItem("sroRemindersSeen");
@@ -1949,6 +1983,41 @@ const ActivityForm = ({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Unsaved Changes Dialog */}
+          {blocker && blocker.state === "blocked" && (
+            <AlertDialog open={true}>
+              <AlertDialogContent className="rounded-xl border border-sro-primary/20 shadow-2xl max-w-sm">
+                <AlertDialogHeader>
+                  <div className="flex flex-col items-center">
+                    <div className="bg-sro-primary/10 p-4 rounded-full mb-4">
+                      <AlertTriangle className="h-10 w-10 text-sro-primary" />
+                    </div>
+                    <AlertDialogTitle className="text-xl font-bold text-sro-primary text-center">
+                      Unsaved Changes
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                      Are you sure you want to leave? Your progress will be saved to your local draft.
+                    </AlertDialogDescription>
+                  </div>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4 sm:justify-center">
+                  <AlertDialogCancel
+                    onClick={() => blocker.reset()}
+                    className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Stay Here
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="w-full sm:w-auto bg-sro-primary hover:bg-sro-primary/90 text-white"
+                    onClick={() => blocker.proceed()}
+                  >
+                    Leave Page
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
 
 
         </form>
