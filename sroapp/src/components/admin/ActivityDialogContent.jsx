@@ -129,7 +129,8 @@ const ActivityDialogContent = ({
   handleApprove,
   handleReject,
   readOnly = false,
-  publicView = false
+  publicView = false,
+  showAddToCalendar = false
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
@@ -415,7 +416,7 @@ const ActivityDialogContent = ({
               )}
             </div>
             {/* Add to Calendar Button (Read-Only Mode) */}
-            {readOnly && googleCalendarUrl && (
+            {readOnly && googleCalendarUrl && showAddToCalendar && (
               <div className="flex justify-center sm:justify-end pt-2">
                 <Button
                   variant="outline"
