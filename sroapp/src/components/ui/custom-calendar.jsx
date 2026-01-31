@@ -176,7 +176,7 @@ const CustomCalendar = ({
             >
               <div className="flex justify-between items-start mb-1">
                 <span className={`font-medium text-xs sm:text-base p-1 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center ${isToday(day) ? "bg-sro-secondary text-white" :
-                    (selectedDate && isSameDay(day, selectedDate)) ? "bg-sro-primary text-white" : ""
+                  (selectedDate && isSameDay(day, selectedDate)) ? "bg-sro-primary text-white" : ""
                   }`}>
                   {format(day, 'd')}
                 </span>
@@ -190,8 +190,8 @@ const CustomCalendar = ({
 
               {getActivityDayClass(day).hasEvents && (
                 <>
-                  <div className="hidden sm:block mt-1 space-y-1 overflow-y-auto max-h-[60px] custom-scrollbar">
-                    {getActivityDayClass(day).events.map((event, index) => (
+                  <div className="hidden sm:block mt-1 space-y-1 overflow-hidden">
+                    {getActivityDayClass(day).events.slice(0, 2).map((event, index) => (
                       <div
                         key={index}
                         className={`px-1 py-0.5 text-[10px] sm:text-xs rounded truncate cursor-pointer ${getEventColor(event.category, event)}`}
@@ -204,6 +204,17 @@ const CustomCalendar = ({
                         {event.title}
                       </div>
                     ))}
+                    {getActivityDayClass(day).events.length > 2 && (
+                      <div
+                        className="text-[10px] sm:text-[11px] bg-gray-100 text-gray-600 font-medium px-1.5 py-0.5 rounded-md cursor-pointer hover:bg-gray-200 hover:text-gray-800 transition-colors inline-block mt-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDateSelect && onDateSelect(day);
+                        }}
+                      >
+                        + {getActivityDayClass(day).events.length - 2} more
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:hidden flex flex-wrap gap-1 mt-auto justify-center pb-1">

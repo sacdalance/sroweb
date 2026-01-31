@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, X, Info } from "lucide-react";
+import { CalendarDays, X, Info, LayoutGrid, Table } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import DataTable from "@/components/ui/DataTable";
 import PropTypes from 'prop-types';
@@ -72,6 +74,8 @@ const UnifiedActivitiesCalendar = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
+  const [hideRecurring, setHideRecurring] = useState(false);
+  const [viewMode, setViewMode] = useState("table");
 
   // Month and year options
   const months = [
@@ -107,7 +111,8 @@ const UnifiedActivitiesCalendar = ({
               const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
               if (recurringDays[dayName]) {
                 calendarEvents.push({
-                  id: activity.activity_id,
+                  id: `${activity.activity_id}-${d.toISOString().split('T')[0]}`,
+                  originalId: activity.activity_id,
                   date: new Date(d),
                   title: activity.activity_name,
                   time: `${schedule.start_time} to ${schedule.end_time}`,
@@ -125,6 +130,7 @@ const UnifiedActivitiesCalendar = ({
           } else {
             calendarEvents.push({
               id: activity.activity_id,
+              originalId: activity.activity_id,
               date: new Date(schedule?.start_date),
               title: activity.activity_name,
               time: `${schedule?.start_time} to ${schedule?.end_time}`,
@@ -238,7 +244,7 @@ const UnifiedActivitiesCalendar = ({
     setModalLoading(true);
     setIsDialogOpen(true);
     setSelectedEvent(null);
-    const baseId = event.id;
+    const baseId = event.originalId || event.id;
     try {
       const activity = await fetchDialogActivity(baseId);
       setSelectedEvent(activity);
@@ -289,21 +295,27 @@ const UnifiedActivitiesCalendar = ({
     return events.filter(event => {
       if (selectedOrganization !== "all" && event.organization !== selectedOrganization) return false;
       if (selectedTypes.length > 0 && !selectedTypes.includes(event.category)) return false;
+      if (hideRecurring && event.isRecurringInstance) return false;
       return true;
     });
-  }, [events, selectedOrganization, selectedTypes]);
+  }, [events, selectedOrganization, selectedTypes, hideRecurring]);
 
   const filteredListEvents = useMemo(() => {
     return upcomingEvents.filter(event => {
       if (selectedOrganization !== "all" && event.organization !== selectedOrganization) return false;
       if (selectedTypes.length > 0 && !selectedTypes.includes(event.category)) return false;
+      if (hideRecurring && event.isRecurringInstance) return false;
       if (selectedDateFilter) {
-        return isSameDay(event.startDate, selectedDateFilter);
+        return new Date(event.startDate).toDateString() === new Date(selectedDateFilter).toDateString();
       } else {
-        return event.isUpcoming;
+        // Filter by selected Month and Year from dropdowns to sync with Calendar
+        const eventDate = new Date(event.startDate);
+        const eventMonth = eventDate.toLocaleString('default', { month: 'long' });
+        const eventYear = eventDate.getFullYear().toString();
+        return eventMonth === selectedMonth && eventYear === selectedYear;
       }
     });
-  }, [upcomingEvents, selectedOrganization, selectedTypes, selectedDateFilter]);
+  }, [upcomingEvents, selectedOrganization, selectedTypes, selectedDateFilter, hideRecurring, selectedMonth, selectedYear]);
 
   const activityCount = filteredListEvents.length;
 
@@ -355,9 +367,9 @@ const UnifiedActivitiesCalendar = ({
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span className="inline-block px-2 py-1 rounded-full text-xs font-medium truncate max-w-full" style={{
+        <span style={{
           backgroundColor: activityTypeColors[row.category]?.bg.replace('bg-', '') || '#f3f4f6',
-        }} className={`${activityTypeColors[row.category]?.bg || 'bg-gray-100'} ${activityTypeColors[row.category]?.text || 'text-gray-700'}`}>
+        }} className={`inline-block px-2 py-1 rounded-full text-xs font-medium truncate max-w-full ${activityTypeColors[row.category]?.bg || 'bg-gray-100'} ${activityTypeColors[row.category]?.text || 'text-gray-700'}`}>
           {categoryMap[row.category] || row.category}
         </span>
       ),
@@ -382,7 +394,7 @@ const UnifiedActivitiesCalendar = ({
 
       {/* Filters Row */}
       <div className="flex flex-col md:flex-row flex-wrap gap-4 mb-3 sm:mb-6">
-        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full items-center sm:items-start">
           <UnifiedDropdown
             options={months}
             value={selectedMonth}
@@ -413,6 +425,21 @@ const UnifiedActivitiesCalendar = ({
             placeholder="Filter by Type..."
             className="w-full sm:w-56"
           />
+          <div className="flex items-center">
+            <label
+              htmlFor="hideRecurring"
+              className="flex items-center gap-2 h-10 px-3 border rounded-md bg-white cursor-pointer hover:bg-gray-50 transition-colors select-none"
+            >
+              <Checkbox
+                id="hideRecurring"
+                checked={hideRecurring}
+                onCheckedChange={setHideRecurring}
+              />
+              <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700">
+                Hide Recurring
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -452,50 +479,69 @@ const UnifiedActivitiesCalendar = ({
       {/* List Section */}
       {showUpcoming && (
         <Card className="rounded-lg shadow-md mt-4 sm:mt-6 transition-all duration-300">
-          <CardHeader className="bg-white py-3 px-3 sm:px-4 border-b border-gray-100 grid gap-2">
-            <div className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <CardTitle className="text-base sm:text-xl font-bold text-sro-primary flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                  {selectedDateFilter ? (
-                    <>
-                      Events on <span className="text-sro-secondary font-bold">{format(selectedDateFilter, 'MMMM d, yyyy')}</span>
-                    </>
-                  ) : "Upcoming Activities"}
-                </CardTitle>
-
-                {/* Info Popover - Mobile Friendly Click Trigger */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Info className="h-4 w-4 text-gray-400 cursor-pointer hover:text-sro-primary transition-colors flex-shrink-0" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2 text-xs">
-                    <p>Select days to see all events in that day</p>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Right Side: Filters/Clear */}
-              <div>
+          <CardHeader className="bg-white p-3 sm:px-4 border-b border-gray-100 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <CardTitle className="text-base sm:text-xl font-bold text-sro-primary flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
                 {selectedDateFilter ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearDateFilter}
-                    className="text-gray-500 hover:text-sro-primary hover:bg-gray-100 h-8 px-2 text-xs"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    <span className="hidden sm:inline">Clear</span>
-                  </Button>
-                ) : (
-                  // Only show badge on desktop
-                  <Badge variant="outline" className="text-sro-secondary text-xs hidden sm:inline-flex">
-                    Next 30 Days
-                  </Badge>
-                )}
+                  <>
+                    Events on <span className="text-sro-secondary font-bold">{format(selectedDateFilter, 'MMMM d, yyyy')}</span>
+                  </>
+                ) : `${selectedMonth} ${selectedYear}`}
+              </CardTitle>
+
+              {/* Info Popover - Mobile Friendly Click Trigger */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-400 cursor-pointer hover:text-sro-primary transition-colors flex-shrink-0" />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2 text-xs">
+                  <p>Select days to see all events in that day</p>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Right Side: Filters/Clear */}
+            <div className="flex items-center gap-3">
+              {/* View Mode Toggle */}
+              <div className="inline-flex rounded-md shadow-sm border bg-white p-1 h-9 sm:h-10 items-center">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`px-3 sm:px-4 rounded-sm flex items-center gap-2 text-sm font-medium transition-colors h-full ${viewMode === "table"
+                    ? "bg-gray-100 text-sro-primary shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                  title="Table View"
+                >
+                  <Table className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`px-3 sm:px-4 rounded-sm flex items-center gap-2 text-sm font-medium transition-colors h-full ${viewMode === "card"
+                    ? "bg-gray-100 text-sro-primary shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Cards</span>
+                </button>
               </div>
+
+              {selectedDateFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDateFilter}
+                  className="text-gray-500 hover:text-sro-primary hover:bg-gray-100 h-8 px-2 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Clear</span>
+                </Button>
+              )}
             </div>
           </CardHeader>
-          <CardContent className="p-0 sm:p-0">
+          <CardContent className="p-0 sm:p-0 pb-4">
             {loading ? (
               <LoadingState />
             ) : error ? (
@@ -509,8 +555,11 @@ const UnifiedActivitiesCalendar = ({
                 onRowClick={handleEventClick}
                 emptyMessage="No activities match your filters."
                 defaultPageSize={10}
-                pageSizeOptions={[10, 25, 50]}
+                pageSizeOptions={[5, 10, 25, 50]}
                 className="upcoming-activities-table border-0 shadow-none -mt-px"
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                hideViewToggle={true}
               />
             )}
           </CardContent>

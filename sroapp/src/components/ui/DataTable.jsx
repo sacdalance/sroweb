@@ -16,6 +16,9 @@ import StatusPill from "@/components/ui/StatusPill";
  * @param {string} className - Additional className for the card wrapper
  * @param {number} defaultPageSize - Default number of rows per page (default: 10)
  * @param {Array} pageSizeOptions - Options for rows per page dropdown (default: [10, 25, 50])
+ * @param {string} viewMode - "table" or "card" (Controlled Mode)
+ * @param {Function} onViewModeChange - Callback for view mode change (Controlled Mode)
+ * @param {boolean} hideViewToggle - If true, hides the internal view toggle buttons
  */
 const DataTable = ({
     columns = [],
@@ -25,30 +28,44 @@ const DataTable = ({
     className = "",
     defaultPageSize = 10,
     pageSizeOptions = [10, 25, 50],
+    viewMode: controlledViewMode,
+    onViewModeChange,
+    hideViewToggle = false,
 }) => {
     // View Mode State (card vs table)
-    const [viewMode, setViewMode] = useState("table");
+    const [internalViewMode, setInternalViewMode] = useState("table");
 
-    // Initialize view mode based on screen size
+    const currentViewMode = controlledViewMode !== undefined ? controlledViewMode : internalViewMode;
+
+    const handleViewModeChange = (mode) => {
+        if (onViewModeChange) {
+            onViewModeChange(mode);
+        } else {
+            setInternalViewMode(mode);
+        }
+    };
+
+    // Mobile detection for responsive adjustments
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Initialize view mode and mobile state based on screen size
     useEffect(() => {
         const handleResize = () => {
-            // Only auto-switch if user hasn't manually toggled?
-            // Ideally we just check if it matches mobile break point on load.
-            // For simplicity, let's just default to card on mobile, table on desktop initially.
-            if (window.innerWidth < 768) {
-                setViewMode("card");
-            } else {
-                setViewMode("table");
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+
+            // Initial view mode setting (only if uncontrolled)
+            if (controlledViewMode === undefined) {
+                setInternalViewMode(mobile ? "card" : "table");
             }
         };
 
-        // Run once on mount
+        // Initial detection
         handleResize();
 
-        // Optional: Listen to resize if we want auto-switching when resizing browser
-        // window.addEventListener('resize', handleResize);
-        // return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [controlledViewMode]);
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
@@ -58,7 +75,19 @@ const DataTable = ({
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(defaultPageSize);
+
+    // Reset to first page when data length changes (caused by filters/search)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [data.length]);
+
+    const [pageSize, setPageSize] = useState(() => {
+        // Default to 5 on mobile, otherwise use prop
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            return 5;
+        }
+        return defaultPageSize;
+    });
 
     // Handle sort click
     const handleSort = (key) => {
@@ -178,7 +207,7 @@ const DataTable = ({
 
         if (col.isStatus) {
             const value = col.accessor ? col.accessor(row) : row[col.key];
-            if (viewMode === "table") {
+            if (currentViewMode === "table") {
                 return (
                     <div className="flex justify-center w-full">
                         <StatusPill status={value || "Unknown"} />
@@ -199,37 +228,70 @@ const DataTable = ({
     // Generate page numbers to display
     const getPageNumbers = () => {
         const pages = [];
-        const maxVisible = 5;
+        // Use 3 for mobile, 5 for desktop
+        const maxVisible = isMobile ? 3 : 5;
 
         if (totalPages <= maxVisible) {
             for (let i = 1; i <= totalPages; i++) {
                 pages.push(i);
             }
         } else {
-            if (currentPage <= 3) {
-                for (let i = 1; i <= 4; i++) pages.push(i);
-                pages.push('...');
-                pages.push(totalPages);
-            } else if (currentPage >= totalPages - 2) {
+            // Calculate range around current page
+            // For maxVisible=3: 1 prev current next last -> too many
+            // We want total *visible buttons* (excluding ellipses if possible, or including?)
+            // The previous logic was "maxVisible buttons", creating ranges.
+
+            // Simplified Dynamic Logic:
+            const leftSide = Math.floor(maxVisible / 2);
+            // On mobile (3): left=1. On desktop (5): left=2.
+
+            if (currentPage <= leftSide + 1) {
+                // Start of list
+                // show 1..maxVisible-1, ..., last  (e.g. 1 2 ... 10)
+                // For mobile (3): 1 2 ... 10? Or just 1 ... 10?
+                // If maxVisible is 3, we really can't fit much.
+                // Let's force at LEAST start, current, end logic
+
+                const showCount = maxVisible - 1;
+                for (let i = 1; i <= showCount; i++) pages.push(i);
+                if (totalPages > showCount) {
+                    pages.push('...');
+                    pages.push(totalPages);
+                }
+            } else if (currentPage >= totalPages - leftSide) {
+                // End of list
                 pages.push(1);
                 pages.push('...');
-                for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+                const startPage = totalPages - (maxVisible - 2);
+                for (let i = startPage; i <= totalPages; i++) pages.push(i);
             } else {
+                // Middle of list
                 pages.push(1);
                 pages.push('...');
-                for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+
+                // If 3 visible: [1] ... [5] ... [10]
+                // If 5 visible: [1] ... [4] [5] [6] ... [10]
+
+                // Calculate count of middle items
+                const middleCount = maxVisible - 2; // Mobile: 1 item. Desktop: 3 items.
+                const start = currentPage - Math.floor(middleCount / 2);
+                const end = currentPage + Math.ceil(middleCount / 2) - 1;
+
+                for (let i = start; i <= end; i++) pages.push(i);
+
                 pages.push('...');
                 pages.push(totalPages);
             }
         }
 
-        return pages;
+        // Safety sort and unique
+        return [...new Set(pages)].sort((a, b) => (typeof a === 'number' && typeof b === 'number' ? a - b : 0));
     };
 
     return (
         <div className={className}>
             {/* Controls Row: Filters + View Toggle */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 ${hasFilters || !hideViewToggle ? "" : "hidden"}`}>
                 {/* Filters */}
                 {hasFilters ? (
                     <div className="flex flex-wrap gap-4 justify-center md:justify-start flex-1">
@@ -253,100 +315,98 @@ const DataTable = ({
                     </div>
                 ) : <div className="flex-1"></div>}
 
-                {/* View Mode Toggle */}
-                <div className="flex justify-center md:justify-end">
-                    <div className="inline-flex rounded-md shadow-sm border bg-white p-1">
-                        <button
-                            onClick={() => setViewMode("table")}
-                            className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${viewMode === "table"
-                                ? "bg-gray-100 text-sro-primary"
-                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                                }`}
-                            title="Table View"
-                        >
-                            <TableIcon className="h-4 w-4" />
-                            <span className="hidden sm:inline">Table</span>
-                        </button>
-                        <button
-                            onClick={() => setViewMode("card")}
-                            className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${viewMode === "card"
-                                ? "bg-gray-100 text-sro-primary"
-                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                                }`}
-                            title="Card View"
-                        >
-                            <LayoutGrid className="h-4 w-4" />
-                            <span className="hidden sm:inline">Cards</span>
-                        </button>
+                {/* View Mode Toggle (Conditional) */}
+                {!hideViewToggle && (
+                    <div className="flex justify-center md:justify-end">
+                        <div className="inline-flex rounded-md shadow-sm border bg-white p-1">
+                            <button
+                                onClick={() => handleViewModeChange("table")}
+                                className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${currentViewMode === "table"
+                                    ? "bg-gray-100 text-sro-primary"
+                                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                title="Table View"
+                            >
+                                <TableIcon className="h-4 w-4" />
+                                <span className="hidden sm:inline">Table</span>
+                            </button>
+                            <button
+                                onClick={() => handleViewModeChange("card")}
+                                className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${currentViewMode === "card"
+                                    ? "bg-gray-100 text-sro-primary"
+                                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                    }`}
+                                title="Card View"
+                            >
+                                <LayoutGrid className="h-4 w-4" />
+                                <span className="hidden sm:inline">Cards</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Table View */}
-            {viewMode === "table" && (
-                <Card className="w-full shadow-sm border">
-                    <CardContent className="p-0">
-                        <div className="w-full overflow-x-auto">
-                            <table className="w-full text-sm table-fixed min-w-[1000px]">
-                                <thead className="bg-gray-50 border-b">
-                                    <tr>
-                                        {columns.map((col) => (
-                                            <th
-                                                key={col.key}
-                                                className={`px-4 py-3 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
+            {currentViewMode === "table" && (
+                <div className="w-full overflow-x-auto">
+                    <table className="w-full text-sm table-fixed min-w-[1000px]">
+                        <thead className="bg-gray-50 border-b">
+                            <tr>
+                                {columns.map((col) => (
+                                    <th
+                                        key={col.key}
+                                        className={`px-4 py-3 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
+                                    >
+                                        {col.sortable ? (
+                                            <button
+                                                onClick={() => handleSort(col.key)}
+                                                className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
                                             >
-                                                {col.sortable ? (
-                                                    <button
-                                                        onClick={() => handleSort(col.key)}
-                                                        className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
-                                                    >
-                                                        <span>{col.header}</span>
-                                                        {getSortIcon(col.key)}
-                                                    </button>
-                                                ) : (
-                                                    <div className="w-full text-center">
-                                                        {col.header}
-                                                    </div>
-                                                )}
-                                            </th>
+                                                <span>{col.header}</span>
+                                                {getSortIcon(col.key)}
+                                            </button>
+                                        ) : (
+                                            <div className="w-full text-center">
+                                                {col.header}
+                                            </div>
+                                        )}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {paginatedData.length > 0 ? (
+                                paginatedData.map((row, rowIndex) => (
+                                    <tr
+                                        key={row.id || rowIndex}
+                                        onClick={() => onRowClick?.(row)}
+                                        className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
+                                    >
+                                        {columns.map((col) => (
+                                            <td
+                                                key={col.key}
+                                                className={`px-4 py-3 text-sm text-center ${col.cellClassName || ""}`}
+                                            >
+                                                {renderCell(row, col)}
+                                            </td>
                                         ))}
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {paginatedData.length > 0 ? (
-                                        paginatedData.map((row, rowIndex) => (
-                                            <tr
-                                                key={row.id || rowIndex}
-                                                onClick={() => onRowClick?.(row)}
-                                                className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
-                                            >
-                                                {columns.map((col) => (
-                                                    <td
-                                                        key={col.key}
-                                                        className={`px-4 py-3 text-sm text-center ${col.cellClassName || ""}`}
-                                                    >
-                                                        {renderCell(row, col)}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={columns.length} className="py-8 text-center text-gray-500">
-                                                {emptyMessage}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={columns.length} className="py-8 text-center text-gray-500">
+                                        {emptyMessage}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             )}
 
             {/* Card View */}
-            {viewMode === "card" && (
-                <div className="space-y-4">
+            {currentViewMode === "card" && (
+                <div className="space-y-4 px-4 pb-4">
                     {paginatedData.length > 0 ? (
                         paginatedData.map((row, rowIndex) => {
                             const actionCol = columns.find(col => col.key === 'actions');
@@ -391,7 +451,7 @@ const DataTable = ({
 
             {/* Pagination Controls */}
             {totalItems > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100">
                     {/* Results count */}
                     <div className="text-sm text-gray-600">
                         Showing {startIndex + 1}-{endIndex} of {totalItems} {totalItems === 1 ? "item" : "items"}
@@ -401,7 +461,7 @@ const DataTable = ({
                     {showPagination && (
                         <div className="flex items-center gap-2">
                             {/* Rows per page dropdown */}
-                            {showPageSizeDropdown && (
+                            {showPageSizeDropdown && !isMobile && (
                                 <div className="flex items-center gap-2 mr-4">
                                     <span className="text-sm text-gray-600">Rows:</span>
                                     <select
@@ -489,6 +549,9 @@ DataTable.propTypes = {
     className: PropTypes.string,
     defaultPageSize: PropTypes.number,
     pageSizeOptions: PropTypes.arrayOf(PropTypes.number),
+    viewMode: PropTypes.oneOf(["table", "card"]),
+    onViewModeChange: PropTypes.func,
+    hideViewToggle: PropTypes.bool,
 };
 
 export default DataTable;
