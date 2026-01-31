@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { Badge } from "./badge";
 import PropTypes from 'prop-types';
 
@@ -25,9 +25,12 @@ const CustomCalendar = ({
   const handleNextMonth = () => onMonthChange(addMonths(currentMonth, 1));
 
   const generateCalendarDays = () => {
+    // Fixed 6-row calendar (42 days) to ensure consistent height
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    return eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const startDate = startOfWeek(monthStart); // Default starts on Sunday
+    const endDate = addDays(startDate, 41); // 42 days total
+
+    return eachDayOfInterval({ start: startDate, end: endDate });
   };
 
   const getAppointmentDayClass = (day) => {
@@ -58,15 +61,17 @@ const CustomCalendar = ({
 
   const getActivityDayClass = (day) => {
     const dayEvents = events.filter(event => isSameDay(new Date(event.date), day));
-    let classes = "min-h-[100px] p-2 relative ";
+    let classes = "min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 relative cursor-pointer hover:bg-gray-50 transition-colors ";
 
     if (!isSameMonth(day, currentMonth)) {
-      classes += "bg-gray-50 text-gray-400 ";
+      classes += "bg-gray-50/50 text-gray-400 "; // Lighter background for non-month days
     } else {
       classes += "bg-white ";
     }
 
-    if (isToday(day)) {
+    if (selectedDate && isSameDay(day, selectedDate)) {
+      classes += "ring-2 ring-inset ring-sro-primary ";
+    } else if (isToday(day)) {
       classes += "border-2 border-sro-secondary ";
     }
 
@@ -77,16 +82,24 @@ const CustomCalendar = ({
     };
   };
 
+  const getDotColor = (category, event) => {
+    const classes = getEventColor ? getEventColor(category, event) : "";
+    if (classes.includes("bg-orange")) return "bg-orange-400";
+    if (classes.includes("bg-red")) return "bg-red-500";
+    return "bg-sro-primary";
+  };
+
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
+    <div className="p-2 sm:p-4 bg-white rounded-lg shadow">
+      {/* Header controls remain same */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex-1">
           {monthOptions && yearOptions ? (
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4">
               <select
                 value={selectedMonth}
                 onChange={(e) => onMonthChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent"
+                className="p-1 sm:p-2 text-sm sm:text-base border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent max-w-[120px] sm:max-w-none"
               >
                 {monthOptions.map((month) => (
                   <option key={month} value={month}>
@@ -97,7 +110,7 @@ const CustomCalendar = ({
               <select
                 value={selectedYear}
                 onChange={(e) => onYearChange(e.target.value)}
-                className="p-2 border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent"
+                className="p-1 sm:p-2 text-sm sm:text-base border rounded-lg hover:border-sro-secondary focus:outline-none focus:ring-2 focus:ring-sro-secondary focus:border-transparent"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
@@ -106,22 +119,22 @@ const CustomCalendar = ({
                 ))}
               </select>
             </div>
-          ) : (<h2 className="text-lg sm:text-2xl font-bold text-sro-primary">
+          ) : (<h2 className="text-base sm:text-2xl font-bold text-sro-primary">
             {format(currentMonth, 'MMMM').toUpperCase()} {format(currentMonth, 'yyyy')}
           </h2>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
+            className="p-1 sm:p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
+            className="p-1 sm:p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -130,57 +143,81 @@ const CustomCalendar = ({
 
       <div className="grid grid-cols-7 mb-2">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-          <div key={day} className="text-xs sm:text-sm font-medium text-sro-secondary py-2 text-center">
-            {day}
+          <div key={day} className="text-[10px] sm:text-sm font-medium text-sro-secondary py-2 text-center">
+            <span className="md:hidden">{day.charAt(0)}</span>
+            <span className="hidden md:block">{day}</span>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
-          <div key={`empty-${index}`} className="h-8 sm:h-10"></div>
-        ))}
+      <div className="grid grid-cols-7 gap-px sm:gap-1 bg-gray-200 sm:bg-transparent border border-gray-200 sm:border-none rounded overflow-hidden sm:overflow-visible">
+        {/* No need for empty start days filler because we start at startOfWeek now */}
 
         {generateCalendarDays().map((day, i) => (
           mode === 'appointments' ? (
+            // Keep appointments logic if needed, but it seems we focus on 'activities'
+            // If appointments mode needs fixed grid too, we should apply styling. 
+            // Assuming appointments mode uses simple day cells.
             <div
               key={i}
               onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
-              className="p-1"
+              className="p-1 bg-white sm:bg-transparent h-[40px] sm:h-auto flex items-center justify-center cursor-pointer"
             >
-              <div className={getAppointmentDayClass(day)}>
+              {/* Show day if in current month or if we want to show prev/next month days faded */}
+              <div className={`${getAppointmentDayClass(day)} ${!isSameMonth(day, currentMonth) ? 'opacity-30' : ''}`}>
                 {format(day, 'd')}
               </div>
             </div>
           ) : (
             <div
               key={i}
-              className={getActivityDayClass(day).containerClass}
+              className={`${getActivityDayClass(day).containerClass} h-full flex flex-col`}
+              onClick={() => onDateSelect && onDateSelect(day)}
             >
-              <div className="flex justify-between items-start">
-                <span className={`font-medium p-1 rounded-full w-6 h-6 flex items-center justify-center ${isToday(day) ? "bg-sro-secondary text-white" : ""
+              <div className="flex justify-between items-start mb-1">
+                <span className={`font-medium text-xs sm:text-base p-1 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center ${isToday(day) ? "bg-sro-secondary text-white" :
+                    (selectedDate && isSameDay(day, selectedDate)) ? "bg-sro-primary text-white" : ""
                   }`}>
                   {format(day, 'd')}
                 </span>
+
                 {getActivityDayClass(day).hasEvents && (
-                  <Badge className="bg-sro-primary hover:bg-sro-primary/90 text-white border-0">
+                  <Badge className="hidden sm:inline-flex bg-sro-primary hover:bg-sro-primary/90 text-white border-0 px-1 py-0 h-4 min-w-[16px] justify-center text-[10px]">
                     {getActivityDayClass(day).events.length}
                   </Badge>
                 )}
               </div>
+
               {getActivityDayClass(day).hasEvents && (
-                <div className="mt-1 space-y-1 overflow-y-auto max-h-[60px]">
-                  {getActivityDayClass(day).events.map((event, index) => (
-                    <div
-                      key={index}
-                      className={`px-1 py-0.5 text-xs rounded truncate cursor-pointer ${getEventColor(event.category, event)}`}
-                      onClick={() => onDateSelect && onDateSelect(event)}
-                      title={event.title}
-                    >
-                      {event.title}
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="hidden sm:block mt-1 space-y-1 overflow-y-auto max-h-[60px] custom-scrollbar">
+                    {getActivityDayClass(day).events.map((event, index) => (
+                      <div
+                        key={index}
+                        className={`px-1 py-0.5 text-[10px] sm:text-xs rounded truncate cursor-pointer ${getEventColor(event.category, event)}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDateSelect && onDateSelect(day);
+                        }}
+                        title={event.title}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="sm:hidden flex flex-wrap gap-1 mt-auto justify-center pb-1">
+                    {getActivityDayClass(day).events.slice(0, 4).map((event, idx) => (
+                      <div
+                        key={idx}
+                        className={`w-1.5 h-1.5 rounded-full ${getDotColor(event.category, event)}`}
+                      />
+                    ))}
+                    {getActivityDayClass(day).events.length > 4 && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )

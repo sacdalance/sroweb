@@ -1,17 +1,59 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { CalendarDays, X, Info } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
+import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CustomCalendar from "@/components/ui/custom-calendar";
+import DataTable from "@/components/ui/DataTable";
 import PropTypes from 'prop-types';
 import { Dialog } from "@/components/ui/dialog";
+import { isSameDay, format } from "date-fns";
+
+// Activity type color mapping
+const activityTypeColors = {
+  charitable: { bg: "bg-pink-100", text: "text-pink-700", border: "border-pink-300" },
+  serviceWithinUPB: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300" },
+  serviceOutsideUPB: { bg: "bg-cyan-100", text: "text-cyan-700", border: "border-cyan-300" },
+  contestWithinUPB: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-300" },
+  contestOutsideUPB: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
+  educational: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300" },
+  incomeGenerating: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300" },
+  massOrientation: { bg: "bg-indigo-100", text: "text-indigo-700", border: "border-indigo-300" },
+  booth: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300" },
+  rehearsals: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
+  specialEvents: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-300" },
+  others: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
+};
+
+// Category map for activity types
+const categoryMap = {
+  charitable: "Charitable",
+  serviceWithinUPB: "Service (within UPB)",
+  serviceOutsideUPB: "Service (outside UPB)",
+  contestWithinUPB: "Contest (within UPB)",
+  contestOutsideUPB: "Contest (outside UPB)",
+  educational: "Educational",
+  incomeGenerating: "Income-Generating Project",
+  massOrientation: "Mass Orientation/General Assembly",
+  booth: "Booth",
+  rehearsals: "Rehearsals/Preparation",
+  specialEvents: "Special Event",
+  others: "Others",
+};
+
+// Type options for multi-select
+const typeOptions = Object.keys(categoryMap).map(key => ({
+  value: key,
+  label: categoryMap[key]
+}));
 
 const UnifiedActivitiesCalendar = ({
   dialogComponent: DialogComponent,
-  fetchDialogActivity, // function(activityId) => Promise<activity>
+  fetchDialogActivity,
   userRole = null,
   calendarTitle = "Activities Calendar",
   showLegend = true,
@@ -20,6 +62,7 @@ const UnifiedActivitiesCalendar = ({
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedOrganization, setSelectedOrganization] = useState("all");
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [events, setEvents] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +71,7 @@ const UnifiedActivitiesCalendar = ({
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [selectedDateFilter, setSelectedDateFilter] = useState(null);
 
   // Month and year options
   const months = [
@@ -35,26 +79,23 @@ const UnifiedActivitiesCalendar = ({
     "July", "August", "September", "October", "November", "December"
   ];
   const years = ["2024", "2025", "2026", "2027", "2028"];
-
-  // Selected values for dropdowns
   const [selectedMonth, setSelectedMonth] = useState(months[currentDate.getMonth()]);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
 
-  // Fetch organizations (customProps.fetchOrganizations should return a promise)
+  // Fetch organizations
   useEffect(() => {
     if (customProps.fetchOrganizations) {
       customProps.fetchOrganizations().then(orgs => setOrganizations(orgs));
     }
   }, [customProps.fetchOrganizations]);
 
-  // Fetch activities (customProps.fetchActivities should return a promise)
+  // Fetch activities
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await customProps.fetchActivities();
-        // Transform the data for calendar
         let calendarEvents = [];
         data.forEach(activity => {
           const schedule = activity.schedule[0];
@@ -100,66 +141,36 @@ const UnifiedActivitiesCalendar = ({
         });
         setEvents(calendarEvents);
 
-        // For upcoming activities table, only use the original activities array (not expanded)
         const today = new Date();
-        const thirtyDaysFromNow = new Date(today);
-        thirtyDaysFromNow.setDate(today.getDate() + 30);
-        const upcoming = data
-          .map(activity => {
-            const schedule = activity.schedule[0];
-            if (schedule?.is_recurring && schedule.recurring_days) {
-              // Find the next instance of the recurring event within the next 30 days
-              const recurringDays = typeof schedule.recurring_days === 'string' ? JSON.parse(schedule.recurring_days) : schedule.recurring_days;
-              const start = new Date(schedule.start_date);
-              const end = new Date(schedule.end_date);
-              let nextInstance = null;
-              for (let d = new Date(today); d <= end && d <= thirtyDaysFromNow; d.setDate(d.getDate() + 1)) {
-                const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
-                if (recurringDays[dayName] && d >= start) {
-                  nextInstance = new Date(d);
-                  break;
-                }
-              }
-              if (!nextInstance) return null; // No upcoming instance in next 30 days
-              return { ...activity, _upcomingDate: nextInstance };
-            } else {
-              // Nonrecurring: use start date
-              const activityDate = new Date(schedule?.start_date);
-              if (activityDate < today || activityDate > thirtyDaysFromNow) return null;
-              return { ...activity, _upcomingDate: activityDate };
-            }
-          })
-          .filter(Boolean)
-          .sort((a, b) => a._upcomingDate - b._upcomingDate);
-        // Group events by week
-        const upcomingGrouped = upcoming.map(activity => {
-          const schedule = activity.schedule[0];
-          const eventDate = activity._upcomingDate;
-          const diffTime = Math.abs(eventDate - today);
+        today.setHours(0, 0, 0, 0);
+
+        const transformedEvents = calendarEvents.map(event => {
+          const eventDate = event.date;
+          const diffTime = eventDate - today;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          let timeframe;
-          let relativeDate;
-          if (diffDays === 0) {
-            timeframe = "Today";
-            relativeDate = "Today";
-          } else if (diffDays === 1) {
-            timeframe = "Tomorrow";
-            relativeDate = "Tomorrow";
-          } else if (diffDays <= 7) {
-            timeframe = "This Week";
-            relativeDate = `In ${diffDays} days`;
-          } else if (diffDays <= 14) {
-            timeframe = "Next Week";
-            relativeDate = `In ${diffDays} days`;
+
+          let timeframe = "Upcoming";
+          let relativeDate = "";
+          let isUpcoming = false;
+
+          if (diffDays >= 0 && diffDays <= 30) {
+            isUpcoming = true;
+            if (diffDays === 0) { timeframe = "Today"; relativeDate = "Today"; }
+            else if (diffDays === 1) { timeframe = "Tomorrow"; relativeDate = "Tomorrow"; }
+            else if (diffDays <= 7) { timeframe = "This Week"; relativeDate = `In ${diffDays} days`; }
+            else if (diffDays <= 14) { timeframe = "Next Week"; relativeDate = `In ${diffDays} days`; }
+            else {
+              timeframe = "Later";
+              relativeDate = eventDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            }
+          } else if (diffDays < 0) {
+            timeframe = "Past";
           } else {
-            timeframe = "Later This Month";
-            relativeDate = eventDate.toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric'
-            });
+            timeframe = "Future";
           }
+
           return {
-            id: activity.activity_id,
+            ...event,
             timeframe,
             relativeDate,
             absoluteDate: eventDate.toLocaleDateString('en-US', {
@@ -167,17 +178,13 @@ const UnifiedActivitiesCalendar = ({
               day: 'numeric',
               year: 'numeric'
             }),
-            title: activity.activity_name,
-            organization: activity.organization?.org_name,
-            type: activity.activity_type,
-            venue: activity.venue,
-            time: `${schedule?.start_time} to ${schedule?.end_time}`,
             startDate: eventDate,
-            endDate: schedule?.end_date ? new Date(schedule.end_date) : undefined,
-            isYourOrg: activity.organization?.org_name === selectedOrganization
+            isUpcoming
           };
-        });
-        setUpcomingEvents(upcomingGrouped);
+        }).sort((a, b) => a.date - b.date);
+
+        setUpcomingEvents(transformedEvents);
+
       } catch (err) {
         setError(err.message);
       } finally {
@@ -187,7 +194,6 @@ const UnifiedActivitiesCalendar = ({
     fetch();
   }, [customProps.fetchActivities, selectedOrganization]);
 
-  // Update month/year when dropdowns change
   const handleMonthChange = (value) => {
     const monthIndex = months.indexOf(value);
     const newDate = new Date(currentDate);
@@ -197,30 +203,36 @@ const UnifiedActivitiesCalendar = ({
   };
 
   const handleYearChange = (value) => {
-    const monthIndex = currentDate.getMonth();
     const newDate = new Date(currentDate);
     newDate.setFullYear(parseInt(value));
     setCurrentDate(newDate);
     setSelectedYear(value);
   };
 
-  // Sync dropdowns with calendar navigation
   useEffect(() => {
     const month = currentDate.toLocaleString("default", { month: "long" });
     const year = currentDate.getFullYear().toString();
-    if (selectedMonth !== month) {
-      setSelectedMonth(month);
-    }
-    if (selectedYear !== year) {
-      setSelectedYear(year);
-    }
+    if (selectedMonth !== month) setSelectedMonth(month);
+    if (selectedYear !== year) setSelectedYear(year);
   }, [currentDate]);
 
-  // Only care about recurring or nonrecurring for color
   const getEventColor = (category, event) => {
-    if (event && event.isRecurringInstance) return 'bg-orange-200 text-orange-800';
+    if (event?.isRecurringInstance) return 'bg-orange-200 text-orange-800';
     return 'bg-red-100 text-sro-primary';
   };
+
+  const handleDateSelect = (dateOrEvent) => {
+    const date = dateOrEvent instanceof Date ? dateOrEvent : (dateOrEvent.date ? new Date(dateOrEvent.date) : null);
+    if (date) {
+      if (selectedDateFilter && isSameDay(date, selectedDateFilter)) {
+        setSelectedDateFilter(null);
+      } else {
+        setSelectedDateFilter(date);
+      }
+    }
+  };
+
+  const clearDateFilter = () => setSelectedDateFilter(null);
 
   const handleEventClick = async (event) => {
     setModalLoading(true);
@@ -236,103 +248,155 @@ const UnifiedActivitiesCalendar = ({
     setModalLoading(false);
   };
 
-  // Loading state component
   const LoadingState = () => (
     <div className="flex items-center justify-center p-8">
       <LoadingSpinner text="Loading activities..." variant="section" />
     </div>
   );
 
-  // Error state component with prop validation
   const ErrorState = ({ message }) => (
     <div className="flex flex-col items-center justify-center p-8 text-sro-primary">
       <p className="text-lg font-semibold">Something went wrong</p>
       <p className="text-sm text-gray-600">{message}</p>
-      <Button
-        onClick={() => window.location.reload()}
-        className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white"
-      >
+      <Button onClick={() => window.location.reload()} className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white">
         Try Again
       </Button>
     </div>
   );
 
-  ErrorState.propTypes = {
-    message: PropTypes.string.isRequired
-  };
+  ErrorState.propTypes = { message: PropTypes.string.isRequired };
 
-  // Empty state component
-  const EmptyState = () => (
+  const EmptyState = ({ message }) => (
     <div className="flex flex-col items-center justify-center p-8 text-gray-500">
+      <CalendarDays className="h-12 w-12 mb-3 text-gray-300" />
       <p className="text-lg font-semibold">No activities found</p>
-      <p className="text-sm">There are no approved activities to display.</p>
+      <p className="text-sm">{message || "There are no approved activities to display."}</p>
     </div>
   );
 
   const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
     const [startTime, endTime] = timeString.split(' to ').map(time => {
       const [hours, minutes] = time.split(':');
       const hour = parseInt(hours);
       if (hour === 12) return `${hour}:${minutes}NN`;
-      return hour > 12
-        ? `${hour - 12}:${minutes}PM`
-        : `${hour}:${minutes}AM`;
+      return hour > 12 ? `${hour - 12}:${minutes}PM` : `${hour}:${minutes}AM`;
     });
     return `${startTime} to ${endTime}`;
   };
 
-  const [expandedText, setExpandedText] = useState({});
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      if (selectedOrganization !== "all" && event.organization !== selectedOrganization) return false;
+      if (selectedTypes.length > 0 && !selectedTypes.includes(event.category)) return false;
+      return true;
+    });
+  }, [events, selectedOrganization, selectedTypes]);
 
-  const toggleText = (id, type, e) => {
-    // Make sure to stop event propagation
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setExpandedText(prev => ({
-      ...prev,
-      [type + id]: !prev[type + id]
-    }));
-  };
+  const filteredListEvents = useMemo(() => {
+    return upcomingEvents.filter(event => {
+      if (selectedOrganization !== "all" && event.organization !== selectedOrganization) return false;
+      if (selectedTypes.length > 0 && !selectedTypes.includes(event.category)) return false;
+      if (selectedDateFilter) {
+        return isSameDay(event.startDate, selectedDateFilter);
+      } else {
+        return event.isUpcoming;
+      }
+    });
+  }, [upcomingEvents, selectedOrganization, selectedTypes, selectedDateFilter]);
 
-  // Category map for formatting activity types
-  const categoryMap = {
-    charitable: "Charitable",
-    serviceWithinUPB: "Service (within UPB)",
-    serviceOutsideUPB: "Service (outside UPB)",
-    contestWithinUPB: "Contest (within UPB)",
-    contestOutsideUPB: "Contest (outside UPB)",
-    educational: "Educational",
-    incomeGenerating: "Income-Generating Project",
-    massOrientation: "Mass Orientation/General Assembly",
-    booth: "Booth",
-    rehearsals: "Rehearsals/Preparation",
-    specialEvents: "Special Event",
-    others: "Others",
-  };
+  const activityCount = filteredListEvents.length;
+
+  const upcomingColumns = useMemo(() => [
+    {
+      key: "when",
+      header: "When",
+      width: "w-[18%]",
+      sortable: true,
+      sortAccessor: (row) => row.startDate,
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-sro-primary text-sm">
+            {selectedDateFilter ? (isSameDay(row.startDate, new Date()) ? "Today" : "") :
+              (row.relativeDate === "Today" || row.relativeDate === "Tomorrow"
+                ? `${row.relativeDate}, ${row.absoluteDate.split(',')[0].split(' ')[0]} ${row.absoluteDate.split(',')[0].split(' ')[1]}`
+                : row.absoluteDate.split(',')[0])
+            }
+          </span>
+          <span className="text-gray-500 text-xs mt-0.5">{formatTime(row.time)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "title",
+      header: "Activity",
+      width: "w-[25%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.title}>
+          {row.title}
+        </span>
+      ),
+    },
+    {
+      key: "organization",
+      header: "Organization",
+      width: "w-[22%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.organization}>
+          {row.organization}
+        </span>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      width: "w-[18%]",
+      sortable: true,
+      render: (row) => (
+        <span className="inline-block px-2 py-1 rounded-full text-xs font-medium truncate max-w-full" style={{
+          backgroundColor: activityTypeColors[row.category]?.bg.replace('bg-', '') || '#f3f4f6',
+        }} className={`${activityTypeColors[row.category]?.bg || 'bg-gray-100'} ${activityTypeColors[row.category]?.text || 'text-gray-700'}`}>
+          {categoryMap[row.category] || row.category}
+        </span>
+      ),
+    },
+    {
+      key: "venue",
+      header: "Venue",
+      width: "w-[17%]",
+      render: (row) => (
+        <span className="truncate block text-gray-600" title={row.venue}>
+          {row.venue}
+        </span>
+      ),
+    },
+  ], [selectedDateFilter]);
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className={`page-header ${window.location.pathname.includes('/admin') ? 'text-sro-primary' : 'text-black'}`}>{calendarTitle}</h1>
+    <div className="container mx-auto p-2 sm:p-6 max-w-[1600px]">
+      <div className="flex items-center gap-2 mb-4">
+        <h1 className={`page-header ${window.location.pathname.includes('/admin') ? 'text-sro-primary' : 'text-black'} mb-0`}>{calendarTitle}</h1>
+      </div>
 
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
+      {/* Filters Row */}
+      <div className="flex flex-col md:flex-row flex-wrap gap-4 mb-3 sm:mb-6">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <UnifiedDropdown
             options={months}
             value={selectedMonth}
             onChange={handleMonthChange}
             placeholder="Select month"
-            className="w-full sm:w-48"
+            className="w-full sm:w-40"
           />
-
           <UnifiedDropdown
             options={years}
             value={selectedYear}
             onChange={handleYearChange}
             placeholder="Select year"
-            className="w-full sm:w-32"
+            className="w-full sm:w-28"
           />
-
           <UnifiedDropdown
             options={[{ value: "all", label: "All Organizations" }, ...organizations.map(org => ({ value: org, label: org }))]}
             value={selectedOrganization}
@@ -340,11 +404,19 @@ const UnifiedActivitiesCalendar = ({
             placeholder="Select organization"
             searchable
             searchPlaceholder="Search organization..."
-            className="w-full sm:w-64"
+            className="w-full sm:w-56"
+          />
+          <MultiSelectDropdown
+            options={typeOptions}
+            selected={selectedTypes}
+            onChange={setSelectedTypes}
+            placeholder="Filter by Type..."
+            className="w-full sm:w-56"
           />
         </div>
       </div>
 
+      {/* Calendar */}
       <div className="rounded-lg shadow-md border border-gray-200 bg-white">
         {loading ? (
           <LoadingState />
@@ -354,163 +426,97 @@ const UnifiedActivitiesCalendar = ({
           <CustomCalendar
             mode="activities"
             currentMonth={currentDate}
-            onDateSelect={handleEventClick}
+            onDateSelect={handleDateSelect}
+            selectedDate={selectedDateFilter}
             onMonthChange={setCurrentDate}
-            events={events.filter(event =>
-              selectedOrganization === "all" || event.organization === selectedOrganization
-            )}
+            events={filteredEvents}
             getEventColor={(category, event) => getEventColor(category, event)}
           />
         )}
       </div>
 
+      {/* Legend */}
       {showLegend && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          <div className="flex items-center gap-2 mt-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-sro-primary"></span>
-            <span className="text-xs text-sro-primary font-medium">Nonrecurring Event</span>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 mb-4 sm:mb-6 px-1">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-red-100 border border-sro-primary"></span>
+            <span className="text-xs font-medium text-gray-600">Non-recurring Event</span>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-orange-200 border border-orange-400"></span>
-            <span className="text-xs text-orange-800 font-medium">Recurring Event</span>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-orange-200 border border-orange-800"></span>
+            <span className="text-xs font-medium text-gray-600">Recurring Event</span>
           </div>
         </div>
       )}
 
+      {/* List Section */}
       {showUpcoming && (
-        <Card className="rounded-lg shadow-md">
-          <CardHeader className="bg-white py-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg sm:text-xl font-bold text-sro-primary">
-                Upcoming Activities
-              </CardTitle>
-              <Badge variant="outline" className="text-sro-secondary">
-                Next 30 Days
-              </Badge>
+        <Card className="rounded-lg shadow-md mt-4 sm:mt-6 transition-all duration-300">
+          <CardHeader className="bg-white py-3 px-3 sm:px-4 border-b border-gray-100 grid gap-2">
+            <div className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <CardTitle className="text-base sm:text-xl font-bold text-sro-primary flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                  {selectedDateFilter ? (
+                    <>
+                      Events on <span className="text-sro-secondary font-bold">{format(selectedDateFilter, 'MMMM d, yyyy')}</span>
+                    </>
+                  ) : "Upcoming Activities"}
+                </CardTitle>
+
+                {/* Info Popover - Mobile Friendly Click Trigger */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-400 cursor-pointer hover:text-sro-primary transition-colors flex-shrink-0" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-2 text-xs">
+                    <p>Select days to see all events in that day</p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Right Side: Filters/Clear */}
+              <div>
+                {selectedDateFilter ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDateFilter}
+                    className="text-gray-500 hover:text-sro-primary hover:bg-gray-100 h-8 px-2 text-xs"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Clear</span>
+                  </Button>
+                ) : (
+                  // Only show badge on desktop
+                  <Badge variant="outline" className="text-sro-secondary text-xs hidden sm:inline-flex">
+                    Next 30 Days
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 sm:p-0">
             {loading ? (
               <LoadingState />
             ) : error ? (
               <ErrorState message={error} />
-            ) : upcomingEvents.length === 0 ? (
-              <EmptyState />
+            ) : filteredListEvents.length === 0 ? (
+              <EmptyState message={selectedDateFilter ? "No events scheduled for this day." : "No upcoming activities found."} />
             ) : (
-              <div className="overflow-x-auto">
-                <div className="max-h-[350px] overflow-y-auto">
-                  <table className="w-full min-w-[500px]">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">When</th>
-                        <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Activity</th>
-                        <th className="w-[120px] text-xs font-semibold text-left py-2 px-3">Organization</th>
-                        <th className="w-[120px] text-xs font-semibold text-center py-2 px-3">Type</th>
-                        <th className="w-[100px] text-xs font-semibold text-left py-2 px-3">Venue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...new Set(upcomingEvents.map(event => event.timeframe))].map(timeframe => (
-                        <React.Fragment key={timeframe}>
-                          <tr className="bg-gray-50">
-                            <td colSpan={6} className="px-4 py-2 font-semibold text-sm text-sro-secondary">
-                              {timeframe}
-                            </td>
-                          </tr>
-                          {upcomingEvents
-                            .filter(event => event.timeframe === timeframe)
-                            .map((event, index) => (
-                              <tr key={`${timeframe}-${index}`} onClick={() => handleEventClick(event)}
-                                className="group hover:bg-sro-secondary/5 border-b border-gray-200 cursor-pointer transition-all duration-150 hover:shadow relative">
-                                <td className="w-[100px] text-xs py-2 px-3 group-hover:text-sro-secondary">
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-sro-primary">{event.relativeDate}</span>
-                                    <span className="text-gray-500 text-xs">{event.absoluteDate}</span>
-                                    <span className="text-gray-500 text-xs mt-0.5">{formatTime(event.time)}</span>
-                                  </div>
-                                </td>
-                                <td className="w-[120px] text-xs py-2 px-3">
-                                  <div className="flex items-center gap-1">
-                                    <div className="transition-all duration-200">
-                                      {expandedText['title' + event.id] ? event.title :
-                                        event.title.length > 50 ? `${event.title.substring(0, 50)}...` : event.title}
-                                    </div>
-                                    {event.title.length > 50 && (
-                                      <button
-                                        onClick={(e) => toggleText(event.id, 'title', e)}
-                                        className="text-gray-500 hover:text-sro-primary transition-transform"
-                                      >
-                                        <svg
-                                          className={`h-4 w-4 transform transition-transform ${expandedText['title' + event.id] ? 'rotate-180' : ''}`}
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 9l-7 7-7-7"
-                                          />
-                                        </svg>
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="w-[120px] text-xs py-2 px-3">
-                                  <div className="flex items-center gap-1">
-                                    <div className="transition-all duration-200">
-                                      {expandedText['org' + event.id] ? event.organization :
-                                        event.organization.length > 50 ? `${event.organization.substring(0, 50)}...` : event.organization}
-                                    </div>
-                                    {event.organization.length > 50 && (
-                                      <button
-                                        onClick={(e) => toggleText(event.id, 'org', e)}
-                                        className="text-gray-500 hover:text-sro-primary transition-transform"
-                                      >
-                                        <svg
-                                          className={`h-4 w-4 transform transition-transform ${expandedText['org' + event.id] ? 'rotate-180' : ''}`}
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 9l-7 7-7-7"
-                                          />
-                                        </svg>
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="w-[100px] text-xs text-center py-2 px-3 align-middle">
-                                  <span
-                                    className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEventColor(event.type, event)}`}
-                                  >
-                                    {categoryMap[event.type] || event.type}
-                                  </span>
-                                </td>
-                                <td className="w-[100px] text-xs py-2 px-3">
-                                  <span className="truncate block" title={event.venue}>
-                                    {event.venue}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <DataTable
+                columns={upcomingColumns}
+                data={filteredListEvents}
+                onRowClick={handleEventClick}
+                emptyMessage="No activities match your filters."
+                defaultPageSize={10}
+                pageSizeOptions={[10, 25, 50]}
+                className="upcoming-activities-table border-0 shadow-none -mt-px"
+              />
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Event Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
@@ -529,4 +535,4 @@ const UnifiedActivitiesCalendar = ({
   );
 };
 
-export default UnifiedActivitiesCalendar; 
+export default UnifiedActivitiesCalendar;
