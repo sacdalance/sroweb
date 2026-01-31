@@ -1,7 +1,7 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { ChevronDown, User, MapPin, Calendar, GraduationCap, Building2, FileText } from "lucide-react";
+import { ChevronDown, User, MapPin, Calendar, GraduationCap, Building2, FileText, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -98,6 +98,29 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
+// Generate Google Calendar URL
+const generateGoogleCalendarUrl = (activity) => {
+  const schedule = activity.schedule?.[0];
+  if (!schedule) return null;
+
+  const title = encodeURIComponent(activity.activity_name || activity.activityName || "Activity");
+  const startDate = new Date(schedule.start_date);
+  const endDate = schedule.end_date ? new Date(schedule.end_date) : startDate;
+
+  // Format dates for Google Calendar (YYYYMMDD format)
+  const formatGoogleDate = (date) => {
+    return date.toISOString().split('T')[0].replace(/-/g, '');
+  };
+
+  const dates = `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`;
+  const location = encodeURIComponent(activity.venue || "");
+  const description = encodeURIComponent(
+    `${activity.activity_description || activity.activityDescription || ""}\n\nOrganized by: ${activity.organization?.org_name || activity.organization || "Unknown"}`
+  );
+
+  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&location=${location}&details=${description}`;
+};
+
 const ActivityDialogContent = ({
   activity,
   setActivity,
@@ -105,7 +128,8 @@ const ActivityDialogContent = ({
   userRole = null,
   handleApprove,
   handleReject,
-  readOnly = false
+  readOnly = false,
+  publicView = false
 }) => {
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
@@ -130,6 +154,8 @@ const ActivityDialogContent = ({
 
   const [localActivity, setLocalActivity] = useState(activity);
   useEffect(() => setLocalActivity(activity), [activity]);
+
+  const googleCalendarUrl = generateGoogleCalendarUrl(activity);
 
   const commentRef = useRef(null);
 
@@ -279,7 +305,7 @@ const ActivityDialogContent = ({
             <InfoCard icon={User} title="Submitter">
               <InfoRow label="Name" value={activity.account?.account_name} />
               <InfoRow label="Position" value={activity.student_position} />
-              <InfoRow label="Contact" value={activity.student_contact} />
+              {!publicView && <InfoRow label="Contact" value={activity.student_contact} />}
             </InfoCard>
 
             {/* Venue Card */}
@@ -309,16 +335,18 @@ const ActivityDialogContent = ({
             {/* Adviser Card */}
             <InfoCard icon={GraduationCap} title="Adviser & Fees">
               <InfoRow label="Name" value={activity.organization?.adviser_name} />
-              <InfoRow label="Email" value={activity.organization?.adviser_email} />
+              {!publicView && <InfoRow label="Email" value={activity.organization?.adviser_email} />}
               <InfoRow label="Charge Fee" value={activity.charge_fee === "true" ? "Yes" : "No"} />
             </InfoCard>
 
-            {/* Green Monitor Card */}
-            <InfoCard icon={User} title="Green Monitor">
-              <InfoRow label="Name" value={activity.green_monitor_name} />
-              <InfoRow label="Contact" value={activity.green_monitor_contact} />
-              <InfoRow label="Venue Contact" value={activity.venue_approver_contact} />
-            </InfoCard>
+            {/* Green Monitor Card - Hide completely if public */}
+            {!publicView && (
+              <InfoCard icon={User} title="Green Monitor">
+                <InfoRow label="Name" value={activity.green_monitor_name} />
+                <InfoRow label="Contact" value={activity.green_monitor_contact} />
+                <InfoRow label="Venue Contact" value={activity.venue_approver_contact} />
+              </InfoCard>
+            )}
           </div>
 
           {/* Collapsible Sections */}
@@ -360,7 +388,7 @@ const ActivityDialogContent = ({
               <p className="text-xs sm:text-sm text-gray-500">
                 <span className="font-medium">Activity ID:</span> {activity.activity_id || "N/A"}
               </p>
-              {activity.drive_folder_link && (
+              {activity.drive_folder_link && !publicView && (
                 <div className="flex items-center gap-2">
                   <a
                     href={activity.drive_folder_link}
@@ -386,10 +414,34 @@ const ActivityDialogContent = ({
                 </div>
               )}
             </div>
+            {/* Add to Calendar Button (Read-Only Mode) */}
+            {readOnly && googleCalendarUrl && (
+              <div className="flex justify-center sm:justify-end pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-sro-secondary border-sro-secondary hover:bg-sro-secondary/10 w-full sm:w-auto"
+                  onClick={() => window.open(googleCalendarUrl, '_blank')}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Add to Google Calendar
+                  <ExternalLink className="h-3 w-3 ml-1.5" />
+                </Button>
+              </div>
+            )}
+            {/* Scanned Form Button in Read-Only Mode (if exists but not usually shown in footer for admin) */}
+            {readOnly && activity.drive_folder_link && !publicView && (
+              <div className="hidden">
+                {/* Kept hidden or maybe you want it? The design in ActivitiesCalendar.jsx usually just has the link. 
+                      Actually, let's leave it as part of the Meta Info section above. 
+                      I see the Meta Info section handles the drive link visibility. 
+                  */}
+              </div>
+            )}
           </div>
 
           {/* Remarks Section (Read-Only) */}
-          {readOnly && (activity.sro_remarks || activity.odsa_remarks) && (
+          {readOnly && !publicView && (activity.sro_remarks || activity.odsa_remarks) && (
             <div className="mt-3 space-y-2">
               {activity.sro_remarks && (
                 <div className="info-card">

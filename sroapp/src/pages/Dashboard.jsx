@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import FAQCard from "@/components/FAQCard";
 import { Dialog } from "@/components/ui/dialog";
-import StudentActivityDialogContent from "@/components/admin/StudentActivityDialogContent";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import WeeklyCalendar from "@/components/ui/WeeklyCalendar";
 
 const Dashboard = () => {
@@ -174,9 +174,11 @@ const Dashboard = () => {
       {/* Activity Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {selectedEvent && (
-          <StudentActivityDialogContent
+          <ActivityDialogContent
             activity={selectedEvent}
             isModalOpen={isDialogOpen}
+            readOnly={true}
+            publicView={true}
           />
         )}
       </Dialog>

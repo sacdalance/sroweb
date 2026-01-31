@@ -75,7 +75,12 @@ const UnifiedActivitiesCalendar = ({
   const [modalLoading, setModalLoading] = useState(false);
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
   const [hideRecurring, setHideRecurring] = useState(false);
-  const [viewMode, setViewMode] = useState("table");
+  const [viewMode, setViewMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? "card" : "table";
+    }
+    return "table";
+  });
 
   // Month and year options
   const months = [

@@ -1,5 +1,5 @@
 import UnifiedActivitiesCalendar from "@/components/ui/UnifiedActivitiesCalendar";
-import StudentActivityDialogContent from "@/components/admin/StudentActivityDialogContent";
+import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 
 const fetchActivities = async () => {
@@ -29,10 +29,15 @@ const fetchDialogActivity = async (activityId) => {
   return data;
 };
 
+// Wrapper for read-only mode, and public view (hidden sensitive info)
+const ReadOnlyActivityDialogContent = (props) => {
+  return <ActivityDialogContent {...props} readOnly={true} publicView={true} />;
+};
+
 export default function ActivitiesCalendar() {
   return (
     <UnifiedActivitiesCalendar
-      dialogComponent={StudentActivityDialogContent}
+      dialogComponent={ReadOnlyActivityDialogContent}
       fetchActivities={fetchActivities}
       fetchOrganizations={fetchOrganizations}
       fetchDialogActivity={fetchDialogActivity}
