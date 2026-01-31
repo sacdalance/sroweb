@@ -360,11 +360,11 @@ const DataTable = ({
                                 >
                                     <CardContent className="p-4 space-y-3">
                                         {dataCols.map((col) => (
-                                            <div key={col.key} className="flex justify-between items-center gap-4 h-6">
-                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] truncate">
+                                            <div key={col.key} className="flex justify-between items-start gap-4">
+                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] shrink-0 pt-0.5">
                                                     {col.header}
                                                 </span>
-                                                <div className="text-sm text-right flex-1 truncate text-gray-700" title={row[col.key]}>
+                                                <div className="text-sm text-right flex-1 text-gray-700 break-words min-w-0" title={row[col.key]}>
                                                     {renderCell(row, col)}
                                                 </div>
                                             </div>

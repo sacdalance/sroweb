@@ -206,14 +206,19 @@ const ActivityDialogContent = ({
 
   return (
     <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] h-auto max-h-[90vh] sm:max-h-[80vh] p-0 overflow-hidden">
-      <ScrollArea className="h-full max-h-[85vh] sm:max-h-[75vh]">
-        <div className="p-3 sm:p-4 md:p-5">
+      <ScrollArea className="h-full max-h-[85vh] sm:max-h-[75vh] overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
           {/* Header Section */}
-          <DialogHeader className="mb-3 sm:pr-12">
+          <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
             <div className="flex flex-col items-center sm:items-start sm:flex-row sm:justify-between gap-2">
-              <div className="flex-1 min-w-0 text-center sm:text-left">
-                <DialogTitle className="text-lg sm:text-xl md:text-2xl text-sro-primary font-bold break-words leading-tight">
-                  {title}
+              <div className="flex-1 min-w-0 text-center sm:text-left w-full overflow-hidden">
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl text-sro-primary font-bold leading-tight w-full">
+                  <span
+                    className="block"
+                    style={{ maxWidth: "100%", display: "block", overflowWrap: "anywhere", wordBreak: "break-word" }}
+                  >
+                    {title}
+                  </span>
                 </DialogTitle>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   {activity.organization?.org_name || activity.organization || "Organization"}
@@ -230,12 +235,12 @@ const ActivityDialogContent = ({
 
           {/* Description */}
           {description && (
-            <div className="mb-3 p-2 sm:p-3 bg-gray-50 rounded-lg">
+            <div className="mb-3 p-2 sm:p-3 bg-gray-50 rounded-lg overflow-hidden max-w-full">
               {!isLong ? (
-                <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words">{description}</p>
+                <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{description}</p>
               ) : showFullDescription ? (
                 <>
-                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words">{description}</p>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{description}</p>
                   <button
                     onClick={toggleDescription}
                     className="text-sro-primary text-xs sm:text-sm font-medium hover:underline mt-2"
@@ -246,11 +251,13 @@ const ActivityDialogContent = ({
               ) : (
                 <>
                   <p
-                    className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap break-words overflow-hidden"
+                    className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap overflow-hidden"
                     style={{
                       display: "-webkit-box",
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
                     }}
                   >
                     {description}

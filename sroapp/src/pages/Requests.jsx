@@ -43,6 +43,11 @@ const Requests = () => {
     }
   };
 
+  // Pending recognition apps (not fully approved)
+  const pendingRecognitions = useMemo(() => recognitionApps?.filter((app) => !(app.sro_approved && app.odsa_approved)) || [], [recognitionApps]);
+  // Approved recognition apps
+  const approvedRecognitions = useMemo(() => recognitionApps?.filter((app) => app.sro_approved && app.odsa_approved) || [], [recognitionApps]);
+
   // Get unique org options for filter (Activity Requests)
   const orgOptions = useMemo(() =>
     [...new Set(requested.map((a) => a.organization?.org_name || "Unknown"))].sort(),
@@ -56,10 +61,16 @@ const Requests = () => {
   );
 
   // Get unique options for Recognition filters
-  const recognitionOrgOptions = useMemo(() =>
-    [...new Set(recognitionApps?.map((a) => a.org_name || "Unknown") || [])].sort(),
-    [recognitionApps]
+  const pendingRecognitionOrgOptions = useMemo(() =>
+    [...new Set(pendingRecognitions.map((a) => a.org_name || "Unknown"))].sort(),
+    [pendingRecognitions]
   );
+
+  const approvedRecognitionOrgOptions = useMemo(() =>
+    [...new Set(approvedRecognitions.map((a) => a.org_name || "Unknown"))].sort(),
+    [approvedRecognitions]
+  );
+
   const recognitionYearOptions = useMemo(() =>
     [...new Set(recognitionApps?.map((a) => a.academic_year) || [])].sort().reverse(),
     [recognitionApps]
@@ -157,11 +168,6 @@ const Requests = () => {
     }
   };
 
-  // Pending recognition apps (not fully approved)
-  const pendingRecognitions = recognitionApps?.filter((app) => !(app.sro_approved && app.odsa_approved)) || [];
-  // Approved recognition apps
-  const approvedRecognitions = recognitionApps?.filter((app) => app.sro_approved && app.odsa_approved) || [];
-
   // Handle row click for activity tables
   const handleActivityRowClick = async (act) => {
     setDialogLoading(true);
@@ -189,7 +195,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -200,7 +206,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -221,7 +227,7 @@ const Requests = () => {
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span className="truncate block text-gray-600" title={row.venue}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.venue}>
           {row.venue}
         </span>
       ),
@@ -286,7 +292,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -297,7 +303,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -318,7 +324,7 @@ const Requests = () => {
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span className="truncate block text-gray-600" title={row.venue}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.venue}>
           {row.venue}
         </span>
       ),
@@ -373,11 +379,11 @@ const Requests = () => {
       width: "w-[35%]",
       sortable: true,
       filterable: true,
-      filterOptions: recognitionOrgOptions,
+      filterOptions: pendingRecognitionOrgOptions,
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -420,11 +426,11 @@ const Requests = () => {
       width: "w-[35%]",
       sortable: true,
       filterable: true,
-      filterOptions: recognitionOrgOptions,
+      filterOptions: approvedRecognitionOrgOptions,
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -474,7 +480,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       render: (row) => (
-        <span className="truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
+        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
           {row.organization?.org_name || row.org_name || "Unknown"}
         </span>
       ),
@@ -546,6 +552,7 @@ const Requests = () => {
 
         {/* Org Recognition Tab */}
         <TabsContent value="recognition">
+          <h2 className="text-lg font-semibold mb-4 text-center md:text-left">Pending Recognition Applications</h2>
           <DataTable
             columns={pendingRecognitionColumns}
             data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}

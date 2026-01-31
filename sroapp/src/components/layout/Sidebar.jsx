@@ -60,7 +60,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
   };
 
   const linkClass = (path) =>
-    `block px-6 py-3 xl:px-4 xl:py-2 xl:-mr-6 rounded-none xl:rounded-l-md transition-all duration-200 ease-in-out transform 
+    `block px-6 py-3 xl:px-4 xl:py-2 xl:-mr-6 rounded-none xl:rounded-l-md transition-all duration-200 ease-in-out transform text-center sm:text-left
     ${location.pathname === path
       ? "text-sro-primary text-[17px] font-bold bg-white shadow-sm"
       : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
@@ -148,7 +148,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                     </Link>
                   </div>
                   <div className="mb-6">
-                    <h3 className="uppercase text-base font-bold mb-3">Student Activities</h3>
+                    <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0">Student Activities</h3>
                     <ul className="space-y-2 text-[15px] font-medium">
                       <li>
                         <Link
@@ -195,7 +195,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                     </ul>
                   </div>
                   <div className="mb-6">
-                    <h3 className="uppercase text-base font-bold mb-3 whitespace-nowrap">Org Requirements</h3>
+                    <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0 whitespace-nowrap">Org Requirements</h3>
                     <ul className="space-y-2 text-[15px] font-medium">
                       <li>
                         <Link
@@ -237,7 +237,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                       </Link>
                     </li>
                     <hr className="border-t border-sro-border-light my-4" />
-                    <h3 className="uppercase text-base font-bold mb-3">Admin Panel</h3>
+                    <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0">Admin Panel</h3>
 
                     {(isSRO || isSuperAdmin) && (
                       <>
