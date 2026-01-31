@@ -839,30 +839,30 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
-                    <span>Selected</span>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Selected</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
-                    <span>Today</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full border-2 border-sro-secondary"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Today</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
-                    <span>Available</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary/20 border border-sro-secondary/40"></span>
+                    <span className="text-xs text-sro-secondary font-medium">Available</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
-                    <span>Blocked</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-primary/10 border border-sro-primary"></span>
+                    <span className="text-xs text-sro-primary font-medium">Blocked</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
-                    <span>Unavailable</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-gray-200 border border-gray-400"></span>
+                    <span className="text-xs text-gray-600 font-medium">Unavailable</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
-                    <span>Has Appointments</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 rounded-full bg-amber-100 border border-amber-400"></span>
+                    <span className="text-xs text-amber-700 font-medium">Has Appointments</span>
                   </div>
                 </div>
               </div>

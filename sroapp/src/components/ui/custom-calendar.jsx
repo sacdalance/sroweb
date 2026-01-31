@@ -31,7 +31,7 @@ const CustomCalendar = ({
   };
 
   const getAppointmentDayClass = (day) => {
-    let classes = "flex items-center justify-center h-10 w-10 mx-auto relative rounded-full cursor-pointer ";
+    let classes = "flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 mx-auto relative rounded-full cursor-pointer text-sm sm:text-base ";
 
     if (selectedDate && isSameDay(day, selectedDate)) {
       classes += "bg-sro-secondary text-white font-bold ";
@@ -106,7 +106,7 @@ const CustomCalendar = ({
                 ))}
               </select>
             </div>
-          ) : (<h2 className="text-2xl font-bold text-sro-primary">
+          ) : (<h2 className="text-lg sm:text-2xl font-bold text-sro-primary">
             {format(currentMonth, 'MMMM').toUpperCase()} {format(currentMonth, 'yyyy')}
           </h2>
           )}
@@ -130,7 +130,7 @@ const CustomCalendar = ({
 
       <div className="grid grid-cols-7 mb-2">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-          <div key={day} className="text-sm font-medium text-sro-secondary py-2">
+          <div key={day} className="text-xs sm:text-sm font-medium text-sro-secondary py-2 text-center">
             {day}
           </div>
         ))}
@@ -138,7 +138,7 @@ const CustomCalendar = ({
 
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, index) => (
-          <div key={`empty-${index}`} className="h-10"></div>
+          <div key={`empty-${index}`} className="h-8 sm:h-10"></div>
         ))}
 
         {generateCalendarDays().map((day, i) => (
