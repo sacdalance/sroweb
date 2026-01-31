@@ -26,6 +26,7 @@ import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
+import SuperAdminPage from "../pages/admin/SuperAdminPage";
 
 // route
 import { checkOrCreateUser } from "@/api/authAPI";
@@ -191,6 +192,9 @@ const router = createBrowserRouter([
 
           // Admin routes using unified RequireAdminRole
           {
+            path: "admin/super-admin", element: <RequireUser><SuperAdminPage /></RequireUser>
+          },
+          {
             path: "admin", element: <RequireAdminRole childrenByRole={
               { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} />
           },
@@ -227,6 +231,7 @@ const router = createBrowserRouter([
             path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
               { 2: <AdminAnnualReports />, 3: <AdminAnnualReports />, 4: <AdminAnnualReports /> }} />
           },
+
         ],
       },
     ],

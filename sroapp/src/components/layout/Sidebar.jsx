@@ -4,6 +4,7 @@ import supabase from "@/lib/supabase";
 import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { SUPERADMIN_EMAILS } from "@/pages/admin/SuperAdminPage";
 import PropTypes from 'prop-types';
 import React from "react";
 
@@ -48,6 +49,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
   const isSRO = role === 2;
   const isODSA = role === 3;
   const isSuperAdmin = role === 4;
+  const isSuperAdminEmail = user && SUPERADMIN_EMAILS.includes(user.email);
 
   const dashboardLink = isUser || isSuperAdmin ? "/dashboard" : "/admin";
 
@@ -58,7 +60,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
   };
 
   const linkClass = (path) =>
-    `block px-4 py-2 -mr-6 rounded-l-md transition-all duration-200 ease-in-out transform 
+    `block px-6 py-3 xl:px-4 xl:py-2 xl:-mr-6 rounded-none xl:rounded-l-md transition-all duration-200 ease-in-out transform 
     ${location.pathname === path
       ? "text-sro-primary text-[17px] font-bold bg-white shadow-sm"
       : "text-[15px] text-black hover:text-gray-700 hover:scale-[1.05] cursor-pointer"
@@ -87,20 +89,24 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
       <aside
         className={`
           bg-gray-100 border-r h-screen flex flex-col
-          fixed z-30 top-0 left-0 transition-transform duration-300 
-          w-[${SIDEBAR_WIDTH}px]
+          fixed z-[60] xl:z-0 top-0 left-0 transition-transform duration-300 
+          w-full sm:w-64 shrink-0
           -translate-x-full
-          xl:static xl:translate-x-0 xl:w-[${SIDEBAR_WIDTH}px] xl:block
+          xl:static xl:translate-x-0 xl:block
           ${isOpen ? "translate-x-0 shadow-lg" : ""}
         `}
-        style={{ minWidth: SIDEBAR_WIDTH }}
         aria-label="Sidebar"
       >
         {/* Make the entire sidebar scrollable except the close button */}
-        <ScrollArea className="h-screen pt-14 flex flex-col pl-6 pr-0">
-          <div className="pr-6 flex flex-col min-h-0">
+        <div className="xl:hidden absolute top-4 right-4 z-[70]">
+          <button onClick={onClose} className="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300">
+            <X className="h-6 w-6 text-gray-500" />
+          </button>
+        </div>
+        <ScrollArea className="h-screen pt-16 xl:pt-14 flex flex-col pl-0 xl:pl-6 pr-0">
+          <div className="pr-0 xl:pr-6 flex flex-col min-h-0">
             {/* Profile section */}
-            <div className="flex flex-col items-center mb-8 mt-10">
+            <div className="flex flex-col items-center mb-8 mt-12 xl:mt-10">
               <img
                 src={
                   user?.user_metadata?.avatar_url ||
@@ -256,6 +262,8 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                       </>
                     )}
 
+
+
                     <li>
                       <Link
                         to="/admin/pending-requests"
@@ -310,14 +318,32 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Annual Reports
                       </Link>
                     </li>
+
                   </ul>
                   <hr className="border-t border-sro-border-light my-4" />
+                </div>
+              )}
+
+              {isSuperAdminEmail && (
+                <div className="mb-6">
+                  <hr className="border-t border-sro-border-light my-4" />
+                  <ul className="space-y-2 text-[15px] font-medium">
+                    <li>
+                      <Link
+                        to="/admin/super-admin"
+                        className={linkClass("/admin/super-admin")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Super Admin Page
+                      </Link>
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
 
             {/* Footer section */}
-            <div className="mt-auto px-6 pb-6 border-gray-200">
+            <div className="mt-auto px-6 pb-6 border-gray-200 space-y-2">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sro-primary hover:bg-sro-primary hover:text-white rounded-md transition-colors duration-200"
