@@ -325,7 +325,11 @@ const OrgApplication = () => {
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </div>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-full max-w-md p-0">
+              <PopoverContent
+                align="start"
+                className="p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Input
                   placeholder="Search type..."
                   value={orgTypeSearch}
@@ -384,7 +388,11 @@ const OrgApplication = () => {
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </div>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-full max-w-md p-0">
+              <PopoverContent
+                align="start"
+                className="p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Input
                   placeholder="Search year..."
                   value={yearSearch}
@@ -660,7 +668,7 @@ const OrgApplication = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isUploading}
-                className="bg-sro-primary hover:bg-sro-primary/90 text-white w-full sm:w-auto"
+                className="bg-sro-secondary hover:bg-sro-secondary/90 text-white w-full sm:w-auto"
               >
                 {isUploading ? (
                   <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />

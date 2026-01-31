@@ -99,7 +99,11 @@ function UnifiedDropdown({
                 </div>
             </PopoverTrigger>
 
-            <PopoverContent align="start" className={cn("w-full max-w-[90vw] sm:max-w-md p-0", contentClassName)}>
+            <PopoverContent
+                align="start"
+                className={cn("p-0", contentClassName)}
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+            >
                 {searchable && (
                     <Input
                         placeholder={searchPlaceholder}

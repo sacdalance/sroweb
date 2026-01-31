@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
 import supabase from "@/lib/supabase";
+import FileDropzone from "@/components/ui/file-dropzone";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -44,7 +45,6 @@ const AnnualReport = () => {
   const [orgSearchTerm, setOrgSearchTerm] = useState("");
   const [yearPopoverOpen, setYearPopoverOpen] = useState(false);
   const [yearSearchTerm, setYearSearchTerm] = useState("");
-  const [isDragActive, setIsDragActive] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Field validation error states (for per-field feedback)
@@ -102,35 +102,17 @@ const AnnualReport = () => {
   const validateFields = () => {
     let valid = true;
     if (!selectedOrg) { setFieldError("org", true); valid = false; } else setFieldError("org", false);
-    if (!annualReportEmail || !isValidEmail(annualReportEmail)) { setFieldError("annualReportEmail", true); valid = false; } else setFieldError("annualReportEmail", false);
     if (!academicYear) { setFieldError("academicYear", true); valid = false; } else setFieldError("academicYear", false);
     if (files.length !== 2) { setFieldError("files", true); valid = false; } else setFieldError("files", false);
     return valid;
   };
 
-  // === FILE UPLOAD HANDLERS ===
-  const handleFileChange = (e) => {
-    if (files.length >= 2 || isUploading) return;
-    const incomingFiles = Array.from(e.target.files);
-    const pdfFiles = incomingFiles.filter((file) => file.type === "application/pdf");
-    if (pdfFiles.length !== incomingFiles.length) {
-      toast.error("Only PDF files are allowed.");
-      setFieldError("files", true);
-      return;
+  // === FILE UPLOAD HANDLER (for FileDropzone) ===
+  const handleFilesChange = (newFiles) => {
+    setFiles(newFiles);
+    if (newFiles.length === 2) {
+      setFieldError("files", false);
     }
-    if (files.length + pdfFiles.length > 2) {
-      toast.error("You can only upload exactly 2 PDF files.");
-      setFieldError("files", true);
-      return;
-    }
-    setFiles([...files, ...pdfFiles]);
-    setFieldError("files", false);
-  };
-  const handleRemoveFile = (idx) => {
-    if (isUploading) return;
-    const updated = files.filter((_, i) => i !== idx);
-    setFiles(updated);
-    if (updated.length === 2) setFieldError("files", false);
   };
 
   // === FORM SUBMISSION ===
@@ -176,9 +158,6 @@ const AnnualReport = () => {
     }
   ];
 
-  // Drag-drop disables when 2 files already or during upload
-  const dragDropDisabled = files.length >= 2 || isUploading;
-
   return (
     <div className="max-w-3xl mx-auto py-8">
       <Toaster />
@@ -205,7 +184,11 @@ const AnnualReport = () => {
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </div>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-full max-w-md p-0">
+              <PopoverContent
+                align="start"
+                className="p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Input
                   placeholder="Search organization..."
                   value={orgSearchTerm}
@@ -251,33 +234,20 @@ const AnnualReport = () => {
             )}
           </div>
 
-          {/* Organization E-mail (filled and disabled if org picked) */}
+          {/* Organization E-mail (auto-filled from org, read-only) */}
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Organization E-mail <span className="text-red-600">*</span>
+              Organization E-mail
             </label>
             <Input
               id="annualReportEmail"
               type="email"
               value={annualReportEmail}
-              onChange={e => {
-                setAnnualReportEmail(e.target.value);
-                if (isValidEmail(e.target.value)) setFieldError("annualReportEmail", false);
-              }}
-              onBlur={e => setFieldError("annualReportEmail", !isValidEmail(e.target.value))}
-              placeholder="orgemail@gmail.com"
-              disabled={!!selectedOrg || isUploading} // disables after org is picked
-              className={cn(
-                "w-full px-3 py-2 rounded-md text-sm",
-                fieldErrors.annualReportEmail && "border-sro-primary bg-red-50"
-              )}
-              autoComplete="email"
+              readOnly
+              disabled
+              placeholder="Select an organization to autofill"
+              className="w-full px-3 py-2 rounded-md text-sm bg-gray-50"
             />
-            {fieldErrors.annualReportEmail && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                Must be a valid UP or Gmail address.
-              </p>
-            )}
           </div>
 
           {/* Academic Year (searchable dropdown, same UX as org) */}
@@ -299,7 +269,11 @@ const AnnualReport = () => {
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </div>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-full max-w-md p-0">
+              <PopoverContent
+                align="start"
+                className="p-0"
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+              >
                 <Input
                   placeholder="Search academic year..."
                   value={yearSearchTerm}
@@ -362,115 +336,38 @@ const AnnualReport = () => {
                 </Button>
               </div>
             ))}
-            {/* Drag & Drop */}
-            <div
-              onDragOver={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(true);
-              }}
-              onDragLeave={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(false);
-              }}
-              onDrop={e => {
-                if (dragDropDisabled) return;
-                e.preventDefault();
-                setIsDragActive(false);
-                const dataTransferEvent = {
-                  target: {
-                    files: e.dataTransfer.files,
-                  },
-                };
-                handleFileChange(dataTransferEvent);
-              }}
-              className={cn(
-                "border-2 border-dashed p-4 rounded-md text-center transition-colors",
-                dragDropDisabled
-                  ? "border-gray-300 bg-gray-50 cursor-not-allowed"
-                  : isDragActive
-                    ? "border-green-600 bg-green-50"
-                    : "border-gray-300 hover:border-gray-400 hover:bg-muted"
-              )}
-              style={{ pointerEvents: dragDropDisabled ? "none" : "auto" }}
-            >
-              <label htmlFor="annualReportFileUpload" className={cn(
-                "cursor-pointer flex flex-col items-center",
-                dragDropDisabled && "cursor-not-allowed opacity-70"
-              )}>
-                <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                <p className="text-sm">
-                  {dragDropDisabled
-                    ? "You cannot upload or drag files after completion."
-                    : isDragActive
-                      ? "Drop the file here"
-                      : "Drag and Drop or Upload PDF File (exactly 2 required)"
-                  }
-                </p>
-                <input
-                  id="annualReportFileUpload"
-                  name="files"
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={dragDropDisabled}
-                />
-              </label>
-            </div>
+            {/* File Dropzone */}
+            <FileDropzone
+              files={files}
+              onFilesChange={handleFilesChange}
+              maxFiles={2}
+              disabled={isUploading}
+              error={fieldErrors.files}
+            />
             {fieldErrors.files && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                 Please upload exactly 2 PDF files.
               </p>
             )}
-            {files.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-1">Selected Files</h4>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {files.map((file, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center justify-between bg-muted px-3 py-2 rounded-md"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-red-500" />
-                        <span className="truncate max-w-[200px]">{file.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(idx)}
-                        className={cn(
-                          "text-gray-500 hover:text-red-600",
-                          isUploading && "cursor-not-allowed opacity-50"
-                        )}
-                        disabled={isUploading}
-                      >
-                        &times;
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <Button
-              onClick={() => setShowConfirmDialog(true)}
-              disabled={
-                !selectedOrg ||
-                !annualReportEmail.trim() ||
-                !academicYear ||
-                files.length !== 2 ||
-                isUploading
-              }
-              className="w-full py-2 rounded-md text-base bg-sro-secondary text-white hover:bg-sro-secondary/90"
-            >
-              {isUploading ? (
-                <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
-              ) : (
-                "Submit Form"
-              )}
-            </Button>
+            <div className="flex justify-center sm:justify-end">
+              <Button
+                onClick={() => setShowConfirmDialog(true)}
+                disabled={
+                  !selectedOrg ||
+                  !annualReportEmail.trim() ||
+                  !academicYear ||
+                  files.length !== 2 ||
+                  isUploading
+                }
+                className="w-full sm:w-auto py-2 rounded-md text-base bg-sro-secondary text-white hover:bg-sro-secondary/90"
+              >
+                {isUploading ? (
+                  <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
+                ) : (
+                  "Submit Form"
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
         {/* Confirmation Dialog, matching ActivityForm */}

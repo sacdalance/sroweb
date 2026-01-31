@@ -1,12 +1,6 @@
 // initial skeleton for modular reuse
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -279,6 +273,17 @@ const ActivityForm = ({
 
   const setFieldError = (field, hasError) => {
     setFieldErrors((prev) => ({ ...prev, [field]: hasError }));
+  };
+
+  // Input sanitization to prevent SQL injection and XSS
+  // Allows: letters, numbers, spaces, common punctuation (.,!?-'":;()@)
+  const sanitizeInput = (value, allowNewlines = false) => {
+    if (!value) return "";
+    // Remove potentially dangerous characters, keep safe ones
+    const pattern = allowNewlines
+      ? /[^a-zA-Z0-9\s.,!?;:'"()\-@\n]/g
+      : /[^a-zA-Z0-9\s.,!?;:'"()\-@]/g;
+    return value.replace(pattern, "");
   };
 
   const handleMenuNavigation = async (targetSection) => {
@@ -650,7 +655,11 @@ const ActivityForm = ({
                       </div>
                     </PopoverTrigger>
 
-                    <PopoverContent align="start" className="w-full max-w-md p-0">
+                    <PopoverContent
+                      align="start"
+                      className="p-0"
+                      style={{ width: "var(--radix-popover-trigger-width)" }}
+                    >
                       <Input
                         placeholder="Search organization..."
                         value={formData.searchTerm}
@@ -708,6 +717,7 @@ const ActivityForm = ({
                     </h3>
                     <Input
                       id="studentPosition"
+                      maxLength={50}
                       onBlur={(e) => {
                         const value = e.target.value.trim();
                         setFieldError("studentPosition", value.length < 3 || value.length > 50);
@@ -719,7 +729,7 @@ const ActivityForm = ({
                       placeholder="(Chairperson, Secretary, etc.)"
                       value={formData.studentPosition}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, studentPosition: value }));
                         if (value.trim().length >= 3 && value.length <= 50) {
                           setFieldError("studentPosition", false);
@@ -736,15 +746,16 @@ const ActivityForm = ({
                     <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                     <Input
                       id="studentContact"
+                      maxLength={11}
                       inputMode="numeric"
                       pattern="[0-9]*"
                       placeholder="(09XXXXXXXXX)"
-                      onBlur={() => setFieldError("studentContact", !/^\d+$/.test(formData.studentContact))}
+                      onBlur={() => setFieldError("studentContact", !/^\d{11}$/.test(formData.studentContact))}
                       value={formData.studentContact}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 11);
                         setFormData((prev) => ({ ...prev, studentContact: value }));
-                        if (/^\d+$/.test(value)) setFieldError("studentContact", false);
+                        if (/^\d{11}$/.test(value)) setFieldError("studentContact", false);
                       }}
                       className={fieldErrors.studentContact ? "border-sro-primary bg-red-50" : ""}
                     />
@@ -761,11 +772,14 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                     <Input
-                      id="activityName" onBlur={() => setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100)} className={fieldErrors.activityName ? "border-sro-primary bg-red-50" : ""}
+                      id="activityName"
+                      maxLength={100}
+                      onBlur={() => setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100)}
+                      className={fieldErrors.activityName ? "border-sro-primary bg-red-50" : ""}
                       placeholder="(Mass Orientation, Welcome Party, etc.)"
                       value={formData.activityName}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, activityName: value }));
                         if (value.trim().length >= 3 && value.length <= 100)
                           setFieldError("activityName", false);
@@ -786,7 +800,7 @@ const ActivityForm = ({
                       placeholder="Enter activity description"
                       value={formData.activityDescription}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value, true);
                         setFormData((prev) => ({ ...prev, activityDescription: value }));
                         if (value.trim().length >= 20) setFieldError("activityDescription", false);
                       }}
@@ -804,33 +818,18 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">
                     Activity Type <span className="text-red-500">*</span>
                   </h3>
-                  <Select
+                  <UnifiedDropdown
+                    options={activityTypeOptions}
                     value={formData.selectedActivityType}
-                    onValueChange={(value) => {
+                    onChange={(value) => {
                       setFormData((prev) => ({ ...prev, selectedActivityType: value }));
-                      if (value.trim() !== "") setFieldError("activityType", false);
+                      setFieldError("activityType", false);
                     }}
-                    onBlur={() =>
-                      setFieldError("activityType", formData.selectedActivityType.trim() === "")
-                    }
-                  >
-                    <SelectTrigger
-                      id="activityType"
-                      className={cn(
-                        "w-full",
-                        fieldErrors.activityType && "border-sro-primary bg-red-50"
-                      )}
-                    >
-                      <SelectValue placeholder="Select activity type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activityTypeOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select activity type"
+                    valueKey="id"
+                    labelKey="label"
+                    error={fieldErrors.activityType}
+                  />
                   {fieldErrors.activityType && (
                     <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                       Please select an activity type.
@@ -884,11 +883,11 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Charging Fees? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="chargingFees"
-                    onBlur={() => setFieldError("chargingFees", formData.chargingFees1.trim() === "")}
                     value={formData.chargingFees1}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, chargingFees1: value }))
-                    }
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, chargingFees1: value }));
+                      setFieldError("chargingFees", false);
+                    }}
                     className={`${fieldErrors.chargingFees ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
                     {fieldErrors.chargingFees && (
@@ -916,11 +915,10 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="partnering"
-                    onBlur={() => setFieldError("partnering", formData.partnering.trim() === "")}
                     value={formData.partnering}
                     onValueChange={(val) => {
                       setFormData((prev) => ({ ...prev, partnering: val }));
-                      if (val.trim() !== "") setFieldError("partnering", false);
+                      setFieldError("partnering", false);
                     }}
                     className={`${fieldErrors.partnering ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
@@ -965,12 +963,13 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Recurring? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="recurring"
-                    onBlur={() => setFieldError("recurring", formData.recurring.trim() === "")}
                     value={formData.recurring}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, recurring: value }))
-                    }
-                    className={`${fieldErrors.recurring ? "border-sro-primary bg-red-50" : ""} space-y-3`}                                        >
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, recurring: value }));
+                      setFieldError("recurring", false);
+                    }}
+                    className={`${fieldErrors.recurring ? "border-sro-primary bg-red-50" : ""} space-y-3`}
+                  >
                     {fieldErrors.recurring && (
                       <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Please select if the activity is recurring.
@@ -983,9 +982,8 @@ const ActivityForm = ({
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="recurring" id="recurring" onBlur={() => setFieldError("recurring", formData.recurring.trim() === "")}
-                        className={fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} />
-                      <label htmlFor="recurring" className="text-sm font-medium leading-none">
+                      <RadioGroupItem value="recurring" id="recurring-option" />
+                      <label htmlFor="recurring-option" className="text-sm font-medium leading-none">
                         Recurring
                       </label>
                     </div>
@@ -1255,13 +1253,15 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                     <Input
-                      id="venue" onBlur={() => setFieldError("venue", formData.venue.trim() === "" || formData.venue.length > 100)}
+                      id="venue"
+                      maxLength={100}
+                      onBlur={() => setFieldError("venue", formData.venue.trim() === "" || formData.venue.length > 100)}
                       className={fieldErrors.venue ? "border-sro-primary bg-red-50" : ""}
                       type="text"
                       placeholder="(Teatro Amianan, CS AVR, etc.)"
                       value={formData.venue}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, venue: value }));
                         if (value.trim() !== "" && value.length <= 100)
                           setFieldError("venue", false);
@@ -1278,6 +1278,7 @@ const ActivityForm = ({
                       <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                       <Input
                         id="venueApprover"
+                        maxLength={50}
                         onBlur={() => setFieldError("venueApprover", formData.venueApprover.trim().length < 3 || formData.venueApprover.length > 50)}
                         className={`${fieldErrors.venueApprover ? "border-sro-primary bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         type="text"
@@ -1285,7 +1286,7 @@ const ActivityForm = ({
                         value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApprover}
                         disabled={formData.isOffCampus === "yes"}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, venueApprover: value }));
                           if (value.trim().length >= 3 && value.length <= 50)
                             setFieldError("venueApprover", false);
@@ -1473,7 +1474,7 @@ const ActivityForm = ({
                           setFieldError("partnerDescription", formData.partnerDescription.trim().length < 3)
                         }
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value, true);
                           setFormData((prev) => ({
                             ...prev,
                             partnerDescription: value,
@@ -1493,11 +1494,15 @@ const ActivityForm = ({
                     <div>
                       <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                       <Input
-                        id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-sro-primary bg-red-50" : ""} type="text"
+                        id="greenCampusMonitor"
+                        maxLength={50}
+                        onBlur={() => setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50)}
+                        className={fieldErrors.greenCampusMonitor ? "border-sro-primary bg-red-50" : ""}
+                        type="text"
                         placeholder="Ex. Clarence Kyle Pagunsan"
                         value={formData.greenCampusMonitor}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, greenCampusMonitor: value }));
                           if (value.trim().length >= 3 && value.length <= 50)
                             setFieldError("greenCampusMonitor", false);
