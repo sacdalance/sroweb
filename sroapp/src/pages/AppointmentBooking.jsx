@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import StatusPill from "@/components/ui/StatusPill";
+import { appointmentSchema } from "@/lib/zodSchemas";
+import { sanitizeInput } from "@/lib/utils";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -34,42 +36,23 @@ const AppointmentBooking = () => {
     mode: ""
   });
 
-  // Validation functions
-  const validateEmail = (email) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!email) return "Email is required";
-    if (!emailRegex.test(email)) return "Please enter a valid email address";
-    return "";
-  };
-
-  const validateContact = (contact) => {
-    const contactRegex = /^09[0-9]{9}$/;
-    if (!contact) return "Contact number is required";
-    if (!contactRegex.test(contact)) return "Please enter a valid Philippine mobile number (e.g., 09123456789)";
-    return "";
-  };
-
   const validateField = (name, value) => {
-    switch (name) {
-      case "email":
-        return validateEmail(value);
-      case "contact":
-        return validateContact(value);
-      case "reason":
-        return !value ? "Please select a reason" : "";
-      case "subject":
-        return !value ? "Subject is required" : "";
-      case "mode":
-        return !value ? "Please select a meeting mode" : "";
-      default:
-        return "";
+    try {
+      // Pick specific field from schema to validate
+      appointmentSchema.pick({ [name]: true }).parse({ [name]: value });
+      return "";
+    } catch (error) {
+      return error.errors[0]?.message || "Invalid input";
     }
   };
 
   // Handle form field changes with validation
-  const handleFieldChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    const error = validateField(name, value);
+  const handleFieldChange = (name, value, isMultiline = false) => {
+    // Sanitize input if it's a string value
+    const processedValue = typeof value === 'string' ? sanitizeInput(value, isMultiline) : value;
+
+    setFormData(prev => ({ ...prev, [name]: processedValue }));
+    const error = validateField(name, processedValue);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
 
@@ -387,21 +370,21 @@ const AppointmentBooking = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate all fields first
-    const newErrors = {
-      email: validateField("email", formData.email),
-      contact: validateField("contact", formData.contact),
-      reason: validateField("reason", formData.reason),
-      subject: validateField("subject", formData.subject),
-      mode: validateField("mode", formData.mode)
-    };
-    setErrors(newErrors);
+    // Validate all fields using Zod
+    const result = appointmentSchema.safeParse(formData);
 
-    // Check if there are any errors
-    if (Object.values(newErrors).some(error => error)) {
+    if (!result.success) {
+      const newErrors = {};
+      result.error.issues.forEach(issue => {
+        newErrors[issue.path[0]] = issue.message;
+      });
+      setErrors(newErrors);
       toast.error("Please fix the errors in the form");
       return;
     }
+
+    // Clear errors if valid
+    setErrors({});
 
     if (!selectedDate || !formData.time) {
       toast.error("Please select both date and time");
@@ -818,7 +801,7 @@ const AppointmentBooking = () => {
                   <Textarea
                     name="notes"
                     value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    onChange={(e) => handleFieldChange("notes", e.target.value, true)}
                     className="min-h-[100px]"
                     placeholder="Add any additional information that might be helpful..."
                   />

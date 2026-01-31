@@ -1,12 +1,6 @@
 // initial skeleton for modular reuse
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,9 +9,10 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, FileText } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
+import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
@@ -27,6 +22,7 @@ import { toast, Toaster } from "sonner";
 import { createActivity } from '../api/activityRequestAPI';
 import { editActivity } from '../api/activityEditAPI';
 import { submitAdminActivity } from '../api/adminActivityAPI';
+import { activityFormSchema } from "@/lib/zodSchemas";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -52,7 +48,9 @@ const ActivityForm = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [orgs, setOrgs] = useState([]);
-  const fileInputRef = useRef(null);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [pendingSection, setPendingSection] = useState(null);
   const today = new Date();
   const minStartDate = addBusinessDays(today, 5).toISOString().split("T")[0];
   const tomorrow = new Date();
@@ -106,10 +104,91 @@ const ActivityForm = ({
     greenCampusMonitor: defaultValues?.greenCampusMonitor || "",
     greenCampusMonitorContact: defaultValues?.greenCampusMonitorContact || "",
     selectedFile: defaultValues?.selectedFile || null,
-    isDragActive: false,
     appealReason: defaultValues?.appealReason || ""
   });
 
+  const [focusedField, setFocusedField] = useState(null);
+
+  // Form persistence - save draft to localStorage
+  const DRAFT_KEY = `activityForm_draft_${mode}`;
+
+  // Restore draft check on mount
+  useEffect(() => {
+    // We restore draft even if defaultValues exist, effectively prioritizing the draft (autosave) over the initial empty state.
+    if (mode !== "edit") {
+      try {
+        const savedDraft = localStorage.getItem(DRAFT_KEY);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+
+          let dataToRestore = parsed;
+          let sectionToRestore = "general-info";
+
+          // Handle new format with metadata
+          if (parsed._isWrapper) {
+            dataToRestore = parsed.data || {};
+            sectionToRestore = parsed.section || "general-info";
+          }
+
+          // Don't restore file or transient state
+          delete dataToRestore.selectedFile;
+          delete dataToRestore.open;
+          delete dataToRestore.searchTerm;
+
+          // Check if there is actual data to restore
+          const hasData = Object.values(dataToRestore).some(val => val && val.toString().trim() !== "");
+
+          if (hasData) {
+            setPendingDraft(dataToRestore);
+            setPendingSection(sectionToRestore);
+            setShowRestoreDialog(true);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to restore draft:", e);
+      }
+    }
+  }, []);
+
+  // Save draft on form change (debounced)
+  useEffect(() => {
+    if (mode === "edit") return; // Don't save drafts in edit mode
+
+    const timeoutId = setTimeout(() => {
+      try {
+        // Exclude transient/file data from draft
+        const { selectedFile, open, searchTerm, ...draftData } = formData;
+
+        // GUARD: Don't save if form is empty (avoids overwriting draft on mount or with empty defaults)
+        const hasData = draftData.activityName?.trim() ||
+          draftData.studentPosition?.trim() ||
+          draftData.activityDescription?.trim();
+
+        if (!hasData) return;
+
+        const storagePayload = {
+          _isWrapper: true,
+          data: draftData,
+          section: currentSection
+        };
+
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(storagePayload));
+      } catch (e) {
+        console.error("Failed to save draft:", e);
+      }
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, mode, currentSection]);
+
+  // Clear draft on successful submission
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (e) {
+      console.error("Failed to clear draft:", e);
+    }
+  };
 
   const activityTypeOptions = [
     { id: "charitable", label: "Charitable" },
@@ -282,6 +361,29 @@ const ActivityForm = ({
     setFieldErrors((prev) => ({ ...prev, [field]: hasError }));
   };
 
+  // Input sanitization imported from @/lib/utils
+
+  // Character counter with generic cute animation
+  const CharacterCounter = ({ current, max, visible, className = "" }) => (
+    <div
+      className={cn(
+        "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden origin-top flex justify-end ml-auto shrink-0",
+        visible ? "max-h-8 opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-2",
+        className
+      )}
+      aria-hidden={!visible}
+    >
+      <span className={cn(
+        "text-xs mt-1 px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm border whitespace-nowrap",
+        current > max
+          ? "text-red-600 bg-red-50 border-red-200 font-bold"
+          : "text-muted-foreground bg-gray-100/80 border-transparent"
+      )}>
+        {current} / {max}
+      </span>
+    </div>
+  );
+
   const handleMenuNavigation = async (targetSection) => {
     const currentIndex = sectionOrder.indexOf(currentSection);
     const targetIndex = sectionOrder.indexOf(targetSection);
@@ -302,136 +404,103 @@ const ActivityForm = ({
   };
 
   const validateCurrentSection = () => {
-    const {
-      selectedValue,
-      studentPosition,
-      studentContact,
-      activityName,
-      activityDescription,
-      selectedActivityType,
-      selectedSDGs,
-      chargingFees1,
-      partnering,
-      selectedPublicAffairs,
-      partnerDescription,
-      recurring,
-      startDate,
-      endDate,
-      startTime,
-      endTime,
-      recurringDays,
-      isOffCampus,
-      venue,
-      venueApprover,
-      venueApproverContact,
-      greenCampusMonitor,
-      greenCampusMonitorContact,
-      selectedFile,
-      appealReason
-    } = formData;
-
-    const errorScroll = (fieldId) => {
-      const el = document.getElementById(fieldId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.focus?.();
-      }
+    // 1. UI Keys Mapping (Zod Path -> UI State Key)
+    const uiKeyMap = {
+      selectedValue: "orgSelect",
+      selectedSDGs: "sdgGoals",
+      chargingFees1: "chargingFees",
+      partnerUnits: "partnerUnits", // Custom issue code from schema
     };
 
-    const fail = (field, message) => {
-      setFieldError(field, true);
-      errorScroll(field);
-      return { valid: false, field, message };
+    // 2. Define fields belonging to each section
+    const sectionFields = {
+      "general-info": [
+        "selectedValue",
+        "studentPosition",
+        "studentContact",
+        "activityName",
+        "activityDescription",
+        "selectedActivityType",
+        "selectedSDGs",
+        "chargingFees1",
+        "partnering",
+      ],
+      "date-info": [
+        "recurring",
+        "startDate",
+        "startTime",
+        "endTime",
+        "endDate",
+        "recurringDays",
+      ],
+      "specifications": [
+        "isOffCampus",
+        "venue",
+        "venueApprover",
+        "venueApproverContact",
+        "partnerDescription",
+        "partnerUnits",
+        "greenCampusMonitor",
+        "greenCampusMonitorContact",
+      ],
+      "submission": ["selectedFile", "appealReason"],
     };
 
-    // ----------- General Info Validation -----------
-    if (currentSection === "general-info") {
-      if (!selectedValue) return fail("orgSelect", "Please select your organization.");
-      if (studentPosition.trim().length < 3 || studentPosition.length > 50)
-        return fail("studentPosition", "Student Position must be between 3 to 50 characters.");
-      if (!/^\d{11}$/.test(studentContact))
-        return fail("studentContact", "Student Contact must be an 11-digit number.");
-      if (activityName.trim().length < 3 || activityName.length > 100)
-        return fail("activityName", "Activity Name must be 3–100 characters.");
-      if (activityDescription.trim().length < 20)
-        return fail("activityDescription", "Description must be at least 20 characters.");
-      if (!selectedActivityType)
-        return fail("activityType", "Please select an activity type.");
-      if (Object.values(selectedSDGs).filter(Boolean).length === 0)
-        return fail("sdgGoals", "Select at least one SDG goal.");
-      if (!chargingFees1)
-        return fail("chargingFees", "Please indicate if you're charging fees.");
-      if (!partnering)
-        return fail("partnering", "Please indicate if you're partnering with a unit.");
+    const currentFields = sectionFields[currentSection] || [];
+
+    // 3. Run Zod Validation on ALL data
+    const result = activityFormSchema.safeParse(formData);
+
+    // 4. Prepare new error state
+    // We clear errors for the current section first, then re-apply if found
+    const nextErrors = { ...fieldErrors };
+    currentFields.forEach((f) => {
+      const key = uiKeyMap[f] || f;
+      delete nextErrors[key];
+    });
+
+    if (result.success) {
+      setFieldErrors(nextErrors);
+      return { valid: true };
     }
 
-    // ----------- Date Info Validation -----------
-    if (currentSection === "date-info") {
-      if (!recurring) return fail("recurring", "Please indicate if activity is recurring.");
-      if (!startDate) return fail("startDate", "Start date is required.");
+    // 5. Filter errors to only those in the current section
+    let firstUiErrorKey = null;
+    let firstErrorMessage = null;
+    let sectionHasError = false;
 
-      const chosenDate = new Date(startDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      chosenDate.setHours(0, 0, 0, 0);
+    result.error.issues.forEach((issue) => {
+      const path = issue.path[0];
+      // Check if this error belongs to the current section
+      // Note: "partnerUnits" is an alias (custom issue) we injected in superRefine
+      if (currentFields.includes(path)) {
+        const uiKey = uiKeyMap[path] || path;
 
-      if (chosenDate < today) {
-        return fail("startDate", "Start date cannot be in the past.");
-      }
-      if (!startTime) return fail("startTime", "Start time is required.");
-      if (!endTime) return fail("endTime", "End time is required.");
-      if (recurring === "recurring") {
-        if (!endDate) return fail("endDate", "End date is required.");
-        if (new Date(endDate) < new Date(startDate))
-          return fail("endDate", "End date cannot be before start date.");
-        const hasDay = Object.values(recurringDays).some(Boolean);
-        if (!hasDay) return fail("recurringDays", "Select at least one recurring day.");
-      }
-    }
+        // Mark error in UI state
+        nextErrors[uiKey] = true;
+        sectionHasError = true;
 
-    // ----------- Specifications Validation -----------
-    if (currentSection === "specifications") {
-      if (!isOffCampus) return fail("offcampus", "Please indicate if off-campus.");
-      if (!venue || venue.length > 100)
-        return fail("venue", "Venue is required and must be under 100 characters.");
-      if (isOffCampus !== "yes") {
-        if (venueApprover.trim().length < 3 || venueApprover.length > 50)
-          return fail("venueApprover", "Approver name must be 3–50 characters.");
-        if (!/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact))
-          return fail("venueApproverContact", "Provide valid phone or UP/Gmail email.");
-      }
-      if (partnering === "yes") {
-        const hasPartner = Object.values(selectedPublicAffairs || {}).some((val) =>
-          Array.isArray(val) ? val.some((v) => v.trim() !== "") : val === true
-        );
-
-        if (currentSection === "specifications" && !hasPartner) {
-          setFieldError("partnerUnits", true);
-          return fail("partnerUnits", "Select at least one partner.");
-        } else {
-          setFieldError("partnerUnits", false);
-        }
-
-        if (
-          partnering === "yes" &&
-          currentSection === "specifications" &&
-          partnerDescription.trim().length < 3
-        ) {
-          return fail("partnerDescription", "Provide partner role description (min 3 chars).");
+        if (!firstUiErrorKey) {
+          firstUiErrorKey = uiKey;
+          firstErrorMessage = issue.message;
         }
       }
-      if (greenCampusMonitor.trim().length < 3 || greenCampusMonitor.length > 50)
-        return fail("greenCampusMonitor", "Monitor name must be 3–50 characters.");
-      if (!/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))
-        return fail("greenCampusMonitorContact", "Provide valid phone or UP/Gmail email.");
-    }
+    });
 
-    // ----------- Submission Validation -----------
-    if (currentSection === "submission") {
-      if (!selectedFile)
-        return fail("selectedFile", "Please upload your Activity Request PDF.");
-      if (mode === "edit" && showAppealReason && appealReason.trim().length < 5)
-        return fail("appealReason", "Please explain your reason for appeal (min 5 characters).");
+    setFieldErrors(nextErrors);
+
+    if (sectionHasError) {
+      // Scroll functionality
+      const errorScroll = (fieldId) => {
+        const el = document.getElementById(fieldId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.focus?.();
+        }
+      };
+
+      errorScroll(firstUiErrorKey);
+      return { valid: false, field: firstUiErrorKey, message: firstErrorMessage };
     }
 
     return { valid: true };
@@ -503,6 +572,7 @@ const ActivityForm = ({
       }
 
       setShowSuccessDialog(true);
+      clearDraft(); // Clear saved draft on successful submission
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       console.error(err);
@@ -651,7 +721,11 @@ const ActivityForm = ({
                       </div>
                     </PopoverTrigger>
 
-                    <PopoverContent align="start" className="w-full max-w-md p-0">
+                    <PopoverContent
+                      align="start"
+                      className="p-0"
+                      style={{ width: "var(--radix-popover-trigger-width)" }}
+                    >
                       <Input
                         placeholder="Search organization..."
                         value={formData.searchTerm}
@@ -709,9 +783,13 @@ const ActivityForm = ({
                     </h3>
                     <Input
                       id="studentPosition"
+                      maxLength={50}
+                      aria-describedby="studentPosition-hint"
+                      onFocus={() => setFocusedField("studentPosition")}
                       onBlur={(e) => {
                         const value = e.target.value.trim();
                         setFieldError("studentPosition", value.length < 3 || value.length > 50);
+                        setFocusedField(null);
                       }}
                       className={cn(
                         "peer",
@@ -720,32 +798,42 @@ const ActivityForm = ({
                       placeholder="(Chairperson, Secretary, etc.)"
                       value={formData.studentPosition}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, studentPosition: value }));
                         if (value.trim().length >= 3 && value.length <= 50) {
                           setFieldError("studentPosition", false);
                         }
                       }}
                     />
-                    {fieldErrors.studentPosition && (
-                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                        Student Position must be between 3 to 50 characters.
-                      </p>
-                    )}
+                    <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="studentPosition-hint">
+                      {fieldErrors.studentPosition ? (
+                        <p className="text-xs text-sro-primary font-medium">
+                          Must be 3 to 50 characters.
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      <CharacterCounter
+                        current={formData.studentPosition.length}
+                        max={50}
+                        visible={focusedField === "studentPosition"}
+                      />
+                    </div>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium mb-2">Student Contact Number <span className="text-red-500">*</span></h3>
                     <Input
                       id="studentContact"
+                      maxLength={11}
                       inputMode="numeric"
                       pattern="[0-9]*"
                       placeholder="(09XXXXXXXXX)"
-                      onBlur={() => setFieldError("studentContact", !/^\d+$/.test(formData.studentContact))}
+                      onBlur={() => setFieldError("studentContact", !/^\d{11}$/.test(formData.studentContact))}
                       value={formData.studentContact}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 11);
                         setFormData((prev) => ({ ...prev, studentContact: value }));
-                        if (/^\d+$/.test(value)) setFieldError("studentContact", false);
+                        if (/^\d{11}$/.test(value)) setFieldError("studentContact", false);
                       }}
                       className={fieldErrors.studentContact ? "border-sro-primary bg-red-50" : ""}
                     />
@@ -762,41 +850,73 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Activity Name <span className="text-red-500">*</span></h3>
                     <Input
-                      id="activityName" onBlur={() => setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100)} className={fieldErrors.activityName ? "border-sro-primary bg-red-50" : ""}
+                      id="activityName"
+                      maxLength={100}
+                      aria-describedby="activityName-hint"
+                      onFocus={() => setFocusedField("activityName")}
+                      onBlur={() => {
+                        setFieldError("activityName", formData.activityName.trim().length < 3 || formData.activityName.length > 100);
+                        setFocusedField(null);
+                      }}
+                      className={fieldErrors.activityName ? "border-sro-primary bg-red-50" : ""}
                       placeholder="(Mass Orientation, Welcome Party, etc.)"
                       value={formData.activityName}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, activityName: value }));
                         if (value.trim().length >= 3 && value.length <= 100)
                           setFieldError("activityName", false);
                       }}
                     />
-                    {fieldErrors.activityName && (
-                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                        Must be 3 to 100 characters.
-                      </p>
-                    )}
+                    <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="activityName-hint">
+                      {fieldErrors.activityName ? (
+                        <p className="text-xs text-sro-primary font-medium">
+                          Must be 3 to 100 characters.
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      <CharacterCounter
+                        current={formData.activityName.length}
+                        max={100}
+                        visible={focusedField === "activityName"}
+                      />
+                    </div>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium mb-2">Activity Description <span className="text-red-500">*</span></h3>
                     <Textarea
                       id="activityDescription"
-                      onBlur={() => setFieldError("activityDescription", formData.activityDescription.trim().length < 20)}
+                      maxLength={500}
+                      aria-describedby="activityDescription-hint"
+                      onFocus={() => setFocusedField("activityDescription")}
+                      onBlur={() => {
+                        setFieldError("activityDescription", formData.activityDescription.trim().length < 20);
+                        setFocusedField(null);
+                      }}
                       className={`${fieldErrors.activityDescription ? "border-sro-primary bg-red-50" : ""} min-h-[100px]`}
                       placeholder="Enter activity description"
                       value={formData.activityDescription}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value, true);
                         setFormData((prev) => ({ ...prev, activityDescription: value }));
                         if (value.trim().length >= 20) setFieldError("activityDescription", false);
                       }}
                     />
-                    {fieldErrors.activityDescription && (
-                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                        Must be at least 20 characters.
-                      </p>
-                    )}
+                    <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="activityDescription-hint">
+                      {fieldErrors.activityDescription ? (
+                        <p className="text-xs text-sro-primary font-medium">
+                          Must be at least 20 characters.
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      <CharacterCounter
+                        current={formData.activityDescription.length}
+                        max={500}
+                        visible={focusedField === "activityDescription"}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -805,33 +925,18 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">
                     Activity Type <span className="text-red-500">*</span>
                   </h3>
-                  <Select
+                  <UnifiedDropdown
+                    options={activityTypeOptions}
                     value={formData.selectedActivityType}
-                    onValueChange={(value) => {
+                    onChange={(value) => {
                       setFormData((prev) => ({ ...prev, selectedActivityType: value }));
-                      if (value.trim() !== "") setFieldError("activityType", false);
+                      setFieldError("activityType", false);
                     }}
-                    onBlur={() =>
-                      setFieldError("activityType", formData.selectedActivityType.trim() === "")
-                    }
-                  >
-                    <SelectTrigger
-                      id="activityType"
-                      className={cn(
-                        "w-full",
-                        fieldErrors.activityType && "border-sro-primary bg-red-50"
-                      )}
-                    >
-                      <SelectValue placeholder="Select activity type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activityTypeOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select activity type"
+                    valueKey="id"
+                    labelKey="label"
+                    error={fieldErrors.activityType}
+                  />
                   {fieldErrors.activityType && (
                     <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                       Please select an activity type.
@@ -885,11 +990,11 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Charging Fees? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="chargingFees"
-                    onBlur={() => setFieldError("chargingFees", formData.chargingFees1.trim() === "")}
                     value={formData.chargingFees1}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, chargingFees1: value }))
-                    }
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, chargingFees1: value }));
+                      setFieldError("chargingFees", false);
+                    }}
                     className={`${fieldErrors.chargingFees ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
                     {fieldErrors.chargingFees && (
@@ -917,11 +1022,10 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Partnering with a university unit or organization? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="partnering"
-                    onBlur={() => setFieldError("partnering", formData.partnering.trim() === "")}
                     value={formData.partnering}
                     onValueChange={(val) => {
                       setFormData((prev) => ({ ...prev, partnering: val }));
-                      if (val.trim() !== "") setFieldError("partnering", false);
+                      setFieldError("partnering", false);
                     }}
                     className={`${fieldErrors.partnering ? "border-sro-primary bg-red-50" : ""} space-y-3`}
                   >
@@ -966,12 +1070,13 @@ const ActivityForm = ({
                   <h3 className="text-sm font-medium mb-2">Recurring? <span className="text-red-500">*</span></h3>
                   <RadioGroup
                     id="recurring"
-                    onBlur={() => setFieldError("recurring", formData.recurring.trim() === "")}
                     value={formData.recurring}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, recurring: value }))
-                    }
-                    className={`${fieldErrors.recurring ? "border-sro-primary bg-red-50" : ""} space-y-3`}                                        >
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, recurring: value }));
+                      setFieldError("recurring", false);
+                    }}
+                    className={`${fieldErrors.recurring ? "border-sro-primary bg-red-50" : ""} space-y-3`}
+                  >
                     {fieldErrors.recurring && (
                       <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
                         Please select if the activity is recurring.
@@ -984,9 +1089,8 @@ const ActivityForm = ({
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="recurring" id="recurring" onBlur={() => setFieldError("recurring", formData.recurring.trim() === "")}
-                        className={fieldErrors.recurring ? "border-red-300 bg-red-50" : ""} />
-                      <label htmlFor="recurring" className="text-sm font-medium leading-none">
+                      <RadioGroupItem value="recurring" id="recurring-option" />
+                      <label htmlFor="recurring-option" className="text-sm font-medium leading-none">
                         Recurring
                       </label>
                     </div>
@@ -1041,7 +1145,7 @@ const ActivityForm = ({
                           })()
                       )}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         const chosen = new Date(value);
                         const minDate = new Date(minStartDate);
                         setFormData((prev) => ({ ...prev, startDate: value }));
@@ -1102,7 +1206,7 @@ const ActivityForm = ({
                         min={new Date().toISOString().split("T")[0]}
                         value={formData.endDate}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, endDate: value }));
 
                           const start = new Date(formData.startDate);
@@ -1132,7 +1236,7 @@ const ActivityForm = ({
                       type="time"
                       value={formData.startTime}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, startTime: value }));
                         if (value !== "") setFieldError("startTime", false);
                       }}
@@ -1153,7 +1257,7 @@ const ActivityForm = ({
                       type="time"
                       value={formData.endTime}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, endTime: value }));
                         if (value !== "") setFieldError("endTime", false);
                       }}
@@ -1256,47 +1360,80 @@ const ActivityForm = ({
                   <div>
                     <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
                     <Input
-                      id="venue" onBlur={() => setFieldError("venue", formData.venue.trim() === "" || formData.venue.length > 100)}
+                      id="venue"
+                      maxLength={100}
+                      aria-describedby="venue-hint"
+                      onFocus={() => setFocusedField("venue")}
+                      onBlur={() => {
+                        setFieldError("venue", formData.venue.trim() === "" || formData.venue.length > 100);
+                        setFocusedField(null);
+                      }}
                       className={fieldErrors.venue ? "border-sro-primary bg-red-50" : ""}
                       type="text"
                       placeholder="(Teatro Amianan, CS AVR, etc.)"
                       value={formData.venue}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = sanitizeInput(e.target.value);
                         setFormData((prev) => ({ ...prev, venue: value }));
                         if (value.trim() !== "" && value.length <= 100)
                           setFieldError("venue", false);
                       }}
                     />
-                    {fieldErrors.venue && (
-                      <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                        Venue must not exceed 100 characters.
-                      </p>
-                    )}
+                    <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="venue-hint">
+                      {fieldErrors.venue ? (
+                        <p className="text-xs text-sro-primary font-medium">
+                          Venue is required (max 100 chars).
+                        </p>
+                      ) : (
+                        <span />
+                      )}
+                      <CharacterCounter
+                        current={formData.venue.length}
+                        max={100}
+                        visible={focusedField === "venue"}
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h3 className="text-sm font-medium mb-2">Venue Approver <span className="text-red-500">*</span></h3>
                       <Input
                         id="venueApprover"
-                        onBlur={() => setFieldError("venueApprover", formData.venueApprover.trim().length < 3 || formData.venueApprover.length > 50)}
+                        maxLength={50}
+                        aria-describedby="venueApprover-hint"
+                        onFocus={() => setFocusedField("venueApprover")}
+                        onBlur={() => {
+                          setFieldError("venueApprover", formData.venueApprover.trim().length < 3 || formData.venueApprover.length > 50);
+                          setFocusedField(null);
+                        }}
                         className={`${fieldErrors.venueApprover ? "border-sro-primary bg-red-50" : ""} ${formData.isOffCampus === "yes" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         type="text"
                         placeholder="Ex. Lance Gabriel Sacdalan"
                         value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApprover}
                         disabled={formData.isOffCampus === "yes"}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, venueApprover: value }));
                           if (value.trim().length >= 3 && value.length <= 50)
                             setFieldError("venueApprover", false);
                         }}
                       />
-                      {fieldErrors.venueApprover && (
-                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                          Venue approver must be 3 to 50 characters.
-                        </p>
-                      )}
+                      <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="venueApprover-hint">
+                        {fieldErrors.venueApprover ? (
+                          <p className="text-xs text-sro-primary font-medium">
+                            Must be 3 to 50 characters.
+                          </p>
+                        ) : (
+                          <span />
+                        )}
+                        {formData.isOffCampus !== "yes" && (
+                          <CharacterCounter
+                            current={formData.venueApprover.length}
+                            max={50}
+                            visible={focusedField === "venueApprover"}
+                          />
+                        )}
+                      </div>
                     </div>
                     <div>
                       <h3 className="text-sm font-medium mb-2">Venue Approver Contact Info <span className="text-red-500">*</span></h3>
@@ -1314,7 +1451,7 @@ const ActivityForm = ({
                         value={formData.isOffCampus === "yes" ? "N/A" : formData.venueApproverContact}
                         disabled={formData.isOffCampus === "yes"}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, venueApproverContact: value }));
                           if (/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(value))
                             setFieldError("venueApproverContact", false);
@@ -1405,7 +1542,7 @@ const ActivityForm = ({
                                             value={value}
                                             onChange={(e) => {
                                               const updated = [...formData.selectedPublicAffairs["Others"]];
-                                              updated[index] = e.target.value;
+                                              updated[index] = sanitizeInput(e.target.value);
                                               setFormData((prev) => ({
                                                 ...prev,
                                                 selectedPublicAffairs: {
@@ -1463,18 +1600,22 @@ const ActivityForm = ({
 
                     <div>
                       <h3 className="text-sm font-medium mb-2">
-                        Description of Partner’s Role in the Activity <span className="text-red-500">*</span>
+                        Description of Partner's Role in the Activity <span className="text-red-500">*</span>
                       </h3>
                       <Input
                         id="partnerDescription"
                         type="text"
+                        maxLength={200}
+                        aria-describedby="partnerDescription-hint"
+                        onFocus={() => setFocusedField("partnerDescription")}
                         placeholder="Provide their role"
                         value={formData.partnerDescription}
-                        onBlur={() =>
-                          setFieldError("partnerDescription", formData.partnerDescription.trim().length < 3)
-                        }
+                        onBlur={() => {
+                          setFieldError("partnerDescription", formData.partnerDescription.trim().length < 3);
+                          setFocusedField(null);
+                        }}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value, true);
                           setFormData((prev) => ({
                             ...prev,
                             partnerDescription: value,
@@ -1485,6 +1626,20 @@ const ActivityForm = ({
                         }}
                         className={fieldErrors.partnerDescription ? "border-red-300 bg-red-50" : ""}
                       />
+                      <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="partnerDescription-hint">
+                        {fieldErrors.partnerDescription ? (
+                          <p className="text-xs text-sro-primary font-medium">
+                            At least 3 characters required.
+                          </p>
+                        ) : (
+                          <span />
+                        )}
+                        <CharacterCounter
+                          current={formData.partnerDescription.length}
+                          max={200}
+                          visible={focusedField === "partnerDescription"}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1494,21 +1649,39 @@ const ActivityForm = ({
                     <div>
                       <h3 className="text-sm font-medium mb-2">Green Campus Monitor <span className="text-red-500">*</span></h3>
                       <Input
-                        id="greenCampusMonitor" onBlur={() => setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50)} className={fieldErrors.greenCampusMonitor ? "border-sro-primary bg-red-50" : ""} type="text"
+                        id="greenCampusMonitor"
+                        maxLength={50}
+                        aria-describedby="greenCampusMonitor-hint"
+                        onFocus={() => setFocusedField("greenCampusMonitor")}
+                        onBlur={() => {
+                          setFieldError("greenCampusMonitor", formData.greenCampusMonitor.trim().length < 3 || formData.greenCampusMonitor.length > 50);
+                          setFocusedField(null);
+                        }}
+                        className={fieldErrors.greenCampusMonitor ? "border-sro-primary bg-red-50" : ""}
+                        type="text"
                         placeholder="Ex. Clarence Kyle Pagunsan"
                         value={formData.greenCampusMonitor}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, greenCampusMonitor: value }));
                           if (value.trim().length >= 3 && value.length <= 50)
                             setFieldError("greenCampusMonitor", false);
                         }}
                       />
-                      {fieldErrors.greenCampusMonitor && (
-                        <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                          Must be 3 to 50 characters.
-                        </p>
-                      )}
+                      <div className="flex justify-between items-start mt-1 px-1 flex-wrap gap-2" id="greenCampusMonitor-hint">
+                        {fieldErrors.greenCampusMonitor ? (
+                          <p className="text-xs text-sro-primary font-medium">
+                            Must be 3 to 50 characters.
+                          </p>
+                        ) : (
+                          <span />
+                        )}
+                        <CharacterCounter
+                          current={formData.greenCampusMonitor.length}
+                          max={50}
+                          visible={focusedField === "greenCampusMonitor"}
+                        />
+                      </div>
                     </div>
                     <div>
                       <h3 className="text-sm font-medium mb-2">Green Campus Monitor Contact Info <span className="text-red-500">*</span></h3>
@@ -1519,7 +1692,7 @@ const ActivityForm = ({
                         placeholder="09XXXXXXXXX or XXX@up.edu.ph"
                         value={formData.greenCampusMonitorContact}
                         onChange={(e) => {
-                          const value = e.target.value;
+                          const value = sanitizeInput(e.target.value);
                           setFormData((prev) => ({ ...prev, greenCampusMonitorContact: value }));
                           if (/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(value))
                             setFieldError("greenCampusMonitorContact", false);
@@ -1581,7 +1754,7 @@ const ActivityForm = ({
                   <br />
                   (Notice of Off-Campus Activity, Job Request Forms, etc.)
                 </p>
-                <p className="text-sm text-gray-600 font-bold mb-3">
+                <p className="text-sm text-gray-600 font-bold mb-3 break-all">
                   [LAST NAME OF REQUESTING STUDENT]_[ORG]_Activity Request
                   Form_(mm-dd-yyyy)
                   <br />
@@ -1599,97 +1772,21 @@ const ActivityForm = ({
                   </ul>
                 </div>
 
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setFormData((prev) => ({ ...prev, isDragActive: true }));
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    setFormData((prev) => ({ ...prev, isDragActive: false }));
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files?.[0];
-                    if (file?.type !== "application/pdf") {
-                      toast.error("Only PDF files are allowed.");
-                      return;
-                    }
-                    setFormData((prev) => ({ ...prev, selectedFile: file, isDragActive: false }));
-                  }}
-                  className={cn(
-                    "border-2 border-dashed p-4 rounded-md text-center transition-colors",
-                    formData.selectedFile
-                      ? "border-gray-300 bg-gray-50 cursor-not-allowed"
-                      : formData.isDragActive
-                        ? "border-green-600 bg-green-50"
-                        : "border-gray-300 hover:border-gray-400 hover:bg-muted"
-                  )}
-                >
-                  <label
-                    htmlFor="activityUpload"
-                    className={cn(
-                      "cursor-pointer flex flex-col items-center",
-                      formData.selectedFile && "cursor-not-allowed opacity-70"
-                    )}
-                  >
-                    <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                    <p className="text-sm">
-                      {formData.selectedFile
-                        ? "You cannot upload or drag files after completion."
-                        : formData.isDragActive
-                          ? "Drop the file here"
-                          : "Drag and Drop or Click to Upload File (1 required)"}
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      id="activityUpload"
-                      type="file"
-                      accept=".pdf"
-                      disabled={!!formData.selectedFile || isSubmitting}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file || file.type !== "application/pdf") {
-                          toast.error("Only PDF files are allowed.");
-                          return;
-                        }
-                        setFormData((prev) => ({ ...prev, selectedFile: file }));
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {formData.selectedFile && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium mb-1">Selected File</h4>
-                    <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
-                      <div className="flex items-center gap-2 truncate">
-                        <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                        <span className="truncate max-w-[240px]">{formData.selectedFile.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, selectedFile: null }));
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = null;
-                          }
-                        }}
-                        className="text-muted-foreground hover:text-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <FileDropzone
+                  files={formData.selectedFile ? [formData.selectedFile] : []}
+                  onFilesChange={(files) => setFormData((prev) => ({ ...prev, selectedFile: files[0] || null }))}
+                  maxFiles={1}
+                  disabled={isSubmitting}
+                  error={fieldErrors.selectedFile}
+                />
 
               </div>
 
-              <div className="flex justify-between">
+
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                 <Button
                   type="button"
-                  className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5"
+                  className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-5 w-full sm:w-auto"
                   onClick={() => handleMenuNavigation("specifications")}
                 >
                   Back
@@ -1698,7 +1795,7 @@ const ActivityForm = ({
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className={buttonClasses()}
+                  className={`${buttonClasses()} w-full sm:w-auto`}
                 >
                   {isSubmitting ? (
                     <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
@@ -1749,22 +1846,72 @@ const ActivityForm = ({
           </AlertDialog>
 
           <AlertDialog open={showSuccessDialog}>
-            <AlertDialogContent className="max-w-md mx-auto rounded-2xl p-8 bg-white/90 border border-sro-secondary/10 shadow-2xl text-center">
+            <AlertDialogContent className="rounded-xl border border-sro-secondary/20 shadow-2xl max-w-sm">
               <AlertDialogHeader>
                 <div className="flex flex-col items-center">
-                  <Check className="h-12 w-12 text-sro-secondary mb-3" />
-                  <AlertDialogTitle className="text-sro-secondary text-2xl font-bold mb-3 text-center">
+                  <div className="bg-sro-secondary/10 p-4 rounded-full mb-4 animate-in zoom-in duration-300">
+                    <Check className="h-10 w-10 text-sro-secondary" />
+                  </div>
+                  <AlertDialogTitle className="text-xl font-bold text-sro-secondary text-center">
                     {mode === "edit"
-                      ? "Edited Successfully!"
+                      ? "Changes Saved!"
                       : mode === "admin"
-                        ? "Created Successfully!"
-                        : "Submitted Successfully!"}
+                        ? "Activity Created!"
+                        : "Request Submitted!"}
                   </AlertDialogTitle>
-                  <AlertDialogDescription className="text-base font-medium text-gray-700 mb-2">
-                    You will be redirected to the dashboard...
+                  <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                    Your activity has been {mode === "edit" ? "updated" : "submitted"} successfully.
+                    <br />
+                    <span className="text-sm font-medium mt-3 block text-gray-500 animate-pulse">Redirecting to dashboard...</span>
                   </AlertDialogDescription>
                 </div>
               </AlertDialogHeader>
+            </AlertDialogContent>
+          </AlertDialog>
+
+
+          <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+            <AlertDialogContent className="rounded-xl border border-sro-secondary/20 shadow-2xl">
+              <AlertDialogHeader>
+                <div className="flex flex-col items-center">
+                  <div className="bg-sro-secondary/10 p-3 rounded-full mb-3">
+                    <FileText className="h-6 w-6 text-sro-secondary" />
+                  </div>
+                  <AlertDialogTitle className="text-xl font-bold text-sro-secondary text-center">
+                    Restore Previous Session?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                    We found an unsaved draft from your previous session. <br />
+                    Would you like to continue where you left off?
+                  </AlertDialogDescription>
+                </div>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.removeItem(DRAFT_KEY);
+                    setShowRestoreDialog(false);
+                    toast.info("Draft discarded", { description: "Started a fresh form." });
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  Start from Scratch
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (pendingDraft) {
+                      setFormData(prev => ({ ...prev, ...pendingDraft }));
+                      if (pendingSection) setCurrentSection(pendingSection);
+                      toast.success("Draft restored", { description: "Welcome back!" });
+                    }
+                    setShowRestoreDialog(false);
+                  }}
+                  className="bg-sro-secondary hover:bg-sro-secondary/90 w-full sm:w-auto text-white"
+                >
+                  Restore Draft
+                </Button>
+              </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
 
@@ -1806,7 +1953,7 @@ const ActivityForm = ({
 
         </form>
       </div>
-    </div>
+    </div >
   );
 };
 

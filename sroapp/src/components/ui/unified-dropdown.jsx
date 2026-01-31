@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,10 +17,13 @@ import { cn } from "@/lib/utils";
  * @param {string} props.searchPlaceholder - Placeholder for search input
  * @param {boolean} props.disabled - Disabled state
  * @param {boolean} props.error - Show error styling
+ * @param {boolean} props.loading - Show loading skeleton
  * @param {string} props.className - Additional classes for trigger
  * @param {string} props.contentClassName - Additional classes for content
  * @param {string} props.valueKey - Key to use for value in option objects (default: 'value')
  * @param {string} props.labelKey - Key to use for label in option objects (default: 'label')
+ * @param {string} props.id - HTML id attribute for accessibility
+ * @param {string} props.ariaDescribedBy - aria-describedby attribute for accessibility
  */
 function UnifiedDropdown({
     options = [],
@@ -32,10 +35,13 @@ function UnifiedDropdown({
     searchPlaceholder = "Search...",
     disabled = false,
     error = false,
+    loading = false,
     className,
     contentClassName,
     valueKey = "value",
     labelKey = "label",
+    id,
+    ariaDescribedBy,
 }) {
     const [open, setOpen] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState("");
@@ -77,13 +83,30 @@ function UnifiedDropdown({
         setOpen(false);
     };
 
+    // Loading skeleton
+    if (loading) {
+        return (
+            <div
+                className={cn(
+                    "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm h-auto min-h-[2.5rem] animate-pulse",
+                    className
+                )}
+            >
+                <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                <Loader2 className="ml-2 h-4 w-4 shrink-0 opacity-50 animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild disabled={disabled}>
                 <div
+                    id={id}
                     role="combobox"
                     aria-expanded={open}
                     aria-disabled={disabled}
+                    aria-describedby={ariaDescribedBy}
                     className={cn(
                         "w-full flex items-center justify-between border border-input bg-transparent rounded-md px-3 py-2 text-sm shadow-sm transition-colors cursor-pointer h-auto min-h-[2.5rem]",
                         "focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400",
@@ -99,7 +122,11 @@ function UnifiedDropdown({
                 </div>
             </PopoverTrigger>
 
-            <PopoverContent align="start" className={cn("w-full max-w-[90vw] sm:max-w-md p-0", contentClassName)}>
+            <PopoverContent
+                align="start"
+                className={cn("p-0", contentClassName)}
+                style={{ width: "var(--radix-popover-trigger-width)" }}
+            >
                 {searchable && (
                     <Input
                         placeholder={searchPlaceholder}

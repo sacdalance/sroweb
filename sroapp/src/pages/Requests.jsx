@@ -4,12 +4,15 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import supabase from "@/lib/supabase";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Pencil, X } from "lucide-react";
+import { X, AlertTriangle, Pencil } from "lucide-react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from 'sonner';
 import DataTable from "@/components/ui/DataTable";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
@@ -581,77 +584,115 @@ const Requests = () => {
 
       {/* Edit Submission Dialog */}
       <Dialog open={isAppealOpen} onOpenChange={setIsAppealOpen}>
-        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
+        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw] rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Edit Submission</DialogTitle>
-            <p className="text-sm text-red-700">
-              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR APPEAL.</strong>
-              <br /><br />
-              <strong>This is IRREVERSIBLE.</strong>
-            </p>
+            <DialogTitle className="text-xl font-bold text-sro-secondary text-center sm:text-left">
+              Edit Submission
+            </DialogTitle>
+            <DialogDescription className="text-center sm:text-left">
+              You will be redirected to a form prefilled with your activity data where you can edit it.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 mt-1">
-            <label htmlFor="appealReason" className="text-sm font-medium">Reason for Appeal</label>
-            <textarea
-              id="appealReason"
-              value={modalAppealReason}
-              onChange={(e) => setModalAppealReason(e.target.value)}
-              placeholder="Provide a reason for editing your submission..."
-              className="w-full p-2 border rounded-md text-sm resize-none"
-              rows={4}
-            />
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => {
-                  navigate("/edit-activity", { state: { activity: editingActivity, appealReason: modalAppealReason } });
-                  setIsAppealOpen(false);
-                  setModalAppealReason("");
-                }}
-                disabled={modalAppealReason.trim() === ""}
-                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${modalAppealReason.trim() === ""
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-sro-secondary hover:bg-sro-secondary/90"
-                  }`}
-              >
-                Edit Submission
-              </button>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex flex-col items-center sm:flex-row sm:items-start gap-3 my-2 text-center sm:text-left">
+            <AlertTriangle className="hidden sm:block h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800 flex-1">
+              <p className="font-semibold mb-1">Warning: Irreversible Action</p>
+              <p>Editing your submission will revert its status to <strong>FOR APPEAL</strong>. You will need to wait for approval again.</p>
             </div>
           </div>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="appealReason" className="text-sm font-medium">Reason for Appeal</Label>
+              <Textarea
+                id="appealReason"
+                value={modalAppealReason}
+                onChange={(e) => setModalAppealReason(e.target.value)}
+                placeholder="Please describe why you need to edit this submission..."
+                className="resize-none min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAppealOpen(false);
+                setModalAppealReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-sro-secondary hover:bg-sro-secondary/90 text-white"
+              onClick={() => {
+                navigate("/edit-activity", { state: { activity: editingActivity, appealReason: modalAppealReason } });
+                setIsAppealOpen(false);
+                setModalAppealReason("");
+              }}
+              disabled={!modalAppealReason.trim()}
+            >
+              Proceed to Edit
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel Submission Dialog */}
+      {/* Cancel Submission Dialog */}
       <Dialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
-        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw]">
+        <DialogContent className="sm:max-w-md w-[90vw] max-w-[90vw] rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Cancel Submission</DialogTitle>
-            <p className="text-sm text-red-700">
-              WARNING: Editing your submission will change your request from [APPROVED/PENDING] to <strong>FOR CANCELLATION.</strong> <br /><br /><strong>This is IRREVERSIBLE.</strong>
-            </p>
+            <DialogTitle className="text-xl font-bold text-sro-primary text-center sm:text-left">
+              Cancel Submission
+            </DialogTitle>
+            <DialogDescription className="text-center sm:text-left">
+              Completely withdraw your activity request.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 mt-1">
-            <label htmlFor="cancelReason" className="text-sm font-medium">Reason for Cancellation</label>
-            <textarea
-              id="cancelReason"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Provide a reason for cancelling your submission..."
-              className="w-full p-2 border rounded-md text-sm resize-none"
-              rows={4}
-            />
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={handleCancel}
-                disabled={cancelReason.trim() === ""}
-                className={`px-4 py-2 cursor-pointer rounded-md text-white font-medium transition ${cancelReason.trim() === ""
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-sro-primary hover:bg-sro-primary/90"
-                  }`}
-              >
-                Cancel Submission
-              </button>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex flex-col items-center sm:flex-row sm:items-start gap-3 my-2 text-center sm:text-left">
+            <AlertTriangle className="hidden sm:block h-5 w-5 text-sro-primary shrink-0 mt-0.5" />
+            <div className="text-sm text-sro-primary flex-1">
+              <p className="font-semibold mb-1">Warning: Irreversible Action</p>
+              <p>Cancelling your submission will change its status to <strong>FOR CANCELLATION</strong>. This cannot be undone.</p>
             </div>
           </div>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="cancelReason" className="text-sm font-medium">Reason for Cancellation</Label>
+              <Textarea
+                id="cancelReason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please explain why you are cancelling this submission..."
+                className="resize-none min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCancelOpen(false);
+                setCancelReason("");
+              }}
+            >
+              Keep Submission
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-sro-primary hover:bg-sro-primary/90"
+              onClick={handleCancel}
+              disabled={!cancelReason.trim()}
+            >
+              Confirm Cancellation
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

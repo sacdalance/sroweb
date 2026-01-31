@@ -581,6 +581,7 @@ const UnifiedActivitiesCalendar = ({
             <DialogComponent
               activity={selectedEvent}
               isModalOpen={isDialogOpen}
+              showAddToCalendar={true}
             />
           )
         )}
