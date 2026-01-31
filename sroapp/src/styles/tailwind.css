@@ -167,6 +167,9 @@
   .status-badge-on-probation,
   .status-badge-suspended,
   .status-badge-inactive,
+  .status-badge-scheduled,
+  .status-badge-confirmed,
+  .status-badge-reschedule-pending,
   .status-badge-default {
     display: inline-flex;
     align-items: center;
@@ -233,6 +236,22 @@
   .status-badge-inactive {
     background-color: #e5e7eb;
     color: #4b5563;
+  }
+
+  /* Appointment Status Badges */
+  .status-badge-scheduled {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending-text);
+  }
+
+  .status-badge-confirmed {
+    background-color: var(--sro-secondary);
+    color: white;
+  }
+
+  .status-badge-reschedule-pending {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending-text);
   }
 
   /* Default fallback - Gray */

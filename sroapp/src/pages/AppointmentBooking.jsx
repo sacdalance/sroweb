@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
@@ -9,6 +9,9 @@ import { Calendar } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import DataTable from "@/components/ui/DataTable";
+import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -83,7 +86,6 @@ const AppointmentBooking = () => {
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
-  const [showExistingAppointments, setShowExistingAppointments] = useState(false);
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userAccountId, setUserAccountId] = useState(null);
@@ -487,338 +489,361 @@ const AppointmentBooking = () => {
     }
   };
 
+  // Column definitions for appointments table
+  const appointmentColumns = useMemo(() => [
+    {
+      key: "reason",
+      header: "Reason",
+      width: "w-[18%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium capitalize" title={row.reason || "Not Specified"}>
+          {row.reason || "Not Specified"}
+        </span>
+      ),
+    },
+    {
+      key: "specified_reason",
+      header: "Subject",
+      width: "w-[22%]",
+      sortable: true,
+      render: (row) => (
+        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.specified_reason || "No Specified Reason"}>
+          {row.specified_reason || "No Specified Reason"}
+        </span>
+      ),
+    },
+    {
+      key: "appointment_date",
+      header: "Date",
+      width: "w-[12%]",
+      sortable: true,
+      sortAccessor: (row) => row.appointment_date,
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.appointment_date).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "appointment_time",
+      header: "Time",
+      width: "w-[10%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(`2000-01-01T${row.appointment_time}`).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "meeting_mode",
+      header: "Mode",
+      width: "w-[10%]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-600 capitalize">
+          {row.meeting_mode || "Face-to-face"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "w-[13%]",
+      sortable: true,
+      isStatus: true,
+      accessor: (row) => row.status || "scheduled",
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: "w-[15%]",
+      render: (row) => (
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            setReschedulingAppointment(row);
+            setRescheduleData({ date: null, time: "" });
+            setRescheduleReason("");
+          }}
+          disabled={row.status !== 'scheduled'}
+          size="sm"
+          className={`text-xs ${row.status === 'scheduled'
+            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
+            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
+            }`}
+        >
+          Reschedule
+        </Button>
+      ),
+    },
+  ], []);
+
   return (
     <div className="container mx-auto py-8 max-w-6xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="page-header text-black">
-          {showExistingAppointments ? "My Appointments" : "Book Appointment"}
-        </h1>
-        {user && (
-          <Button
-            onClick={() => setShowExistingAppointments(!showExistingAppointments)}
-            className="bg-sro-primary hover:bg-sro-primary/90 text-white"
-          >
-            {showExistingAppointments ? "← Back" : "My Appointments"}
-          </Button>
-        )}
-      </div>
+      <h1 className="page-header text-black text-center md:text-left">Appointments</h1>
 
-      {showExistingAppointments ? (
-        <div>
+      <Tabs defaultValue="booking" className="w-full">
+        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
+          <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
+          {user && (
+            <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* My Appointments Tab */}
+        <TabsContent value="appointments">
           {loading ? (
             <LoadingSpinner text="Loading your appointments..." variant="section" />
-          ) : existingAppointments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You don't have any upcoming appointments.</p>
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="mt-4 bg-sro-primary hover:bg-sro-primary/90 text-white"
-              >
-                Book Appointment
-              </Button>
-            </div>
           ) : (
-            <div className="space-y-4">
-              {existingAppointments.map((appointment) => (
-                <Card key={appointment.id} className="shadow-sm">
-                  <CardContent className="py-2 px-4">
-                    <div className="flex justify-between items-center gap-4">
-                      <div className="py-0.5">
-                        <h3 className="font-medium text-sro-primary capitalize">
-                          {appointment.reason || "Not Specified"}
-                        </h3>
-                        <div className="text-sm text-gray-600">
-                          <span>{new Date(appointment.appointment_date).toLocaleDateString()}</span>
-                          <span className="mx-2">|</span>
-                          <span>
-                            {new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
-                          </span>
-                          <span className="mx-2">|</span>
-                          <span>{appointment.meeting_mode || "Face-to-face"}</span>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {appointment.specified_reason || "No Specified Reason"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${appointment.status === "scheduled" ? "bg-amber-100 text-amber-700" :
-                          appointment.status === "confirmed" ? "bg-sro-secondary/20 text-sro-secondary" :
-                            appointment.status === "cancelled" ? "bg-red-100 text-red-700" :
-                              appointment.status === "reschedule-pending" ? "bg-amber-100 text-amber-700" :
-                                "bg-gray-100 text-gray-700"
-                          }`}>
-                          {appointment.status}
-                        </span>
-                        <Button
-                          onClick={() => {
-                            setReschedulingAppointment(appointment);
-                            setRescheduleData({ date: null, time: "" });
-                            setRescheduleReason("");
-                          }}
-                          disabled={appointment.status !== 'scheduled'}
-                          size="sm"
-                          className={`text-xs ${appointment.status === 'scheduled'
-                            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
-                            }`}
-                        >
-                          Reschedule
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button
-                onClick={() => setShowExistingAppointments(false)}
-                className="w-full bg-sro-primary hover:bg-sro-primary/90 text-white"
-              >
-                Book Another Appointment
-              </Button>
-            </div>
+            <DataTable
+              columns={appointmentColumns}
+              data={existingAppointments.map(apt => ({ ...apt, id: apt.id }))}
+              emptyMessage="You don't have any upcoming appointments."
+            />
           )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
-              <div className="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
-                    <li>Appointments must be booked at least one day in advance.</li>
-                    <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
-                    <li>Available times are shown after selecting a date.</li>
-                    <li>Your booking will be confirmed by the SRO via E-mail.</li>
-                  </ul>
+        </TabsContent>
+
+        {/* Book Appointment Tab */}
+        <TabsContent value="booking">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
+                <div className="flex items-start">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
+                    <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
+                      <li>Appointments must be booked at least one day in advance.</li>
+                      <li>You can book appointments up to {settings?.advance_days || 14} days ahead.</li>
+                      <li>Available times are shown after selecting a date.</li>
+                      <li>Your booking will be confirmed by the SRO via E-mail.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Reason for Visit
-                </label>
-                <select
-                  name="reason"
-                  value={formData.reason}
-                  onChange={(e) => handleFieldChange("reason", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.reason ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  required
-                >
-                  <option value="">Select a reason</option>
-                  <option value="Consultation">Consultation</option>
-                  <option value="Document Processing">Document Processing</option>
-                  <option value="Org Recognition Interview">Org Recognition Interview</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Reason for Visit
+                  </label>
+                  <UnifiedDropdown
+                    options={[
+                      { value: "Consultation", label: "Consultation" },
+                      { value: "Document Processing", label: "Document Processing" },
+                      { value: "Org Recognition Interview", label: "Org Recognition Interview" },
+                      { value: "Other", label: "Other" }
+                    ]}
+                    value={formData.reason}
+                    onChange={(val) => handleFieldChange("reason", val)}
+                    placeholder="Select a reason"
+                    error={!!errors.reason}
+                  />
+                  {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={(e) => handleFieldChange("subject", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  placeholder="Specify the reason for visit..."
-                  required
-                />
-                {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Meeting Mode
-                </label>
-                <select
-                  name="mode"
-                  value={formData.mode}
-                  onChange={(e) => handleFieldChange("mode", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.mode ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  required
-                >
-                  <option value="">Select mode</option>
-                  <option value="face-to-face">Face-to-face</option>
-                  <option value="online">Online</option>
-                </select>
-                {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) => handleFieldChange("email", e.target.value)}
-                  className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                    }`}
-                  placeholder="delpilarmh@up.edu.ph"
-                  required
-                />
-                {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Contact Number
-                </label>
-                <div className="space-y-1">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Subject
+                  </label>
                   <input
-                    type="tel"
-                    name="contact"
-                    value={formData.contact}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      if (value.length <= 11) {
-                        handleFieldChange("contact", value);
-                      }
-                    }}
-                    className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
+                    type="text"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={(e) => handleFieldChange("subject", e.target.value)}
+                    className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
                       }`}
-                    placeholder="(09XXXXXXXXX)"
-                    maxLength="11"
+                    placeholder="Specify the reason for visit..."
                     required
                   />
-                  {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
-                  <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
+                  {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Additional Notes (Optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full p-2 border rounded-md text-sm h-24"
-                  placeholder="Add any additional information that might be helpful..."
-                ></textarea>
-              </div>
-            </form>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Meeting Mode
+                  </label>
+                  <UnifiedDropdown
+                    options={[
+                      { value: "face-to-face", label: "Face-to-face" },
+                      { value: "online", label: "Online" }
+                    ]}
+                    value={formData.mode}
+                    onChange={(val) => handleFieldChange("mode", val)}
+                    placeholder="Select mode"
+                    error={!!errors.mode}
+                  />
+                  {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
+                </div>
 
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <CustomCalendar
-                  mode="appointments"
-                  currentMonth={currentMonth}
-                  selectedDate={selectedDate}
-                  onDateSelect={handleDateSelect}
-                  onMonthChange={setCurrentMonth}
-                  blockedDates={blockedDates}
-                  datesWithAppointments={datesWithAppointments}
-                  isDateAvailable={isDateAvailable}
-                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                    className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
+                      }`}
+                    placeholder="delpilarmh@up.edu.ph"
+                    required
+                  />
+                  {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+                </div>
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
-                    <span>Selected</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
-                    <span>Today</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
-                    <span>Available</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
-                    <span>Blocked</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
-                    <span>Unavailable</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
-                    <span>Has Appointments</span>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Contact Number
+                  </label>
+                  <div className="space-y-1">
+                    <input
+                      type="tel"
+                      name="contact"
+                      value={formData.contact}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        if (value.length <= 11) {
+                          handleFieldChange("contact", value);
+                        }
+                      }}
+                      className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
+                        }`}
+                      placeholder="(09XXXXXXXXX)"
+                      maxLength="11"
+                      required
+                    />
+                    {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
+                    <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {selectedDate && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
-                {timeSlotLoading ? (
-                  <div className="text-center py-4">
-                    <span className="text-sm text-gray-600">Loading available time slots...</span>
-                  </div>
-                ) : timeSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map((slot) => (
-                      <button
-                        key={slot.time}
-                        onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
-                        className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
-                          ? 'bg-sro-secondary text-white'
-                          : slot.booked
-                            ? 'bg-sro-primary text-white cursor-not-allowed'
-                            : slot.blocked
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                          }`}
-                        disabled={!slot.available}
-                      >
-                        {slot.time}
-                        {slot.booked && <span className="block text-xs">(Booked)</span>}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <span className="text-sm text-red-600">No time slots available for this date</span>
-                  </div>
-                )}
-              </div>
-            )}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Additional Notes (Optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full p-2 border rounded-md text-sm h-24"
+                    placeholder="Add any additional information that might be helpful..."
+                  ></textarea>
+                </div>
+              </form>
+            </div>
 
-            <Button
-              type="submit"
-              className={`w-full text-white ${isFormValid()
-                ? 'bg-sro-primary hover:bg-sro-primary/90'
-                : 'bg-gray-400 cursor-not-allowed'
-                }`}
-              disabled={submitting || !isFormValid()}
-              onClick={handleSubmit}
-            >
-              {submitting ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Booking Appointment...
-                </>
-              ) : (
-                'Book Appointment'
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <CustomCalendar
+                    mode="appointments"
+                    currentMonth={currentMonth}
+                    selectedDate={selectedDate}
+                    onDateSelect={handleDateSelect}
+                    onMonthChange={setCurrentMonth}
+                    blockedDates={blockedDates}
+                    datesWithAppointments={datesWithAppointments}
+                    isDateAvailable={isDateAvailable}
+                  />
+
+                  <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
+                      <span>Selected</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
+                      <span>Today</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
+                      <span>Available</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
+                      <span>Blocked</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
+                      <span>Unavailable</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
+                      <span>Has Appointments</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {selectedDate && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Time Slot</label>
+                  {timeSlotLoading ? (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-gray-600">Loading available time slots...</span>
+                    </div>
+                  ) : timeSlots.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
+                          className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
+                            ? 'bg-sro-secondary text-white'
+                            : slot.booked
+                              ? 'bg-sro-primary text-white cursor-not-allowed'
+                              : slot.blocked
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                          disabled={!slot.available}
+                        >
+                          {slot.time}
+                          {slot.booked && <span className="block text-xs">(Booked)</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-sm text-red-600">No time slots available for this date</span>
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
+
+              <Button
+                type="submit"
+                className={`w-full text-white ${isFormValid()
+                  ? 'bg-sro-primary hover:bg-sro-primary/90'
+                  : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                disabled={submitting || !isFormValid()}
+                onClick={handleSubmit}
+              >
+                {submitting ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Booking Appointment...
+                  </>
+                ) : (
+                  'Book Appointment'
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
+
       <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>

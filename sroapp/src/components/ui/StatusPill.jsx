@@ -27,20 +27,47 @@ const getStatusClass = (status) => {
     'on-probation': 'status-badge-on-probation',
     'suspended': 'status-badge-suspended',
     'inactive': 'status-badge-inactive',
+    // Appointment statuses
+    'scheduled': 'status-badge-scheduled',
+    'confirmed': 'status-badge-confirmed',
+    'reschedule-pending': 'status-badge-reschedule-pending',
   };
 
   return statusMap[normalizedStatus] || 'status-badge-default';
 };
 
+// Format status text to proper Normal Case (e.g., "reschedule-pending" -> "Reschedule Pending")
+const formatDisplayText = (status) => {
+  if (!status) return 'Unknown';
+
+  // Special cases for specific formatting
+  const specialCases = {
+    'odsa-pending': 'ODSA Pending',
+  };
+
+  const normalized = status.toLowerCase().replace(/\s+/g, '-');
+  if (specialCases[normalized]) {
+    return specialCases[normalized];
+  }
+
+  // Convert hyphenated or underscored text to Normal Case
+  return status
+    .replace(/[-_]/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function StatusPill({ status }) {
   const statusClass = getStatusClass(status);
+  const displayText = formatDisplayText(status);
 
   return (
     <span
       className={statusClass}
       title={status}
     >
-      {status}
+      {displayText}
     </span>
   );
 }
