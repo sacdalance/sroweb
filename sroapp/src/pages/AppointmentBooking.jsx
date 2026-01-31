@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
@@ -97,6 +97,7 @@ const AppointmentBooking = () => {
   const [rescheduleData, setRescheduleData] = useState({ date: null, time: "" });
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
+  const [activeTab, setActiveTab] = useState("booking");
 
   // Fetch initial data
   useEffect(() => {
@@ -448,7 +449,8 @@ const AppointmentBooking = () => {
       // Refresh appointments list if user is logged in
       if (user && userAccountId) {
         loadUserAppointments(userAccountId);
-        setShowExistingAppointments(true);
+        // Switch to My Appointments tab to show the new booking
+        setActiveTab("appointments");
       }
     } catch (error) {
       console.error("Error booking appointment:", error);
@@ -586,9 +588,10 @@ const AppointmentBooking = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-6xl">
+      <Toaster position="top-center" richColors />
       <h1 className="page-header text-black text-center md:text-left">Appointments</h1>
 
-      <Tabs defaultValue="booking" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
           <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
           {user && (
@@ -633,7 +636,7 @@ const AppointmentBooking = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Reason for Visit
+                    Reason for Visit <span className="text-red-500">*</span>
                   </label>
                   <UnifiedDropdown
                     options={[
@@ -647,29 +650,31 @@ const AppointmentBooking = () => {
                     placeholder="Select a reason"
                     error={!!errors.reason}
                   />
-                  {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
+                  {errors.reason && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.reason}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Subject
+                    Subject <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <Input
                     type="text"
                     name="subject"
                     value={formData.subject}
                     onChange={(e) => handleFieldChange("subject", e.target.value)}
-                    className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                      }`}
+                    className={errors.subject ? 'border-sro-primary bg-red-50' : ''}
                     placeholder="Specify the reason for visit..."
-                    required
                   />
-                  {errors.subject && <p className="mt-1 text-xs text-red-500">{errors.subject}</p>}
+                  {errors.subject && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.subject}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Meeting Mode
+                    Meeting Mode <span className="text-red-500">*</span>
                   </label>
                   <UnifiedDropdown
                     options={[
@@ -681,109 +686,108 @@ const AppointmentBooking = () => {
                     placeholder="Select mode"
                     error={!!errors.mode}
                   />
-                  {errors.mode && <p className="mt-1 text-xs text-red-500">{errors.mode}</p>}
+                  {errors.mode && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.mode}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <Input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={(e) => handleFieldChange("email", e.target.value)}
-                    className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                      }`}
+                    className={errors.email ? 'border-sro-primary bg-red-50' : ''}
                     placeholder="delpilarmh@up.edu.ph"
-                    required
                   />
-                  {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+                  {errors.email && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.email}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Contact Number
+                    Contact Number <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-1">
-                    <input
-                      type="tel"
-                      name="contact"
-                      value={formData.contact}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        if (value.length <= 11) {
-                          handleFieldChange("contact", value);
-                        }
-                      }}
-                      className={`w-full p-2 border rounded-md ${errors.contact ? 'border-red-500 focus:ring-red-500' : 'focus:ring-sro-secondary focus:border-sro-secondary'
-                        }`}
-                      placeholder="(09XXXXXXXXX)"
-                      maxLength="11"
-                      required
-                    />
-                    {errors.contact && <p className="mt-1 text-xs text-red-500">{errors.contact}</p>}
-                    <p className="text-xs text-gray-500">Format: 09XXXXXXXXX (11 digits)</p>
-                  </div>
+                  <Input
+                    type="tel"
+                    name="contact"
+                    inputMode="numeric"
+                    value={formData.contact}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 11) {
+                        handleFieldChange("contact", value);
+                      }
+                    }}
+                    className={errors.contact ? 'border-sro-primary bg-red-50' : ''}
+                    placeholder="09XXXXXXXXX"
+                    maxLength="11"
+                  />
+                  {errors.contact && (
+                    <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{errors.contact}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Format: 09XXXXXXXXX (11 digits)</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Additional Notes (Optional)
+                    Additional Notes
                   </label>
-                  <textarea
+                  <Textarea
                     name="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full p-2 border rounded-md text-sm h-24"
+                    className="min-h-[100px]"
                     placeholder="Add any additional information that might be helpful..."
-                  ></textarea>
+                  />
                 </div>
               </form>
             </div>
 
             <div className="space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  <CustomCalendar
-                    mode="appointments"
-                    currentMonth={currentMonth}
-                    selectedDate={selectedDate}
-                    onDateSelect={handleDateSelect}
-                    onMonthChange={setCurrentMonth}
-                    blockedDates={blockedDates}
-                    datesWithAppointments={datesWithAppointments}
-                    isDateAvailable={isDateAvailable}
-                  />
+              <div>
+                <CustomCalendar
+                  mode="appointments"
+                  currentMonth={currentMonth}
+                  selectedDate={selectedDate}
+                  onDateSelect={handleDateSelect}
+                  onMonthChange={setCurrentMonth}
+                  blockedDates={blockedDates}
+                  datesWithAppointments={datesWithAppointments}
+                  isDateAvailable={isDateAvailable}
+                />
 
-                  <div className="mt-4 flex flex-wrap gap-4 text-xs">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
-                      <span>Selected</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
-                      <span>Today</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
-                      <span>Available</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
-                      <span>Blocked</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
-                      <span>Unavailable</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
-                      <span>Has Appointments</span>
-                    </div>
+                <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-sro-secondary rounded-full mr-1"></div>
+                    <span>Selected</span>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 border-2 border-sro-secondary rounded-full mr-1"></div>
+                    <span>Today</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-sro-secondary/20 mr-1 flex items-center justify-center font-bold text-sro-secondary">A</div>
+                    <span>Available</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-sro-primary mr-1 flex items-center justify-center font-bold">B</div>
+                    <span>Blocked</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 text-gray-600 mr-1 flex items-center justify-center font-bold">U</div>
+                    <span>Unavailable</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-amber-100 text-amber-700 mr-1 flex items-center justify-center font-bold">A</div>
+                    <span>Has Appointments</span>
+                  </div>
+                </div>
+              </div>
 
               {selectedDate && (
                 <div className="mt-4">
@@ -823,21 +827,14 @@ const AppointmentBooking = () => {
 
               <Button
                 type="submit"
-                className={`w-full text-white ${isFormValid()
-                  ? 'bg-sro-primary hover:bg-sro-primary/90'
-                  : 'bg-gray-400 cursor-not-allowed'
+                className={`w-full text-white ${submitting || !isFormValid()
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-sro-primary hover:bg-sro-primary/90'
                   }`}
                 disabled={submitting || !isFormValid()}
                 onClick={handleSubmit}
               >
-                {submitting ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Booking Appointment...
-                  </>
-                ) : (
-                  'Book Appointment'
-                )}
+                {submitting ? 'Booking...' : 'Book Appointment'}
               </Button>
             </div>
           </div>
