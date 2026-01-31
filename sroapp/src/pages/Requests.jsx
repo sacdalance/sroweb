@@ -513,20 +513,19 @@ const Requests = () => {
   ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="page-header text-black">My Requests</h1>
+    <div className="p-3 md:p-6 max-w-6xl mx-auto">
+      <h1 className="page-header text-black text-center md:text-left">My Requests</h1>
 
       <Tabs defaultValue="requested" className="w-full">
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg">
-          <TabsTrigger value="requested" className="px-4 py-2 text-sm font-medium">Activity Requests</TabsTrigger>
-          <TabsTrigger value="approved" className="px-4 py-2 text-sm font-medium">Approved Activities</TabsTrigger>
-          <TabsTrigger value="recognition" className="px-4 py-2 text-sm font-medium">Org Recognition</TabsTrigger>
-          <TabsTrigger value="reports" className="px-4 py-2 text-sm font-medium">Annual Reports</TabsTrigger>
+        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
+          <TabsTrigger value="requested" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Activity Requests</TabsTrigger>
+          <TabsTrigger value="approved" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Approved Activities</TabsTrigger>
+          <TabsTrigger value="recognition" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Org Recognition</TabsTrigger>
+          <TabsTrigger value="reports" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Annual Reports</TabsTrigger>
         </TabsList>
 
         {/* Activity Requests Tab */}
         <TabsContent value="requested">
-          <h2 className="text-lg font-semibold mb-4">Activity Requests</h2>
           <DataTable
             columns={requestedColumns}
             data={requested.map(act => ({ ...act, id: act.activity_id }))}
@@ -537,7 +536,6 @@ const Requests = () => {
 
         {/* Approved Activities Tab */}
         <TabsContent value="approved">
-          <h2 className="text-lg font-semibold mb-4">Approved Activities</h2>
           <DataTable
             columns={approvedColumns}
             data={approved.map(act => ({ ...act, id: act.activity_id }))}
@@ -548,7 +546,6 @@ const Requests = () => {
 
         {/* Org Recognition Tab */}
         <TabsContent value="recognition">
-          <h2 className="text-lg font-semibold mb-4">Pending Recognition Applications</h2>
           <DataTable
             columns={pendingRecognitionColumns}
             data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
@@ -556,7 +553,7 @@ const Requests = () => {
             className="mb-8"
           />
 
-          <h2 className="text-lg font-semibold mb-4">Approved Recognition Applications</h2>
+          <h2 className="text-lg font-semibold mb-4 text-center md:text-left mt-8">Approved Recognition Applications</h2>
           <DataTable
             columns={approvedRecognitionColumns}
             data={approvedRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
@@ -566,7 +563,6 @@ const Requests = () => {
 
         {/* Annual Reports Tab */}
         <TabsContent value="reports">
-          <h2 className="text-lg font-semibold mb-4">Annual Reports</h2>
           <DataTable
             columns={annualReportsColumns}
             data={annualReports.map(report => ({ ...report, id: report.report_id }))}

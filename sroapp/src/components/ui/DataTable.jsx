@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, LayoutGrid, Table as TableIcon } from "lucide-react";
 import PropTypes from "prop-types";
 import StatusPill from "@/components/ui/StatusPill";
 
 /**
- * A reusable data table component with sorting, filtering, pagination, and truncation support.
- * 
+ * A reusable data table component with sorting, filtering, pagination, truncation support, and toggleable Card/Table view.
+ *
  * @param {Object} props
  * @param {Array} columns - Column definitions
  * @param {Array} data - Array of row objects
@@ -26,6 +26,30 @@ const DataTable = ({
     defaultPageSize = 10,
     pageSizeOptions = [10, 25, 50],
 }) => {
+    // View Mode State (card vs table)
+    const [viewMode, setViewMode] = useState("table");
+
+    // Initialize view mode based on screen size
+    useEffect(() => {
+        const handleResize = () => {
+            // Only auto-switch if user hasn't manually toggled?
+            // Ideally we just check if it matches mobile break point on load.
+            // For simplicity, let's just default to card on mobile, table on desktop initially.
+            if (window.innerWidth < 768) {
+                setViewMode("card");
+            } else {
+                setViewMode("table");
+            }
+        };
+
+        // Run once on mount
+        handleResize();
+
+        // Optional: Listen to resize if we want auto-switching when resizing browser
+        // window.addEventListener('resize', handleResize);
+        // return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
@@ -154,6 +178,13 @@ const DataTable = ({
 
         if (col.isStatus) {
             const value = col.accessor ? col.accessor(row) : row[col.key];
+            if (viewMode === "table") {
+                return (
+                    <div className="flex justify-center w-full">
+                        <StatusPill status={value || "Unknown"} />
+                    </div>
+                );
+            }
             return <StatusPill status={value || "Unknown"} />;
         }
 
@@ -197,86 +228,166 @@ const DataTable = ({
 
     return (
         <div className={className}>
-            {/* Inline Filters Row */}
-            {hasFilters && (
-                <div className="flex flex-wrap gap-4 mb-4">
-                    {columns
-                        .filter((col) => col.filterable && col.filterOptions)
-                        .map((col) => {
-                            const allLabel = getAllLabel(col);
+            {/* Controls Row: Filters + View Toggle */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                {/* Filters */}
+                {hasFilters ? (
+                    <div className="flex flex-wrap gap-4 justify-center md:justify-start flex-1">
+                        {columns
+                            .filter((col) => col.filterable && col.filterOptions)
+                            .map((col) => {
+                                const allLabel = getAllLabel(col);
+                                return (
+                                    <UnifiedDropdown
+                                        key={col.key}
+                                        options={[allLabel, ...col.filterOptions]}
+                                        value={filters[col.key] || allLabel}
+                                        onChange={(value) => handleFilterChange(col.key, value)}
+                                        placeholder={allLabel}
+                                        searchable={col.filterOptions?.length > 5}
+                                        searchPlaceholder={`Search ${(col.filterLabel || col.header).toLowerCase()}...`}
+                                        className="w-full sm:w-48"
+                                    />
+                                );
+                            })}
+                    </div>
+                ) : <div className="flex-1"></div>}
+
+                {/* View Mode Toggle */}
+                <div className="flex justify-center md:justify-end">
+                    <div className="inline-flex rounded-md shadow-sm border bg-white p-1">
+                        <button
+                            onClick={() => setViewMode("table")}
+                            className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${viewMode === "table"
+                                ? "bg-gray-100 text-sro-primary"
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                }`}
+                            title="Table View"
+                        >
+                            <TableIcon className="h-4 w-4" />
+                            <span className="hidden sm:inline">Table</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode("card")}
+                            className={`p-1.5 rounded flex items-center gap-1.5 text-sm font-medium transition-colors ${viewMode === "card"
+                                ? "bg-gray-100 text-sro-primary"
+                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                }`}
+                            title="Card View"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                            <span className="hidden sm:inline">Cards</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Table View */}
+            {viewMode === "table" && (
+                <Card className="w-full shadow-sm border">
+                    <CardContent className="p-0">
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-sm table-fixed min-w-[1000px]">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        {columns.map((col) => (
+                                            <th
+                                                key={col.key}
+                                                className={`px-4 py-3 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
+                                            >
+                                                {col.sortable ? (
+                                                    <button
+                                                        onClick={() => handleSort(col.key)}
+                                                        className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
+                                                    >
+                                                        <span>{col.header}</span>
+                                                        {getSortIcon(col.key)}
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-full text-center">
+                                                        {col.header}
+                                                    </div>
+                                                )}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {paginatedData.length > 0 ? (
+                                        paginatedData.map((row, rowIndex) => (
+                                            <tr
+                                                key={row.id || rowIndex}
+                                                onClick={() => onRowClick?.(row)}
+                                                className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
+                                            >
+                                                {columns.map((col) => (
+                                                    <td
+                                                        key={col.key}
+                                                        className={`px-4 py-3 text-sm text-center ${col.cellClassName || ""}`}
+                                                    >
+                                                        {renderCell(row, col)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={columns.length} className="py-8 text-center text-gray-500">
+                                                {emptyMessage}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Card View */}
+            {viewMode === "card" && (
+                <div className="space-y-4">
+                    {paginatedData.length > 0 ? (
+                        paginatedData.map((row, rowIndex) => {
+                            const actionCol = columns.find(col => col.key === 'actions');
+                            const dataCols = columns.filter(col => col.key !== 'actions');
+
                             return (
-                                <UnifiedDropdown
-                                    key={col.key}
-                                    options={[allLabel, ...col.filterOptions]}
-                                    value={filters[col.key] || allLabel}
-                                    onChange={(value) => handleFilterChange(col.key, value)}
-                                    placeholder={allLabel}
-                                    searchable={col.filterOptions?.length > 5}
-                                    searchPlaceholder={`Search ${(col.filterLabel || col.header).toLowerCase()}...`}
-                                    className="w-48"
-                                />
+                                <Card
+                                    key={row.id || rowIndex}
+                                    className={`shadow-sm border ${onRowClick ? "active:bg-gray-50" : ""}`}
+                                    onClick={() => onRowClick?.(row)}
+                                >
+                                    <CardContent className="p-4 space-y-3">
+                                        {dataCols.map((col) => (
+                                            <div key={col.key} className="flex justify-between items-center gap-4 h-6">
+                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] truncate">
+                                                    {col.header}
+                                                </span>
+                                                <div className="text-sm text-right flex-1 truncate text-gray-700" title={row[col.key]}>
+                                                    {renderCell(row, col)}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Actions Footer */}
+                                        {actionCol && (
+                                            <div className="pt-3 mt-3 border-t flex justify-end">
+                                                {renderCell(row, actionCol)}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             );
-                        })}
+                        })
+                    ) : (
+                        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                            {emptyMessage}
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Table */}
-            <Card className="w-full shadow-sm border">
-                <CardContent className="p-0">
-                    <div className="w-full overflow-x-auto">
-                        <table className="w-full text-sm table-fixed">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    {columns.map((col) => (
-                                        <th
-                                            key={col.key}
-                                            className={`px-4 py-3 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
-                                        >
-                                            {col.sortable ? (
-                                                <button
-                                                    onClick={() => handleSort(col.key)}
-                                                    className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
-                                                >
-                                                    <span>{col.header}</span>
-                                                    {getSortIcon(col.key)}
-                                                </button>
-                                            ) : (
-                                                col.header
-                                            )}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {paginatedData.length > 0 ? (
-                                    paginatedData.map((row, rowIndex) => (
-                                        <tr
-                                            key={row.id || rowIndex}
-                                            onClick={() => onRowClick?.(row)}
-                                            className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
-                                        >
-                                            {columns.map((col) => (
-                                                <td
-                                                    key={col.key}
-                                                    className={`px-4 py-3 text-sm text-center ${col.cellClassName || ""}`}
-                                                >
-                                                    {renderCell(row, col)}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={columns.length} className="py-8 text-center text-gray-500">
-                                            {emptyMessage}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
 
             {/* Pagination Controls */}
             {totalItems > 0 && (
@@ -327,8 +438,8 @@ const DataTable = ({
                                             key={page}
                                             onClick={() => setCurrentPage(page)}
                                             className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${currentPage === page
-                                                    ? "bg-sro-primary text-white"
-                                                    : "bg-white border hover:bg-gray-50"
+                                                ? "bg-sro-primary text-white"
+                                                : "bg-white border hover:bg-gray-50"
                                                 }`}
                                         >
                                             {page}
