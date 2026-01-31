@@ -6,10 +6,11 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Check, ChevronDown } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
 import supabase from "@/lib/supabase";
 import FileDropzone from "@/components/ui/file-dropzone";
+import { annualReportSchema } from "@/lib/zodSchemas";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -100,18 +101,25 @@ const AnnualReport = () => {
 
   // === VALIDATION CHECKS FOR ALL FIELDS ===
   const validateFields = () => {
-    let valid = true;
-    if (!selectedOrg) { setFieldError("org", true); valid = false; } else setFieldError("org", false);
-    if (!academicYear) { setFieldError("academicYear", true); valid = false; } else setFieldError("academicYear", false);
-    if (files.length !== 2) { setFieldError("files", true); valid = false; } else setFieldError("files", false);
-    return valid;
+    const payload = { org: selectedOrg, academicYear, files };
+    const result = annualReportSchema.safeParse(payload);
+
+    if (!result.success) {
+      const newErrors = {};
+      result.error.issues.forEach((issue) => {
+        newErrors[issue.path[0]] = issue.message;
+      });
+      setFieldErrors(newErrors);
+      return false;
+    }
+    return true;
   };
 
   // === FILE UPLOAD HANDLER (for FileDropzone) ===
   const handleFilesChange = (newFiles) => {
     setFiles(newFiles);
     if (newFiles.length === 2) {
-      setFieldError("files", false);
+      setFieldError("files", null);
     }
   };
 
@@ -190,9 +198,9 @@ const AnnualReport = () => {
                 style={{ width: "var(--radix-popover-trigger-width)" }}
               >
                 <Input
-                  placeholder="Search organization..."
+                  placeholder="Search org..."
                   value={orgSearchTerm}
-                  onChange={e => setOrgSearchTerm(e.target.value)}
+                  onChange={(e) => setOrgSearchTerm(sanitizeInput(e.target.value))}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
                 <div className="max-h-48 overflow-y-auto">
@@ -229,7 +237,7 @@ const AnnualReport = () => {
             </Popover>
             {fieldErrors.org && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                Please select your organization.
+                {fieldErrors.org}
               </p>
             )}
           </div>
@@ -277,7 +285,7 @@ const AnnualReport = () => {
                 <Input
                   placeholder="Search academic year..."
                   value={yearSearchTerm}
-                  onChange={e => setYearSearchTerm(e.target.value)}
+                  onChange={e => setYearSearchTerm(sanitizeInput(e.target.value))}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
                 <div className="max-h-48 overflow-y-auto">
@@ -312,7 +320,7 @@ const AnnualReport = () => {
             </Popover>
             {fieldErrors.academicYear && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                Please select an academic year.
+                {fieldErrors.academicYear}
               </p>
             )}
           </div>
@@ -342,11 +350,11 @@ const AnnualReport = () => {
               onFilesChange={handleFilesChange}
               maxFiles={2}
               disabled={isUploading}
-              error={fieldErrors.files}
+              error={!!fieldErrors.files}
             />
             {fieldErrors.files && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                Please upload exactly 2 PDF files.
+                {fieldErrors.files}
               </p>
             )}
             <div className="flex justify-center sm:justify-end">

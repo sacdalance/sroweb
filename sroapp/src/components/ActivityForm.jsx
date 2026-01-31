@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Check, ChevronDown, FileText } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ import { toast, Toaster } from "sonner";
 import { createActivity } from '../api/activityRequestAPI';
 import { editActivity } from '../api/activityEditAPI';
 import { submitAdminActivity } from '../api/adminActivityAPI';
+import { activityFormSchema } from "@/lib/zodSchemas";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -360,16 +361,7 @@ const ActivityForm = ({
     setFieldErrors((prev) => ({ ...prev, [field]: hasError }));
   };
 
-  // Input sanitization to prevent SQL injection and XSS
-  // Allows: letters, numbers, spaces, common punctuation (.,!?-'":;()@)
-  const sanitizeInput = (value, allowNewlines = false) => {
-    if (!value) return "";
-    // Remove potentially dangerous characters, keep safe ones
-    const pattern = allowNewlines
-      ? /[^a-zA-Z0-9\s.,!?;:'"()\-@\n]/g
-      : /[^a-zA-Z0-9\s.,!?;:'"()\-@]/g;
-    return value.replace(pattern, "");
-  };
+  // Input sanitization imported from @/lib/utils
 
   // Character counter with generic cute animation
   const CharacterCounter = ({ current, max, visible, className = "" }) => (
@@ -412,136 +404,103 @@ const ActivityForm = ({
   };
 
   const validateCurrentSection = () => {
-    const {
-      selectedValue,
-      studentPosition,
-      studentContact,
-      activityName,
-      activityDescription,
-      selectedActivityType,
-      selectedSDGs,
-      chargingFees1,
-      partnering,
-      selectedPublicAffairs,
-      partnerDescription,
-      recurring,
-      startDate,
-      endDate,
-      startTime,
-      endTime,
-      recurringDays,
-      isOffCampus,
-      venue,
-      venueApprover,
-      venueApproverContact,
-      greenCampusMonitor,
-      greenCampusMonitorContact,
-      selectedFile,
-      appealReason
-    } = formData;
-
-    const errorScroll = (fieldId) => {
-      const el = document.getElementById(fieldId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.focus?.();
-      }
+    // 1. UI Keys Mapping (Zod Path -> UI State Key)
+    const uiKeyMap = {
+      selectedValue: "orgSelect",
+      selectedSDGs: "sdgGoals",
+      chargingFees1: "chargingFees",
+      partnerUnits: "partnerUnits", // Custom issue code from schema
     };
 
-    const fail = (field, message) => {
-      setFieldError(field, true);
-      errorScroll(field);
-      return { valid: false, field, message };
+    // 2. Define fields belonging to each section
+    const sectionFields = {
+      "general-info": [
+        "selectedValue",
+        "studentPosition",
+        "studentContact",
+        "activityName",
+        "activityDescription",
+        "selectedActivityType",
+        "selectedSDGs",
+        "chargingFees1",
+        "partnering",
+      ],
+      "date-info": [
+        "recurring",
+        "startDate",
+        "startTime",
+        "endTime",
+        "endDate",
+        "recurringDays",
+      ],
+      "specifications": [
+        "isOffCampus",
+        "venue",
+        "venueApprover",
+        "venueApproverContact",
+        "partnerDescription",
+        "partnerUnits",
+        "greenCampusMonitor",
+        "greenCampusMonitorContact",
+      ],
+      "submission": ["selectedFile", "appealReason"],
     };
 
-    // ----------- General Info Validation -----------
-    if (currentSection === "general-info") {
-      if (!selectedValue) return fail("orgSelect", "Please select your organization.");
-      if (studentPosition.trim().length < 3 || studentPosition.length > 50)
-        return fail("studentPosition", "Student Position must be between 3 to 50 characters.");
-      if (!/^\d{11}$/.test(studentContact))
-        return fail("studentContact", "Student Contact must be an 11-digit number.");
-      if (activityName.trim().length < 3 || activityName.length > 100)
-        return fail("activityName", "Activity Name must be 3–100 characters.");
-      if (activityDescription.trim().length < 20)
-        return fail("activityDescription", "Description must be at least 20 characters.");
-      if (!selectedActivityType)
-        return fail("activityType", "Please select an activity type.");
-      if (Object.values(selectedSDGs).filter(Boolean).length === 0)
-        return fail("sdgGoals", "Select at least one SDG goal.");
-      if (!chargingFees1)
-        return fail("chargingFees", "Please indicate if you're charging fees.");
-      if (!partnering)
-        return fail("partnering", "Please indicate if you're partnering with a unit.");
+    const currentFields = sectionFields[currentSection] || [];
+
+    // 3. Run Zod Validation on ALL data
+    const result = activityFormSchema.safeParse(formData);
+
+    // 4. Prepare new error state
+    // We clear errors for the current section first, then re-apply if found
+    const nextErrors = { ...fieldErrors };
+    currentFields.forEach((f) => {
+      const key = uiKeyMap[f] || f;
+      delete nextErrors[key];
+    });
+
+    if (result.success) {
+      setFieldErrors(nextErrors);
+      return { valid: true };
     }
 
-    // ----------- Date Info Validation -----------
-    if (currentSection === "date-info") {
-      if (!recurring) return fail("recurring", "Please indicate if activity is recurring.");
-      if (!startDate) return fail("startDate", "Start date is required.");
+    // 5. Filter errors to only those in the current section
+    let firstUiErrorKey = null;
+    let firstErrorMessage = null;
+    let sectionHasError = false;
 
-      const chosenDate = new Date(startDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      chosenDate.setHours(0, 0, 0, 0);
+    result.error.issues.forEach((issue) => {
+      const path = issue.path[0];
+      // Check if this error belongs to the current section
+      // Note: "partnerUnits" is an alias (custom issue) we injected in superRefine
+      if (currentFields.includes(path)) {
+        const uiKey = uiKeyMap[path] || path;
 
-      if (chosenDate < today) {
-        return fail("startDate", "Start date cannot be in the past.");
-      }
-      if (!startTime) return fail("startTime", "Start time is required.");
-      if (!endTime) return fail("endTime", "End time is required.");
-      if (recurring === "recurring") {
-        if (!endDate) return fail("endDate", "End date is required.");
-        if (new Date(endDate) < new Date(startDate))
-          return fail("endDate", "End date cannot be before start date.");
-        const hasDay = Object.values(recurringDays).some(Boolean);
-        if (!hasDay) return fail("recurringDays", "Select at least one recurring day.");
-      }
-    }
+        // Mark error in UI state
+        nextErrors[uiKey] = true;
+        sectionHasError = true;
 
-    // ----------- Specifications Validation -----------
-    if (currentSection === "specifications") {
-      if (!isOffCampus) return fail("offcampus", "Please indicate if off-campus.");
-      if (!venue || venue.length > 100)
-        return fail("venue", "Venue is required and must be under 100 characters.");
-      if (isOffCampus !== "yes") {
-        if (venueApprover.trim().length < 3 || venueApprover.length > 50)
-          return fail("venueApprover", "Approver name must be 3–50 characters.");
-        if (!/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(venueApproverContact))
-          return fail("venueApproverContact", "Provide valid phone or UP/Gmail email.");
-      }
-      if (partnering === "yes") {
-        const hasPartner = Object.values(selectedPublicAffairs || {}).some((val) =>
-          Array.isArray(val) ? val.some((v) => v.trim() !== "") : val === true
-        );
-
-        if (currentSection === "specifications" && !hasPartner) {
-          setFieldError("partnerUnits", true);
-          return fail("partnerUnits", "Select at least one partner.");
-        } else {
-          setFieldError("partnerUnits", false);
-        }
-
-        if (
-          partnering === "yes" &&
-          currentSection === "specifications" &&
-          partnerDescription.trim().length < 3
-        ) {
-          return fail("partnerDescription", "Provide partner role description (min 3 chars).");
+        if (!firstUiErrorKey) {
+          firstUiErrorKey = uiKey;
+          firstErrorMessage = issue.message;
         }
       }
-      if (greenCampusMonitor.trim().length < 3 || greenCampusMonitor.length > 50)
-        return fail("greenCampusMonitor", "Monitor name must be 3–50 characters.");
-      if (!/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/.test(greenCampusMonitorContact))
-        return fail("greenCampusMonitorContact", "Provide valid phone or UP/Gmail email.");
-    }
+    });
 
-    // ----------- Submission Validation -----------
-    if (currentSection === "submission") {
-      if (!selectedFile)
-        return fail("selectedFile", "Please upload your Activity Request PDF.");
-      if (mode === "edit" && showAppealReason && appealReason.trim().length < 5)
-        return fail("appealReason", "Please explain your reason for appeal (min 5 characters).");
+    setFieldErrors(nextErrors);
+
+    if (sectionHasError) {
+      // Scroll functionality
+      const errorScroll = (fieldId) => {
+        const el = document.getElementById(fieldId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.focus?.();
+        }
+      };
+
+      errorScroll(firstUiErrorKey);
+      return { valid: false, field: firstUiErrorKey, message: firstErrorMessage };
     }
 
     return { valid: true };

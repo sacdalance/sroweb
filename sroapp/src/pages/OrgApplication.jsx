@@ -16,10 +16,11 @@ import { ChevronDown, Check } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeInput } from "@/lib/utils";
 import { submitOrgApplication } from "@/api/orgApplicationAPI";
 import supabase from "@/lib/supabase";
 import FileDropzone from "@/components/ui/file-dropzone";
+import { orgApplicationSchema } from "@/lib/zodSchemas";
 
 const categoriesList = [
   { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
@@ -117,95 +118,62 @@ const OrgApplication = () => {
   }, []);
 
   // === VALIDATION HELPERS ===
-  const isValidEmail = (email) =>
-    /^[a-zA-Z0-9._%+-]+@(gmail\.com|up\.edu\.ph)$/i.test(email.trim());
-  const isValidOrg = (str) =>
-    typeof str === "string" && str.trim().length >= 3 && str.trim().length <= 100;
-  const isValidName = (str) =>
-    typeof str === "string" && str.trim().length >= 3 && str.trim().length <= 50;
+  const validateSingleField = (field, value) => {
+    try {
+      if (field === "orgType" || field === "academicYear") {
+        // These are required strings
+        orgApplicationSchema.pick({ [field]: true }).parse({ [field]: value });
+      } else if (field === "files") {
+        orgApplicationSchema.pick({ files: true }).parse({ files: value });
+      } else {
+        // Standard fields
+        orgApplicationSchema.pick({ [field]: true }).parse({ [field]: value });
+      }
+      setFieldError(field, null);
+    } catch (err) {
+      setFieldError(field, err.errors[0].message);
+    }
+  };
 
-  const setFieldError = (field, errorType) =>
-    setFieldErrors((prev) => ({ ...prev, [field]: errorType }));
+  const setFieldError = (field, errorMsg) =>
+    setFieldErrors((prev) => ({ ...prev, [field]: errorMsg }));
 
   // === FILE UPLOAD HANDLER (for FileDropzone onFilesChange) ===
   const handleFilesChange = (newFiles) => {
     setFiles(newFiles);
     if (newFiles.length === 6) {
-      setFieldError("files", "");
+      setFieldError("files", null);
     }
   };
 
-  // === VALIDATION LOGIC (LIKE ActivityForm) ===
+  // === VALIDATION LOGIC (Zod) ===
   const validateFields = () => {
-    let valid = true;
+    const payload = {
+      orgName,
+      orgType,
+      academicYear,
+      orgEmail,
+      chairperson,
+      chairpersonEmail,
+      adviser,
+      adviserEmail,
+      coAdviser,
+      coAdviserEmail,
+      files
+    };
 
-    // Name fields: 3–50 chars
-    if (!orgName.trim()) {
-      setFieldError("orgName", "required"); valid = false;
-    } else if (!isValidOrg(orgName)) {
-      setFieldError("orgName", "length"); valid = false;
-    } else setFieldError("orgName", "");
+    const result = orgApplicationSchema.safeParse(payload);
 
-    if (!chairperson.trim()) {
-      setFieldError("chairperson", "required"); valid = false;
-    } else if (!isValidName(chairperson)) {
-      setFieldError("chairperson", "length"); valid = false;
-    } else setFieldError("chairperson", "");
-
-    if (!adviser.trim()) {
-      setFieldError("adviser", "required"); valid = false;
-    } else if (!isValidName(adviser)) {
-      setFieldError("adviser", "length"); valid = false;
-    } else setFieldError("adviser", "");
-
-    if (coAdviser.trim() && !isValidName(coAdviser)) {
-      setFieldError("coAdviser", "length");
-      valid = false;
-    } else {
-      setFieldError("coAdviser", "");
+    if (!result.success) {
+      const newErrors = {};
+      result.error.issues.forEach(issue => {
+        newErrors[issue.path[0]] = issue.message;
+      });
+      setFieldErrors(newErrors);
+      return false;
     }
 
-    // Org type and year: not blank
-    if (!orgType.trim()) {
-      setFieldError("orgType", "required"); valid = false;
-    } else setFieldError("orgType", "");
-
-    if (!academicYear.trim()) {
-      setFieldError("academicYear", "required"); valid = false;
-    } else setFieldError("academicYear", "");
-
-    // Email fields: not blank, valid
-    if (!orgEmail.trim()) {
-      setFieldError("orgEmail", "required"); valid = false;
-    } else if (!isValidEmail(orgEmail)) {
-      setFieldError("orgEmail", "invalid"); valid = false;
-    } else setFieldError("orgEmail", "");
-
-    if (!chairpersonEmail.trim()) {
-      setFieldError("chairpersonEmail", "required"); valid = false;
-    } else if (!isValidEmail(chairpersonEmail)) {
-      setFieldError("chairpersonEmail", "invalid"); valid = false;
-    } else setFieldError("chairpersonEmail", "");
-
-    if (!adviserEmail.trim()) {
-      setFieldError("adviserEmail", "required"); valid = false;
-    } else if (!isValidEmail(adviserEmail)) {
-      setFieldError("adviserEmail", "invalid"); valid = false;
-    } else setFieldError("adviserEmail", "");
-
-    if (coAdviserEmail.trim() && !isValidEmail(coAdviserEmail)) {
-      setFieldError("coAdviserEmail", "invalid");
-      valid = false;
-    } else {
-      setFieldError("coAdviserEmail", "");
-    }
-
-    // Files: exactly 6
-    if (files.length !== 6) {
-      setFieldError("files", "invalid"); valid = false;
-    } else setFieldError("files", "");
-
-    return valid;
+    return true;
   };
 
   // === FORM SUBMISSION ===
@@ -285,23 +253,17 @@ const OrgApplication = () => {
               type="text"
               value={orgName}
               onChange={e => {
-                setOrgName(e.target.value);
+                const value = sanitizeInput(e.target.value);
+                setOrgName(value);
                 setFieldError("orgName", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("orgName", "required");
-                else if (!isValidOrg(e.target.value)) setFieldError("orgName", "length");
-                else setFieldError("orgName", "");
-              }}
+              onBlur={e => validateSingleField("orgName", e.target.value)}
               className={fieldErrors.orgName ? "border-sro-primary bg-red-50" : ""}
               placeholder="Samahan ng Organisasyon UPB (SO - UPB)"
               disabled={isUploading}
             />
-            {fieldErrors.orgName === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.orgName === "length" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 100 characters.</p>
+            {fieldErrors.orgName && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.orgName}</p>
             )}
           </div>
           {/* Organization Type (searchable dropdown, with error) */}
@@ -333,7 +295,10 @@ const OrgApplication = () => {
                 <Input
                   placeholder="Search type..."
                   value={orgTypeSearch}
-                  onChange={e => setOrgTypeSearch(e.target.value)}
+                  onChange={e => {
+                    const value = sanitizeInput(e.target.value);
+                    setOrgEmail(value);
+                  }}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
                 <div className="max-h-48 overflow-y-auto">
@@ -365,7 +330,7 @@ const OrgApplication = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {fieldErrors.orgType === "required" && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>}
+            {fieldErrors.orgType && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.orgType}</p>}
           </div>
           {/* Academic Year (searchable dropdown, with error) */}
           <div>
@@ -395,8 +360,11 @@ const OrgApplication = () => {
               >
                 <Input
                   placeholder="Search year..."
-                  value={yearSearch}
-                  onChange={e => setYearSearch(e.target.value)}
+                  value={chairperson}
+                  onChange={e => {
+                    const value = sanitizeInput(e.target.value);
+                    setChairperson(value);
+                  }}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
                 <div className="max-h-48 overflow-y-auto">
@@ -428,7 +396,7 @@ const OrgApplication = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {fieldErrors.academicYear === "required" && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>}
+            {fieldErrors.academicYear && <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.academicYear}</p>}
           </div>
           {/* Organization E-mail */}
           <div>
@@ -442,20 +410,13 @@ const OrgApplication = () => {
                 setOrgEmail(e.target.value);
                 setFieldError("orgEmail", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("orgEmail", "required");
-                else if (!isValidEmail(e.target.value)) setFieldError("orgEmail", "invalid");
-                else setFieldError("orgEmail", "");
-              }}
+              onBlur={e => validateSingleField("orgEmail", e.target.value)}
               placeholder="orgemail@gmail.com"
               className={fieldErrors.orgEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.orgEmail === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.orgEmail === "invalid" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+            {fieldErrors.orgEmail && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.orgEmail}</p>
             )}
           </div>
           {/* Chairperson */}
@@ -470,20 +431,13 @@ const OrgApplication = () => {
                 setChairperson(e.target.value);
                 setFieldError("chairperson", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("chairperson", "required");
-                else if (!isValidName(e.target.value)) setFieldError("chairperson", "length");
-                else setFieldError("chairperson", "");
-              }}
+              onBlur={e => validateSingleField("chairperson", e.target.value)}
               className={fieldErrors.chairperson ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
-            {fieldErrors.chairperson === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.chairperson === "length" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+            {fieldErrors.chairperson && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairperson}</p>
             )}
           </div>
           {/* Chairperson Email */}
@@ -498,20 +452,13 @@ const OrgApplication = () => {
                 setChairpersonEmail(e.target.value);
                 setFieldError("chairpersonEmail", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("chairpersonEmail", "required");
-                else if (!isValidEmail(e.target.value)) setFieldError("chairpersonEmail", "invalid");
-                else setFieldError("chairpersonEmail", "");
-              }}
+              onBlur={e => validateSingleField("chairpersonEmail", e.target.value)}
               placeholder="delpilarmh@up.edu.ph"
               className={fieldErrors.chairpersonEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.chairpersonEmail === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.chairpersonEmail === "invalid" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+            {fieldErrors.chairpersonEmail && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairpersonEmail}</p>
             )}
           </div>
           {/* Adviser */}
@@ -526,20 +473,13 @@ const OrgApplication = () => {
                 setAdviser(e.target.value);
                 setFieldError("adviser", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("adviser", "required");
-                else if (!isValidName(e.target.value)) setFieldError("adviser", "length");
-                else setFieldError("adviser", "");
-              }}
+              onBlur={e => validateSingleField("adviser", e.target.value)}
               className={fieldErrors.adviser ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
               disabled={isUploading}
             />
-            {fieldErrors.adviser === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.adviser === "length" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+            {fieldErrors.adviser && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviser}</p>
             )}
           </div>
           {/* Adviser Email */}
@@ -554,20 +494,13 @@ const OrgApplication = () => {
                 setAdviserEmail(e.target.value);
                 setFieldError("adviserEmail", "");
               }}
-              onBlur={e => {
-                if (!e.target.value.trim()) setFieldError("adviserEmail", "required");
-                else if (!isValidEmail(e.target.value)) setFieldError("adviserEmail", "invalid");
-                else setFieldError("adviserEmail", "");
-              }}
+              onBlur={e => validateSingleField("adviserEmail", e.target.value)}
               placeholder="delpilarmh@up.edu.ph"
               className={fieldErrors.adviserEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.adviserEmail === "required" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Required.</p>
-            )}
-            {fieldErrors.adviserEmail === "invalid" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+            {fieldErrors.adviserEmail && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviserEmail}</p>
             )}
           </div>
           {/* Co-Adviser */}
@@ -579,25 +512,16 @@ const OrgApplication = () => {
               type="text"
               value={coAdviser}
               onChange={e => {
-                setCoAdviser(e.target.value);
+                const value = sanitizeInput(e.target.value);
+                setCoAdviser(value);
                 setFieldError("coAdviser", "");
               }}
-              onBlur={e => {
-                const value = e.target.value.trim();
-                if (value === "") {
-                  setFieldError("coAdviser", ""); // No error if blank
-                } else if (!isValidName(value)) {
-                  setFieldError("coAdviser", "length");
-                } else {
-                  setFieldError("coAdviser", "");
-                }
-              }}
+              onBlur={e => validateSingleField("coAdviser", e.target.value)}
               className={fieldErrors.coAdviser ? "border-sro-primary bg-red-50" : ""}
               placeholder="DEL PILAR, Marcelo H."
-              disabled={isUploading}
             />
-            {fieldErrors.coAdviser === "length" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be 3 to 50 characters.</p>
+            {fieldErrors.coAdviser && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviser}</p>
             )}
           </div>
           {/* Co-Adviser Email */}
@@ -612,22 +536,13 @@ const OrgApplication = () => {
                 setCoAdviserEmail(e.target.value);
                 setFieldError("coAdviserEmail", "");
               }}
-              onBlur={e => {
-                const value = e.target.value.trim();
-                if (value === "") {
-                  setFieldError("coAdviserEmail", ""); // No error if blank
-                } else if (!isValidEmail(value)) {
-                  setFieldError("coAdviserEmail", "invalid");
-                } else {
-                  setFieldError("coAdviserEmail", "");
-                }
-              }}
+              onBlur={e => validateSingleField("coAdviserEmail", e.target.value)}
               placeholder="delpilarmh@up.edu.ph"
               className={fieldErrors.coAdviserEmail ? "border-sro-primary bg-red-50" : ""}
               disabled={isUploading}
             />
-            {fieldErrors.coAdviserEmail === "invalid" && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Must be a valid UP or Gmail address.</p>
+            {fieldErrors.coAdviserEmail && (
+              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviserEmail}</p>
             )}
           </div>
         </div>
