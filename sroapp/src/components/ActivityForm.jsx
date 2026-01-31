@@ -34,7 +34,55 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 
+
+
+const universityPartnersList = {
+  colleges: [
+    "College of Science",
+    "College of Arts and Communication",
+    "College of Social Sciences",
+  ],
+  departments: [
+    "Department of Biology",
+    "Department of Mathematics and Computer Science",
+    "Department of Physical Sciences",
+    "Human Kinetics Program",
+    "Department of Communication",
+    "Department of Language, Literature, and the Arts",
+    "Department of Anthropology, Sociology, and Psychology",
+    "Department of History and Philosophy ",
+    "Department of Economics and Political Science",
+  ],
+  studentAffairs: [
+    "Office of Student Affairs (OSA)",
+    "Student Relations Office (SRO)",
+    "Office of Counselling and Guidance (OCG)",
+    "Office of Scholarships and Financial Assistance (OSFA)",
+    "UPB Residence Hall (BREHA)",
+    "Health Service Office (HSO)",
+    "Office of the Auxillary Services (OAS)",
+  ],
+  academicAffairs: [
+    "Commitee on Culture and Arts (CCA)",
+    "Program for Indigenous Cultures (PIC)",
+    "Ugnayan ng Pahinungod Baguio",
+    "National Service Training Program (NSTP)",
+    "University Library",
+    "Learning Resource Center (LRC)",
+    "Science Research Center (SRC)",
+    "Museo Kordilyera",
+    "Kasarian Gender Studies Program",
+    "Office of Anti-Sexual Harassment",
+  ],
+  publicAffairs: [
+    "Office of Public Affairs (OPA)",
+    "Alumni Relations Office (ARO)",
+    "Others"
+  ]
+};
+
 const ActivityForm = ({
+
   mode = "create", // or "edit" or "admin"
   defaultValues = {},
   showAppealReason = false,
@@ -80,7 +128,7 @@ const ActivityForm = ({
     chargingFees1: defaultValues?.chargingFees1 || "",
     partnering: defaultValues?.partnering || "",
     selectedPublicAffairs: defaultValues?.selectedPublicAffairs || {},
-    universityPartners: defaultValues?.universityPartners || {},
+    universityPartners: defaultValues?.universityPartners || universityPartnersList,
     partnerDescription: defaultValues?.partnerDescription || "",
     recurring: defaultValues?.recurring || "",
     startDate: defaultValues?.startDate || "",
@@ -241,50 +289,6 @@ const ActivityForm = ({
     return result;
   }
 
-  const universityPartners = {
-    colleges: [
-      "College of Science",
-      "College of Arts and Communication",
-      "College of Social Sciences",
-    ],
-    departments: [
-      "Department of Biology",
-      "Department of Mathematics and Computer Science",
-      "Department of Physical Sciences",
-      "Human Kinetics Program",
-      "Department of Communication",
-      "Department of Language, Literature, and the Arts",
-      "Department of Anthropology, Sociology, and Psychology",
-      "Department of History and Philosophy ",
-      "Department of Economics and Political Science",
-    ],
-    studentAffairs: [
-      "Office of Student Affairs (OSA)",
-      "Student Relations Office (SRO)",
-      "Office of Counselling and Guidance (OCG)",
-      "Office of Scholarships and Financial Assistance (OSFA)",
-      "UPB Residence Hall (BREHA)",
-      "Health Service Office (HSO)",
-      "Office of the Auxillary Services (OAS)",
-    ],
-    academicAffairs: [
-      "Commitee on Culture and Arts (CCA)",
-      "Program for Indigenous Cultures (PIC)",
-      "Ugnayan ng Pahinungod Baguio",
-      "National Service Training Program (NSTP)",
-      "University Library",
-      "Learning Resource Center (LRC)",
-      "Science Research Center (SRC)",
-      "Museo Kordilyera",
-      "Kasarian Gender Studies Program",
-      "Office of Anti-Sexual Harassment",
-    ],
-    publicAffairs: [
-      "Office of Public Affairs (OPA)",
-      "Alumni Relations Office (ARO)",
-      "Others"
-    ]
-  };
 
   const filteredOrgs = formData.searchTerm
     ? orgs.filter((org) =>
@@ -294,14 +298,6 @@ const ActivityForm = ({
   const navigate = useNavigate();
 
 
-  useEffect(() => {
-    if (!formData.universityPartners || Object.keys(formData.universityPartners).length === 0) {
-      setFormData((prev) => ({
-        ...prev,
-        universityPartners,
-      }));
-    }
-  }, []);
 
   useEffect(() => {
     const fetchOrgs = async () => {
