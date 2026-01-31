@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
+import StatusPill from "@/components/ui/StatusPill";
 
 const AppointmentBooking = () => {
   const [formData, setFormData] = useState({
@@ -98,6 +99,7 @@ const AppointmentBooking = () => {
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [reschedulingAppointment, setReschedulingAppointment] = useState(null);
   const [activeTab, setActiveTab] = useState("booking");
+  const [lastBooking, setLastBooking] = useState(null); // For confirmation card
 
   // Fetch initial data
   useEffect(() => {
@@ -120,6 +122,9 @@ const AppointmentBooking = () => {
             setUserAccountId(accountData.account_id);
             await loadUserAppointments(accountData.account_id);
           }
+
+          // Auto-fill email from logged-in user
+          setFormData(prev => ({ ...prev, email: currentUser.email }));
         }
 
         // Get appointment settings
@@ -425,11 +430,21 @@ const AppointmentBooking = () => {
 
       toast.success("Appointment booked successfully!");
 
-      // Reset form
+      // Store booking details for confirmation card
+      setLastBooking({
+        date: format(selectedDate, 'MMMM d, yyyy'),
+        time: formData.time,
+        reason: formData.reason,
+        subject: formData.subject,
+        mode: formData.mode
+      });
+
+      // Reset form but keep email
+      const userEmail = formData.email;
       setFormData({
         reason: "",
         subject: "",
-        email: "",
+        email: userEmail,
         contact: "",
         date: null,
         time: "",
@@ -560,6 +575,21 @@ const AppointmentBooking = () => {
       sortable: true,
       isStatus: true,
       accessor: (row) => row.status || "scheduled",
+      render: (row) => {
+        const statusTooltips = {
+          'scheduled': 'Awaiting confirmation from the SRO.',
+          'confirmed': 'Confirmed by the SRO. Please arrive on time.',
+          'reschedule-pending': 'Your reschedule request is pending SRO approval.',
+          'cancelled': 'This appointment has been cancelled.',
+          'completed': 'This appointment has been completed.'
+        };
+        const status = row.status || 'scheduled';
+        return (
+          <div title={statusTooltips[status] || 'Status information'}>
+            <StatusPill status={status} />
+          </div>
+        );
+      },
     },
     {
       key: "actions",
@@ -601,14 +631,62 @@ const AppointmentBooking = () => {
 
         {/* My Appointments Tab */}
         <TabsContent value="appointments">
+          {/* Confirmation Card after booking */}
+          {lastBooking && (
+            <div className="bg-sro-secondary/10 border border-sro-secondary/30 rounded-lg p-4 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start">
+                  <div className="w-10 h-10 rounded-full bg-sro-secondary/20 flex items-center justify-center mr-3 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-sro-secondary">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sro-secondary">Appointment Confirmed!</h3>
+                    <p className="text-sm text-sro-secondary/80 mt-1">
+                      <strong>{lastBooking.reason}</strong> — {lastBooking.subject}
+                    </p>
+                    <p className="text-sm text-sro-secondary/80">
+                      {lastBooking.date} at {lastBooking.time} ({lastBooking.mode === 'online' ? 'Online' : 'Face-to-face'})
+                    </p>
+                    <p className="text-xs text-sro-secondary/70 mt-2">
+                      You'll receive an email confirmation once approved by the SRO.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setLastBooking(null)}
+                  className="text-sro-secondary/60 hover:text-sro-secondary p-1"
+                  aria-label="Dismiss"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <LoadingSpinner text="Loading your appointments..." variant="section" />
           ) : (
-            <DataTable
-              columns={appointmentColumns}
-              data={existingAppointments.map(apt => ({ ...apt, id: apt.id }))}
-              emptyMessage="You don't have any upcoming appointments."
-            />
+            <>
+              <DataTable
+                columns={appointmentColumns}
+                data={existingAppointments.map(apt => ({ ...apt, id: apt.id }))}
+                emptyMessage="You don't have any upcoming appointments."
+              />
+
+              {/* Cancellation Policy Note */}
+              <div className="mt-4 text-xs text-gray-500 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 flex-shrink-0">
+                  <path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  <strong>Need to cancel?</strong> Appointments are final. Please contact the SRO via email if you need to cancel.
+                </span>
+              </div>
+            </>
           )}
         </TabsContent>
 
@@ -797,12 +875,12 @@ const AppointmentBooking = () => {
                       <span className="text-sm text-gray-600">Loading available time slots...</span>
                     </div>
                   ) : timeSlots.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {timeSlots.map((slot) => (
                         <button
                           key={slot.time}
                           onClick={() => slot.available && setFormData(prev => ({ ...prev, time: slot.time }))}
-                          className={`py-2 px-3 text-sm font-medium rounded ${formData.time === slot.time
+                          className={`py-3 sm:py-2 px-3 text-sm font-medium rounded min-h-[44px] ${formData.time === slot.time
                             ? 'bg-sro-secondary text-white'
                             : slot.booked
                               ? 'bg-sro-primary text-white cursor-not-allowed'
