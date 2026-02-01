@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
+import { SUPERADMIN_EMAILS } from "@/lib/permissions";
+
 const RequireUser = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -32,7 +34,7 @@ const RequireUser = ({ children }) => {
         .eq("email", user.email)
         .single();
 
-      if (!error && (data?.role_id === 1 || data?.role_id === 4)) {
+      if (!error && (data?.role_id === 1 || data?.role_id === 4 || SUPERADMIN_EMAILS.includes(user.email))) {
         setHasAccess(true);
       } else {
         setShowDialog(true);

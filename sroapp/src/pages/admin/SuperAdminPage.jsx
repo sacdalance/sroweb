@@ -11,13 +11,8 @@ const ROLE_OPTIONS = [
     { id: 4, label: "Superadmin" },
 ];
 
-export const SUPERADMIN_EMAILS = [
-    "clpagunsan@up.edu.ph",
-    "dvnisay1@up.edu.ph",
-    "mmlarua@up.edu.ph",
-    "ltcuadra@up.edu.ph",
-    "lssacdalan@up.edu.ph",
-];
+import { SUPERADMIN_EMAILS } from "@/lib/permissions";
+
 
 const SuperAdminPage = () => {
     const [user, setUser] = useState(null);
