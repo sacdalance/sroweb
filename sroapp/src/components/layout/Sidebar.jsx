@@ -4,7 +4,7 @@ import supabase from "@/lib/supabase";
 import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
-import { SUPERADMIN_EMAILS } from "@/pages/admin/SuperAdminPage";
+import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 import PropTypes from 'prop-types';
 import React from "react";
 
