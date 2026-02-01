@@ -13,6 +13,7 @@ import DataTable from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar"; // Import CustomCalendar
 import { isSameDay, format } from "date-fns"; // Import date utilities
+import ActionButtons from "@/components/ui/ActionButtons"; // Import ActionButtons
 
 const AdminAppointmentSettings = () => {
   const [startTime, setStartTime] = useState("08:00");
@@ -31,6 +32,7 @@ const AdminAppointmentSettings = () => {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [adminComment, setAdminComment] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -283,7 +285,10 @@ const AdminAppointmentSettings = () => {
     }
   };
 
-  const handleAppointmentAction = async (appointmentId, action, type) => {
+  // Promise-based Action Handlers for ActionButtons
+
+  const processAppointmentAction = async (appointmentId, action, type) => {
+    setIsProcessing(true);
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
@@ -291,6 +296,7 @@ const AdminAppointmentSettings = () => {
         .eq('id', appointmentId)
         .single();
       if (fetchError) throw fetchError;
+
       const { error } = await supabase.from('appointments').update({
         status: action === 'approve' ? (type === 'reschedule' ? 'scheduled' : 'cancelled') : 'scheduled',
         ...(type === 'reschedule' && action === 'approve' ? {
@@ -301,35 +307,39 @@ const AdminAppointmentSettings = () => {
           requested_date: null, requested_time_slot: null, reschedule_reason: null, reschedule_requested: false
         } : { cancellation_requested: false })
       }).eq('id', appointmentId);
+
       if (error) throw error;
-      toast.success(`${type === 'reschedule' ? 'Reschedule' : 'Cancellation'} request ${action === 'approve' ? 'approved' : 'rejected'}`);
-      loadAppointments();
-    } catch (error) {
-      console.error(`Error ${action}ing ${type} request:`, error);
-      toast.error(`Failed to ${action} ${type} request`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleAppointmentResponse = async (appointmentId, action) => {
+  const processAppointmentResponse = async (appointmentId, action) => {
     if (!appointmentId) return;
+    setIsProcessing(true);
+
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
         .select(`*, account:account(account_name, email)`).eq('id', appointmentId).single();
       if (fetchError) throw fetchError;
+
       const { error } = await supabase.from('appointments').update({
         status: action === 'confirm' ? 'confirmed' : 'rejected',
         admin_notes: adminComment,
         updated_at: new Date()
       }).eq('id', appointmentId);
+
       if (error) throw error;
-      // (Email sending code preserved but minimized for brevity in this tool call, assume standard fetch)
+
+      // Email sending
       const appointmentDate = new Date(appointment.appointment_date).toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
       const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', hour12: true
       });
+
       const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,17 +369,10 @@ const AdminAppointmentSettings = () => {
 </div>`
         })
       });
-      if (!response.ok) throw new Error('Failed to send confirmation email');
 
-      toast.success(`Appointment ${action === 'confirm' ? 'confirmed' : 'rejected'} successfully`);
-      setShowConfirmDialog(false);
-      setShowRejectDialog(false);
-      setAdminComment("");
-      setSelectedAppointment(null);
-      loadAppointments();
-    } catch (error) {
-      console.error(`Error ${action}ing appointment:`, error);
-      toast.error(`Failed to ${action} appointment`);
+      if (!response.ok) throw new Error('Failed to send confirmation email');
+    } finally {
+      setIsProcessing(false);
     }
   };
   // ... End existing handlers
@@ -791,7 +794,8 @@ const AdminAppointmentSettings = () => {
       {/* Appointment Details Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         {/* ... (Kept existing dialog content) */}
-        <DialogContent className="max-w-2xl">
+        {/* ... (Kept existing dialog content) */}
+        <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">Appointment Details</DialogTitle>
           </DialogHeader>
@@ -906,43 +910,50 @@ const AdminAppointmentSettings = () => {
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+                <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isProcessing}>
                   Close
                 </Button>
+
                 {selectedAppointment.status === 'scheduled' && (
-                  <>
-                    <Button
-                      onClick={() => handleAppointmentResponse(selectedAppointment.id, 'confirm')}
-                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
-                    >
-                      Confirm
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setShowConfirmDialog(false);
-                        setShowRejectDialog(true);
-                      }}
-                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
-                    >
-                      Reject
-                    </Button>
-                  </>
+                  <ActionButtons
+                    confirmLabel="Confirm"
+                    rejectLabel="Reject"
+                    confirmVariant="secondary"
+                    rejectVariant="primary"
+                    onConfirm={() => processAppointmentResponse(selectedAppointment.id, 'confirm')}
+                    onReject={() => {
+                      setShowConfirmDialog(false);
+                      setShowRejectDialog(true);
+                      // We return a resolved promise here because the actual rejection action happens in the other dialog
+                      return Promise.resolve();
+                    }}
+                    rejectSuccessMessage={null} // Suppress toast for this step
+                    onSuccess={() => {
+                      // Only for confirm success here. Reject opens another dialog.
+                      setShowConfirmDialog(false);
+                      loadAppointments();
+                    }}
+                    className="w-auto"
+                    disabled={isProcessing}
+                  />
                 )}
+
                 {selectedAppointment.status === 'reschedule-pending' && (
-                  <>
-                    <Button
-                      onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'reschedule')}
-                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
-                    >
-                      Approve Reschedule
-                    </Button>
-                    <Button
-                      onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
-                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
-                    >
-                      Reject Reschedule
-                    </Button>
-                  </>
+                  <ActionButtons
+                    confirmLabel="Approve Reschedule"
+                    rejectLabel="Reject Reschedule"
+                    confirmVariant="secondary"
+                    rejectVariant="primary"
+                    onConfirm={() => processAppointmentAction(selectedAppointment.id, 'approve', 'reschedule')}
+                    onReject={() => processAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
+                    confirmSuccessMessage="Reschedule request approved"
+                    rejectSuccessMessage="Reschedule request rejected"
+                    onSuccess={() => {
+                      setShowConfirmDialog(false);
+                      loadAppointments();
+                    }}
+                    disabled={isProcessing}
+                  />
                 )}
               </div>
             </div>
@@ -952,7 +963,7 @@ const AdminAppointmentSettings = () => {
 
       {/* Rejection Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle>Reject Appointment</DialogTitle>
             <DialogDescription>
@@ -968,15 +979,38 @@ const AdminAppointmentSettings = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => handleAppointmentResponse(selectedAppointment?.id, 'reject')}
-              variant="destructive"
-            >
-              Reject Appointment
-            </Button>
+            <ActionButtons
+              confirmLabel="Reject Appointment"
+              // We only need the 'confirm' button here effectively acting as the submit for rejection
+              // But ActionButtons expects two. Let's use it just for the primary action if customized?
+              // Or better, just use the loading state logic if we want consistency.
+              // Actually, for this specific Dialog, we have "Cancel" and "Reject".
+              // "Reject" is the primary action here.
+              // So we can pass `onConfirm` as the rejection action to get the loading state.
+              confirmVariant="primary"
+              onConfirm={() => processAppointmentResponse(selectedAppointment?.id, 'reject')}
+              confirmSuccessMessage="Appointment rejected successfully"
+              onSuccess={() => {
+                setShowRejectDialog(false);
+                loadAppointments();
+                setAdminComment("");
+                setSelectedAppointment(null);
+              }}
+              // Hide the secondary button (Reject label normally) by not passing onReject?
+              // ActionButtons renders onReject only if passed.
+              rejectLabel="Cancel"
+              rejectVariant="outline"
+              // Wait, ActionButtons order is Reject (left), Confirm (right).
+              // If we want [Cancel] [Reject Appointment]
+              // We should pass Cancel as onReject?
+              // But onReject usually implies a destructive/negative action.
+              // Here "Reject Appointment" IS the action.
+              // Let's rely on manual Close for Cancel, and use ActionButtons just for the Confirm logic?
+              // Or better:
+              onReject={() => Promise.resolve(setShowRejectDialog(false))}
+              rejectSuccessMessage={null} // Suppress toast for Cancel action
+              disabled={isProcessing}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>
