@@ -251,8 +251,7 @@
     color: white;
   }
 
-  .status-badge-reschedule-pending,
-  .status-badge-cancellation-pending {
+  .status-badge-reschedule-pending {
     background-color: #fff7ed;
     /* Orange-50 */
     color: #c2410c;

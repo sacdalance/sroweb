@@ -35,6 +35,7 @@ const AdminAppointmentSettings = () => {
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
+  const [showRequests, setShowRequests] = useState(false);
 
 
   // Load settings and blocking slots
@@ -122,6 +123,9 @@ const AdminAppointmentSettings = () => {
           contact_number,
           email,
           meeting_mode,
+          requested_date,
+          requested_time_slot,
+          reschedule_reason,
           account:account(account_name, email),
           status
         `)
@@ -157,6 +161,13 @@ const AdminAppointmentSettings = () => {
           // Calendar Event props
           date: new Date(appointment.appointment_date),
           title: formattedName || 'Appointment',
+          // Reschedule details
+          requestedDate: appointment.requested_date ? new Date(appointment.requested_date) : null,
+          requestedTime: appointment.requested_time_slot ? new Date(`2000-01-01T${appointment.requested_time_slot}`).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          }) : null,
         };
       });
 
@@ -388,11 +399,20 @@ const AdminAppointmentSettings = () => {
   };
 
   const calendarEvents = useMemo(() => {
-    return appointments.filter(app =>
-      // Only show relevant statuses in calendar
-      ['confirmed', 'scheduled', 'reschedule-pending'].includes(app.status)
-    );
-  }, [appointments]);
+    return appointments.filter(app => {
+      // Logic:
+      // Show Requests OFF: Show ONLY 'confirmed'
+      // Show Requests ON: Show 'confirmed', 'scheduled', 'reschedule-pending'
+
+      if (app.status === 'confirmed') return true;
+
+      if (showRequests) {
+        return ['scheduled', 'reschedule-pending'].includes(app.status);
+      }
+
+      return false;
+    });
+  }, [appointments, showRequests]);
 
   const filteredCalendarList = useMemo(() => {
     if (!selectedDateFilter) return [];
@@ -495,14 +515,13 @@ const AdminAppointmentSettings = () => {
       isStatus: true,
       width: 'w-32',
       filterable: true,
-      filterOptions: ['Scheduled', 'Confirmed', 'Rejected', 'For Reschedule', 'For Cancellation'],
+      filterOptions: ['Scheduled', 'Confirmed', 'Rejected', 'For Reschedule'],
       filterAccessor: (row) => {
         const map = {
           'scheduled': 'Scheduled',
           'confirmed': 'Confirmed',
           'rejected': 'Rejected',
-          'reschedule-pending': 'For Reschedule',
-          'cancellation-pending': 'For Cancellation'
+          'reschedule-pending': 'For Reschedule'
         };
         return map[row.status] || row.status.charAt(0).toUpperCase() + row.status.slice(1);
       }
@@ -515,14 +534,14 @@ const AdminAppointmentSettings = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <Toaster />
+      <Toaster toastOptions={{ style: { zIndex: 10000 } }} />
       <h1 className="page-header text-sro-primary">Appointment Management</h1>
 
       <Tabs defaultValue="requests" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="requests">Appointment Requests</TabsTrigger>
-          <TabsTrigger value="calendar">Appointments</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
+          <TabsTrigger value="requests" className="w-full md:w-auto">Appointment Requests</TabsTrigger>
+          <TabsTrigger value="calendar" className="w-full md:w-auto">Appointments</TabsTrigger>
+          <TabsTrigger value="settings" className="w-full md:w-auto">Settings</TabsTrigger>
         </TabsList>
 
         {/* Requests / Booking Tab */}
@@ -544,6 +563,35 @@ const AdminAppointmentSettings = () => {
 
         {/* Calendar Tab */}
         <TabsContent value="calendar">
+          <div className="flex justify-between items-center mb-4">
+            {/* Legend */}
+            <div className="flex flex-wrap gap-4 px-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-sro-secondary"></span>
+                <span className="text-xs text-gray-600">Confirmed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></span>
+                <span className="text-xs text-gray-600">Scheduled</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-200 border border-amber-500"></span>
+                <span className="text-xs text-gray-600">For Reschedule</span>
+              </div>
+            </div>
+
+            {/* Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-md shadow-sm border">
+              <input
+                type="checkbox"
+                checked={showRequests}
+                onChange={(e) => setShowRequests(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-sro-primary focus:ring-sro-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">Show Requests</span>
+            </label>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md border p-4">
@@ -556,20 +604,6 @@ const AdminAppointmentSettings = () => {
                   events={calendarEvents}
                   getEventColor={getEventColor}
                 />
-              </div>
-              <div className="flex flex-wrap gap-4 mt-4 px-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-sro-secondary"></span>
-                  <span className="text-xs text-gray-600">Confirmed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></span>
-                  <span className="text-xs text-gray-600">Scheduled</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-amber-200 border border-amber-500"></span>
-                  <span className="text-xs text-gray-600">For Reschedule/Cancellation</span>
-                </div>
               </div>
             </div>
             <div className="lg:col-span-1">
@@ -827,6 +861,36 @@ const AdminAppointmentSettings = () => {
                 </div>
               </div>
 
+              {selectedAppointment.status === 'reschedule-pending' && (
+                <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
+                  <h3 className="text-sm font-semibold text-amber-800 mb-2">Reschedule Request Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Original Schedule</span>
+                      <p className="text-sm font-medium">
+                        {new Date(selectedAppointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <p className="text-sm text-gray-600">{selectedAppointment.timeRange}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase">Proposed Schedule</span>
+                      <p className="text-sm font-medium text-amber-900">
+                        {selectedAppointment.requestedDate?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <p className="text-sm text-amber-800">
+                        {selectedAppointment.requestedTime}
+                        {/* Calculate end time for proposed just for display if needed, but requestedTime is just start or range? Assuming start based on DB schema */}
+                      </p>
+                    </div>
+                  </div>
+                  {selectedAppointment.reschedule_reason && (
+                    <div className="mt-2 text-sm text-amber-900">
+                      <span className="font-medium">Reason:</span> {selectedAppointment.reschedule_reason}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Admin Notes */}
               {selectedAppointment.status === 'scheduled' && (
                 <div>
@@ -880,22 +944,6 @@ const AdminAppointmentSettings = () => {
                     </Button>
                   </>
                 )}
-                {selectedAppointment.status === 'cancellation-pending' && (
-                  <>
-                    <Button
-                      onClick={() => handleAppointmentAction(selectedAppointment.id, 'approve', 'cancel')}
-                      className="bg-sro-secondary text-white hover:bg-sro-secondary/90"
-                    >
-                      Approve Cancellation
-                    </Button>
-                    <Button
-                      onClick={() => handleAppointmentAction(selectedAppointment.id, 'reject', 'cancel')}
-                      className="bg-sro-primary text-white hover:bg-sro-primary/90"
-                    >
-                      Reject Cancellation
-                    </Button>
-                  </>
-                )}
               </div>
             </div>
           )}
@@ -934,13 +982,15 @@ const AdminAppointmentSettings = () => {
       </Dialog>
 
       {/* Message display */}
-      {message.text && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-          }`}>
-          {message.text}
-        </div>
-      )}
-    </div>
+      {
+        message.text && (
+          <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}>
+            {message.text}
+          </div>
+        )
+      }
+    </div >
   );
 };
 

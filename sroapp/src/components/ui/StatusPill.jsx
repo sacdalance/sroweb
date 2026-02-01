@@ -31,7 +31,6 @@ const getStatusClass = (status) => {
     'scheduled': 'status-badge-scheduled',
     'confirmed': 'status-badge-confirmed',
     'reschedule-pending': 'status-badge-reschedule-pending',
-    'cancellation-pending': 'status-badge-cancellation-pending',
   };
 
   return statusMap[normalizedStatus] || 'status-badge-default';
@@ -45,7 +44,6 @@ const formatDisplayText = (status) => {
   const specialCases = {
     'odsa-pending': 'ODSA Pending',
     'reschedule-pending': 'For Reschedule',
-    'cancellation-pending': 'For Cancellation',
   };
 
   const normalized = status.toLowerCase().replace(/\s+/g, '-');
