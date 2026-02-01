@@ -180,6 +180,64 @@ const AdminAppointmentSettings = () => {
 
       if (error) throw error;
 
+      // --- Auto-Reject Elapsed Appointments ---
+      const now = new Date();
+      const expiredAppointments = data.filter(app => {
+        // Include reschedule-pending
+        if (!['scheduled', 'reschedule-pending'].includes(app.status)) return false;
+
+        // Ensure date/time exist
+        if (!app.appointment_date || !app.appointment_time) return false;
+
+        const appDateTime = new Date(`${app.appointment_date}T${app.appointment_time}`);
+        return appDateTime < now;
+      });
+
+      if (expiredAppointments.length > 0) {
+        try {
+          const expiredIds = expiredAppointments.map(app => app.id);
+
+          // Use Update .in() instead of Upsert to avoid 400 Bad Request
+          const { error: updateError } = await supabase
+            .from('appointments')
+            .update({
+              status: 'rejected',
+              admin_notes: "Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.",
+              updated_at: new Date().toISOString()
+            })
+            .in('id', expiredIds);
+
+          if (updateError) {
+            console.error("Auto-reject update failed", updateError);
+            toast.error("Failed to auto-reject expired appointments.");
+          } else {
+            // Send Emails
+            Promise.all(expiredAppointments.map(app =>
+              fetch(`${API_BASE_URL}/api/send-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  to: app.account.email,
+                  subject: "Appointment Expired - SRO",
+                  html: `<p>Your appointment on <strong>${app.appointment_date}</strong> has expired and been automatically rejected.</p><p>Reason: Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.</p>`
+                })
+              }).catch(e => console.error("Failed to send expiry email", e))
+            ));
+
+            toast.info(`Auto-rejected ${expiredAppointments.length} elapsed appointment(s).`);
+
+            // Update local data to reflect changes immediately
+            expiredAppointments.forEach(app => {
+              app.status = 'rejected';
+              app.admin_notes = "Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.";
+            });
+          }
+        } catch (err) {
+          console.error("Auto-reject process failed", err);
+        }
+      }
+      // ----------------------------------------
+
       const formattedAppointments = data.map(appointment => {
         const start = new Date(`2000-01-01T${appointment.appointment_time}`);
         const end = new Date(start.getTime() + currentInterval * 60000);
