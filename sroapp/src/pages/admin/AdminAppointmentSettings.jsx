@@ -7,145 +7,188 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { toast, Toaster } from "sonner";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import DataTable from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatusPill";
-import CustomCalendar from "@/components/ui/custom-calendar"; // Import CustomCalendar
-import { isSameDay, format } from "date-fns"; // Import date utilities
-import ActionButtons from "@/components/ui/ActionButtons"; // Import ActionButtons
+import CustomCalendar from "@/components/ui/custom-calendar";
+import { isSameDay, format, parseISO } from "date-fns";
+import ActionButtons from "@/components/ui/ActionButtons";
+import { Save, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+
+// Sub-components
+import ConsultationHoursSettings from "@/components/admin/appointments/ConsultationHoursSettings";
+import BlockedDatesSettings from "@/components/admin/appointments/BlockedDatesSettings";
+import TimeSlotsSettings from "@/components/admin/appointments/TimeSlotsSettings";
 
 const AdminAppointmentSettings = () => {
+  // Settings State
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("16:00");
   const [interval, setInterval] = useState(30);
+
+  // Blocking State
   const [blockedDates, setBlockedDates] = useState([]);
   const [blockedTimeSlots, setBlockedTimeSlots] = useState([]);
-  const [newBlockedDate, setNewBlockedDate] = useState("");
+
+  // Initial State for Diffing (to optimize saves)
+  const [initialBlockedDates, setInitialBlockedDates] = useState([]);
+  const [initialBlockedTimeSlots, setInitialBlockedTimeSlots] = useState([]);
+
+  // Unsaved Changes State
+  const [activeTab, setActiveTab] = useState("requests");
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingTab, setPendingTab] = useState(null);
+
+  // Initial Settings State for Diffing
+  const [initialStartTime, setInitialStartTime] = useState("09:00");
+  const [initialEndTime, setInitialEndTime] = useState("17:00");
+  const [initialInterval, setInitialInterval] = useState(30);
+
   const [message, setMessage] = useState({ text: "", type: "" });
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [addingDate, setAddingDate] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Appointment Data State
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [adminComment, setAdminComment] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [actionType, setActionType] = useState('reject'); // 'reject' or 'cancel'
+  const [actionType, setActionType] = useState('reject');
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
 
+  // --- Data Loading ---
 
-  // Load settings and blocking slots
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-
-        // Get appointment settings
-        const { data: settingsData, error: settingsError } = await supabase
-          .from('appointment_settings')
-          .select('*')
-          .order('id', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (settingsError && settingsError.code !== 'PGRST116') {
-          throw settingsError;
-        }
-
-        if (settingsData) {
-          setStartTime(settingsData.start_time.substring(0, 5));
-          setEndTime(settingsData.end_time.substring(0, 5));
-          setInterval(settingsData.interval_minutes);
-        }
-
-        // Get blocked dates and times
-        const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
-          .from('blocked_slots')
-          .select('*');
-
-        if (blockedSlotsError) throw blockedSlotsError;
-
-        const dates = blockedSlotsData
-          .filter(slot => slot.block_date)
-          .map(slot => slot.block_date);
-
-        const times = blockedSlotsData
-          .filter(slot => slot.block_time)
-          .map(slot => {
-            const time = new Date(`2000-01-01T${slot.block_time}`);
-            return time.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            });
-          });
-
-        setBlockedDates(dates);
-        setBlockedTimeSlots(times);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading settings:", error);
-        setMessage({
-          text: "Failed to load settings. Please refresh the page.",
-          type: "error"
-        });
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, []);
 
-  // Load Appointments
-  const loadAppointments = async () => {
+  const loadData = async () => {
     try {
-      const { data: settings, error: settingsError } = await supabase
+      setLoading(true);
+
+      // 1. Get Settings
+      const { data: settingsData, error: settingsError } = await supabase
         .from('appointment_settings')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .single();
 
-      if (settingsError) throw settingsError; // Get upcoming appointments
+      if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+
+      if (settingsData) {
+        setStartTime(settingsData.start_time.slice(0, 5));
+        setEndTime(settingsData.end_time.slice(0, 5));
+        setInterval(settingsData.interval_minutes);
+
+        setInitialStartTime(settingsData.start_time.slice(0, 5));
+        setInitialEndTime(settingsData.end_time.slice(0, 5));
+        setInitialInterval(settingsData.interval_minutes);
+      }
+
+      // 2. Get Blocked Slots
+      const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
+        .from('blocked_slots')
+        .select('*');
+
+      if (blockedSlotsError) throw blockedSlotsError;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Filter active dates and identify past ones for cleanup
+      const activeBlockedDates = [];
+      const pastBlockedDateIds = [];
+
+      blockedSlotsData.forEach(slot => {
+        if (slot.block_date) {
+          if (slot.block_date < todayStr) {
+            pastBlockedDateIds.push(slot.block_date); // Assuming block_date is unique enough or use ID if available. 
+            // Actually, delete needs a condition. using block_date is fine if we assume uniqueness per day or just delete all matching.
+          } else {
+            activeBlockedDates.push(slot.block_date);
+          }
+        }
+      });
+
+      // Async cleanup past dates (fire and forget or await)
+      if (pastBlockedDateIds.length > 0) {
+        supabase.from('blocked_slots').delete().in('block_date', pastBlockedDateIds).then(
+          () => console.log("Cleaned up past blocked dates")
+        );
+      }
+
+      const times = blockedSlotsData
+        .filter(slot => slot.block_time)
+        .map(slot => {
+          // Convert HH:mm:ss to HH:MM AM/PM
+          const time = new Date(`2000-01-01T${slot.block_time}`);
+          return time.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+        });
+
+      setBlockedDates(activeBlockedDates);
+      setBlockedTimeSlots(times);
+
+      // Store initial state for diffing
+      setInitialBlockedDates(activeBlockedDates);
+      setInitialBlockedTimeSlots(times);
+
+      setLoading(false);
+
+      // Load appointments after settings are ready (implied dependency)
+      loadAppointments(settingsData?.interval_minutes || 30);
+
+    } catch (error) {
+      console.error("Error loading settings:", error);
+      toast.error("Failed to load settings.");
+      setLoading(false);
+    }
+  };
+
+  const loadAppointments = async (currentInterval = 30) => {
+    try {
+      setLoadingAppointments(true);
       const { data, error } = await supabase
         .from('appointments')
         .select(`
-          id,
-          created_at,
-          reason,
-          specified_reason,
-          appointment_date,
-          appointment_time,
-          contact_number,
-          email,
-          meeting_mode,
-          requested_date,
-          requested_time_slot,
-          reschedule_reason,
-          account:account(account_name, email),
-          status,
-          notes
+          *,
+          account:account(account_name, email)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const formattedAppointments = data.map(appointment => {
-        const startTime = new Date(`2000-01-01T${appointment.appointment_time}`);
-        const endTime = new Date(startTime.getTime() + (settings?.interval_minutes || 30) * 60000);
+        const start = new Date(`2000-01-01T${appointment.appointment_time}`);
+        const end = new Date(start.getTime() + currentInterval * 60000);
 
-        const timeRange = `${startTime.toLocaleTimeString('en-US', {
+        const timeRange = `${start.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
-        })} - ${endTime.toLocaleTimeString('en-US', {
+        })} - ${end.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
@@ -162,89 +205,25 @@ const AdminAppointmentSettings = () => {
           timeRange,
           formattedName,
           fullDetails: `${appointment.reason}${appointment.notes ? ` - ${appointment.notes}` : ''}`,
-          // Calendar Event props
           date: new Date(appointment.appointment_date),
           title: formattedName || 'Appointment',
-          // Reschedule details
           requestedDate: appointment.requested_date ? new Date(appointment.requested_date) : null,
           requestedTime: appointment.requested_time_slot ? new Date(`2000-01-01T${appointment.requested_time_slot}`).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
+            hour: 'numeric', minute: '2-digit', hour12: true
           }) : null,
         };
       });
 
       setAppointments(formattedAppointments);
-      setLoadingAppointments(false);
     } catch (error) {
       console.error("Error loading appointments:", error);
-      setMessage({
-        text: "Failed to load appointments",
-        type: "error"
-      });
+      toast.error("Failed to load appointments");
+    } finally {
       setLoadingAppointments(false);
     }
   };
 
-  useEffect(() => {
-    loadAppointments();
-  }, []);
-
-  // ... (Keep existing handlers: handleSaveSettings, handleAddBlockedDate, etc.)
-  // Handle saving consultation time settings
-  const handleSaveSettings = async () => {
-    try {
-      setSavingSettings(true);
-      const { error } = await supabase
-        .from('appointment_settings')
-        .upsert({
-          id: 1,
-          start_time: startTime + ':00',
-          end_time: endTime + ':00',
-          interval_minutes: interval
-        });
-      if (error) throw error;
-      setMessage({ text: "Settings saved successfully!", type: "success" });
-      setTimeout(() => { setMessage({ text: "", type: "" }); }, 3000);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      setMessage({ text: "Failed to save settings. Please try again.", type: "error" });
-    } finally {
-      setSavingSettings(false);
-    }
-  };
-
-  const handleAddBlockedDate = async () => {
-    if (!newBlockedDate || blockedDates.includes(newBlockedDate)) return;
-    try {
-      setAddingDate(true);
-      const { error } = await supabase.from('blocked_slots').insert({ block_date: newBlockedDate });
-      if (error) throw error;
-      setBlockedDates([...blockedDates, newBlockedDate]);
-      setNewBlockedDate("");
-      setMessage({ text: "Date blocked successfully!", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-    } catch (error) {
-      console.error("Error adding blocked date:", error);
-      setMessage({ text: "Failed to block date.", type: "error" });
-    } finally {
-      setAddingDate(false);
-    }
-  };
-
-  const handleRemoveBlockedDate = async (date) => {
-    try {
-      const { error } = await supabase.from('blocked_slots').delete().eq('block_date', date);
-      if (error) throw error;
-      setBlockedDates(blockedDates.filter(d => d !== date));
-      setMessage({ text: "Date unblocked successfully!", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-    } catch (error) {
-      console.error("Error removing blocked date:", error);
-      setMessage({ text: "Failed to unblock date.", type: "error" });
-    }
-  };
+  // --- Logic Helpers ---
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -262,32 +241,221 @@ const AdminAppointmentSettings = () => {
     return slots;
   };
 
-  const toggleTimeSlot = async (slot) => {
-    try {
-      const timeStr = slot;
-      let hours = parseInt(timeStr.match(/^(\d+)/)[1]);
-      const minutes = parseInt(timeStr.match(/:(\d+)/)[1]);
-      const period = timeStr.match(/([AP]M)$/)[1];
-      if (period === "PM" && hours < 12) hours += 12;
-      if (period === "AM" && hours === 12) hours = 0;
-      const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+  const timeSlots = useMemo(() => generateTimeSlots(), [startTime, endTime, interval]);
 
-      if (blockedTimeSlots.includes(slot)) {
-        const { error } = await supabase.from('blocked_slots').delete().eq('block_time', formattedTime);
-        if (error) throw error;
-        setBlockedTimeSlots(blockedTimeSlots.filter(s => s !== slot));
-      } else {
-        const { error } = await supabase.from('blocked_slots').insert({ block_time: formattedTime });
-        if (error) throw error;
-        setBlockedTimeSlots([...blockedTimeSlots, slot]);
-      }
-    } catch (error) {
-      console.error("Error toggling time slot:", error);
-      setMessage({ text: "Failed to update time slot.", type: "error" });
+  const convertToDBTime = (timeStr) => {
+    // "10:00 AM" -> "10:00:00"
+    let hours = parseInt(timeStr.match(/^(\d+)/)[1]);
+    const minutes = parseInt(timeStr.match(/:(\d+)/)[1]);
+    const period = timeStr.match(/([AP]M)$/)[1];
+    if (period === "PM" && hours < 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+  };
+
+  // --- Handlers (Settings) ---
+
+  const handleToggleDate = (dateString) => {
+    if (blockedDates.includes(dateString)) {
+      setBlockedDates(blockedDates.filter(d => d !== dateString));
+    } else {
+      setBlockedDates([...blockedDates, dateString]);
     }
   };
 
-  // Promise-based Action Handlers for ActionButtons
+  const handleAddBlockedDates = (newDates) => {
+    // Filter out duplicates that are already blocked
+    const uniqueNew = newDates.filter(d => !blockedDates.includes(d));
+    if (uniqueNew.length > 0) {
+      setBlockedDates([...blockedDates, ...uniqueNew]);
+    }
+  };
+
+  const handleToggleTimeSlot = (slot) => {
+    if (blockedTimeSlots.includes(slot)) {
+      setBlockedTimeSlots(blockedTimeSlots.filter(s => s !== slot));
+    } else {
+      setBlockedTimeSlots([...blockedTimeSlots, slot]);
+    }
+  };
+
+  const handleBlockAllSlots = () => setBlockedTimeSlots(timeSlots);
+  const handleUnblockAllSlots = () => setBlockedTimeSlots([]);
+
+  const handleBlockLunch = () => {
+    const lunchSlots = timeSlots.filter(slot => {
+      // Simple parse to check if hour is 12 and it's PM
+      return slot.startsWith("12:") && slot.includes("PM");
+    });
+    setBlockedTimeSlots(prev => [...new Set([...prev, ...lunchSlots])]);
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      // 1. Save Base Settings
+      const { error: settingsError } = await supabase
+        .from('appointment_settings')
+        .upsert({
+          id: 1,
+          start_time: startTime + ':00',
+          end_time: endTime + ':00',
+          interval_minutes: interval
+        });
+      if (settingsError) throw settingsError;
+
+      // 2. Sync Blocked Dates
+      const datesToAdd = blockedDates.filter(d => !initialBlockedDates.includes(d));
+      const datesToRemove = initialBlockedDates.filter(d => !blockedDates.includes(d));
+
+      if (datesToAdd.length > 0) {
+        await supabase.from('blocked_slots').insert(datesToAdd.map(d => ({ block_date: d })));
+
+        // --- Auto-Cancel/Reject Conflicts ---
+        // Find appointments that fall on the newly blocked dates
+        // Ensure dates are strings for comparison
+        const conflictingAppointments = appointments.filter(app =>
+          datesToAdd.includes(app.appointment_date.trim()) &&
+          ['scheduled', 'confirmed', 'reschedule-pending'].includes(app.status)
+        );
+
+        if (conflictingAppointments.length > 0) {
+          let processedCount = 0;
+          for (const app of conflictingAppointments) {
+            const newStatus = app.status === 'confirmed' ? 'cancelled' : 'rejected';
+            const { error: updateError } = await supabase.from('appointments').update({
+              status: newStatus,
+              admin_notes: 'Day has been blocked by the SRO',
+              updated_at: new Date().toISOString()
+            }).eq('id', app.id);
+
+            if (!updateError) {
+              processedCount++;
+
+              // Send Email Notification
+              const studentEmail = app.account?.email;
+              if (studentEmail) {
+                try {
+                  const emailSubject = `Appointment ${newStatus === 'cancelled' ? 'Cancelled' : 'Rejected'} - SRO Admin`;
+                  const emailMessage = `
+                            <p>Dear ${app.account?.account_name || 'Student'},</p>
+                            <p>Your appointment scheduled for <strong>${format(new Date(app.appointment_date), 'MMMM d, yyyy')}</strong> at <strong>${app.time_slot}</strong> has been <strong>${newStatus}</strong>.</p>
+                            <p><strong>Reason:</strong> Day has been blocked by the SRO.</p>
+                            <p>We apologize for the inconvenience. Please log in to the portal to book a new appointment.</p>
+                            <br/>
+                            <p>Best regards,<br/>SRO Admin</p>
+                        `;
+
+                  await fetch(`${API_BASE_URL}/api/send-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      to: studentEmail,
+                      subject: emailSubject,
+                      html: emailMessage
+                    }),
+                  });
+                } catch (emailErr) {
+                  console.error("Failed to send auto-cancellation email:", emailErr);
+                  // Don't throw, just log so loop continues
+                }
+              }
+            }
+          }
+          if (processedCount > 0) {
+            toast.success(`Automatically cancelled/rejected ${processedCount} appointment(s) due to blocking.`);
+          }
+        }
+      }
+      if (datesToRemove.length > 0) {
+        await supabase.from('blocked_slots').delete().in('block_date', datesToRemove);
+      }
+
+      // 3. Sync Blocked Times
+      const timesToAdd = blockedTimeSlots.filter(t => !initialBlockedTimeSlots.includes(t));
+      const timesToRemove = initialBlockedTimeSlots.filter(t => !blockedTimeSlots.includes(t));
+
+      if (timesToAdd.length > 0) {
+        await supabase.from('blocked_slots').insert(timesToAdd.map(t => ({ block_time: convertToDBTime(t) })));
+      }
+      if (timesToRemove.length > 0) {
+        await supabase.from('blocked_slots').delete().in('block_time', timesToRemove.map(t => convertToDBTime(t)));
+      }
+
+      // Update initial state for next save
+      setInitialBlockedDates(blockedDates);
+      setInitialBlockedTimeSlots(blockedTimeSlots);
+      setInitialStartTime(startTime);
+      setInitialEndTime(endTime);
+      setInitialInterval(interval);
+
+      toast.success("Settings saved successfully!");
+      loadAppointments(interval);
+
+    } catch (error) {
+      console.error("Save failed", error);
+      toast.error("Failed to save settings.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // --- Unsaved Changes Handlers ---
+
+  const getUnsavedChanges = () => {
+    const changes = [];
+
+    // Check Settings
+    if (startTime !== initialStartTime) changes.push(`Start Time changed to ${startTime}`);
+    if (endTime !== initialEndTime) changes.push(`End Time changed to ${endTime}`);
+    if (interval !== initialInterval) changes.push(`Interval changed to ${interval} mins`);
+
+    // Check Blocked Dates
+    const datesAdded = blockedDates.filter(d => !initialBlockedDates.includes(d)).length;
+    const datesRemoved = initialBlockedDates.filter(d => !blockedDates.includes(d)).length;
+    if (datesAdded > 0) changes.push(`${datesAdded} Blocked Date(s) Added`);
+    if (datesRemoved > 0) changes.push(`${datesRemoved} Blocked Date(s) Removed`);
+
+    // Check Blocked Times
+    const timesAdded = blockedTimeSlots.filter(t => !initialBlockedTimeSlots.includes(t)).length;
+    const timesRemoved = initialBlockedTimeSlots.filter(t => !blockedTimeSlots.includes(t)).length;
+    if (timesAdded > 0) changes.push(`${timesAdded} Blocked Time(s) Added`);
+    if (timesRemoved > 0) changes.push(`${timesRemoved} Blocked Time(s) Removed`);
+
+    return changes;
+  };
+
+  const handleTabChange = (newValue) => {
+    if (activeTab === 'settings' && newValue !== 'settings') {
+      const changes = getUnsavedChanges();
+      if (changes.length > 0) {
+        setPendingTab(newValue);
+        setShowUnsavedDialog(true);
+        return;
+      }
+    }
+    setActiveTab(newValue);
+  };
+
+  const confirmTabChange = () => {
+    setActiveTab(pendingTab);
+    setShowUnsavedDialog(false);
+  };
+
+  // Warn on browser unload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const changes = getUnsavedChanges();
+      if (changes.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  });
+
+  // --- Handlers (Appointments) ---
 
   const processAppointmentAction = async (appointmentId, action, type) => {
     setIsProcessing(true);
@@ -297,29 +465,41 @@ const AdminAppointmentSettings = () => {
         .select('*')
         .eq('id', appointmentId)
         .single();
+
       if (fetchError) throw fetchError;
 
-      const { error } = await supabase.from('appointments').update({
+      const updateData = {
         status: action === 'approve' ? (type === 'reschedule' ? 'scheduled' : 'cancelled') : 'scheduled',
-        ...(type === 'reschedule' && action === 'approve' ? {
-          appointment_date: appointment.requested_date,
-          appointment_time: appointment.requested_time_slot,
-          requested_date: null, requested_time_slot: null, reschedule_reason: null, reschedule_requested: false
-        } : type === 'reschedule' ? {
-          requested_date: null, requested_time_slot: null, reschedule_reason: null, reschedule_requested: false
-        } : { cancellation_requested: false })
-      }).eq('id', appointmentId);
+      };
 
+      if (type === 'reschedule') {
+        if (action === 'approve') {
+          updateData.appointment_date = appointment.requested_date;
+          updateData.appointment_time = appointment.requested_time_slot;
+        }
+        updateData.requested_date = null;
+        updateData.requested_time_slot = null;
+        updateData.reschedule_reason = null;
+        updateData.reschedule_requested = false;
+      } else {
+        updateData.cancellation_requested = false;
+      }
+
+      const { error } = await supabase.from('appointments').update(updateData).eq('id', appointmentId);
       if (error) throw error;
+
+      toast.success(action === 'approve' ? 'Request approved' : 'Request rejected');
+      loadAppointments(interval);
+      setShowConfirmDialog(false);
+    } catch {
+      toast.error("Process failed");
     } finally {
       setIsProcessing(false);
     }
   };
 
   const processAppointmentResponse = async (appointmentId, action) => {
-    if (!appointmentId) return;
     setIsProcessing(true);
-
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
@@ -328,69 +508,42 @@ const AdminAppointmentSettings = () => {
 
       const { error } = await supabase.from('appointments').update({
         status: action === 'confirm' ? 'confirmed' : (action === 'cancel' ? 'cancelled' : 'rejected'),
-        // Store rejection reason in rejection_reason, and cancellation reason in rejection_reason as well for now or admin_notes?
-        // Let's use rejection_reason for both "negative" outcomes to keep schema simple if possible, or admin_notes.
-        // The previous code used admin_notes for rejection. Let's stick to that for consistency + rejection_reason if available.
         admin_notes: adminComment,
         updated_at: new Date()
       }).eq('id', appointmentId);
 
       if (error) throw error;
 
-      // Email sending
-      const appointmentDate = new Date(appointment.appointment_date).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-      const appointmentTime = new Date(`2000-01-01T${appointment.appointment_time}`).toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', hour12: true
-      });
-
+      // Basic Email Sending - Preserving existing patterns
       const emailSubject = action === 'confirm' ? 'Appointment Confirmed' : (action === 'cancel' ? 'Appointment Cancelled' : 'Appointment Rejected');
-      const emailActionText = action === 'confirm' ? 'confirmed' : (action === 'cancel' ? 'cancelled' : 'rejected');
-      const emailColorClass = action === 'confirm' ? 'text-sro-secondary' : 'text-sro-primary';
 
-      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: appointment.account.email,
-          subject: `${emailSubject} - ${appointment.reason}`,
-          text: `Your appointment has been ${emailActionText}.`,
-          html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 class="${emailColorClass}">${emailSubject}</h2>
-  
-  <p>Your appointment has been <strong>${emailActionText}</strong>.</p>
-  
-  <div class="bg-gray-50 p-4 rounded-md my-4" style="background-color: #f9fafb; padding: 1rem; border-radius: 0.375rem; margin-top: 1rem; margin-bottom: 1rem;">
-    <p><strong>Date:</strong> ${appointmentDate}</p>
-    <p><strong>Time:</strong> ${appointmentTime}</p>
-    <p><strong>Purpose:</strong> ${appointment.reason}${appointment.specified_reason ? ' - ' + appointment.specified_reason : ''}</p>
-    <p><strong>Mode:</strong> ${appointment.meeting_mode || 'Face-to-face'}</p>
-  </div>
-  
-  ${adminComment ? `<p><strong>Reason/Notes:</strong> ${adminComment}</p>` : ''}
-  
-  <p>${action === 'confirm'
-              ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
-              : 'Multi-purpose admin action taken.'}</p>
-  
-  <p>Thank you,<br>Student Relations Office</p>
-</div>`
-        })
-      });
+      try {
+        await fetch(`${API_BASE_URL}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: appointment.account.email,
+            subject: `${emailSubject} - ${appointment.reason}`,
+            text: `Your appointment status has been updated to ${action}.`,
+            html: `<p>Your appointment status has been updated to <strong>${action}</strong>.</p>`
+          })
+        });
+      } catch (e) { console.error("Email failed", e); }
 
-      if (!response.ok) throw new Error('Failed to send confirmation email');
+      toast.success(`Appointment ${action}ed`);
+      loadAppointments(interval);
+      setShowConfirmDialog(false);
+      setShowRejectDialog(false);
+      setAdminComment("");
+    } catch {
+      toast.error("Action failed");
     } finally {
       setIsProcessing(false);
     }
   };
-  // ... End existing handlers
 
-  const timeSlots = generateTimeSlots();
-
-  // Calendar Helper Functions
+  // --- Calendar Helpers ---
   const getEventColor = (category, event) => {
-    // Map Appointment Status to Colors for Calendar
     const status = event.status;
     if (status === 'confirmed') return 'bg-sro-secondary text-white';
     if (status === 'scheduled') return 'bg-gray-100 text-gray-700 border border-gray-300';
@@ -399,7 +552,7 @@ const AdminAppointmentSettings = () => {
     return 'bg-blue-100 text-blue-700';
   };
 
-  const handleDateSelect = (dateOrEvent) => {
+  const handleCalendarDateSelect = (dateOrEvent) => {
     const date = dateOrEvent instanceof Date ? dateOrEvent : (dateOrEvent.date ? new Date(dateOrEvent.date) : null);
     if (date) {
       if (selectedDateFilter && isSameDay(date, selectedDateFilter)) {
@@ -412,16 +565,8 @@ const AdminAppointmentSettings = () => {
 
   const calendarEvents = useMemo(() => {
     return appointments.filter(app => {
-      // Logic:
-      // Show Requests OFF: Show ONLY 'confirmed'
-      // Show Requests ON: Show 'confirmed', 'scheduled', 'reschedule-pending'
-
       if (app.status === 'confirmed') return true;
-
-      if (showRequests) {
-        return ['scheduled', 'reschedule-pending'].includes(app.status);
-      }
-
+      if (showRequests) return ['scheduled', 'reschedule-pending'].includes(app.status);
       return false;
     });
   }, [appointments, showRequests]);
@@ -431,8 +576,7 @@ const AdminAppointmentSettings = () => {
     return calendarEvents.filter(event => isSameDay(new Date(event.appointment_date), selectedDateFilter));
   }, [calendarEvents, selectedDateFilter]);
 
-
-  // Define table columns
+  // --- FULL Columns Definition (Restored) ---
   const columns = [
     {
       key: 'created_at',
@@ -540,277 +684,134 @@ const AdminAppointmentSettings = () => {
     }
   ];
 
-  if (loading) {
-    return <LoadingSpinner text="Loading appointment settings..." variant="section" />;
-  }
+  const datesWithAppointments = useMemo(() => {
+    return appointments
+      .filter(a => ['scheduled', 'confirmed', 'reschedule-pending'].includes(a.status))
+      .map(a => new Date(a.appointment_date));
+  }, [appointments]);
+
+  if (loading) return <LoadingSpinner text="Loading settings..." variant="section" />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <Toaster toastOptions={{ style: { zIndex: 10000 } }} />
+      <Toaster expand={true} theme="light" toastOptions={{ style: { zIndex: 10000 } }} />
       <h1 className="page-header text-sro-primary">Appointment Management</h1>
 
-      <Tabs defaultValue="requests" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
           <TabsTrigger value="requests" className="w-full md:w-auto">Appointment Requests</TabsTrigger>
           <TabsTrigger value="calendar" className="w-full md:w-auto">Appointments</TabsTrigger>
           <TabsTrigger value="settings" className="w-full md:w-auto">Settings</TabsTrigger>
         </TabsList>
 
-        {/* Requests / Booking Tab */}
         <TabsContent value="requests">
           <DataTable
             columns={columns}
             data={appointments}
+            onRowClick={(row) => { setSelectedAppointment(row); setShowConfirmDialog(true); }}
+            emptyMessage="No appointments found."
             defaultPageSize={10}
             defaultSort={{ key: 'created_at', direction: 'desc' }}
-            emptyMessage="No appointments found."
-            onRowClick={(row) => {
-              setSelectedAppointment(row);
-              setShowConfirmDialog(true);
-            }}
             viewMode="table"
             hideViewToggle={true}
           />
         </TabsContent>
 
-        {/* Calendar Tab */}
         <TabsContent value="calendar">
-          <div className="flex justify-between items-center mb-4">
-            {/* Legend */}
-            <div className="flex flex-wrap gap-4 px-2">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-sro-secondary"></span>
-                <span className="text-xs text-gray-600">Confirmed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></span>
-                <span className="text-xs text-gray-600">Scheduled</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-200 border border-amber-500"></span>
-                <span className="text-xs text-gray-600">For Reschedule</span>
-              </div>
+          {/* Calendar Tab Content */}
+          <div className="flex justify-between items-center mb-4 px-1">
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-sro-secondary" /> <span className="text-xs">Confirmed</span></div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400" /> <span className="text-xs">Scheduled</span></div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-200 border border-amber-500" /> <span className="text-xs text-gray-600">For Reschedule</span></div>
             </div>
-
-            {/* Toggle */}
             <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-md shadow-sm border">
-              <input
-                type="checkbox"
-                checked={showRequests}
-                onChange={(e) => setShowRequests(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-sro-primary focus:ring-sro-primary"
-              />
-              <span className="text-sm font-medium text-gray-700">Show Requests</span>
+              <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary" />
+              <span className="text-sm font-medium">Show Requests</span>
             </label>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-md border p-4">
-                <CustomCalendar
-                  mode="activities"
-                  currentMonth={currentDate}
-                  onDateSelect={handleDateSelect}
-                  selectedDate={selectedDateFilter}
-                  onMonthChange={setCurrentDate}
-                  events={calendarEvents}
-                  getEventColor={getEventColor}
-                />
-              </div>
+            <div className="lg:col-span-2 bg-white rounded-lg shadow border p-4">
+              <CustomCalendar
+                mode="activities"
+                currentMonth={currentDate}
+                onMonthChange={setCurrentDate}
+                onDateSelect={handleCalendarDateSelect}
+                selectedDate={selectedDateFilter}
+                events={calendarEvents}
+                getEventColor={getEventColor}
+              />
             </div>
             <div className="lg:col-span-1">
               <Card className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    {selectedDateFilter ? `Appointments on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardHeader><CardTitle className="text-lg">{selectedDateFilter ? `Appointments on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
                   {selectedDateFilter ? (
                     <div className="space-y-3">
-                      {filteredCalendarList.length > 0 ? (
-                        filteredCalendarList.map(app => (
-                          <div
-                            key={app.id}
-                            className="p-3 bg-gray-50 hover:bg-white hover:shadow-sm border rounded-md cursor-pointer transition-all"
-                            onClick={() => {
-                              setSelectedAppointment(app);
-                              setShowConfirmDialog(true);
-                            }}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="font-semibold text-sro-primary text-sm">{app.formattedName}</span>
-                              <StatusPill status={app.status} compact />
-                            </div>
-                            <div className="text-xs text-gray-600 flex flex-col gap-1">
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">Time:</span> {app.timeRange}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">Mode:</span> {app.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}
-                              </div>
-                              <div className="truncate text-gray-500 italic" title={app.specified_reason}>
-                                {app.specified_reason || app.reason}
-                              </div>
-                            </div>
+                      {filteredCalendarList.length > 0 ? filteredCalendarList.map(app => (
+                        <div key={app.id} onClick={() => { setSelectedAppointment(app); setShowConfirmDialog(true); }} className="p-3 bg-gray-50 border rounded-md cursor-pointer hover:bg-white hover:shadow-sm">
+                          <div className="flex justify-between mb-1"><span className="font-semibold text-sro-primary text-sm">{app.formattedName}</span> <StatusPill status={app.status} compact /></div>
+                          <div className="text-xs text-gray-600 flex flex-col gap-1">
+                            <div><span className="font-medium">Time:</span> {app.timeRange}</div>
+                            <div><span className="font-medium">Mode:</span> {app.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</div>
+                            <div className="truncate text-gray-500 italic" title={app.specified_reason}>{app.specified_reason || app.reason}</div>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          No appointments scheduled for this date.
                         </div>
-                      )}
+                      )) : <div className="text-center py-8 text-gray-400 text-sm">No appointments scheduled for this date.</div>}
                     </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-400 text-sm">
-                      Click on a date in the calendar to view scheduled appointments.
-                    </div>
-                  )}
+                  ) : <div className="text-center py-12 text-gray-400 text-sm">Click on a date in the calendar to view scheduled appointments.</div>}
                 </CardContent>
               </Card>
             </div>
           </div>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings">
-          <Card className="p-6">
-            <div className="space-y-6">
-              {/* Consultation Hours Settings */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Consultation Hours</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Start Time</label>
-                    <input
-                      type="time"
-                      className="w-full p-2 border rounded-md"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">End Time</label>
-                    <input
-                      type="time"
-                      className="w-full p-2 border rounded-md"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Interval (minutes)</label>
-                    <UnifiedDropdown
-                      options={[
-                        { value: "15", label: "15 minutes" },
-                        { value: "30", label: "30 minutes" },
-                        { value: "45", label: "45 minutes" },
-                        { value: "60", label: "1 hour" }
-                      ]}
-                      value={String(interval)}
-                      onChange={(val) => setInterval(Number(val))}
-                      placeholder="Select interval"
-                    />
-                  </div>
-                </div>
-              </div>
+        <TabsContent value="settings" className="space-y-6">
+          <ConsultationHoursSettings
+            startTime={startTime} setStartTime={setStartTime}
+            endTime={endTime} setEndTime={setEndTime}
+            interval={interval} setInterval={setInterval}
+          />
 
-              {/* Blocked Dates Settings */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Blocked Dates</h3>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      className="flex-1 p-2 border rounded-md"
-                      value={newBlockedDate}
-                      onChange={(e) => setNewBlockedDate(e.target.value)}
-                    />
-                    <button
-                      className="px-4 py-2 bg-sro-primary hover:bg-sro-primary/90 text-white rounded-md whitespace-nowrap"
-                      onClick={handleAddBlockedDate}
-                      disabled={addingDate || !newBlockedDate}
-                    >
-                      {addingDate ? (
-                        <div className="flex items-center">
-                          <LoadingSpinner className="h-4 w-4 mr-2" variant="inline" text="" />
-                          <span>Adding...</span>
-                        </div>
-                      ) : (
-                        "Block Date"
-                      )}
-                    </button>
-                  </div>
+          <div className="grid grid-cols-1 gap-6">
+            <BlockedDatesSettings
+              blockedDates={blockedDates}
+              onToggleDate={handleToggleDate}
+              onAddBlockedDates={handleAddBlockedDates}
+              datesWithAppointments={datesWithAppointments}
+            />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {blockedDates.map((date) => (
-                      <div key={date} className="flex items-center justify-between p-2 bg-sro-primary rounded-md">
-                        <span className="text-white">{new Date(date).toLocaleDateString()}</span>
-                        <button
-                          onClick={() => handleRemoveBlockedDate(date)}
-                          className="text-white hover:text-gray-500 transition-colors"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <TimeSlotsSettings
+              timeSlots={timeSlots}
+              blockedTimeSlots={blockedTimeSlots}
+              onToggleSlot={handleToggleTimeSlot}
+              onBlockAll={handleBlockAllSlots}
+              onUnblockAll={handleUnblockAllSlots}
+              onBlockLunch={handleBlockLunch}
+            />
+          </div>
 
-              {/* Time Slots Settings */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Time Slots</h3>
-                <p className="text-gray-600 text-sm mb-4">Click on time slots to block/unblock them globally</p>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                  {timeSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      className={`p-2 border rounded-md text-sm ${blockedTimeSlots.includes(slot)
-                        ? "bg-sro-primary text-white hover:bg-sro-primary/90 transition-colors"
-                        : "bg-sro-secondary text-white hover:bg-sro-secondary/90 transition-colors"
-                        }`}
-                      onClick={() => toggleTimeSlot(slot)}
-                    >
-                      {slot}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Save Settings Button */}
-              <div className="pt-4 border-t">
-                <button
-                  className="px-4 py-2 bg-sro-primary text-white rounded-md hover:bg-sro-primary/90 transition-colors"
-                  onClick={handleSaveSettings}
-                  disabled={savingSettings}
-                >
-                  {savingSettings ? (
-                    <div className="flex items-center">
-                      <LoadingSpinner className="h-4 w-4 mr-2" variant="inline" text="" />
-                      <span>Saving...</span>
-                    </div>
-                  ) : (
-                    "Save All Settings"
-                  )}
-                </button>
-              </div>
-            </div>
-          </Card>
+          <div className="flex justify-end pt-4 pb-12">
+            <Button
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              className="bg-sro-primary hover:bg-sro-primary/90 text-white min-w-[150px]"
+            >
+              {savingSettings ? <LoadingSpinner variant="inline" text="" /> : <Save className="w-4 h-4 mr-2" />}
+              {savingSettings ? "Saving..." : "Save All Settings"}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Appointment Details Dialog */}
+      {/* Appointment Details Dialog - Restored Full Detail */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        {/* ... (Kept existing dialog content) */}
-        {/* ... (Kept existing dialog content) */}
         <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold">Appointment Details</DialogTitle>
           </DialogHeader>
 
           {selectedAppointment && (
-            console.log("Selected Appointment Data:", selectedAppointment),
             <div className="space-y-4">
               {/* Student Details */}
               <div className="grid grid-cols-2 gap-4">
@@ -856,9 +857,7 @@ const AdminAppointmentSettings = () => {
                   <div>
                     <p className="text-sm">
                       <span className="font-medium">Date:</span> {new Date(selectedAppointment.appointment_date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                        year: 'numeric', month: 'long', day: 'numeric'
                       })}
                     </p>
                     <p className="text-sm">
@@ -866,9 +865,7 @@ const AdminAppointmentSettings = () => {
                     </p>
                     <p className="text-sm">
                       <span className="font-medium">Requested:</span> {new Date(selectedAppointment.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                        year: 'numeric', month: 'long', day: 'numeric'
                       })}
                     </p>
                   </div>
@@ -878,6 +875,14 @@ const AdminAppointmentSettings = () => {
                     <p className="text-sm font-medium text-gray-500 mb-1">Additional Notes</p>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border border-gray-100">
                       {selectedAppointment.notes}
+                    </p>
+                  </div>
+                )}
+                {selectedAppointment.admin_notes && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Admin Notes (SRO Response)</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap bg-red-50 p-3 rounded-md border border-red-100">
+                      {selectedAppointment.admin_notes}
                     </p>
                   </div>
                 )}
@@ -901,7 +906,6 @@ const AdminAppointmentSettings = () => {
                       </p>
                       <p className="text-sm text-amber-800">
                         {selectedAppointment.requestedTime}
-                        {/* Calculate end time for proposed just for display if needed, but requestedTime is just start or range? Assuming start based on DB schema */}
                       </p>
                     </div>
                   </div>
@@ -928,10 +932,7 @@ const AdminAppointmentSettings = () => {
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isProcessing}>
-                  Close
-                </Button>
-
+                <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isProcessing}>Close</Button>
                 {selectedAppointment.status === 'scheduled' && (
                   <ActionButtons
                     confirmLabel="Confirm"
@@ -943,20 +944,12 @@ const AdminAppointmentSettings = () => {
                       setShowConfirmDialog(false);
                       setActionType('reject');
                       setShowRejectDialog(true);
-                      // We return a resolved promise here because the actual rejection action happens in the other dialog
                       return Promise.resolve();
                     }}
-                    rejectSuccessMessage={null} // Suppress toast for this step
-                    onSuccess={() => {
-                      // Only for confirm success here. Reject opens another dialog.
-                      setShowConfirmDialog(false);
-                      loadAppointments();
-                    }}
-                    className="w-auto"
+                    rejectSuccessMessage={null}
                     disabled={isProcessing}
                   />
                 )}
-
                 {selectedAppointment.status === 'reschedule-pending' && (
                   <ActionButtons
                     confirmLabel="Approve Reschedule"
@@ -967,14 +960,9 @@ const AdminAppointmentSettings = () => {
                     onReject={() => processAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
                     confirmSuccessMessage="Reschedule request approved"
                     rejectSuccessMessage="Reschedule request rejected"
-                    onSuccess={() => {
-                      setShowConfirmDialog(false);
-                      loadAppointments();
-                    }}
                     disabled={isProcessing}
                   />
                 )}
-
                 {selectedAppointment.status === 'confirmed' && (
                   <Button
                     variant="destructive"
@@ -995,7 +983,6 @@ const AdminAppointmentSettings = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Rejection Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
@@ -1020,7 +1007,6 @@ const AdminAppointmentSettings = () => {
               confirmSuccessMessage={`Appointment ${actionType === 'cancel' ? 'cancelled' : 'rejected'} successfully`}
               onSuccess={() => {
                 setShowRejectDialog(false);
-                loadAppointments();
                 setAdminComment("");
                 setSelectedAppointment(null);
               }}
@@ -1034,15 +1020,37 @@ const AdminAppointmentSettings = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Message display */}
-      {
-        message.text && (
-          <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-            }`}>
-            {message.text}
-          </div>
-        )
-      }
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-sro-primary">
+              <AlertTriangle className="h-5 w-5" />
+              Unsaved Changes
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>You have unsaved changes in the Settings tab. Leaving without saving will discard these changes.</p>
+
+              <div className="bg-red-50 border border-red-100 rounded-md p-3 text-sm">
+                <p className="font-semibold text-red-800 mb-1">Pending Changes:</p>
+                <ul className="list-disc list-inside text-red-700 space-y-1">
+                  {getUnsavedChanges().map((change, idx) => (
+                    <li key={idx}>{change}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <p>Are you sure you want to discard changes and leave?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowUnsavedDialog(false)}>Stay & Save</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTabChange} className="bg-sro-primary hover:bg-sro-primary/90 text-white">
+              Discard & Leave
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div >
   );
 };

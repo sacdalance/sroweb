@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addDays, isWeekend } from "date-fns";
 import { Badge } from "./badge";
 import PropTypes from 'prop-types';
 
@@ -11,6 +11,8 @@ const CustomCalendar = ({
   onMonthChange,
   events = [],
   blockedDates = [],
+  highlightedDates = [], // New prop for pending selections
+  dimWeekends = false,   // New prop to dim weekends
   datesWithAppointments = [],
   isDateAvailable,
   getEventColor,
@@ -34,7 +36,8 @@ const CustomCalendar = ({
   };
 
   const getAppointmentDayClass = (day) => {
-    let classes = "flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 mx-auto relative rounded-full cursor-pointer text-sm sm:text-base ";
+    let classes = "flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 mx-auto relative rounded-full cursor-pointer text-sm sm:text-base transition-all duration-200 ";
+    const isWknd = isWeekend(day);
 
     if (selectedDate && isSameDay(day, selectedDate)) {
       classes += "bg-sro-secondary text-white font-bold ";
@@ -42,15 +45,24 @@ const CustomCalendar = ({
     else if (isToday(day)) {
       classes += "border-2 border-sro-secondary text-sro-secondary font-bold ";
     }
+    // Highlighted (Pending Selection) - Prioritize over available but under blocked if needed, or parallel
+    else if (highlightedDates.some(date => isSameDay(date, day))) {
+      classes += "bg-sro-primary/20 text-sro-primary font-bold ring-2 ring-sro-primary ring-inset ";
+    }
+    else if (blockedDates.some(date => isSameDay(day, date))) {
+      classes += "bg-red-100 text-sro-primary font-bold ";
+    }
     else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
         classes += "bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 ";
       } else {
-        classes += "bg-sro-secondary/20 text-sro-secondary font-bold hover:bg-sro-secondary/30 ";
+        // Normal available day
+        if (dimWeekends && isWknd) {
+          classes += "text-gray-300 bg-gray-50/50 cursor-not-allowed ";
+        } else {
+          classes += "text-gray-700 hover:bg-gray-100 ";
+        }
       }
-    }
-    else if (blockedDates.some(date => isSameDay(day, date))) {
-      classes += "text-sro-primary font-bold ";
     }
     else {
       classes += "text-gray-400 ";
@@ -160,8 +172,18 @@ const CustomCalendar = ({
             // Assuming appointments mode uses simple day cells.
             <div
               key={i}
-              onClick={() => onDateSelect && isDateAvailable && isDateAvailable(day) && onDateSelect(day)}
-              className="p-1 bg-white sm:bg-transparent h-[40px] sm:h-auto flex items-center justify-center cursor-pointer"
+              onClick={() => {
+                // If dimWeekends is on and it is weekend, do nothing unless we want to allow selecting weekends explicitly?
+                // User said "naturally unavailable", implies unclickable for booking.
+                // But for blocking settings, maybe we want to unblock? 
+                // Assuming for "BlockedDatesSettings", we might want to click ANYTHING.
+                // But "isDateAvailable" prop usually controls clickability.
+                // Let's rely on isDateAvailable passed from parent.
+                if (onDateSelect && (!isDateAvailable || isDateAvailable(day))) {
+                  onDateSelect(day);
+                }
+              }}
+              className="p-1 bg-white sm:bg-transparent h-[40px] sm:h-auto flex items-center justify-center cursor-pointer select-none"
             >
               {/* Show day if in current month or if we want to show prev/next month days faded */}
               <div className={`${getAppointmentDayClass(day)} ${!isSameMonth(day, currentMonth) ? 'opacity-30' : ''}`}>
@@ -250,6 +272,8 @@ CustomCalendar.propTypes = {
     category: PropTypes.string
   })),
   blockedDates: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
+  highlightedDates: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
+  dimWeekends: PropTypes.bool,
   datesWithAppointments: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
   confirmedDates: PropTypes.arrayOf(PropTypes.instanceOf(Date)),
   isDateAvailable: PropTypes.func,
