@@ -36,7 +36,7 @@ export default function AdminActivitiesCalendar() {
       fetchActivities={fetchActivities}
       fetchOrganizations={fetchOrganizations}
       fetchDialogActivity={fetchDialogActivity}
-      calendarTitle="Activities Calendar"
+      calendarTitle="Activity Calendar"
     />
   );
 }

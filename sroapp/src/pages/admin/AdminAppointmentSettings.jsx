@@ -753,7 +753,7 @@ const AdminAppointmentSettings = () => {
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster expand={true} theme="light" toastOptions={{ style: { zIndex: 10000 } }} />
-      <h1 className="page-header text-sro-primary">Appointment Management</h1>
+      <h1 className="page-header text-sro-primary">Appointments</h1>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">

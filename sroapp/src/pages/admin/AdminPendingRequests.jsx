@@ -243,7 +243,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
     >
       <Toaster />
-      <h1 className="page-header text-sro-primary">Pending Activity Requests</h1>
+      <h1 className="page-header text-sro-primary">Activity Requests</h1>
 
       {userRole === 4 && (
         <div className="flex justify-end mb-4">
