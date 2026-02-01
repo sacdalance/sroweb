@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, AlertTriangle, FileText } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast, Toaster } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,6 +21,8 @@ import { submitOrgApplication } from "@/api/orgApplicationAPI";
 import supabase from "@/lib/supabase";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { orgApplicationSchema } from "@/lib/zodSchemas";
+
+const DRAFT_KEY = "org_application_draft";
 
 const categoriesList = [
   { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
@@ -84,6 +86,11 @@ const OrgApplication = () => {
   const [selectedYear, setSelectedYear] = useState("");
   const [userId, setUserId] = useState(null);
 
+  // Draft States
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [isSuccessfullySubmitted, setIsSuccessfullySubmitted] = useState(false);
+
   // UI state for searchable dropdowns
   const [orgTypeOpen, setOrgTypeOpen] = useState(false);
   const [orgTypeSearch, setOrgTypeSearch] = useState("");
@@ -100,6 +107,103 @@ const OrgApplication = () => {
   const filteredYears = academicYearsList.filter((year) =>
     year.toLowerCase().includes(yearSearch.toLowerCase())
   );
+
+  // === DRAFT SAVING & RESTORATION ===
+
+  // 1. Check for draft on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        setPendingDraft(parsed);
+        setShowRestoreDialog(true);
+      }
+    } catch (e) {
+      console.error("Failed to load draft", e);
+    }
+  }, []);
+
+  // 2. Derive current form data object (memoized for stability)
+  const currentFormData = useMemo(() => ({
+    orgName,
+    orgEmail,
+    chairperson,
+    chairpersonEmail,
+    adviser,
+    adviserEmail,
+    coAdviser,
+    coAdviserEmail,
+    orgType,
+    selectedOrgTypeName,
+    academicYear,
+    selectedYear
+  }), [orgName, orgEmail, chairperson, chairpersonEmail, adviser, adviserEmail, coAdviser, coAdviserEmail, orgType, selectedOrgTypeName, academicYear, selectedYear]);
+
+  // 3. Auto-save draft effect
+  useEffect(() => {
+    // Determine if form is empty (don't save empty drafts)
+    const isEmpty = Object.values(currentFormData).every(val => !val);
+
+    if (!isEmpty && !isSuccessfullySubmitted) {
+      const handler = setTimeout(() => {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(currentFormData));
+      }, 1000); // Debounce save
+      return () => clearTimeout(handler);
+    }
+  }, [currentFormData, isSuccessfullySubmitted]);
+
+  // 4. Restore Draft Function
+  const handleRestoreDraft = () => {
+    if (pendingDraft) {
+      setOrgName(pendingDraft.orgName || "");
+      setOrgEmail(pendingDraft.orgEmail || "");
+      setChairperson(pendingDraft.chairperson || "");
+      setChairpersonEmail(pendingDraft.chairpersonEmail || "");
+      setAdviser(pendingDraft.adviser || "");
+      setAdviserEmail(pendingDraft.adviserEmail || "");
+      setCoAdviser(pendingDraft.coAdviser || "");
+      setCoAdviserEmail(pendingDraft.coAdviserEmail || "");
+      setOrgType(pendingDraft.orgType || "");
+      setSelectedOrgTypeName(pendingDraft.selectedOrgTypeName || "");
+      setAcademicYear(pendingDraft.academicYear || "");
+      setSelectedYear(pendingDraft.selectedYear || "");
+
+      toast.success("Draft restored", { description: "Welcome back!" });
+    }
+    setShowRestoreDialog(false);
+  };
+
+  const handleDiscardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setShowRestoreDialog(false);
+    toast.info("Draft discarded");
+  };
+
+  // === UNSAVED CHANGES PROTECTION ===
+  const isDirty = useMemo(() => {
+    return Object.values(currentFormData).some(val => val !== "") && !isSuccessfullySubmitted;
+  }, [currentFormData, isSuccessfullySubmitted]);
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty &&
+      !isSuccessfullySubmitted &&
+      currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle browser close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty && !isSuccessfullySubmitted) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, isSuccessfullySubmitted]);
+
 
   // === AUTH: GET USER ACCOUNT ID ===
   useEffect(() => {
@@ -200,6 +304,11 @@ const OrgApplication = () => {
         files,
         submitted_by: userId,
       });
+
+      // Clear draft on success
+      localStorage.removeItem(DRAFT_KEY);
+      setIsSuccessfullySubmitted(true);
+
       toast.success("Submitted successfully!");
       setShowInterviewPrompt(true);
       // Clear form after success
@@ -297,7 +406,7 @@ const OrgApplication = () => {
                   value={orgTypeSearch}
                   onChange={e => {
                     const value = sanitizeInput(e.target.value);
-                    setOrgEmail(value);
+                    setOrgTypeSearch(value); // FIX: this was invalid 'setOrgEmail' before
                   }}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
@@ -360,10 +469,10 @@ const OrgApplication = () => {
               >
                 <Input
                   placeholder="Search year..."
-                  value={chairperson}
+                  value={yearSearch}
                   onChange={e => {
                     const value = sanitizeInput(e.target.value);
-                    setChairperson(value);
+                    setYearSearch(value); // FIX: this was 'setChairperson' before (copy paste error)
                   }}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                 />
@@ -623,6 +732,77 @@ const OrgApplication = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Restore Draft Dialog */}
+        <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+          <AlertDialogContent className="rounded-xl border border-sro-secondary/20 shadow-2xl">
+            <AlertDialogHeader>
+              <div className="flex flex-col items-center">
+                <div className="bg-sro-secondary/10 p-3 rounded-full mb-3">
+                  <FileText className="h-6 w-6 text-sro-secondary" />
+                </div>
+                <AlertDialogTitle className="text-xl font-bold text-sro-secondary text-center">
+                  Restore Previous Session?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                  We found an unsaved draft from your previous session. <br />
+                  Would you like to continue where you left off?
+                </AlertDialogDescription>
+              </div>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={handleDiscardDraft}
+                className="w-full sm:w-auto"
+              >
+                Start from Scratch
+              </Button>
+              <Button
+                onClick={handleRestoreDraft}
+                className="bg-sro-secondary hover:bg-sro-secondary/90 w-full sm:w-auto text-white"
+              >
+                Restore Draft
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Unsaved Changes Dialog */}
+        {blocker && blocker.state === "blocked" && (
+          <AlertDialog open={true}>
+            <AlertDialogContent className="rounded-xl border border-sro-primary/20 shadow-2xl max-w-sm">
+              <AlertDialogHeader>
+                <div className="flex flex-col items-center">
+                  <div className="bg-sro-primary/10 p-4 rounded-full mb-4">
+                    <AlertTriangle className="h-10 w-10 text-sro-primary" />
+                  </div>
+                  <AlertDialogTitle className="text-xl font-bold text-sro-primary text-center">
+                    Unsaved Changes
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                    Are you sure you want to leave? Your progress will be saved to your local draft.
+                  </AlertDialogDescription>
+                </div>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4 sm:justify-center">
+                <AlertDialogCancel
+                  onClick={() => blocker.reset()}
+                  className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Stay Here
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="w-full sm:w-auto bg-sro-primary hover:bg-sro-primary/90 text-white"
+                  onClick={() => blocker.proceed()}
+                >
+                  Leave Page
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
       </form>
       {/* Interview dialog after submission */}
       <Dialog open={showInterviewPrompt} onOpenChange={setShowInterviewPrompt}>

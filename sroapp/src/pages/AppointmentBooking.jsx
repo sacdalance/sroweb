@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import StatusPill from "@/components/ui/StatusPill";
+import ActionButtons from "@/components/ui/ActionButtons";
 import { appointmentSchema } from "@/lib/zodSchemas";
 import { sanitizeInput } from "@/lib/utils";
 
@@ -368,7 +369,7 @@ const AppointmentBooking = () => {
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     // Validate all fields using Zod
     const result = appointmentSchema.safeParse(formData);
@@ -803,7 +804,7 @@ const AppointmentBooking = () => {
                     value={formData.notes}
                     onChange={(e) => handleFieldChange("notes", e.target.value, true)}
                     className="min-h-[100px]"
-                    placeholder="Add any additional information that might be helpful..."
+                    placeholder="Please indicate your Organization (if applicable) and any extra information..."
                   />
                 </div>
               </form>
@@ -886,17 +887,16 @@ const AppointmentBooking = () => {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className={`w-full text-white ${submitting || !isFormValid()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-sro-primary hover:bg-sro-primary/90'
-                  }`}
-                disabled={submitting || !isFormValid()}
-                onClick={handleSubmit}
-              >
-                {submitting ? 'Booking...' : 'Book Appointment'}
-              </Button>
+              <div className="flex justify-end pt-4">
+                <ActionButtons
+                  confirmLabel="Book Appointment"
+                  confirmVariant="secondary"
+                  onConfirm={handleSubmit}
+                  isLoading={submitting}
+                  disabled={submitting || !isFormValid()}
+                  className="w-full md:w-auto"
+                />
+              </div>
             </div>
           </div>
         </TabsContent>

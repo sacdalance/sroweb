@@ -3,14 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 
-// Editable list of superadmin emails
-export const SUPERADMIN_EMAILS = [
-  "clpagunsan@up.edu.ph",
-  "dvnisay1@up.edu.ph",
-  "mmlarua@up.edu.ph",
-  "ltcuadra@up.edu.ph",
-  "lssacdalan@up.edu.ph",
-];
+import { SUPERADMIN_EMAILS } from "@/lib/permissions";
+
 
 const ROLE_OPTIONS = [
   { id: 1, label: "Student" },

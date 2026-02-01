@@ -68,51 +68,44 @@ const WeeklyCalendar = ({
     // Render activity card
     const renderActivityCard = (dayEvents, isMobile = false) => {
         const event = dayEvents[0];
+        const isRecurring = event.is_recurring === "true";
 
         return (
             <div
                 key={event.id}
                 onClick={() => onEventClick && onEventClick(event)}
-                className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-sro-primary/90 transition-colors ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
+                className={`bg-white rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] w-full max-w-full mx-auto relative cursor-pointer hover:bg-gray-50 transition-all border border-gray-200 shadow-sm ${isRecurring ? "border-l-[6px] border-l-sro-accent" : "border-l-[6px] border-l-sro-primary"
+                    }`}
             >
                 {/* Activity Name and Time */}
                 <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="text-white font-bold text-base truncate flex-1">{event.name}</h3>
-                    <span className="text-white text-xs flex-shrink-0">{event.time}</span>
+                    <h3 className="text-gray-900 font-bold text-sm truncate flex-1" title={event.name}>{event.name}</h3>
+                    <span className="text-gray-500 text-[10px] sm:text-xs flex-shrink-0 font-medium">{event.time}</span>
                 </div>
                 {/* Organization Name */}
-                <span className="text-white/90 text-sm truncate mb-auto">{event.organization}</span>
+                <span className="text-sro-primary text-xs font-semibold truncate mb-auto" title={event.organization}>{event.organization}</span>
+
                 {/* Bottom Row: Location and Activity Count */}
-                <div className="flex items-center justify-between mt-1">
-                    {event.is_recurring === "true" ? (
-                        <>
-                            <span className="text-white/80 text-xs truncate">
-                                {(() => {
-                                    const sched = event.schedule?.[0] || {};
-                                    const start = sched.start_date ? new Date(sched.start_date) : null;
-                                    const end = sched.end_date ? new Date(sched.end_date) : null;
-                                    return start && end ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : null;
-                                })()}
-                            </span>
-                            <span className="block text-white/80 text-[11px] mt-1 truncate">
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-100">
+                    {isRecurring ? (
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-gray-500 text-[10px] truncate">
                                 {(() => {
                                     const sched = event.schedule?.[0] || {};
                                     const recurringDays = sched.recurring_days ? JSON.parse(sched.recurring_days) : {};
-                                    const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]);
-                                    return daysList.length > 0 ? daysList.join(", ") : null;
+                                    const daysList = Object.keys(recurringDays).filter(day => recurringDays[day]).map(d => d.slice(0, 3));
+                                    return daysList.length > 0 ? daysList.join(", ") : "Recurring";
                                 })()}
                             </span>
-                        </>
+                        </div>
                     ) : (
-                        <span className="text-white/80 text-xs truncate">{event.location}</span>
+                        <span className="text-gray-500 text-[11px] truncate" title={event.location}>{event.location}</span>
                     )}
+
                     {dayEvents.length > 1 && (
-                        <button
-                            onClick={(e) => handleMoreClick(e, dayEvents)}
-                            className="bg-sro-accent text-sro-primary text-xs font-bold px-2 py-0.5 rounded-full ml-2 whitespace-nowrap hover:bg-sro-accent/90 transition-colors"
-                        >
-                            +{dayEvents.length - 1} More {dayEvents.length - 1 === 1 ? 'Activity' : 'Activities'}
-                        </button>
+                        <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto whitespace-nowrap border border-gray-200">
+                            +{dayEvents.length - 1} more
+                        </span>
                     )}
                 </div>
             </div>
@@ -218,16 +211,19 @@ const WeeklyCalendar = ({
                                                     <div
                                                         key={event.id}
                                                         onClick={() => onEventClick && onEventClick(event)}
-                                                        className={`bg-sro-primary rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between cursor-pointer hover:bg-sro-primary/90 transition-colors ${event.is_recurring === "true" ? "border-4 border-sro-accent" : ""}`}
+                                                        className={`bg-white rounded-lg overflow-hidden p-3 flex flex-col min-w-0 h-[100px] flex-1 basis-[220px] max-w-full justify-between cursor-pointer hover:bg-gray-50 transition-all border border-gray-200 shadow-sm ${event.is_recurring === "true" ? "border-l-[6px] border-l-sro-accent" : "border-l-[6px] border-l-sro-primary"
+                                                            }`}
                                                     >
-                                                        <div className="flex items-center mb-1 min-w-0">
-                                                            <span className="text-white text-xs truncate flex-1 min-w-0">{event.location}</span>
-                                                            <span className="text-white text-xs ml-2 flex-shrink-0 truncate">{event.time}</span>
+                                                        <div className="flex items-center justify-between mb-1 gap-2">
+                                                            <h3 className="text-gray-900 font-bold text-sm truncate flex-1">{event.name}</h3>
+                                                            <span className="text-gray-500 text-[10px] flex-shrink-0 font-medium">{event.time}</span>
                                                         </div>
-                                                        <h3 className="text-white font-bold text-base mb-1 truncate">{event.name}</h3>
-                                                        <div className="flex flex-row items-start gap-2 min-w-0 w-full">
-                                                            <span className="text-white text-sm truncate flex-1 min-w-0">{event.organization}</span>
-                                                            <span className="text-white/80 italic text-xs truncate text-right flex-shrink-0">{event.category}</span>
+
+                                                        <span className="text-sro-primary text-xs font-semibold truncate mb-auto">{event.organization}</span>
+
+                                                        <div className="flex flex-row items-center justify-between gap-2 min-w-0 w-full pt-1 mt-1 border-t border-gray-100">
+                                                            <span className="text-gray-500 text-[10px] truncate flex-1 min-w-0">{event.location}</span>
+                                                            <span className="text-gray-400 italic text-[10px] truncate text-right flex-shrink-0">{event.category}</span>
                                                         </div>
                                                     </div>
                                                 ))
@@ -255,7 +251,7 @@ const WeeklyCalendar = ({
                     <span className="text-xs text-orange-800 font-medium">Recurring Event</span>
                 </div>
             </div>
-            <div className="flex justify-center mt-auto border-t pt-4">
+            <div className="flex justify-center mt-auto border-t pt-4 pb-4">
                 <Link to={calendarLink}>
                     <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                         View Monthly Calendar <ArrowRight className="w-4 h-4" />

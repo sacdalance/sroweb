@@ -9,12 +9,12 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Separator } from "../components/ui/separator";
 import { X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Check, ChevronDown, FileText } from "lucide-react";
+import { Check, ChevronDown, FileText, AlertTriangle } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn, sanitizeInput } from "@/lib/utils";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,55 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 
+
+
+const universityPartnersList = {
+  colleges: [
+    "College of Science",
+    "College of Arts and Communication",
+    "College of Social Sciences",
+  ],
+  departments: [
+    "Department of Biology",
+    "Department of Mathematics and Computer Science",
+    "Department of Physical Sciences",
+    "Human Kinetics Program",
+    "Department of Communication",
+    "Department of Language, Literature, and the Arts",
+    "Department of Anthropology, Sociology, and Psychology",
+    "Department of History and Philosophy ",
+    "Department of Economics and Political Science",
+  ],
+  studentAffairs: [
+    "Office of Student Affairs (OSA)",
+    "Student Relations Office (SRO)",
+    "Office of Counselling and Guidance (OCG)",
+    "Office of Scholarships and Financial Assistance (OSFA)",
+    "UPB Residence Hall (BREHA)",
+    "Health Service Office (HSO)",
+    "Office of the Auxillary Services (OAS)",
+  ],
+  academicAffairs: [
+    "Commitee on Culture and Arts (CCA)",
+    "Program for Indigenous Cultures (PIC)",
+    "Ugnayan ng Pahinungod Baguio",
+    "National Service Training Program (NSTP)",
+    "University Library",
+    "Learning Resource Center (LRC)",
+    "Science Research Center (SRC)",
+    "Museo Kordilyera",
+    "Kasarian Gender Studies Program",
+    "Office of Anti-Sexual Harassment",
+  ],
+  publicAffairs: [
+    "Office of Public Affairs (OPA)",
+    "Alumni Relations Office (ARO)",
+    "Others"
+  ]
+};
+
 const ActivityForm = ({
+
   mode = "create", // or "edit" or "admin"
   defaultValues = {},
   showAppealReason = false,
@@ -80,7 +128,7 @@ const ActivityForm = ({
     chargingFees1: defaultValues?.chargingFees1 || "",
     partnering: defaultValues?.partnering || "",
     selectedPublicAffairs: defaultValues?.selectedPublicAffairs || {},
-    universityPartners: defaultValues?.universityPartners || {},
+    universityPartners: defaultValues?.universityPartners || universityPartnersList,
     partnerDescription: defaultValues?.partnerDescription || "",
     recurring: defaultValues?.recurring || "",
     startDate: defaultValues?.startDate || "",
@@ -106,6 +154,9 @@ const ActivityForm = ({
     selectedFile: defaultValues?.selectedFile || null,
     appealReason: defaultValues?.appealReason || ""
   });
+
+  // Track initial state for "Unsaved Changes" warning
+  const [initialFormData, setInitialFormData] = useState(formData);
 
   const [focusedField, setFocusedField] = useState(null);
 
@@ -238,50 +289,6 @@ const ActivityForm = ({
     return result;
   }
 
-  const universityPartners = {
-    colleges: [
-      "College of Science",
-      "College of Arts and Communication",
-      "College of Social Sciences",
-    ],
-    departments: [
-      "Department of Biology",
-      "Department of Mathematics and Computer Science",
-      "Department of Physical Sciences",
-      "Human Kinetics Program",
-      "Department of Communication",
-      "Department of Language, Literature, and the Arts",
-      "Department of Anthropology, Sociology, and Psychology",
-      "Department of History and Philosophy ",
-      "Department of Economics and Political Science",
-    ],
-    studentAffairs: [
-      "Office of Student Affairs (OSA)",
-      "Student Relations Office (SRO)",
-      "Office of Counselling and Guidance (OCG)",
-      "Office of Scholarships and Financial Assistance (OSFA)",
-      "UPB Residence Hall (BREHA)",
-      "Health Service Office (HSO)",
-      "Office of the Auxillary Services (OAS)",
-    ],
-    academicAffairs: [
-      "Commitee on Culture and Arts (CCA)",
-      "Program for Indigenous Cultures (PIC)",
-      "Ugnayan ng Pahinungod Baguio",
-      "National Service Training Program (NSTP)",
-      "University Library",
-      "Learning Resource Center (LRC)",
-      "Science Research Center (SRC)",
-      "Museo Kordilyera",
-      "Kasarian Gender Studies Program",
-      "Office of Anti-Sexual Harassment",
-    ],
-    publicAffairs: [
-      "Office of Public Affairs (OPA)",
-      "Alumni Relations Office (ARO)",
-      "Others"
-    ]
-  };
 
   const filteredOrgs = formData.searchTerm
     ? orgs.filter((org) =>
@@ -291,14 +298,6 @@ const ActivityForm = ({
   const navigate = useNavigate();
 
 
-  useEffect(() => {
-    if (!formData.universityPartners || Object.keys(formData.universityPartners).length === 0) {
-      setFormData((prev) => ({
-        ...prev,
-        universityPartners,
-      }));
-    }
-  }, []);
 
   useEffect(() => {
     const fetchOrgs = async () => {
@@ -309,6 +308,37 @@ const ActivityForm = ({
     };
     fetchOrgs();
   }, []);
+
+  // === UNSAVED CHANGES PROTECTION ===
+
+  // Calculate dirtiness (ignoring UI state like 'open' or 'searchTerm')
+  const isDirty = React.useMemo(() => {
+    // Helper to strip UI keys
+    const stripUI = (data) => {
+      const { open, searchTerm, ...rest } = data;
+      return rest;
+    };
+
+    return JSON.stringify(stripUI(formData)) !== JSON.stringify(stripUI(initialFormData));
+  }, [formData, initialFormData]);
+
+  // Block navigation if dirty, not submitting, not success, and not a pending draft restore
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && !isSubmitting && !showSuccessDialog && !pendingDraft && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle browser refresh/close
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (isDirty && !isSubmitting && !showSuccessDialog) {
+        e.preventDefault();
+        e.returnValue = ""; // Chrome requires this
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty, isSubmitting, showSuccessDialog]);
 
   useEffect(() => {
     const seen = sessionStorage.getItem("sroRemindersSeen");
@@ -1949,6 +1979,41 @@ const ActivityForm = ({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Unsaved Changes Dialog */}
+          {blocker && blocker.state === "blocked" && (
+            <AlertDialog open={true}>
+              <AlertDialogContent className="rounded-xl border border-sro-primary/20 shadow-2xl max-w-sm">
+                <AlertDialogHeader>
+                  <div className="flex flex-col items-center">
+                    <div className="bg-sro-primary/10 p-4 rounded-full mb-4">
+                      <AlertTriangle className="h-10 w-10 text-sro-primary" />
+                    </div>
+                    <AlertDialogTitle className="text-xl font-bold text-sro-primary text-center">
+                      Unsaved Changes
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-center text-gray-600 mt-2">
+                      Are you sure you want to leave? Your progress will be saved to your local draft.
+                    </AlertDialogDescription>
+                  </div>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4 sm:justify-center">
+                  <AlertDialogCancel
+                    onClick={() => blocker.reset()}
+                    className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Stay Here
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="w-full sm:w-auto bg-sro-primary hover:bg-sro-primary/90 text-white"
+                    onClick={() => blocker.proceed()}
+                  >
+                    Leave Page
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
 
 
         </form>

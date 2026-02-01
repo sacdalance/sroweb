@@ -11,6 +11,8 @@ import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import StatusPill from "@/components/ui/StatusPill";
 import WeeklyCalendar from "@/components/ui/WeeklyCalendar";
+import DataTable from "@/components/ui/DataTable";
+import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen } from "lucide-react";
 
 const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +22,7 @@ const AdminPanel = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState([]);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   // Specific loading states for each fetch
@@ -40,12 +43,12 @@ const AdminPanel = () => {
 
   // Stats data for the summary section
   const statsSummary = [
-    { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions" },
-    { title: "Pending Activity Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests" },
-    { title: "Approved Requests", count: requestsCounts.approved || 0 },
-    { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications" },
-    { title: "Approved Applications", count: requestsCounts.approvedApplications || 0 },
-    { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports" },
+    { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions", icon: FileText },
+    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests", icon: Clock },
+    { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/activity-summary", icon: CheckCircle },
+    { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications", icon: BookOpen },
+    { title: "Approved Applications", count: requestsCounts.approvedApplications || 0, path: "/admin/organizations", icon: FileCheck },
+    { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports", icon: Calendar },
   ];
 
   const categoryMap = {
@@ -101,15 +104,14 @@ const AdminPanel = () => {
 
         setIncomingRequests(
           filteredActivities
-            .sort((a, b) => Number(b.activity_id) - Number(a.activity_id))
-            .slice(0, 10)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .map(activity => ({
               id: activity.activity_id,
-              submissionDate: new Date(activity.created_at).toLocaleDateString(),
+              submissionDate: new Date(activity.created_at).toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
               activityName: activity.activity_name,
               organization: activity.organization?.org_name || "N/A",
               activityDate: activity.schedule?.[0]?.start_date
-                ? new Date(activity.schedule[0].start_date).toLocaleDateString()
+                ? new Date(activity.schedule[0].start_date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })
                 : "TBD",
               status: activity.final_status || "Pending",
             }))
@@ -129,6 +131,29 @@ const AdminPanel = () => {
     };
 
     fetchIncomingRequests();
+  }, []);
+
+  // Fetch User Role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const { data: account } = await supabase
+            .from("account")
+            .select("role_id")
+            .eq("email", user.email)
+            .single();
+
+          if (account) {
+            setUserRole(account.role_id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+    fetchUserRole();
   }, []);
 
   // Fetch activities from Supabase
@@ -376,18 +401,38 @@ const AdminPanel = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="page-header text-sro-primary">Admin Dashboard</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            {/* Greeting Section */}
+            <Card className="shadow-sm px-6 py-4 mb-6 bg-white border border-gray-200">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-2xl md:text-3xl font-bold text-sro-primary">
+                    Admin Dashboard
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Here's an overview of the organization activities and requests.
+                  </p>
+                </div>
+                <div className="hidden md:block text-right">
+                  <p className="text-lg font-semibold text-sro-primary">
+                    {new Date().toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            </Card>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <Link
                   to={stat.path || "#"}
                   key={index}
-                  className={`block p-4 bg-sro-bg-off-white border border-gray-200 rounded-xl shadow-sm relative hover:bg-gray-50 transition-colors aspect-[4/3] flex flex-col justify-end items-start ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
+                  className={`group block p-4 bg-white border border-gray-200 rounded-xl shadow-sm relative hover:shadow-md transition-all duration-200 h-full min-h-[140px] flex flex-col justify-between ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
                 >
-                  <>
-                    <h3 className="text-5xl font-bold mb-1 text-sro-primary">{stat.count}</h3>
-                    <p className="text-sm text-gray-600">{stat.title}</p>
-                  </>
+                  <div className={`p-2 rounded-lg w-fit bg-sro-bg-off-white self-end`}>
+                    <stat.icon className={`w-6 h-6 text-sro-primary`} />
+                  </div>
+                  <div>
+                    <h3 className="text-3xl sm:text-4xl font-bold mb-1 text-sro-primary truncate w-full group-hover:opacity-80 transition-opacity">{stat.count}</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 font-medium leading-tight">{stat.title}</p>
+                  </div>
                 </Link>
               ))}
             </div>
@@ -397,52 +442,41 @@ const AdminPanel = () => {
           <section className="flex flex-col lg:flex-row gap-6 min-w-0">
             {/* Left: Incoming Activity Requests */}
             <div className="flex-1 min-w-0">
-              <Card className="shadow-sm h-auto flex flex-col max-h-full">
-                <CardHeader className="pb-3">
+              <Card className="shadow-sm flex flex-col h-auto lg:h-full">
+                <CardHeader className="pb-3 flex-shrink-0">
                   <CardTitle className="text-xl font-bold text-sro-primary flex items-center gap-2">
                     Incoming Activity Requests
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 flex-1 min-w-0 flex flex-col">
-                  <div className="overflow-x-auto w-full flex-1">
+                <CardContent className="p-0 flex-1 min-w-0 flex flex-col relative overflow-hidden">
+                  <div className="w-full flex-1 p-2 flex flex-col h-full overflow-hidden">
                     {requestsError ? (
                       <div className="text-center py-4 text-red-500">
                         Error loading requests: {requestsError}
                       </div>
                     ) : (
-                      <div className="max-h-[800px] overflow-y-auto custom-scrollbar">
-                        <table className="min-w-full border-separate border-spacing-0">
-                          <thead className="bg-gray-100 border-b border-gray-200">
-                            <tr>
-                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Submission<br />Date</th>
-                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">Activity<br />Name</th>
-                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Organization</th>
-                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Activity<br />Date</th>
-                              <th className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {incomingRequests.map((request) => (
-                              <tr
-                                key={request.id}
-                                className="hover:bg-gray-100 cursor-pointer"
-                                onClick={() => handleViewDetails(request)}
-                              >
-                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.submissionDate}</td>
-                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">{request.activityName}</td>
-                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.organization}</td>
-                                <td className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">{request.activityDate}</td>
-                                <td className="px-2 py-2 text-xs text-center">
-                                  <StatusPill status={request.status} />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <DataTable
+                        columns={[
+                          { key: "submissionDate", header: "Date", sortable: true, width: "w-[12%]", cellClassName: "truncate max-w-[80px]" },
+                          { key: "activityName", header: "Activity Name", sortable: true, width: "w-[28%]", cellClassName: "truncate max-w-[150px]" },
+                          { key: "organization", header: "Organization", sortable: true, width: "w-[25%]", cellClassName: "truncate max-w-[120px] font-medium text-sro-primary" },
+                          { key: "activityDate", header: "Activity Date", sortable: true, width: "w-[15%]", cellClassName: "truncate max-w-[90px]" },
+                          { key: "status", header: "Status", isStatus: true, width: "w-[20%]" }
+                        ]}
+                        data={incomingRequests}
+                        onRowClick={handleViewDetails}
+                        emptyMessage="No incoming requests found."
+                        defaultPageSize={15}
+                        hidePageSize={true}
+                        hideViewToggle={true}
+                        preventHorizontalScroll={true}
+                        compactStatus={true}
+                        defaultSort={{ key: "submissionDate", direction: "desc" }}
+                        className="h-full flex flex-col text-sm"
+                      />
                     )}
                   </div>
-                  <div className="flex justify-center mt-auto border-t pt-4">
+                  <div className="flex justify-center mt-auto border-t pt-4 pb-4">
                     <Link to="/admin/pending-requests">
                       <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                         See More <ArrowRight className="w-4 h-4" />
@@ -480,11 +514,12 @@ const AdminPanel = () => {
               setActivity={setSelectedActivity}
               isModalOpen={isModalOpen}
               readOnly={false}
+              userRole={userRole}
             />
           )
         )}
       </Dialog>
-    </div>
+    </div >
   );
 };
 

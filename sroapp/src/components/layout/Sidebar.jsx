@@ -4,7 +4,7 @@ import supabase from "@/lib/supabase";
 import { LogOut, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
-import { SUPERADMIN_EMAILS } from "@/pages/admin/SuperAdminPage";
+import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 import PropTypes from 'prop-types';
 import React from "react";
 
@@ -225,6 +225,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
               {/* SRO Staff, ODSA Staff, Super Admin: Admin sidebar */}
               {(isSRO || isODSA || isSuperAdmin) && (
                 <div className="mb-6">
+                  {/* Admin Dashboard - Top Level */}
                   <ul className="space-y-2 text-[15px] font-medium">
                     <hr className="border-t border-sro-border-light my-4" />
                     <li>
@@ -236,33 +237,24 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Admin Dashboard
                       </Link>
                     </li>
-                    <hr className="border-t border-sro-border-light my-4" />
-                    <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0">Admin Panel</h3>
+                  </ul>
+
+                  {/* ACTIVITIES Section */}
+                  <hr className="border-t border-sro-border-light my-4" />
+                  <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0">ACTIVITIES</h3>
+                  <ul className="space-y-2 text-[15px] font-medium">
 
                     {(isSRO || isSuperAdmin) && (
-                      <>
-                        <li>
-                          <Link
-                            to="/admin/appointment-settings"
-                            className={linkClass("/admin/appointment-settings")}
-                            onClick={() => isSmallScreen && setIsOpen(false)}
-                          >
-                            Appointments
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            to="/admin/create-activity"
-                            className={linkClass("/admin/create-activity")}
-                            onClick={() => isSmallScreen && setIsOpen(false)}
-                          >
-                            Create Activity
-                          </Link>
-                        </li>
-                      </>
+                      <li>
+                        <Link
+                          to="/admin/create-activity"
+                          className={linkClass("/admin/create-activity")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Create Activity
+                        </Link>
+                      </li>
                     )}
-
-
 
                     <li>
                       <Link
@@ -270,7 +262,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/pending-requests")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Pending Activity Requests
+                        Activity Requests
                       </Link>
                     </li>
                     <li>
@@ -288,7 +280,35 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         className={linkClass("/admin/activities-calendar")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Activities Calendar
+                        Activity Calendar
+                      </Link>
+                    </li>
+                  </ul>
+
+                  {/* ORGANIZATIONS Section */}
+                  <hr className="border-t border-sro-border-light my-4" />
+                  <h3 className="uppercase text-base font-bold mb-3 text-center sm:text-left px-6 xl:px-0">ORGANIZATIONS</h3>
+                  <ul className="space-y-2 text-[15px] font-medium">
+
+                    {(isSRO || isSuperAdmin) && (
+                      <li>
+                        <Link
+                          to="/admin/appointment-settings"
+                          className={linkClass("/admin/appointment-settings")}
+                          onClick={() => isSmallScreen && setIsOpen(false)}
+                        >
+                          Appointments
+                        </Link>
+                      </li>
+                    )}
+
+                    <li>
+                      <Link
+                        to="/admin/organizations"
+                        className={linkClass("/admin/organizations")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Organization Summary
                       </Link>
                     </li>
                     <li>
@@ -302,15 +322,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                     </li>
                     <li>
                       <Link
-                        to="/admin/organizations"
-                        className={linkClass("/admin/organizations")}
-                        onClick={() => isSmallScreen && setIsOpen(false)}
-                      >
-                        Organization Summary
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
                         to="/admin/annual-reports"
                         className={linkClass("/admin/annual-reports")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
@@ -318,7 +329,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Annual Reports
                       </Link>
                     </li>
-
                   </ul>
                   <hr className="border-t border-sro-border-light my-4" />
                 </div>

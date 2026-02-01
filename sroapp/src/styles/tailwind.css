@@ -240,8 +240,10 @@
 
   /* Appointment Status Badges */
   .status-badge-scheduled {
-    background-color: var(--status-pending-bg);
-    color: var(--status-pending-text);
+    background-color: #f3f4f6;
+    color: #374151;
+    /* Gray-700 */
+    border: 1px solid #d1d5db;
   }
 
   .status-badge-confirmed {
@@ -250,8 +252,16 @@
   }
 
   .status-badge-reschedule-pending {
-    background-color: var(--status-pending-bg);
-    color: var(--status-pending-text);
+    background-color: #fff7ed;
+    /* Orange-50 */
+    color: #c2410c;
+    /* Orange-700 */
+    border: 1px solid #fdba74;
+    /* Orange-300 */
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 120px;
+    /* Slightly wider for the long text */
   }
 
   /* Default fallback - Gray */

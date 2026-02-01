@@ -43,6 +43,7 @@ const formatDisplayText = (status) => {
   // Special cases for specific formatting
   const specialCases = {
     'odsa-pending': 'ODSA Pending',
+    'reschedule-pending': 'For Reschedule',
   };
 
   const normalized = status.toLowerCase().replace(/\s+/g, '-');
@@ -58,13 +59,13 @@ const formatDisplayText = (status) => {
     .join(' ');
 };
 
-export default function StatusPill({ status }) {
+export default function StatusPill({ status, compact = false }) {
   const statusClass = getStatusClass(status);
   const displayText = formatDisplayText(status);
 
   return (
     <span
-      className={statusClass}
+      className={`${statusClass} ${compact ? "!min-w-0 !w-auto !px-2 !py-0.5 !h-6 !text-[10px]" : ""}`}
       title={status}
     >
       {displayText}
