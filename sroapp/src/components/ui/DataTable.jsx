@@ -34,6 +34,7 @@ const DataTable = ({
     hidePageSize = false,
     preventHorizontalScroll = false,
     compactStatus = false,
+    defaultSort = null,
 }) => {
     // View Mode State (card vs table)
     const [internalViewMode, setInternalViewMode] = useState("table");
@@ -71,7 +72,7 @@ const DataTable = ({
     }, [controlledViewMode]);
 
     // Sorting state
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+    const [sortConfig, setSortConfig] = useState(defaultSort || { key: null, direction: null });
 
     // Filter state
     const [filters, setFilters] = useState({});

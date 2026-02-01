@@ -44,6 +44,25 @@ const Requests = () => {
     } catch {
       return "TBD";
     }
+  }
+
+
+  const isEventPassed = (schedule) => {
+    if (!Array.isArray(schedule) || schedule.length === 0) return false;
+    const lastEvent = schedule[schedule.length - 1]; // Use the last scheduled date? Or the first? Usually last.
+    // Let's check the start_date of the first event, as usually that's the main reference, or maybe the end_date if it exists.
+    // SAFE BET: Check the activity's END date (or start if single day). If Today > End Date, it's passed.
+
+    // We can iterate and find the LATEST date in the schedule.
+    let maxDate = 0;
+    schedule.forEach(s => {
+      const end = s.end_date ? new Date(s.end_date).getTime() : new Date(s.start_date).getTime();
+      if (end > maxDate) maxDate = end;
+    });
+
+    // Compare with today (set to midnight to be lenient, or use current time)
+    // Actually, simple check: if maxDate < today, it's passed.
+    return maxDate < new Date().setHours(0, 0, 0, 0);
   };
 
   // Pending recognition apps (not fully approved)
@@ -215,6 +234,18 @@ const Requests = () => {
       ),
     },
     {
+      key: "created_at",
+      header: "Submission Date",
+      width: "w-[15%]",
+      sortable: true,
+      sortAccessor: (row) => new Date(row.created_at).getTime(),
+      render: (row) => (
+        <span className="text-gray-600">
+          {new Date(row.created_at).toLocaleDateString('en-US')}
+        </span>
+      ),
+    },
+    {
       key: "schedule",
       header: "Activity Date",
       width: "w-[15%]",
@@ -222,17 +253,6 @@ const Requests = () => {
       sortAccessor: (row) => row.schedule?.[0]?.start_date || "",
       render: (row) => (
         <span className="text-gray-600">{formatDateRange(row.schedule)}</span>
-      ),
-    },
-    {
-      key: "venue",
-      header: "Venue",
-      width: "w-[18%]",
-      sortable: true,
-      render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.venue}>
-          {row.venue}
-        </span>
       ),
     },
     {
@@ -252,7 +272,7 @@ const Requests = () => {
       header: "Actions",
       width: "w-[15%]",
       render: (row) => (
-        !["For Appeal", "Rejected", "For Cancellation"].includes(row.final_status) && (
+        !["For Appeal", "Rejected", "For Cancellation"].includes(row.final_status) && !isEventPassed(row.schedule) && (
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={(e) => {
@@ -346,30 +366,33 @@ const Requests = () => {
       header: "Actions",
       width: "w-[15%]",
       render: (row) => (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingActivity(row);
-              setIsAppealOpen(true);
-            }}
-            className="p-1.5 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setCancelActivity(row);
-              setIsCancelOpen(true);
-            }}
-            className="p-1.5 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
-            title="Cancel"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        !isEventPassed(row.schedule) && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingActivity(row);
+                setIsAppealOpen(true);
+              }}
+              className="p-1.5 text-gray-500 hover:text-sro-secondary transition-colors rounded hover:bg-gray-100"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCancelActivity(row);
+                setIsCancelOpen(true);
+              }}
+              className="p-1.5 text-gray-500 hover:text-sro-primary transition-colors rounded hover:bg-gray-100"
+              title="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+        )
       ),
     },
   ];
@@ -540,6 +563,7 @@ const Requests = () => {
             data={requested.map(act => ({ ...act, id: act.activity_id }))}
             onRowClick={handleActivityRowClick}
             emptyMessage="No activity requests found."
+            defaultSort={{ key: "created_at", direction: "desc" }}
           />
         </TabsContent>
 
@@ -550,6 +574,7 @@ const Requests = () => {
             data={approved.map(act => ({ ...act, id: act.activity_id }))}
             onRowClick={handleActivityRowClick}
             emptyMessage="No approved activities found."
+            defaultSort={{ key: "created_at", direction: "desc" }}
           />
         </TabsContent>
 
@@ -561,6 +586,7 @@ const Requests = () => {
             data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
             emptyMessage="No pending recognition applications found."
             className="mb-8"
+            defaultSort={{ key: "submitted_at", direction: "desc" }}
           />
 
           <h2 className="text-lg font-semibold mb-4 text-center md:text-left mt-8">Approved Recognition Applications</h2>
@@ -568,6 +594,7 @@ const Requests = () => {
             columns={approvedRecognitionColumns}
             data={approvedRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
             emptyMessage="No approved recognition applications found."
+            defaultSort={{ key: "submitted_at", direction: "desc" }}
           />
         </TabsContent>
 
@@ -578,6 +605,7 @@ const Requests = () => {
             data={annualReports.map(report => ({ ...report, id: report.report_id }))}
             onRowClick={(row) => window.open(row.drive_folder_link, '_blank')}
             emptyMessage="No annual reports found."
+            defaultSort={{ key: "submitted_at", direction: "desc" }}
           />
         </TabsContent>
       </Tabs>

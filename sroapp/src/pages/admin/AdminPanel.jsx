@@ -103,7 +103,7 @@ const AdminPanel = () => {
 
         setIncomingRequests(
           filteredActivities
-            .sort((a, b) => Number(b.activity_id) - Number(a.activity_id))
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .slice(0, 10)
             .map(activity => ({
               id: activity.activity_id,
@@ -431,6 +431,7 @@ const AdminPanel = () => {
                         hideViewToggle={true}
                         preventHorizontalScroll={true}
                         compactStatus={true}
+                        defaultSort={{ key: "submissionDate", direction: "desc" }}
                         className="h-full flex flex-col text-sm"
                       />
                     )}
