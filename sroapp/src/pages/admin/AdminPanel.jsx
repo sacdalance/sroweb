@@ -105,7 +105,6 @@ const AdminPanel = () => {
         setIncomingRequests(
           filteredActivities
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 10)
             .map(activity => ({
               id: activity.activity_id,
               submissionDate: new Date(activity.created_at).toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
@@ -402,7 +401,29 @@ const AdminPanel = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-6 w-full">
           {/* Summary of Submissions */}
           <section>
-            <h2 className="page-header text-sro-primary">Admin Dashboard</h2>
+            {/* Greeting Section */}
+            <Card className="shadow-sm px-6 py-4 mb-6 bg-white border border-gray-200">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-2xl md:text-3xl font-bold text-sro-primary">
+                    {(() => {
+                      const hour = new Date().getHours();
+                      if (hour < 12) return "Good Morning, Admin";
+                      if (hour < 18) return "Good Afternoon, Admin";
+                      return "Good Evening, Admin";
+                    })()}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Here's an overview of the organization activities and requests.
+                  </p>
+                </div>
+                <div className="hidden md:block text-right">
+                  <p className="text-lg font-semibold text-sro-primary">
+                    {new Date().toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            </Card>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               {statsSummary.map((stat, index) => (
                 <Link
@@ -450,7 +471,7 @@ const AdminPanel = () => {
                         data={incomingRequests}
                         onRowClick={handleViewDetails}
                         emptyMessage="No incoming requests found."
-                        defaultPageSize={10}
+                        defaultPageSize={15}
                         hidePageSize={true}
                         hideViewToggle={true}
                         preventHorizontalScroll={true}
