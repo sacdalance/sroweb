@@ -31,6 +31,9 @@ const DataTable = ({
     viewMode: controlledViewMode,
     onViewModeChange,
     hideViewToggle = false,
+    hidePageSize = false,
+    preventHorizontalScroll = false,
+    compactStatus = false,
 }) => {
     // View Mode State (card vs table)
     const [internalViewMode, setInternalViewMode] = useState("table");
@@ -83,7 +86,8 @@ const DataTable = ({
 
     const [pageSize, setPageSize] = useState(() => {
         // Default to 5 on mobile, otherwise use prop
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        // However, if hidePageSize is true (preview mode), respect defaultPageSize regardless of screen
+        if (typeof window !== 'undefined' && window.innerWidth < 768 && !hideViewToggle && !hidePageSize) {
             return 5;
         }
         return defaultPageSize;
@@ -210,11 +214,11 @@ const DataTable = ({
             if (currentViewMode === "table") {
                 return (
                     <div className="flex justify-center w-full">
-                        <StatusPill status={value || "Unknown"} />
+                        <StatusPill status={value || "Unknown"} compact={compactStatus} />
                     </div>
                 );
             }
-            return <StatusPill status={value || "Unknown"} />;
+            return <StatusPill status={value || "Unknown"} compact={compactStatus} />;
         }
 
         const value = row[col.key];
@@ -348,59 +352,61 @@ const DataTable = ({
 
             {/* Table View */}
             {currentViewMode === "table" && (
-                <div className="w-full overflow-x-auto">
-                    <table className="w-full text-sm table-fixed min-w-[1000px]">
-                        <thead className="bg-gray-50 border-b">
-                            <tr>
-                                {columns.map((col) => (
-                                    <th
-                                        key={col.key}
-                                        className={`px-4 py-3 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
-                                    >
-                                        {col.sortable ? (
-                                            <button
-                                                onClick={() => handleSort(col.key)}
-                                                className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
-                                            >
-                                                <span>{col.header}</span>
-                                                {getSortIcon(col.key)}
-                                            </button>
-                                        ) : (
-                                            <div className="w-full text-center">
-                                                {col.header}
-                                            </div>
-                                        )}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {paginatedData.length > 0 ? (
-                                paginatedData.map((row, rowIndex) => (
-                                    <tr
-                                        key={row.id || rowIndex}
-                                        onClick={() => onRowClick?.(row)}
-                                        className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
-                                    >
-                                        {columns.map((col) => (
-                                            <td
-                                                key={col.key}
-                                                className={`px-4 py-3 text-sm text-center ${col.cellClassName || ""}`}
-                                            >
-                                                {renderCell(row, col)}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))
-                            ) : (
+                <div className="w-full flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 overflow-auto">
+                        <table className={`w-full text-sm table-fixed ${!preventHorizontalScroll ? "min-w-[1000px]" : ""}`}>
+                            <thead className="bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    <td colSpan={columns.length} className="py-8 text-center text-gray-500">
-                                        {emptyMessage}
-                                    </td>
+                                    {columns.map((col) => (
+                                        <th
+                                            key={col.key}
+                                            className={`px-2 py-2 text-xs font-semibold text-gray-600 text-center ${col.width || ""}`}
+                                        >
+                                            {col.sortable ? (
+                                                <button
+                                                    onClick={() => handleSort(col.key)}
+                                                    className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
+                                                >
+                                                    <span>{col.header}</span>
+                                                    {getSortIcon(col.key)}
+                                                </button>
+                                            ) : (
+                                                <div className="w-full text-center">
+                                                    {col.header}
+                                                </div>
+                                            )}
+                                        </th>
+                                    ))}
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {paginatedData.length > 0 ? (
+                                    paginatedData.map((row, rowIndex) => (
+                                        <tr
+                                            key={row.id || rowIndex}
+                                            onClick={() => onRowClick?.(row)}
+                                            className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
+                                        >
+                                            {columns.map((col) => (
+                                                <td
+                                                    key={col.key}
+                                                    className={`px-2 py-2 text-sm text-center ${col.cellClassName || ""}`}
+                                                >
+                                                    {renderCell(row, col)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={columns.length} className="py-8 text-center text-gray-500">
+                                            {emptyMessage}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -461,7 +467,7 @@ const DataTable = ({
                     {showPagination && (
                         <div className="flex items-center gap-2">
                             {/* Rows per page dropdown */}
-                            {showPageSizeDropdown && !isMobile && (
+                            {showPageSizeDropdown && !isMobile && !hideViewToggle && !hidePageSize && (
                                 <div className="flex items-center gap-2 mr-4">
                                     <span className="text-sm text-gray-600">Rows:</span>
                                     <select
