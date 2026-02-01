@@ -33,6 +33,7 @@ const AdminAppointmentSettings = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [adminComment, setAdminComment] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [actionType, setActionType] = useState('reject'); // 'reject' or 'cancel'
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -129,7 +130,8 @@ const AdminAppointmentSettings = () => {
           requested_time_slot,
           reschedule_reason,
           account:account(account_name, email),
-          status
+          status,
+          notes
         `)
         .order('created_at', { ascending: false });
 
@@ -325,7 +327,10 @@ const AdminAppointmentSettings = () => {
       if (fetchError) throw fetchError;
 
       const { error } = await supabase.from('appointments').update({
-        status: action === 'confirm' ? 'confirmed' : 'rejected',
+        status: action === 'confirm' ? 'confirmed' : (action === 'cancel' ? 'cancelled' : 'rejected'),
+        // Store rejection reason in rejection_reason, and cancellation reason in rejection_reason as well for now or admin_notes?
+        // Let's use rejection_reason for both "negative" outcomes to keep schema simple if possible, or admin_notes.
+        // The previous code used admin_notes for rejection. Let's stick to that for consistency + rejection_reason if available.
         admin_notes: adminComment,
         updated_at: new Date()
       }).eq('id', appointmentId);
@@ -340,30 +345,34 @@ const AdminAppointmentSettings = () => {
         hour: 'numeric', minute: '2-digit', hour12: true
       });
 
+      const emailSubject = action === 'confirm' ? 'Appointment Confirmed' : (action === 'cancel' ? 'Appointment Cancelled' : 'Appointment Rejected');
+      const emailActionText = action === 'confirm' ? 'confirmed' : (action === 'cancel' ? 'cancelled' : 'rejected');
+      const emailColorClass = action === 'confirm' ? 'text-sro-secondary' : 'text-sro-primary';
+
       const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: appointment.account.email,
-          subject: `Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'} - ${appointment.reason}`,
-          text: `Your appointment has been ${action === 'confirm' ? 'confirmed' : 'rejected'}.`,
+          subject: `${emailSubject} - ${appointment.reason}`,
+          text: `Your appointment has been ${emailActionText}.`,
           html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 className={action === 'confirm' ? 'text-sro-secondary' : 'text-sro-primary'}>Appointment ${action === 'confirm' ? 'Confirmed' : 'Rejected'}</h2>
+  <h2 class="${emailColorClass}">${emailSubject}</h2>
   
-  <p>Your appointment has been <strong>${action === 'confirm' ? 'confirmed' : 'rejected'}</strong>.</p>
+  <p>Your appointment has been <strong>${emailActionText}</strong>.</p>
   
-  <div className="bg-sro-bg-off-white p-4 rounded-md my-4">
+  <div class="bg-gray-50 p-4 rounded-md my-4" style="background-color: #f9fafb; padding: 1rem; border-radius: 0.375rem; margin-top: 1rem; margin-bottom: 1rem;">
     <p><strong>Date:</strong> ${appointmentDate}</p>
     <p><strong>Time:</strong> ${appointmentTime}</p>
     <p><strong>Purpose:</strong> ${appointment.reason}${appointment.specified_reason ? ' - ' + appointment.specified_reason : ''}</p>
     <p><strong>Mode:</strong> ${appointment.meeting_mode || 'Face-to-face'}</p>
   </div>
   
-  ${adminComment ? `<p><strong>SRO Notes:</strong> ${adminComment}</p>` : ''}
+  ${adminComment ? `<p><strong>Reason/Notes:</strong> ${adminComment}</p>` : ''}
   
   <p>${action === 'confirm'
               ? 'Please be on time for your appointment. If you need to reschedule or cancel, please do so at least 24 hours in advance.'
-              : 'If you would like to schedule another appointment, please visit our website.'}</p>
+              : 'Multi-purpose admin action taken.'}</p>
   
   <p>Thank you,<br>Student Relations Office</p>
 </div>`
@@ -801,6 +810,7 @@ const AdminAppointmentSettings = () => {
           </DialogHeader>
 
           {selectedAppointment && (
+            console.log("Selected Appointment Data:", selectedAppointment),
             <div className="space-y-4">
               {/* Student Details */}
               <div className="grid grid-cols-2 gap-4">
@@ -863,6 +873,14 @@ const AdminAppointmentSettings = () => {
                     </p>
                   </div>
                 </div>
+                {selectedAppointment.notes && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm font-medium text-gray-500 mb-1">Additional Notes</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border border-gray-100">
+                      {selectedAppointment.notes}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {selectedAppointment.status === 'reschedule-pending' && (
@@ -923,6 +941,7 @@ const AdminAppointmentSettings = () => {
                     onConfirm={() => processAppointmentResponse(selectedAppointment.id, 'confirm')}
                     onReject={() => {
                       setShowConfirmDialog(false);
+                      setActionType('reject');
                       setShowRejectDialog(true);
                       // We return a resolved promise here because the actual rejection action happens in the other dialog
                       return Promise.resolve();
@@ -955,6 +974,21 @@ const AdminAppointmentSettings = () => {
                     disabled={isProcessing}
                   />
                 )}
+
+                {selectedAppointment.status === 'confirmed' && (
+                  <Button
+                    variant="destructive"
+                    className="bg-sro-primary text-white hover:bg-sro-primary/90"
+                    onClick={() => {
+                      setShowConfirmDialog(false);
+                      setActionType('cancel');
+                      setShowRejectDialog(true);
+                    }}
+                    disabled={isProcessing}
+                  >
+                    Cancel Appointment
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -965,50 +999,35 @@ const AdminAppointmentSettings = () => {
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent className="sm:max-w-[425px]" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
-            <DialogTitle>Reject Appointment</DialogTitle>
+            <DialogTitle>{actionType === 'cancel' ? 'Cancel Appointment' : 'Reject Appointment'}</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this appointment.
+              Please provide a reason for {actionType === 'cancel' ? 'cancelling' : 'rejecting'} this appointment.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Textarea
               value={adminComment}
               onChange={(e) => setAdminComment(e.target.value)}
-              placeholder="Reason for rejection..."
+              placeholder={`Reason for ${actionType === 'cancel' ? 'cancellation' : 'rejection'}...`}
               className="min-h-[100px]"
             />
           </div>
           <DialogFooter>
             <ActionButtons
-              confirmLabel="Reject Appointment"
-              // We only need the 'confirm' button here effectively acting as the submit for rejection
-              // But ActionButtons expects two. Let's use it just for the primary action if customized?
-              // Or better, just use the loading state logic if we want consistency.
-              // Actually, for this specific Dialog, we have "Cancel" and "Reject".
-              // "Reject" is the primary action here.
-              // So we can pass `onConfirm` as the rejection action to get the loading state.
+              confirmLabel={actionType === 'cancel' ? 'Cancel Appointment' : 'Reject Appointment'}
               confirmVariant="primary"
-              onConfirm={() => processAppointmentResponse(selectedAppointment?.id, 'reject')}
-              confirmSuccessMessage="Appointment rejected successfully"
+              onConfirm={() => processAppointmentResponse(selectedAppointment?.id, actionType === 'cancel' ? 'cancel' : 'reject')}
+              confirmSuccessMessage={`Appointment ${actionType === 'cancel' ? 'cancelled' : 'rejected'} successfully`}
               onSuccess={() => {
                 setShowRejectDialog(false);
                 loadAppointments();
                 setAdminComment("");
                 setSelectedAppointment(null);
               }}
-              // Hide the secondary button (Reject label normally) by not passing onReject?
-              // ActionButtons renders onReject only if passed.
-              rejectLabel="Cancel"
+              rejectLabel="Close"
               rejectVariant="outline"
-              // Wait, ActionButtons order is Reject (left), Confirm (right).
-              // If we want [Cancel] [Reject Appointment]
-              // We should pass Cancel as onReject?
-              // But onReject usually implies a destructive/negative action.
-              // Here "Reject Appointment" IS the action.
-              // Let's rely on manual Close for Cancel, and use ActionButtons just for the Confirm logic?
-              // Or better:
               onReject={() => Promise.resolve(setShowRejectDialog(false))}
-              rejectSuccessMessage={null} // Suppress toast for Cancel action
+              rejectSuccessMessage={null}
               disabled={isProcessing}
             />
           </DialogFooter>
