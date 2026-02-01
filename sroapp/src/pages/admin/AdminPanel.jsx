@@ -22,6 +22,7 @@ const AdminPanel = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const [incomingRequests, setIncomingRequests] = useState([]);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   // Specific loading states for each fetch
@@ -131,6 +132,29 @@ const AdminPanel = () => {
     };
 
     fetchIncomingRequests();
+  }, []);
+
+  // Fetch User Role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const { data: account } = await supabase
+            .from("account")
+            .select("role_id")
+            .eq("email", user.email)
+            .single();
+
+          if (account) {
+            setUserRole(account.role_id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+    fetchUserRole();
   }, []);
 
   // Fetch activities from Supabase
@@ -474,6 +498,7 @@ const AdminPanel = () => {
               setActivity={setSelectedActivity}
               isModalOpen={isModalOpen}
               readOnly={false}
+              userRole={userRole}
             />
           )
         )}

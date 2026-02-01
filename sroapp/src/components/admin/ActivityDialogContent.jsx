@@ -149,12 +149,15 @@ const ActivityDialogContent = ({
   const description = activity.activity_description || activity.activityDescription || "";
   const isLong = description.length > 300;
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
-  const isActionLocked =
-    (isSRO && activity?.sro_approval_status) ||
-    (isODSA && activity?.odsa_approval_status);
+
 
   const [localActivity, setLocalActivity] = useState(activity);
   useEffect(() => setLocalActivity(activity), [activity]);
+
+  const isActionLocked =
+    localActivity?.final_status === "Approved" ||
+    (isSRO && activity?.sro_approval_status) ||
+    (isODSA && activity?.odsa_approval_status);
 
   const googleCalendarUrl = generateGoogleCalendarUrl(activity);
 
@@ -538,6 +541,10 @@ const ActivityDialogContent = ({
                     {localActivity.final_status === "Rejected" ? (
                       <span className="px-3 py-1.5 rounded-lg border border-sro-primary text-xs sm:text-sm text-sro-primary font-medium italic">
                         Activity Rejected
+                      </span>
+                    ) : localActivity.final_status === "Approved" ? (
+                      <span className="px-3 py-1.5 rounded-lg border border-sro-secondary text-xs sm:text-sm text-sro-secondary font-medium italic">
+                        Activity Approved!
                       </span>
                     ) : (
                       <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">
