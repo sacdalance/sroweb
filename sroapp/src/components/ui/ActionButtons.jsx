@@ -24,8 +24,8 @@ const ActionButtons = ({
     rejectVariant = "primary",  // Defaulting to primary (often red/destructive in this app context)
     onConfirm,
     onReject,
-    confirmSuccessMessage = "Action completed successfully",
-    rejectSuccessMessage = "Action rejected successfully",
+    confirmSuccessMessage = null,
+    rejectSuccessMessage = null,
     onSuccess,
     className = "",
     keepDialogOpen = false, // If true, onSuccess won't be called immediately? No, onSuccess handles closing.

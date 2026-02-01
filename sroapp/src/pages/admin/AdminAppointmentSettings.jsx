@@ -958,8 +958,8 @@ const AdminAppointmentSettings = () => {
                     rejectVariant="primary"
                     onConfirm={() => processAppointmentAction(selectedAppointment.id, 'approve', 'reschedule')}
                     onReject={() => processAppointmentAction(selectedAppointment.id, 'reject', 'reschedule')}
-                    confirmSuccessMessage="Reschedule request approved"
-                    rejectSuccessMessage="Reschedule request rejected"
+                    confirmSuccessMessage={null}
+                    rejectSuccessMessage={null}
                     disabled={isProcessing}
                   />
                 )}
@@ -1004,7 +1004,7 @@ const AdminAppointmentSettings = () => {
               confirmLabel={actionType === 'cancel' ? 'Cancel Appointment' : 'Reject Appointment'}
               confirmVariant="primary"
               onConfirm={() => processAppointmentResponse(selectedAppointment?.id, actionType === 'cancel' ? 'cancel' : 'reject')}
-              confirmSuccessMessage={`Appointment ${actionType === 'cancel' ? 'cancelled' : 'rejected'} successfully`}
+              confirmSuccessMessage={null}
               onSuccess={() => {
                 setShowRejectDialog(false);
                 setAdminComment("");
