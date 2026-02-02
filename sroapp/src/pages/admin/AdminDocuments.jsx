@@ -1,11 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { FolderOpen, ExternalLink, RefreshCw, FileText, Download } from 'lucide-react';
+import { FolderOpen, ExternalLink, RefreshCw, FileText, AlertCircle, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
+
+// Define the hardcoded list of forms required by the system
+const REQUIRED_FORMS = [
+    {
+        id: 'form_a',
+        filename: 'Form_A',
+        title: 'Form A: Application for Student Organization Recognition',
+        category: 'Recognition Application'
+    },
+    {
+        id: 'form_b1',
+        filename: 'Form_B1',
+        title: 'Form B1: Officer Roster',
+        category: 'Recognition Application'
+    },
+    {
+        id: 'form_b2',
+        filename: 'Form_B2',
+        title: 'Form B2: Member Roster',
+        category: 'Recognition Application'
+    },
+    {
+        id: 'form_c',
+        filename: 'Form_C',
+        title: 'Form C: Officer Data',
+        category: 'Recognition Application'
+    },
+    {
+        id: 'form_e',
+        filename: 'Form_E',
+        title: 'Form E: Proposed Activities',
+        category: 'Recognition Application'
+    },
+    {
+        id: 'form_d',
+        filename: 'Form_D',
+        title: 'Form D: Report on Past Activities',
+        category: 'Annual Report'
+    },
+    {
+        id: 'form_f',
+        filename: 'Form_F',
+        title: 'Form F: Financial Report',
+        category: 'Annual Report'
+    },
+    {
+        id: 'form_1b',
+        filename: 'Form_1B',
+        title: 'Form 1B: Student Activity Approval Slip',
+        category: 'Student Activities'
+    }
+];
 
 const AdminDocuments = () => {
     const [loading, setLoading] = useState(false);
@@ -24,14 +76,7 @@ const AdminDocuments = () => {
 
             const headers = { Authorization: `Bearer ${token}` };
             const res = await axios.get(`${API_BASE_URL}/api/documents/forms`, { headers });
-
-            // Filter specific files as requested: exclude Constitution and Bylaws (case insensitive)
-            const filteredFiles = (res.data.files || []).filter(file => {
-                const name = file.name.toLowerCase();
-                return !name.includes('constitution') && !name.includes('bylaws');
-            });
-
-            setPublicForms({ ...res.data, files: filteredFiles });
+            setPublicForms(res.data);
 
         } catch (error) {
             console.error('Fetch error:', error);
@@ -42,7 +87,18 @@ const AdminDocuments = () => {
     };
 
     const openDrive = (url) => {
-        if (url) window.open(url, '_blank');
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            toast.error("File link not available");
+        }
+    };
+
+    // Helper to find the matching file in the fetched list
+    const getFileForForm = (formDef) => {
+        return publicForms.files.find(f =>
+            f.name.toLowerCase().includes(formDef.filename.toLowerCase())
+        );
     };
 
     if (loading && !publicForms.files.length) {
@@ -55,7 +111,6 @@ const AdminDocuments = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="page-header text-sro-primary mb-1">Student Forms</h1>
-                    <p className="text-sm text-gray-500">Manage downloadable resources available to students.</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -83,78 +138,89 @@ const AdminDocuments = () => {
             </div>
 
             {/* Grid Content */}
-            {publicForms.files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500 bg-white rounded-xl border border-dashed border-gray-200">
-                    <FolderOpen className="w-16 h-16 text-gray-300 mb-4" />
-                    <p className="text-lg font-medium text-gray-900">No Forms Found</p>
-                    <p className="max-w-sm mt-1 mb-6 text-sm">
-                        Upload PDF files to the "Public Forms" folder in Google Drive to make them available here.
-                    </p>
-                    {publicForms.folderId && (
-                        <Button variant="outline" onClick={() => openDrive(`https://drive.google.com/drive/u/0/folders/${publicForms.folderId}`)}>
-                            Open Drive Folder
-                        </Button>
-                    )}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {publicForms.files.map(file => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                {REQUIRED_FORMS.map(form => {
+                    const file = getFileForForm(form);
+                    const isMissing = !file;
+
+                    // Check if file is NOT a Google Doc (e.g., is a Word doc)
+                    const isWordDoc = file && (
+                        file.mimeType?.includes('word') ||
+                        file.mimeType?.includes('officedocument')
+                    );
+
+                    return (
                         <div
-                            key={file.id}
-                            className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-sro-secondary/30 transition-all duration-300 overflow-hidden flex flex-col h-full"
+                            key={form.id}
+                            className={`group bg-white rounded-xl border shadow-sm transition-all duration-300 overflow-hidden flex flex-col h-full ${isMissing ? 'border-red-100' : 'border-gray-200 hover:shadow-md hover:border-sro-primary/30'
+                                }`}
                         >
                             {/* Card Image Area */}
-                            <div className="relative h-48 bg-gray-50 flex items-center justify-center overflow-hidden border-b border-gray-100 group-hover:bg-gray-100 transition-colors">
-                                {file.thumbnail ? (
+                            <div className={`relative h-48 flex items-center justify-center overflow-hidden border-b transition-colors ${isMissing ? 'bg-red-50/50 border-red-100' : 'bg-gray-50 border-gray-100 group-hover:bg-gray-100'
+                                }`}>
+                                {file && file.thumbnail ? (
                                     <img
                                         src={file.thumbnail}
-                                        alt={file.name}
+                                        alt={form.title}
                                         className="object-contain h-full w-full p-6 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                                         referrerPolicy="no-referrer"
                                     />
                                 ) : (
-                                    <FileText className="w-16 h-16 text-gray-400 group-hover:text-sro-primary transition-colors" />
+                                    <div className="flex flex-col items-center gap-2 text-gray-400">
+                                        {isMissing ? (
+                                            <AlertCircle className="w-12 h-12 text-sro-primary/50" />
+                                        ) : (
+                                            <FileText className="w-16 h-16 group-hover:text-sro-primary transition-colors" />
+                                        )}
+                                    </div>
                                 )}
-
-                                {/* Overlay Button */}
-                                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
-                                    <Button
-                                        size="sm"
-                                        className="bg-white text-sro-primary hover:bg-sro-primary hover:text-white shadow-sm font-semibold rounded-full px-6"
-                                        onClick={() => openDrive(file.webViewLink)}
-                                    >
-                                        View File
-                                    </Button>
-                                </div>
                             </div>
 
                             {/* Card Content */}
-                            <div className="p-5 flex flex-col flex-grow">
+                            <div className="p-5 flex flex-col flex-grow relative">
+                                {/* Title */}
                                 <h3
-                                    className="font-semibold text-gray-900 line-clamp-2 leading-tight mb-2 group-hover:text-sro-primary transition-colors h-[2.5rem]"
-                                    title={file.name}
+                                    className="font-semibold text-gray-900 line-clamp-2 leading-tight mb-1 group-hover:text-sro-primary transition-colors h-[2.5rem]"
+                                    title={form.title}
                                 >
-                                    {file.name.replace(/\.[^/.]+$/, "")}
+                                    {form.title}
                                 </h3>
 
-                                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
-                                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                        {file.mimeType?.includes('pdf') ? 'PDF Document' : 'File'}
-                                    </span>
+                                {/* Filename & Metadata */}
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-xs font-mono text-gray-500 bg-gray-100 inline-block px-1.5 py-0.5 rounded">
+                                            {form.filename}
+                                        </p>
+                                        {isWordDoc && (
+                                            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded flex items-center gap-1 font-medium" title="Convert to Google Doc for best compatibility">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                WORD DOC
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-400 font-medium">
+                                        Used in: <span className="text-gray-600">{form.category}</span>
+                                    </p>
+                                </div>
 
-                                    <button
-                                        onClick={() => openDrive(file.webContentLink)}
-                                        className="text-xs font-semibold text-sro-secondary hover:text-sro-secondary/80 flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                                    >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Download
-                                    </button>
+                                {/* Footer Action */}
+                                <div className="mt-auto flex items-center justify-end pt-4 border-t border-gray-50">
+                                    {isMissing ? (
+                                        <span className="text-[10px] font-bold px-2 py-1 rounded bg-sro-primary text-white tracking-wide uppercase">
+                                            Missing
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 tracking-wide uppercase">
+                                            Uploaded
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    );
+                })}
+            </div>
         </div>
     );
 };
