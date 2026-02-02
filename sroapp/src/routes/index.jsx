@@ -25,6 +25,7 @@ import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
+import AdminDocuments from "../pages/admin/AdminDocuments";
 import SuperAdminPage from "../pages/admin/SuperAdminPage";
 
 // route
@@ -204,6 +205,10 @@ const router = createBrowserRouter([
           {
             path: "admin/create-activity", element: <RequireAdminRole childrenByRole={
               { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} />
+          },
+          {
+            path: "admin/documents", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminDocuments />, 3: <AdminDocuments />, 4: <AdminDocuments /> }} />
           },
           {
             path: "admin/student-activities", element: <RequireAdminRole childrenByRole={

@@ -23,6 +23,7 @@ import adminOrgApplicationsRoutes from "./routes/adminOrgApplicationsRoutes.js";
 
 import emailServicesRoutes from './routes/emailServicesRoutes.js';
 import activityApprovalSlipRoutes from './routes/activityApprovalSlipRoutes_new.js';
+import adminDocumentsRoutes from './routes/adminDocumentsRoutes.js';
 
 
 console.log('📋 Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
@@ -78,6 +79,9 @@ app.use('/api', emailServicesRoutes);
 // Activity Approval Slip Generation
 app.use('/api', activityApprovalSlipRoutes);
 console.log('Activity Approval Slip routes mounted at /api');
+
+// Documents Management (Templates & Forms)
+app.use('/api/documents', adminDocumentsRoutes);
 
 // Health check endpoint for connectivity monitoring
 app.get('/health', (req, res) => {
