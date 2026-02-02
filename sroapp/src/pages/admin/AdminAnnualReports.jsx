@@ -1,154 +1,199 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import supabase from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
-import { Search, Download, Eye } from "lucide-react";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
+} from "@/components/ui/dialog";
+import { ExternalLink, Database, FileText } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import DataTable from "@/components/ui/DataTable";
 
 const AdminAnnualReports = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [yearFilter, setYearFilter] = useState("2024-2025");
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("org_annual_report")
+          .select(`
+            report_id,
+            academic_year,
+            submitted_at,
+            drive_folder_link,
+            submission_file_url,
+            organization:organization ( org_name )
+          `)
+          .order('submitted_at', { ascending: false });
 
-      const { data, error } = await supabase
-        .from("org_annual_report")
-        .select(`
-          report_id,
-          academic_year,
-          submitted_at,
-          drive_folder_link,
-          submission_file_url,
-          organization:organization ( org_name )
-        `);
+        if (error) throw error;
 
-      if (error) {
-        console.error("Supabase fetch error:", error.message);
-        setReports([]);
-      } else {
         const formatted = data.map((report) => ({
+          ...report,
           id: report.report_id,
-          organization: report.organization?.org_name || "Unknown Org",
-          academicYear: report.academic_year,
-          submissionDate: new Date(report.submitted_at).toLocaleDateString(),
-          viewLink: report.drive_folder_link,
-          files: JSON.parse(report.submission_file_url) || [],
+          org_name: report.organization?.org_name || "Unknown Org",
+          files: report.submission_file_url ? JSON.parse(report.submission_file_url) : [],
         }));
         setReports(formatted);
+      } catch (error) {
+        console.error("Supabase fetch error:", error.message);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchReports();
   }, []);
 
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch = report.organization.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesYear = yearFilter === "all" || report.academicYear === yearFilter;
-    return matchesSearch && matchesYear;
-  });
+  const handleRowClick = (report) => {
+    setSelectedReport(report);
+    setDialogOpen(true);
+  };
+
+  const columns = useMemo(() => [
+    {
+      key: "submitted_at",
+      header: "Submission Date",
+      sortable: true,
+      width: "w-40",
+      render: (row) => (
+        <div className="text-xs text-gray-500">
+          {new Date(row.submitted_at).toLocaleDateString("en-US", {
+            year: 'numeric', month: 'short', day: 'numeric'
+          })}
+        </div>
+      )
+    },
+    {
+      key: "org_name",
+      header: "Organization Name",
+      sortable: true,
+      render: (row) => (
+        <div className="font-semibold text-sm text-gray-700">{row.org_name}</div>
+      )
+    },
+    {
+      key: "academic_year",
+      header: "Academic Year",
+      sortable: true,
+      width: "w-32",
+      filterable: true,
+      filterLabel: "Years",
+      filterOptions: [...new Set(reports.map(r => r.academic_year))].sort().reverse(),
+      render: (row) => (
+        <div className="text-gray-600 font-mono text-xs">{row.academic_year}</div>
+      )
+    },
+    {
+      key: "files_count",
+      header: "Files",
+      width: "w-24",
+      render: (row) => (
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 w-fit mx-auto">
+          <FileText className="h-3 w-3" />
+          {row.files?.length || 0}
+        </div>
+      )
+    }
+  ], [reports]);
+
+  if (loading) return <LoadingSpinner text="Loading annual reports..." variant="section" />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <h1 className="page-header text-sro-primary">Annual Reports</h1>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-2 mb-6">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
-          </div>
-          <Input
-            type="search"
-            placeholder="Search organizations..."
-            className="pl-10 h-9 text-sm w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <DataTable
+        columns={columns}
+        data={reports}
+        onRowClick={handleRowClick}
+        emptyMessage="No annual reports submitted yet."
+        defaultPageSize={10}
+        defaultSort={{ key: "submitted_at", direction: "desc" }}
+        viewMode="table"
+        hideViewToggle={true}
+      />
 
-        <div className="w-full md:w-[200px]">
-          <UnifiedDropdown
-            options={["2024-2025", "2025-2026", "2026-2027", "2027-2028", "all"].map(y => ({
-              value: y,
-              label: y === "all" ? "All years" : y
-            }))}
-            value={yearFilter}
-            onChange={setYearFilter}
-            placeholder="All Categories"
-          />
-        </div>
-      </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-sro-primary flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Annual Report Details
+            </DialogTitle>
+            <DialogDescription>
+              Reviewing the annual report submission for <strong>{selectedReport?.org_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
 
+          {selectedReport && (
+            <div className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Organization</p>
+                  <p className="text-sm font-semibold">{selectedReport.org_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Academic Year</p>
+                  <p className="text-sm font-mono">{selectedReport.academic_year}</p>
+                </div>
+                <div className="col-span-2 pt-2 border-t flex justify-between items-center text-xs text-gray-500">
+                  <p italic>Submitted on {new Date(selectedReport.submitted_at).toLocaleString()}</p>
+                  {selectedReport.drive_folder_link && (
+                    <Button variant="outline" size="sm" asChild className="gap-2 border-sro-secondary text-sro-secondary hover:bg-sro-secondary/10">
+                      <a href={selectedReport.drive_folder_link} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Google Drive
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-      {/* Table */}
-      <Card className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <CardHeader className="py-4">
-          <CardTitle className="text-xl font-bold text-sro-primary">Submitted Reports</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <LoadingSpinner text="Loading reports..." variant="section" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Organization</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Academic Year</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Submission Date</th>
-                    <th className="px-5 py-3 text-left text-sm font-medium text-sro-secondary">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredReports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 font-bold text-l text-gray-700">{report.organization}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700">{report.academicYear}</td>
-                      <td className="px-5 py-4 text-sm text-gray-700">{report.submissionDate}</td>
-                      <td className="px-5 py-4 text-sm">
-                        <div className="flex flex-col space-y-2">
-                          {report.files.map((url, i) => (
-                            <Button
-                              key={i}
-                              asChild
-                              className="px-3 py-1 h-8 bg-sro-primary hover:bg-sro-primary/90 text-white text-xs flex items-center gap-1"
-                            >
-                              <a href={url} target="_blank" rel="noopener noreferrer">
-                                <Eye className="h-3 w-3 inline mr-1" />
-                                View File {i + 1}
-                              </a>
-                            </Button>
-                          ))}
-
-                          {report.viewLink && (
-                            <Button
-                              asChild
-                              className="px-3 py-1 rounded-md bg-sro-secondary hover:bg-sro-secondary/90 text-white text-xs flex items-center gap-1"
-                            >
-                              <a href={report.viewLink} target="_blank" rel="noopener noreferrer">
-                                <Download className="h-3 w-3" />
-                                Drive Folder
-                              </a>
-                            </Button>
-                          )}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-sro-primary" />
+                  SUBMITTED FILES ({selectedReport.files.length})
+                </h3>
+                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
+                  {selectedReport.files.map((url, i) => (
+                    <Button
+                      key={i}
+                      variant="outline"
+                      asChild
+                      className="justify-start gap-3 h-11 border-gray-200 hover:border-sro-primary hover:bg-sro-primary/5 transition-all group"
+                    >
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        <div className="h-7 w-7 rounded bg-red-50 text-red-600 flex items-center justify-center font-bold text-[10px] group-hover:bg-red-100">
+                          PDF
                         </div>
-                      </td>
-                    </tr>
+                        <div className="flex-1 text-left">
+                          <p className="text-xs font-medium text-gray-700 truncate max-w-[300px]">Annual Report File {i + 1}</p>
+                          <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Official Document</p>
+                        </div>
+                        <ExternalLink className="h-3.5 w-3.5 text-gray-300 group-hover:text-sro-primary" />
+                      </a>
+                    </Button>
                   ))}
-                </tbody>
-              </table>
+                  {selectedReport.files.length === 0 && (
+                    <p className="text-sm text-gray-500 italic p-4 text-center border rounded">No individual files uploaded.</p>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">
+                  Close
+                </Button>
+              </DialogFooter>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

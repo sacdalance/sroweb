@@ -196,9 +196,9 @@ const AdminOrgApplications = () => {
       },
       {
         key: "academic_year",
-        header: "A.Y.",
+        header: "Academic Year",
         sortable: true,
-        width: "w-24",
+        width: "w-32",
         cellClassName: "font-mono text-xs text-center"
       },
       {

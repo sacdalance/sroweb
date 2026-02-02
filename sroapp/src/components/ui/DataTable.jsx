@@ -1,9 +1,16 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, LayoutGrid, Table as TableIcon } from "lucide-react";
 import PropTypes from "prop-types";
 import StatusPill from "@/components/ui/StatusPill";
+import { 
+    Select, 
+    SelectContent, 
+    SelectItem, 
+    SelectTrigger, 
+    SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 /**
  * A reusable data table component with sorting, filtering, pagination, truncation support, and toggleable Card/Table view.
@@ -35,6 +42,7 @@ const DataTable = ({
     preventHorizontalScroll = false,
     compactStatus = false,
     defaultSort = null,
+    fixedHeight = true, // Added to prevent layout shifts during pagination
 }) => {
     // View Mode State (card vs table)
     const [internalViewMode, setInternalViewMode] = useState("table");
@@ -304,17 +312,26 @@ const DataTable = ({
                             .filter((col) => col.filterable && col.filterOptions)
                             .map((col) => {
                                 const allLabel = getAllLabel(col);
+                                const currentValue = filters[col.key] || allLabel;
                                 return (
-                                    <UnifiedDropdown
-                                        key={col.key}
-                                        options={[allLabel, ...col.filterOptions]}
-                                        value={filters[col.key] || allLabel}
-                                        onChange={(value) => handleFilterChange(col.key, value)}
-                                        placeholder={allLabel}
-                                        searchable={col.filterOptions?.length > 5}
-                                        searchPlaceholder={`Search ${(col.filterLabel || col.header).toLowerCase()}...`}
-                                        className="w-full sm:w-48"
-                                    />
+                                    <div key={col.key} className="w-full sm:w-48">
+                                        <Select
+                                            value={currentValue}
+                                            onValueChange={(value) => handleFilterChange(col.key, value)}
+                                        >
+                                            <SelectTrigger className="h-9 bg-white">
+                                                <SelectValue placeholder={allLabel} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={allLabel}>{allLabel}</SelectItem>
+                                                {col.filterOptions.map((opt) => (
+                                                    <SelectItem key={opt} value={opt}>
+                                                        {opt}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 );
                             })}
                     </div>
@@ -353,7 +370,10 @@ const DataTable = ({
 
             {/* Table View */}
             {currentViewMode === "table" && (
-                <div className="w-full flex-1 flex flex-col min-h-0">
+                <div 
+                    className="w-full flex-1 flex flex-col min-h-0 transition-[height] duration-300"
+                    style={fixedHeight ? { minHeight: `${(pageSize + 1) * 45 + 2}px` } : {}}
+                >
                     <div className="flex-1 overflow-auto">
                         <table className={`w-full text-sm table-fixed ${!preventHorizontalScroll ? "min-w-[1000px]" : ""}`}>
                             <thead className="bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
@@ -382,22 +402,34 @@ const DataTable = ({
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {paginatedData.length > 0 ? (
-                                    paginatedData.map((row, rowIndex) => (
-                                        <tr
-                                            key={row.id || rowIndex}
-                                            onClick={() => onRowClick?.(row)}
-                                            className={`hover:bg-gray-50 transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
-                                        >
-                                            {columns.map((col) => (
-                                                <td
-                                                    key={col.key}
-                                                    className={`px-2 py-2 text-sm text-center ${col.cellClassName || ""}`}
-                                                >
-                                                    {renderCell(row, col)}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))
+                                    <>
+                                        {paginatedData.map((row, rowIndex) => (
+                                            <tr
+                                                key={row.id || rowIndex}
+                                                onClick={() => onRowClick?.(row)}
+                                                className={`hover:bg-gray-50 transition-colors h-[45px] ${onRowClick ? "cursor-pointer" : ""}`}
+                                            >
+                                                {columns.map((col) => (
+                                                    <td
+                                                        key={col.key}
+                                                        className={`px-2 py-2 text-sm text-center ${col.cellClassName || ""}`}
+                                                    >
+                                                        {renderCell(row, col)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        {/* Spacer rows to maintain height */}
+                                        {fixedHeight && paginatedData.length < pageSize && (
+                                            Array.from({ length: pageSize - paginatedData.length }).map((_, i) => (
+                                                <tr key={`spacer-${i}`} className="h-[45px]">
+                                                    {columns.map((col) => (
+                                                        <td key={`spacer-td-${i}-${col.key}`} className="px-2 py-2"></td>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        )}
+                                    </>
                                 ) : (
                                     <tr>
                                         <td colSpan={columns.length} className="py-8 text-center text-gray-500">
@@ -413,40 +445,44 @@ const DataTable = ({
 
             {/* Card View */}
             {currentViewMode === "card" && (
-                <div className="space-y-4 px-4 pb-4">
+                <div 
+                    className="space-y-4 px-4 pb-4 transition-[height] duration-300"
+                    style={fixedHeight ? { minHeight: `${pageSize * 150}px` } : {}}
+                >
                     {paginatedData.length > 0 ? (
-                        paginatedData.map((row, rowIndex) => {
-                            const actionCol = columns.find(col => col.key === 'actions');
-                            const dataCols = columns.filter(col => col.key !== 'actions');
+                        <>
+                            {paginatedData.map((row, rowIndex) => {
+                                const actionCol = columns.find(col => col.key === 'actions');
+                                const dataCols = columns.filter(col => col.key !== 'actions');
 
-                            return (
-                                <Card
-                                    key={row.id || rowIndex}
-                                    className={`shadow-sm border ${onRowClick ? "active:bg-gray-50" : ""}`}
-                                    onClick={() => onRowClick?.(row)}
-                                >
-                                    <CardContent className="p-4 space-y-3">
-                                        {dataCols.map((col) => (
-                                            <div key={col.key} className="flex justify-between items-start gap-4">
-                                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] shrink-0 pt-0.5">
-                                                    {col.header}
-                                                </span>
-                                                <div className="text-sm text-right flex-1 text-gray-700 break-words min-w-0" title={row[col.key]}>
-                                                    {renderCell(row, col)}
+                                return (
+                                    <Card
+                                        key={row.id || rowIndex}
+                                        className={`shadow-sm border h-[134px] flex flex-col justify-center ${onRowClick ? "active:bg-gray-50" : ""}`}
+                                        onClick={() => onRowClick?.(row)}
+                                    >
+                                        <CardContent className="p-4 space-y-3">
+                                            {dataCols.slice(0, 3).map((col) => ( // Show first 3 important cols in fixed card
+                                                <div key={col.key} className="flex justify-between items-start gap-4">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] shrink-0 pt-0.5">
+                                                        {col.header}
+                                                    </span>
+                                                    <div className="text-sm text-right flex-1 text-gray-700 truncate" title={row[col.key]}>
+                                                        {renderCell(row, col)}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-
-                                        {/* Actions Footer */}
-                                        {actionCol && (
-                                            <div className="pt-3 mt-3 border-t flex justify-end">
-                                                {renderCell(row, actionCol)}
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            );
-                        })
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                            {/* Card Spacers */}
+                            {fixedHeight && paginatedData.length < pageSize && (
+                                Array.from({ length: pageSize - paginatedData.length }).map((_, i) => (
+                                    <div key={`spacer-card-${i}`} className="h-[134px] border border-dashed border-gray-100 rounded-xl" />
+                                ))
+                            )}
+                        </>
                     ) : (
                         <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
                             {emptyMessage}
@@ -469,19 +505,23 @@ const DataTable = ({
                         <div className="flex items-center gap-2">
                             {/* Rows per page dropdown */}
                             {showPageSizeDropdown && !isMobile && !hidePageSize && (
-                                <div className="flex items-center gap-2 mr-4">
-                                    <span className="text-sm text-gray-600">Rows:</span>
-                                    <select
-                                        value={pageSize}
-                                        onChange={(e) => handlePageSizeChange(e.target.value)}
-                                        className="border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sro-primary/20"
+                                <div className="flex items-center gap-2 mr-4 group">
+                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-tighter">Rows:</span>
+                                    <Select
+                                        value={pageSize.toString()}
+                                        onValueChange={(val) => handlePageSizeChange(val)}
                                     >
-                                        {pageSizeOptions.map((size) => (
-                                            <option key={size} value={size}>
-                                                {size}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <SelectTrigger className="w-[70px] h-8 bg-white border-gray-200 text-xs">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {pageSizeOptions.map((size) => (
+                                                <SelectItem key={size} value={size.toString()}>
+                                                    {size}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
 
