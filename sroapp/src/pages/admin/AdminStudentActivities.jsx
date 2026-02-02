@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL } from "@/lib/api-config";
+import ActionButtons from "@/components/ui/ActionButtons";
+import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
@@ -398,13 +400,20 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   // --- Calendar Helpers ---
   const getEventColor = (category, event) => {
     const status = event?.status;
-    // Check explicit isRecurring flag - use orange like ActivitiesCalendar
-    if (event?.isRecurring) return 'bg-orange-200 text-orange-800 border border-orange-400';
-    if (status === 'Approved') return 'bg-sro-secondary text-white';
-    if (status === 'Pending SRO' || status === 'Pending ODSA') return 'bg-gray-100 text-gray-700 border border-gray-300';
-    if (status === 'For Appeal') return 'bg-amber-100 text-amber-700 border border-amber-300';
-    if (status === 'Rejected') return 'bg-red-100 text-sro-primary border border-sro-primary';
-    return 'bg-blue-100 text-blue-700';
+    let classes = '';
+
+    if (status === 'Approved') classes = 'bg-sro-secondary text-white';
+    else if (status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
+    else if (status === 'For Appeal') classes = 'bg-amber-100 text-amber-700 border border-amber-300';
+    else if (status === 'Rejected') classes = 'bg-red-100 text-sro-primary border border-sro-primary';
+    else classes = 'bg-blue-100 text-blue-700';
+
+    if (event?.isRecurring) {
+      // Override border with orange highlight for recurring
+      classes += ' border-2 border-orange-500';
+    }
+
+    return classes;
   };
 
   const handleCalendarDateSelect = (dateOrEvent) => {
@@ -571,62 +580,57 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
         <TabsContent value="activities">
           {/* Calendar Tab Content - Matching AdminAppointmentSettings layout */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 px-1">
-            <div className="flex gap-2 sm:gap-4 flex-wrap">
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-sro-secondary" /> <span className="text-[10px] sm:text-xs">Approved</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-400" /> <span className="text-[10px] sm:text-xs">Recurring</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gray-300" /> <span className="text-[10px] sm:text-xs">Pending</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-300" /> <span className="text-[10px] sm:text-xs">For Appeal</span></div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
-                <input type="checkbox" checked={showRecurring} onChange={(e) => setShowRecurring(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
-                <span className="font-medium">Recurring</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
-                <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
-                <span className="font-medium">Requests</span>
-              </label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow border p-4">
-              <CustomCalendar
-                mode="activities"
-                currentMonth={currentDate}
-                onMonthChange={setCurrentDate}
-                onDateSelect={handleCalendarDateSelect}
-                selectedDate={selectedDateFilter}
-                events={calendarEvents}
-                getEventColor={getEventColor}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <Card className="h-full">
-                <CardHeader><CardTitle className="text-lg">{selectedDateFilter ? `Activities on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  {selectedDateFilter ? (
-                    <div className="space-y-3">
-                      {filteredCalendarList.length > 0 ? filteredCalendarList.map(activity => (
-                        <div key={`${activity.activity_id}-${activity.date}`} onClick={() => handleViewDetails(activity)} className="p-3 bg-gray-50 border rounded-md cursor-pointer hover:bg-white hover:shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-2">
-                            <span className="font-semibold text-sro-primary text-sm line-clamp-2" title={activity.activity_name}>{activity.activity_name}</span>
-                            <StatusPill status={activity.status} compact />
-                          </div>
-                          <div className="text-xs text-gray-600 flex flex-col gap-1">
-                            <div className="truncate"><span className="font-medium">Organization:</span> {activity.organization?.org_name || 'Unknown'}</div>
-                            <div className="truncate"><span className="font-medium">Venue:</span> {activity.venue || 'TBD'}</div>
-                            <div className="truncate"><span className="font-medium">Type:</span> {getActivityTypeLabel(activity.activity_type)}</div>
-                            {activity.isRecurring && <div className="text-orange-700 font-medium">Recurring: {format(new Date(activity.recurringStartDate), 'MMM d')} - {format(new Date(activity.recurringEndDate), 'MMM d, yyyy')}</div>}
-                          </div>
-                        </div>
-                      )) : <div className="text-center py-8 text-gray-400 text-sm">No activities scheduled for this date.</div>}
+
+          <CalendarWithSidePanel
+            currentDate={currentDate}
+            onMonthChange={setCurrentDate}
+            selectedDate={selectedDateFilter}
+            onDateSelect={(date) => {
+              if (selectedDateFilter && isSameDay(date, selectedDateFilter)) {
+                setSelectedDateFilter(null);
+              } else {
+                handleCalendarDateSelect(date);
+              }
+            }}
+            events={calendarEvents}
+            getEventColor={getEventColor}
+            sidePanelTitle={selectedDateFilter ? `Activities on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}
+            legendItems={[
+              { label: "Approved", colorClass: "text-sro-secondary", indicatorClass: "bg-sro-secondary" },
+              { label: "Pending", colorClass: "text-gray-700", indicatorClass: "bg-gray-300" },
+              { label: "For Reschedule", colorClass: "text-amber-700", indicatorClass: "bg-amber-300" },
+              { label: "Recurring", colorClass: "text-sro-secondary", indicatorClass: "bg-sro-secondary border-2 border-orange-500" },
+            ]}
+            filters={[
+              { label: "Recurring", checked: showRecurring, onChange: setShowRecurring },
+              { label: "Requests", checked: showRequests, onChange: setShowRequests },
+            ]}
+            renderSidePanel={(date) => (
+              <div className="space-y-3">
+                {filteredCalendarList.length > 0 ? filteredCalendarList.map(activity => (
+                  <div key={`${activity.activity_id}-${activity.date}`} onClick={() => handleViewDetails(activity)} className="p-3 bg-white border rounded-lg cursor-pointer hover:border-sro-primary/50 hover:shadow-sm transition-all group">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-2">
+                      <span className="font-semibold text-sro-primary text-sm line-clamp-2 leading-tight group-hover:underline decoration-sro-primary/30 underline-offset-2" title={activity.activity_name}>{activity.activity_name}</span>
+                      <StatusPill status={activity.status} compact />
                     </div>
-                  ) : <div className="text-center py-12 text-gray-400 text-sm">Click on a date in the calendar to view scheduled activities.</div>}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    <div className="text-xs text-gray-500 flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Org:</span> <span className="truncate max-w-[150px]">{activity.organization?.org_name || 'Unknown'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
+                      </div>
+                      {activity.isRecurring && (
+                        <div className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded w-fit font-medium">
+                          Recurring: {format(new Date(activity.recurringStartDate), 'MMM d')} - {format(new Date(activity.recurringEndDate), 'MMM d')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )) : <div className="text-center py-8 text-gray-400 text-sm">No activities scheduled for this date.</div>}
+              </div>
+            )}
+          />
         </TabsContent>
 
         {/* Activity Summary Tab */}

@@ -11,10 +11,10 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import DataTable from "@/components/ui/DataTable";
 import { StatusPill } from "@/components/ui/StatusPill";
-import CustomCalendar from "@/components/ui/custom-calendar";
+import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
 import { isSameDay, format, parseISO } from "date-fns";
 import ActionButtons from "@/components/ui/ActionButtons";
-import { Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, Clock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -777,51 +777,58 @@ const AdminAppointmentSettings = () => {
 
         <TabsContent value="calendar">
           {/* Calendar Tab Content */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 px-1">
-            <div className="flex gap-2 sm:gap-4 flex-wrap">
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-sro-secondary" /> <span className="text-[10px] sm:text-xs">Confirmed</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gray-300" /> <span className="text-[10px] sm:text-xs">Scheduled</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-300" /> <span className="text-[10px] sm:text-xs">For Reschedule</span></div>
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
-              <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
-              <span className="font-medium">Requests</span>
-            </label>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow border p-4">
-              <CustomCalendar
-                mode="activities"
-                currentMonth={currentDate}
-                onMonthChange={setCurrentDate}
-                onDateSelect={handleCalendarDateSelect}
-                selectedDate={selectedDateFilter}
-                events={calendarEvents}
-                getEventColor={getEventColor}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <Card className="h-full">
-                <CardHeader><CardTitle className="text-lg">{selectedDateFilter ? `Appointments on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  {selectedDateFilter ? (
-                    <div className="space-y-3">
-                      {filteredCalendarList.length > 0 ? filteredCalendarList.map(app => (
-                        <div key={app.id} onClick={() => { setSelectedAppointment(app); setShowConfirmDialog(true); }} className="p-3 bg-gray-50 border rounded-md cursor-pointer hover:bg-white hover:shadow-sm">
-                          <div className="flex justify-between mb-1"><span className="font-semibold text-sro-primary text-sm">{app.formattedName}</span> <StatusPill status={app.status} compact /></div>
-                          <div className="text-xs text-gray-600 flex flex-col gap-1">
-                            <div><span className="font-medium">Time:</span> {app.timeRange}</div>
-                            <div><span className="font-medium">Mode:</span> {app.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</div>
-                            <div className="truncate text-gray-500 italic" title={app.specified_reason}>{app.specified_reason || app.reason}</div>
-                          </div>
-                        </div>
-                      )) : <div className="text-center py-8 text-gray-400 text-sm">No appointments scheduled for this date.</div>}
+          <CalendarWithSidePanel
+            currentDate={currentDate}
+            onMonthChange={setCurrentDate}
+            selectedDate={selectedDateFilter}
+            onDateSelect={(date) => {
+              if (selectedDateFilter && isSameDay(date, selectedDateFilter)) {
+                setSelectedDateFilter(null);
+              } else {
+                setSelectedDateFilter(date);
+              }
+            }}
+            events={calendarEvents}
+            getEventColor={getEventColor}
+            sidePanelTitle={selectedDateFilter ? `Appointments on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}
+            legendItems={[
+              { label: "Confirmed", colorClass: "text-sro-secondary", indicatorClass: "bg-sro-secondary" },
+              { label: "Scheduled", colorClass: "text-gray-700", indicatorClass: "bg-gray-300" },
+              { label: "For Reschedule", colorClass: "text-amber-700", indicatorClass: "bg-amber-300" },
+            ]}
+            filters={[
+              { label: "Requests", checked: showRequests, onChange: setShowRequests }
+            ]}
+            renderSidePanel={(date) => (
+              <div className="space-y-3">
+                {filteredCalendarList.length > 0 ? filteredCalendarList.map(app => (
+                  <div key={app.id} onClick={() => { setSelectedAppointment(app); setShowConfirmDialog(true); }} className="p-3 bg-white border rounded-lg cursor-pointer hover:border-sro-primary/50 hover:shadow-sm transition-all group">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-sro-primary text-sm line-clamp-2">{app.formattedName || app.title}</span>
+                      <div className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${getEventColor(null, app).split(' ')[0].replace('bg-', 'border-').replace('text-', 'text-')} bg-white`}>
+                        {app.status === 'reschedule-pending' ? 'For Reschedule' : app.status}
+                      </div>
                     </div>
-                  ) : <div className="text-center py-12 text-gray-400 text-sm">Click on a date in the calendar to view scheduled appointments.</div>}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    <div className="text-xs text-gray-500 flex flex-col gap-1 mt-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Type:</span> <span className="truncate">{app.reason}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Mode:</span> <span className="truncate">{app.meeting_mode === 'face-to-face' ? 'Face-to-face' : 'Online'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        <span>{app.timeRange}</span>
+                      </div>
+                      {/* Show description if available */}
+                      <div className="truncate text-gray-400 italic" title={app.specified_reason}>{app.specified_reason || app.reason}</div>
+                    </div>
+                  </div>
+                )) : <div className="text-center py-8 text-gray-400 text-sm">No appointments for this date.</div>}
+              </div>
+            )}
+
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
