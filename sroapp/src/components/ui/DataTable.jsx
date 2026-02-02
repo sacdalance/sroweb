@@ -50,6 +50,7 @@ const DataTable = ({
     preventHorizontalScroll = false,
     compactStatus = false,
     defaultSort = null,
+    defaultFilters = {}, // Added default filters prop
     fixedHeight = true, // Added to prevent layout shifts during pagination
     actionButtons = null, // Custom action buttons to show inline with filters
 }) => {
@@ -97,7 +98,7 @@ const DataTable = ({
     const [sortConfig, setSortConfig] = useState(defaultSort || { key: null, direction: null });
 
     // Filter state
-    const [filters, setFilters] = useState({});
+    const [filters, setFilters] = useState(defaultFilters); // Initialize with defaultFilters
 
     // Search state
     const [searchTerm, setSearchTerm] = useState("");

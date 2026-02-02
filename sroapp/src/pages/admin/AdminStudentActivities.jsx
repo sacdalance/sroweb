@@ -561,6 +561,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                   hideViewToggle={true}
                   className="border-none shadow-none"
                   defaultSort={{ key: "created_at", direction: "desc" }}
+                  defaultFilters={{ status: "Pending SRO" }}
                   preventHorizontalScroll={false}
                 />
               )}
@@ -670,12 +671,23 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                   columns={[
                     {
                       key: "created_at",
-                      header: "Submitted",
+                      header: "Submission Date",
                       sortable: true,
-                      width: "w-[10%]",
+                      width: "w-[12%]",
                       render: (row) => (
                         <span className="text-gray-600 font-medium">
                           {new Date(row.created_at).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "activity_name",
+                      header: "Activity Title",
+                      sortable: true,
+                      width: "w-[25%]",
+                      render: (row) => (
+                        <span className="font-medium text-sro-primary block truncate mx-auto" title={row.activity_name}>
+                          {row.activity_name}
                         </span>
                       ),
                     },
@@ -692,17 +704,6 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                       render: (row) => (
                         <span className="font-medium text-gray-700 block truncate mx-auto" title={row.organization?.org_name || "Unknown"}>
                           {row.organization?.org_name || "Unknown"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "activity_name",
-                      header: "Activity Name",
-                      sortable: true,
-                      width: "w-[25%]",
-                      render: (row) => (
-                        <span className="font-medium text-sro-primary block truncate mx-auto" title={row.activity_name}>
-                          {row.activity_name}
                         </span>
                       ),
                     },
