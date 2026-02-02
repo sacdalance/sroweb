@@ -12,6 +12,7 @@ import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
 import supabase from "@/lib/supabase";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { annualReportSchema } from "@/lib/zodSchemas";
+import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -34,6 +35,7 @@ const academicYearOptions = [
 ];
 
 const AnnualReport = () => {
+  const { getFileForForm } = useStudentForms();
   // === STATE HOOKS ===
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -246,17 +248,8 @@ const AnnualReport = () => {
     }
   };
 
-  // Required forms download links
-  const formLinks = [
-    {
-      name: "Revised OSA Form D: Report on Past Activities, including partnerships",
-      url: "https://docs.google.com/document/d/1xO70gKiSKL2p18cAsq255oSPM1S5ehxm"
-    },
-    {
-      name: "Financial Report (Form F), AY 202X-202X",
-      url: "https://docs.google.com/document/d/1VjY-6qXvvNzMpZPIz_ONX-sGBnL32y7A"
-    }
-  ];
+  // Required forms download links (Dynamic)
+  const relevantForms = REQUIRED_FORMS.filter(f => f.category === 'Annual Report');
 
   return (
     <div className="max-w-3xl mx-auto py-8">
@@ -426,16 +419,25 @@ const AnnualReport = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {formLinks.map((form, idx) => (
-              <div key={idx} className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">{form.name}</span>
-                <Button asChild variant="outline" size="sm">
-                  <a href={form.url} target="_blank" rel="noopener noreferrer">
-                    Download
-                  </a>
-                </Button>
-              </div>
-            ))}
+            {relevantForms.map((form) => {
+              const file = getFileForForm(form);
+              const link = file ? (file.webViewLink || file.alternateLink) : null;
+
+              return (
+                <div key={form.id} className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">{form.title}</span>
+                  <Button asChild variant="outline" size="sm" disabled={!link} className={!link ? "opacity-50 cursor-not-allowed" : ""}>
+                    {link ? (
+                      <a href={link} target="_blank" rel="noopener noreferrer">
+                        Download
+                      </a>
+                    ) : (
+                      <span>Missing</span>
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
             {/* File Dropzone */}
             <FileDropzone
               files={files}

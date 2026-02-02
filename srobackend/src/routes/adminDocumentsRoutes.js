@@ -13,7 +13,7 @@ const auth = new google.auth.GoogleAuth({
         client_email: process.env.GDRIVE_CLIENT_EMAIL,
         private_key: process.env.GDRIVE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    scopes: ['https://www.googleapis.com/auth/drive'],
 });
 
 const drive = google.drive({ version: 'v3', auth });
@@ -133,6 +133,92 @@ router.get('/templates/preview-html', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('HTML Preview error:', error);
         res.status(500).json({ error: 'Failed to generate preview' });
+    }
+});
+
+/**
+ * GET /permissions
+ * Lists usage permissions for the Public Forms folder
+ */
+router.get('/permissions', authMiddleware, async (req, res) => {
+    try {
+        const folderId = process.env.GDRIVE_PUBLIC_FORMS_FOLDER_ID;
+        if (!folderId) return res.status(500).json({ error: 'Folder ID not configured' });
+
+        const response = await drive.permissions.list({
+            fileId: folderId,
+            fields: 'permissions(id, type, role, emailAddress, displayName, photoLink)',
+        });
+
+        // Filter out the service account or non-user permissions if needed, 
+        // but showing all helps debugging.
+        // We typically want to show 'writers' who are 'users'.
+        res.json({ permissions: response.data.permissions });
+
+    } catch (error) {
+        console.error('Error fetching permissions:', error);
+        res.status(500).json({ error: 'Failed to fetch permissions' });
+    }
+});
+
+/**
+ * POST /permissions
+ * Adds a new 'writer' (editor) to the folder
+ */
+router.post('/permissions', authMiddleware, async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    try {
+        const folderId = process.env.GDRIVE_PUBLIC_FORMS_FOLDER_ID;
+        if (!folderId) return res.status(500).json({ error: 'Folder ID not configured' });
+
+        const response = await drive.permissions.create({
+            fileId: folderId,
+            requestBody: {
+                role: 'writer',
+                type: 'user',
+                emailAddress: email,
+            },
+            fields: 'id, type, role, emailAddress, displayName',
+            sendNotificationEmail: false, // Service accounts cannot send email notifications
+        });
+
+        res.json({ success: true, permission: response.data });
+
+    } catch (error) {
+        console.error('Error adding permission:', error);
+        // Log detailed error from Google API if available
+        if (error.response) {
+            console.error('Google Drive API Error Details:', JSON.stringify(error.response.data, null, 2));
+        }
+
+        const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to add permission';
+        res.status(500).json({ error: errorMessage, details: error.response?.data });
+    }
+});
+
+/**
+ * DELETE /permissions/:permissionId
+ * Removes a permission
+ */
+router.delete('/permissions/:permissionId', authMiddleware, async (req, res) => {
+    const { permissionId } = req.params;
+
+    try {
+        const folderId = process.env.GDRIVE_PUBLIC_FORMS_FOLDER_ID;
+        if (!folderId) return res.status(500).json({ error: 'Folder ID not configured' });
+
+        await drive.permissions.delete({
+            fileId: folderId,
+            permissionId: permissionId,
+        });
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Error removing permission:', error);
+        res.status(500).json({ error: 'Failed to remove permission' });
     }
 });
 
