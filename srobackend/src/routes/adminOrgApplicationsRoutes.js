@@ -37,11 +37,12 @@ router.post('/update-status', async (req, res) => {
     adviser_email,
     org_coadviser,
     coadviser_email,
-    drive_folder_link
+    drive_folder_link,
+    org_status // Extract the status assigned by the admin
   } = updatedRows;
 
   if (sro_approved && odsa_approved) {
-    // Check if org already exists for this year
+    // Check if org already exists for this year to handle renewal vs new
     const { data: existing, error: checkError } = await supabase
       .from('organization')
       .select('org_id')
@@ -49,24 +50,39 @@ router.post('/update-status', async (req, res) => {
       .eq('academic_year', academic_year)
       .maybeSingle();
 
-    if (!existing) {
-      // Insert organization, map fields correctly and use a timestamp for approved_at
+    const orgData = {
+      org_name,
+      academic_year,
+      org_type,
+      chairperson_name: org_chairperson,
+      chairperson_email,
+      org_email,
+      adviser_name: org_adviser,
+      adviser_email,
+      coadviser_name: org_coadviser,
+      coadviser_email,
+      drive_folder_link,
+      org_status: org_status, // Sync the recognition status
+      approved_at: new Date().toISOString()
+    };
+
+    if (existing) {
+      // ✅ Update existing organization (Renewal)
+      const { error: updateError } = await supabase
+        .from('organization')
+        .update(orgData)
+        .eq('org_id', existing.org_id);
+
+      if (updateError) {
+        console.error('Update error during migration:', updateError);
+        return res.status(500).json({ error: updateError.message });
+      }
+    } else {
+      // ✅ Insert new organization
       const { error: insertError } = await supabase
         .from('organization')
-        .insert([{
-          org_name,
-          academic_year,
-          org_type,
-          chairperson_name: org_chairperson,
-          chairperson_email,
-          org_email,
-          adviser_name: org_adviser,
-          adviser_email,
-          coadviser_name: org_coadviser,
-          coadviser_email,
-          drive_folder_link,
-          approved_at: new Date().toISOString() // Full timestamp
-        }]);
+        .insert([orgData]);
+
       if (insertError) {
         console.error('Insert error during migration:', insertError);
         return res.status(500).json({ error: insertError.message });

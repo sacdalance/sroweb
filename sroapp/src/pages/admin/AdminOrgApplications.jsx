@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
+// ALTER TABLE organization DROP CONSTRAINT IF EXISTS organization_academic_year_key;
+
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { updateOrgStatus } from "@/api/updateOrgStatusAPI";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
-import { Download } from "lucide-react";
-import supabase from "@/lib/supabase"; // Only for fetching, NOT for update!
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Download, ExternalLink } from "lucide-react";
+import supabase from "@/lib/supabase";
 import StatusPill from "@/components/ui/StatusPill";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import DataTable from "@/components/ui/DataTable";
 
 const statusList = [
   "On Probation", "Warning", "Renewed/Duly", "Recognized", "Disaffiliated"
@@ -33,20 +35,6 @@ const categoriesList = [
 
 const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.name || id;
 
-const statusPill = (status) => {
-  let pillColor = "bg-gray-200 text-gray-700";
-  if (status === "Approved") pillColor = "bg-sro-secondary text-white";
-  else if (status === "Pending") pillColor = "bg-status-pending text-status-pending-text";
-  else if (status === "Declined" || status === "Rejected") pillColor = "bg-sro-primary text-white";
-
-  return (
-    <span className={`text-xs px-3 py-1 rounded-full font-semibold inline-block ${pillColor}`}>
-      {status}
-    </span>
-  );
-};
-
-
 const AdminOrgApplications = () => {
   const [roleId, setRoleId] = useState(null);
   const [applications, setApplications] = useState([]);
@@ -63,26 +51,28 @@ const AdminOrgApplications = () => {
   useEffect(() => {
     const fetchRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return toast.error("Not logged in.");
-      const { data: profile, error } = await supabase
+      if (!user) return;
+      const { data: profile } = await supabase
         .from("account")
         .select("role_id")
         .eq("supabase_uid", user.id)
         .single();
-      if (error || !profile) toast.error("Account/role not found.");
-      else setRoleId(profile.role_id);
+      if (profile) setRoleId(profile.role_id);
     };
     fetchRole();
   }, []);
 
-  // 2. Fetch applications and recognized orgs
+  // 2. Fetch applications - Preserving existing role-based filtering logic
   useEffect(() => {
     if (!roleId) return;
     const fetchData = async () => {
       setDataLoading(true);
       try {
         let query = supabase.from("org_recognition").select("*").order("submitted_at", { ascending: false });
+        
+        // ROLE LOGIC: ODSA only sees what SRO has already approved
         if (roleId === 3) query = query.eq("sro_approved", true);
+        
         const { data: appData, error: appError } = await query;
         if (!appError) setApplications(appData || []);
 
@@ -101,32 +91,49 @@ const AdminOrgApplications = () => {
     setSelectedApp(app);
     setDecision(app.sro_approved === true ? "yes" : app.sro_approved === false ? "no" : null);
     setOdsaDecision(app.odsa_approved === true ? "yes" : app.odsa_approved === false ? "no" : null);
-    setStatus(app.new_org_status || "");
+    setStatus(app.org_status || "");
     setDialogOpen(true);
   };
 
   const handleConfirm = async () => {
     if (!selectedApp) return;
-    if ((roleId === 2 && (decision === null || !status))
-      || (roleId === 3 && odsaDecision === null)
-      || (roleId === 4 && (decision === null || odsaDecision === null || !status))
-    ) {
-      toast.error("Complete all fields before submitting.");
-      return;
+    
+    // ROLE LOGIC: Define roles
+    const isSRO = roleId === 2;
+    const isODSA = roleId === 3;
+    const isSuper = roleId === 4;
+
+    let update = {};
+    
+    if (isSuper) {
+      // SuperAdmin can update anything provided.
+      if (decision !== null) update.sro_approved = decision === "yes";
+      if (odsaDecision !== null) update.odsa_approved = odsaDecision === "yes";
+      if (status) update.org_status = status;
+      
+      if (Object.keys(update).length === 0) {
+        toast.error("Please make at least one decision before saving.");
+        return;
+      }
+    } else if (isSRO) {
+      if (decision === null || !status) {
+        toast.error("SRO must provide both SRO approval, and a final organization status.");
+        return;
+      }
+      update = { sro_approved: decision === "yes", org_status: status };
+    } else if (isODSA) {
+      if (odsaDecision === null) {
+        toast.error("ODSA must provide an endorsement decision.");
+        return;
+      }
+      update = { odsa_approved: odsaDecision === "yes" };
     }
+
     setLoading(true);
     try {
-      let update = {};
-      if (roleId === 2) update = { sro_approved: decision === "yes", new_org_status: status };
-      if (roleId === 3) update = { odsa_approved: odsaDecision === "yes" };
-      if (roleId === 4) update = {
-        sro_approved: decision === "yes",
-        odsa_approved: odsaDecision === "yes",
-        new_org_status: status,
-      };
       await updateOrgStatus(selectedApp.recognition_id, update);
 
-      toast.success("Decision saved.");
+      toast.success("Changes saved successfully.");
       setDialogOpen(false);
       setApplications(prev =>
         prev.map(a =>
@@ -134,7 +141,7 @@ const AdminOrgApplications = () => {
         )
       );
     } catch (error) {
-      toast.error(error.message || "Failed to save approval");
+      toast.error(error.message || "Failed to save update");
     } finally {
       setLoading(false);
     }
@@ -146,206 +153,243 @@ const AdminOrgApplications = () => {
     );
   };
 
-  const getStatus = (app) => {
-    if (roleId === 2)
-      return <StatusPill status={app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending"} />;
-    if (roleId === 3)
-      return <StatusPill status={app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending"} />;
-    if (roleId === 4)
-      return (
-        <>
-          <StatusPill status={app.sro_approved === true ? "Approved" : app.sro_approved === false ? "Declined" : "Pending"} />
-          <br />
-          <StatusPill status={app.odsa_approved === true ? "Approved" : app.odsa_approved === false ? "Declined" : "Pending"} />
-        </>
-      );
-    return "-";
-  };
+  // Define columns - Separate SRO and ODSA status columns as requested
+  const columns = useMemo(() => {
+    const cols = [
+      {
+        key: "submitted_at",
+        header: "Submission Date",
+        sortable: true,
+        width: "w-32",
+        render: (row) => (
+          <div className="text-xs text-gray-500">
+            {new Date(row.submitted_at).toLocaleDateString("en-US", {
+              year: 'numeric', month: 'short', day: 'numeric'
+            })}
+          </div>
+        )
+      },
+      {
+        key: "org_name",
+        header: "Organization Details",
+        sortable: true,
+        render: (row) => (
+          <div className="flex flex-col text-left">
+            <span className="font-semibold text-sm">{row.org_name}</span>
+            <span className="text-[10px] text-gray-400 uppercase tracking-tighter">{row.org_chairperson}</span>
+          </div>
+        )
+      },
+      {
+        key: "org_type",
+        header: "Type",
+        sortable: true,
+        filterable: true,
+        filterLabel: "Category",
+        filterOptions: categoriesList.map(cat => cat.name),
+        filterAccessor: (row) => getCategoryName(row.org_type),
+        render: (row) => (
+          <div className="text-[11px] text-gray-600 line-clamp-1 max-w-[180px]" title={getCategoryName(row.org_type)}>
+            {getCategoryName(row.org_type)}
+          </div>
+        )
+      },
+      {
+        key: "academic_year",
+        header: "A.Y.",
+        sortable: true,
+        width: "w-24",
+        cellClassName: "font-mono text-xs text-center"
+      },
+      {
+        key: "existing",
+        header: "Existing?",
+        sortable: true,
+        width: "w-24",
+        render: (row) => (
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+            isOrgExisting(row) ? "bg-sro-secondary/10 text-sro-secondary border border-sro-secondary/20" : "bg-gray-50 text-gray-400 border border-gray-100"
+          }`}>
+            {isOrgExisting(row) ? "Yes" : "No"}
+          </span>
+        )
+      }
+    ];
+
+    // ROLE LOGIC: SRO status visible to SRO and SuperAdmin
+    if (roleId === 2 || roleId === 4) {
+      cols.push({
+        key: "sro_status",
+        header: "SRO Status",
+        width: "w-32",
+        isStatus: true,
+        accessor: (row) => row.sro_approved === true ? "Approved" : row.sro_approved === false ? "Rejected" : "Pending"
+      });
+    }
+
+    // ROLE LOGIC: ODSA status visible to ODSA and SuperAdmin
+    if (roleId === 3 || roleId === 4) {
+      cols.push({
+        key: "odsa_status",
+        header: "ODSA Status",
+        width: "w-32",
+        isStatus: true,
+        accessor: (row) => row.odsa_approved === true ? "Approved" : row.odsa_approved === false ? "Rejected" : "Pending"
+      });
+    }
+
+    // FINAL RECOGNITION STATUS
+    cols.push({
+      key: "final_status",
+      header: "Final Status",
+      width: "w-32",
+      isStatus: true,
+      accessor: (row) => {
+        if (row.sro_approved === true && row.odsa_approved === true) return row.org_status || "Recognized";
+        if (row.sro_approved === false || row.odsa_approved === false) return "Rejected";
+        return "In Progress";
+      }
+    });
+
+    return cols;
+  }, [roleId, existingOrgs]);
+
+  if (dataLoading) return <LoadingSpinner text="Loading recognition data..." variant="section" />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <h1 className="page-header text-sro-primary">Recognition Applications</h1>
-      <div className="rounded-lg overflow-hidden shadow-md bg-white border border-gray-200">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center">Submission Date</TableHead>
-              <TableHead className="text-center">Organization</TableHead>
-              <TableHead className="text-center">Organization Type</TableHead>
-              <TableHead className="text-center">Chairperson</TableHead>
-              <TableHead className="text-center">Academic Year</TableHead>
-              <TableHead className="text-center">Existing Org?</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {dataLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-64 text-center">
-                  <LoadingSpinner text="Loading applications..." variant="section" />
-                </TableCell>
-              </TableRow>
-            ) : applications.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-gray-500">
-                  No applications found for your role.
-                </TableCell>
-              </TableRow>
-            ) : (
-              applications.map((app) => (
-                <TableRow
-                  key={app.recognition_id}
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(app)}
-                >
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {new Date(app.submitted_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={app.org_name}>
-                    {app.org_name}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {getCategoryName(app.org_type)}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={app.org_chairperson}>
-                    {app.org_chairperson}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {app.academic_year}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {isOrgExisting(app) ? (
-                      <span className="bg-sro-secondary text-white text-xs px-3 py-1 rounded-full">Yes</span>
-                    ) : (
-                      <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
-                    {getStatus(app)}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
 
-      {/* Dialog with <DialogDescription> for accessibility */}
+      <DataTable
+        columns={columns}
+        data={applications}
+        onRowClick={handleRowClick}
+        emptyMessage="No applications available for your current role permissions."
+        defaultPageSize={10}
+        defaultSort={{ key: "submitted_at", direction: "desc" }}
+        viewMode="table"
+        hideViewToggle={true}
+        compactStatus={true}
+      />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-sro-text-dark">
-              {(roleId === 2 && "SRO") || (roleId === 3 && "ODSA") || (roleId === 4 && "Superadmin")} Approval
+            <DialogTitle className="text-sro-primary flex items-center gap-2">
+              Review Application: {selectedApp?.org_id}
             </DialogTitle>
             <DialogDescription>
-              {selectedApp
-                ? `You are reviewing "${selectedApp.org_name}". Fill in the approval fields below and click confirm to proceed.`
-                : "Approve or decline this organization application."}
+              Managing recognition status for <strong>{selectedApp?.org_name}</strong>.
             </DialogDescription>
           </DialogHeader>
+
           {selectedApp && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-2">
-                <div>
-                  <p className="font-semibold text-gray-700">Organization</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={selectedApp.org_name}>
-                    {selectedApp.org_name}
-                  </p>
+            <div className="space-y-6 pt-4">
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Organization Name</p>
+                  <p className="text-sm font-semibold">{selectedApp.org_name}</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-700">Type</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {getCategoryName(selectedApp.org_type)}
-                  </p>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Category</p>
+                  <p className="text-sm">{getCategoryName(selectedApp.org_type)}</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-700">Chairperson</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate" title={selectedApp.org_chairperson}>
-                    {selectedApp.org_chairperson}
-                  </p>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Chairperson</p>
+                  <p className="text-sm">{selectedApp.org_chairperson}</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-700">Academic Year</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {selectedApp.academic_year}
-                  </p>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Academic Year</p>
+                  <p className="text-sm font-mono">{selectedApp.academic_year}</p>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-700">Submitted At</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {new Date(selectedApp.submitted_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700">Existing Org?</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[120px] truncate">
-                    {isOrgExisting(selectedApp) ? (
-                      <span className="bg-sro-secondary text-white text-xs px-3 py-1 rounded-full">Yes</span>
-                    ) : (
-                      <span className="bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full">No</span>
-                    )}
-                  </p>
-                </div>
-                <div className="sm:col-span-2">
-                  <p className="font-semibold text-gray-700">Adviser</p>
-                  <p className="px-2 py-2 text-xs text-gray-700 text-center break-words max-w-[150px] truncate">
-                    {selectedApp.org_adviser}
-                  </p>
-                </div>
-                <div className="sm:col-span-2 pt-2">
-                  <p className="font-semibold text-gray-700 mb-2">Drive Folder</p>
-                  <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white font-medium px-4 py-2" asChild>
-                    <a href={selectedApp.drive_folder_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Drive Folder
+                <div className="col-span-2 pt-2 border-t flex justify-between items-center">
+                   <p className="text-xs text-gray-500 italic">Submitted on {new Date(selectedApp.submitted_at).toLocaleString()}</p>
+                   <Button variant="outline" size="sm" asChild className="gap-2">
+                    <a href={selectedApp.drive_folder_link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View Files
                     </a>
                   </Button>
                 </div>
               </div>
+
+              {/* SRO SECTION */}
               {(roleId === 2 || roleId === 4) && (
-                <>
+                <div className="p-4 border rounded-lg bg-white shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold border-b pb-2 flex justify-between items-center text-gray-700">
+                    SRO EVALUATION
+                    {selectedApp.sro_approved !== null && (
+                      <StatusPill status={selectedApp.sro_approved ? "Approved" : "Rejected"} compact />
+                    )}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold block mb-2 text-gray-600">Approval Decision</label>
+                      <RadioGroup value={decision} onValueChange={setDecision} className="flex gap-4">
+                        <div className="flex items-center gap-2 border px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                          <RadioGroupItem value="yes" id="sro-yes" className="text-sro-secondary border-sro-secondary" />
+                          <label htmlFor="sro-yes" className="text-sm cursor-pointer font-medium">Approved</label>
+                        </div>
+                        <div className="flex items-center gap-2 border px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                          <RadioGroupItem value="no" id="sro-no" className="text-sro-primary border-sro-primary" />
+                          <label htmlFor="sro-no" className="text-sm cursor-pointer font-medium text-sro-primary">Declined</label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold block mb-2 text-gray-600">Official Status</label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="w-full bg-white h-10">
+                          <SelectValue placeholder="Select official status" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[10001]">
+                          {statusList.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ODSA SECTION */}
+              {(roleId === 3 || roleId === 4) && (
+                <div className="p-4 border rounded-lg bg-white shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold border-b pb-2 flex justify-between items-center text-gray-700">
+                    ODSA FINAL APPROVAL
+                    {selectedApp.odsa_approved !== null && (
+                      <StatusPill status={selectedApp.odsa_approved ? "Approved" : "Rejected"} compact />
+                    )}
+                  </h3>
                   <div>
-                    <label className="font-semibold text-gray-800">SRO Approval</label>
-                    <RadioGroup value={decision} onValueChange={setDecision} className="flex gap-6 mt-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <RadioGroupItem value="yes" className="border-black text-black" />
-                        <span>Yes</span>
+                    <label className="text-xs font-semibold block mb-2 text-gray-600">Final Endorsement</label>
+                    <RadioGroup value={odsaDecision} onValueChange={setOdsaDecision} className="flex gap-4">
+                      <div className="flex items-center gap-2 border px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                        <RadioGroupItem value="yes" id="odsa-yes" className="text-sro-secondary border-sro-secondary" />
+                        <label htmlFor="odsa-yes" className="text-sm cursor-pointer font-medium">Endorsed</label>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <RadioGroupItem value="no" className="border-black text-black" />
-                        <span>No</span>
+                      <div className="flex items-center gap-2 border px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-50 bg-white">
+                        <RadioGroupItem value="no" id="odsa-no" className="text-sro-primary border-sro-primary" />
+                        <label htmlFor="odsa-no" className="text-sm cursor-pointer font-medium text-sro-primary">Disapproved</label>
                       </div>
                     </RadioGroup>
                   </div>
-                  <div>
-                    <label className="font-semibold block mb-1 text-gray-800">New Organization Status</label>
-                    <UnifiedDropdown
-                      options={statusList}
-                      value={status}
-                      onChange={setStatus}
-                      placeholder="Select status"
-                    />
-                  </div>
-                </>
-              )}
-              {(roleId === 3 || roleId === 4) && (
-                <div>
-                  <label className="font-semibold text-gray-800">ODSA Approval</label>
-                  <RadioGroup value={odsaDecision} onValueChange={setOdsaDecision} className="flex gap-6 mt-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <RadioGroupItem value="yes" className="border-black text-black" />
-                      <span>Yes</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <RadioGroupItem value="no" className="border-black text-black" />
-                      <span>No</span>
-                    </div>
-                  </RadioGroup>
                 </div>
               )}
-              <DialogFooter className="pt-4">
-                <Button onClick={handleConfirm} className="bg-sro-secondary hover:bg-sro-secondary/90 text-white" disabled={loading}>Confirm</Button>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button variant="ghost" onClick={() => setDialogOpen(false)}>Close</Button>
+                <Button 
+                  onClick={handleConfirm} 
+                  className="bg-sro-primary hover:bg-sro-primary/90 text-white min-w-[120px]" 
+                  disabled={loading}
+                >
+                  {loading ? "Saving..." : "Save Selection"}
+                </Button>
               </DialogFooter>
             </div>
           )}

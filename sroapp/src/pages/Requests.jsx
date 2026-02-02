@@ -154,7 +154,7 @@ const Requests = () => {
     const fetchRecognitionApps = async () => {
       const { data, error } = await supabase
         .from("org_recognition")
-        .select("recognition_id, academic_year, submitted_at, sro_approved, odsa_approved, org_name, new_org_status")
+        .select("recognition_id, academic_year, submitted_at, sro_approved, odsa_approved, org_name, org_status")
         .eq("submitted_by", accountId);
 
       if (!error && data) {
@@ -484,12 +484,12 @@ const Requests = () => {
       ),
     },
     {
-      key: "new_org_status",
+      key: "org_status",
       header: "Org Status",
       width: "w-[20%]",
       sortable: true,
       isStatus: true,
-      accessor: (row) => row.new_org_status || "Pending",
+      accessor: (row) => row.org_status || "Pending",
     },
   ];
 
