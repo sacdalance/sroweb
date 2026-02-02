@@ -20,12 +20,12 @@ import ActivitiesCalendar from "../pages/ActivitiesCalendar";
 import AdminPanel from "../pages/admin/AdminPanel";
 import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
 import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
-import AdminActivitySummary from "../pages/admin/AdminActivitySummary";
 
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
+import AdminDocuments from "../pages/admin/AdminDocuments";
 import SuperAdminPage from "../pages/admin/SuperAdminPage";
 
 // route
@@ -207,13 +207,16 @@ const router = createBrowserRouter([
               { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} />
           },
           {
+            path: "admin/documents", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminDocuments />, 3: <AdminDocuments />, 4: <AdminDocuments /> }} />
+          },
+          {
             path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
               { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities /> }} />
           },
 
           {
-            path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} />
+            path: "admin/activity-summary", element: <Navigate to="/admin/student-activities" replace />
           },
 
           {

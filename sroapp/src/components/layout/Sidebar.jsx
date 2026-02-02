@@ -256,6 +256,8 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                       </li>
                     )}
 
+
+
                     <li>
                       <Link
                         to="/admin/student-activities"
@@ -263,15 +265,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
                         Student Activities
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/activity-summary"
-                        className={linkClass("/admin/activity-summary")}
-                        onClick={() => isSmallScreen && setIsOpen(false)}
-                      >
-                        Activity Summary
                       </Link>
                     </li>
                   </ul>
@@ -292,6 +285,16 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         </Link>
                       </li>
                     )}
+
+                    <li>
+                      <Link
+                        to="/admin/documents"
+                        className={linkClass("/admin/documents")}
+                        onClick={() => isSmallScreen && setIsOpen(false)}
+                      >
+                        Student Forms
+                      </Link>
+                    </li>
 
                     <li>
                       <Link

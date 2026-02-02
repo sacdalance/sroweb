@@ -33,6 +33,10 @@ const getStatusClass = (status) => {
     'scheduled': 'status-badge-scheduled',
     'confirmed': 'status-badge-confirmed',
     'reschedule-pending': 'status-badge-reschedule-pending',
+    // Slip statuses
+    'needs-slip': 'status-badge-needs-slip',
+    'printed': 'status-badge-printed',
+    'for-pickup': 'status-badge-for-pickup',
   };
 
   return statusMap[normalizedStatus] || 'status-badge-default';

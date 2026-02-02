@@ -21,6 +21,7 @@ import { submitOrgApplication } from "@/api/orgApplicationAPI";
 import supabase from "@/lib/supabase";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { orgApplicationSchema } from "@/lib/zodSchemas";
+import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
 
 const DRAFT_KEY = "org_application_draft";
 
@@ -38,32 +39,12 @@ const categoriesList = [
 
 const academicYearsList = ["2024-2025", "2025-2026", "2026-2027", "2027-2028"];
 
-const formLinks = [
-  {
-    name: "Revised OSA Form A: Application for Student Organization Recognition",
-    url: "https://docs.google.com/document/d/1CahbzvUk-N0jG-9TN2t6s3i9X8AhKPI2",
-  },
-  {
-    name: "OSA Form B1: Officer Roster",
-    url: "https://docs.google.com/document/d/1VNPa-zJxw6Yw3_phrRWHM21F2gCYa4BN",
-  },
-  {
-    name: "OSA Form B2: Member Roster",
-    url: "https://docs.google.com/document/d/1Cp6TjAkh2jFVRzXbrZewcOXpNDtoPGqO",
-  },
-  {
-    name: "OSA Form C: Officer Data",
-    url: "https://docs.google.com/document/d/1i_tR4BbdbVO9MVfWAjJxrYbYx0m_U0ws",
-  },
-  {
-    name: "Revised OSA Form E: Proposed Activities for AY 2025-2026",
-    url: "https://docs.google.com/document/d/13TijHKgKYdFkymkrp4Usj-NQ0shsxdLR",
-  },
-];
-
-
 const OrgApplication = () => {
   const navigate = useNavigate();
+  const { getFileForForm } = useStudentForms();
+
+  // Filter for required forms
+  const relevantForms = REQUIRED_FORMS.filter(f => f.category === 'Recognition Application');
 
   // === STATES FOR FORM FIELDS ===
   const [files, setFiles] = useState([]);
@@ -663,16 +644,26 @@ const OrgApplication = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {formLinks.map((form, idx) => (
-              <div key={idx} className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">{form.name}</span>
-                <Button asChild variant="outline" size="sm">
-                  <a href={form.url} target="_blank" rel="noopener noreferrer">
-                    Download
-                  </a>
-                </Button>
-              </div>
-            ))}
+
+            {relevantForms.map((form) => {
+              const file = getFileForForm(form);
+              const link = file ? (file.link || file.webViewLink || file.alternateLink) : null;
+
+              return (
+                <div key={form.id} className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground max-w-[70%]">{form.title}</span>
+                  <Button asChild variant="outline" size="sm" disabled={!link} className={!link ? "opacity-50 cursor-not-allowed" : ""}>
+                    {link ? (
+                      <a href={link} target="_blank" rel="noopener noreferrer">
+                        Download
+                      </a>
+                    ) : (
+                      <span>Missing</span>
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Constitution and Bylaws</span>
             </div>

@@ -2,18 +2,22 @@ import { useEffect, useState, useMemo } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL } from "@/lib/api-config";
+import ActionButtons from "@/components/ui/ActionButtons";
+import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Dialog } from "@/components/ui/dialog";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
+import { generateApprovalSlips } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import DataTable from "@/components/ui/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
+import { Badge } from "@/components/ui/badge";
 import { isSameDay, format } from "date-fns";
-import { Database, ClipboardList } from "lucide-react";
+import { Database, ClipboardList, FileText } from "lucide-react";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -54,6 +58,9 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
   const [showRecurring, setShowRecurring] = useState(true);
+
+  // Activity Summary State
+  const [generatingPDFs, setGeneratingPDFs] = useState(false);
 
   // Helper to extract unique options for filters
   const getUniqueOrgOptions = (data) => {
@@ -103,6 +110,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       filterOptions: getUniqueOrgOptions(activities),
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
+      accessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => <span className="font-medium text-gray-700 block truncate mx-auto" title={row.organization?.org_name || "Unknown"}>{row.organization?.org_name || "Unknown"}</span>
     },
     {
@@ -121,6 +129,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       width: "w-[15%]",
       filterOptions: activityTypeOptions.map(o => o.label),
       filterAccessor: (row) => getActivityTypeLabel(row.activity_type),
+      accessor: (row) => getActivityTypeLabel(row.activity_type),
       render: (row) => (
         <span className="block truncate mx-auto" title={getActivityTypeLabel(row.activity_type)}>
           {getActivityTypeLabel(row.activity_type)}
@@ -348,16 +357,63 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
     await refreshSelectedActivity(activityId);
   };
 
+  // --- Activity Summary Helpers ---
+  const handleGenerateApprovalSlips = async () => {
+    try {
+      setGeneratingPDFs(true);
+      const result = await generateApprovalSlips();
+      toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
+      // Refresh activities to update slip_status
+      await fetchAllActivities();
+    } catch (error) {
+      console.error('Error generating approval slips:', error);
+      toast.error(`Failed to generate approval slips: ${error.message}`);
+    } finally {
+      setGeneratingPDFs(false);
+    }
+  };
+
+  const handleViewPDFsInDrive = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to get folder URL');
+      const { folderUrl } = await response.json();
+      window.open(folderUrl, '_blank');
+      toast.success('Opening Google Drive folder...');
+    } catch (error) {
+      toast.error('Failed to open Google Drive folder.');
+    }
+  };
+
+  // Summary counts and filtered activities
+  const summaryActivities = useMemo(() => {
+    return activities.filter(a => a.final_status === 'Approved');
+  }, [activities]);
+
+  const needsSlipCount = summaryActivities.filter(a => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup').length;
+  const printedCount = summaryActivities.filter(a => a.slip_status === 'printed').length;
+
   // --- Calendar Helpers ---
   const getEventColor = (category, event) => {
     const status = event?.status;
-    // Check explicit isRecurring flag - use orange like ActivitiesCalendar
-    if (event?.isRecurring) return 'bg-orange-200 text-orange-800 border border-orange-400';
-    if (status === 'Approved') return 'bg-sro-secondary text-white';
-    if (status === 'Pending SRO' || status === 'Pending ODSA') return 'bg-gray-100 text-gray-700 border border-gray-300';
-    if (status === 'For Appeal') return 'bg-amber-100 text-amber-700 border border-amber-300';
-    if (status === 'Rejected') return 'bg-red-100 text-sro-primary border border-sro-primary';
-    return 'bg-blue-100 text-blue-700';
+    let classes = '';
+
+    if (status === 'Approved') classes = 'bg-sro-secondary text-white';
+    else if (status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
+    else if (status === 'For Appeal') classes = 'bg-amber-100 text-amber-700 border border-amber-300';
+    else if (status === 'Rejected') classes = 'bg-red-100 text-sro-primary border border-sro-primary';
+    else classes = 'bg-blue-100 text-blue-700';
+
+    if (event?.isRecurring) {
+      // Override border with orange highlight for recurring
+      classes += ' border-2 border-orange-500';
+    }
+
+    return classes;
   };
 
   const handleCalendarDateSelect = (dateOrEvent) => {
@@ -374,11 +430,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   // Transform activities for calendar view
   const calendarEvents = useMemo(() => {
     return activities.filter(activity => {
-      // Check if has any recurring schedule
-      const hasRecurring = activity.schedule?.some(s => s.is_recurring);
 
-      // Filter out recurring if showRecurring is off
-      if (!showRecurring && hasRecurring) return false;
 
       // Always show approved activities
       if (activity.status === 'Approved') return true;
@@ -394,6 +446,9 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       activity.schedule.forEach(sched => {
         // Check if this schedule is recurring
         if (sched.is_recurring && sched.recurring_days) {
+          // If recurring is hidden, skip this schedule entirely
+          if (!showRecurring) return;
+
           // Parse recurring_days if it's a string
           const recurringDays = typeof sched.recurring_days === 'string'
             ? JSON.parse(sched.recurring_days)
@@ -445,13 +500,11 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster />
-      
+
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
         <div>
           <h1 className="page-header text-sro-primary mb-0">Student Activities</h1>
-          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
-            Review and manage organization event requests and schedules.
-          </p>
+
         </div>
         <div className="flex items-center gap-3">
         </div>
@@ -494,6 +547,12 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
           >
             Calendar
           </TabsTrigger>
+          <TabsTrigger
+            value="summary"
+            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
+          >
+            Activity Summary
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
@@ -511,6 +570,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                   hideViewToggle={true}
                   className="border-none shadow-none"
                   defaultSort={{ key: "created_at", direction: "desc" }}
+                  defaultFilters={{ status: "Pending SRO" }}
                   preventHorizontalScroll={false}
                 />
               )}
@@ -520,62 +580,188 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
         <TabsContent value="activities">
           {/* Calendar Tab Content - Matching AdminAppointmentSettings layout */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 px-1">
-            <div className="flex gap-2 sm:gap-4 flex-wrap">
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-sro-secondary" /> <span className="text-[10px] sm:text-xs">Approved</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-400" /> <span className="text-[10px] sm:text-xs">Recurring</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gray-300" /> <span className="text-[10px] sm:text-xs">Pending</span></div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-300" /> <span className="text-[10px] sm:text-xs">For Appeal</span></div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
-                <input type="checkbox" checked={showRecurring} onChange={(e) => setShowRecurring(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
-                <span className="font-medium">Recurring</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
-                <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
-                <span className="font-medium">Requests</span>
-              </label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow border p-4">
-              <CustomCalendar
-                mode="activities"
-                currentMonth={currentDate}
-                onMonthChange={setCurrentDate}
-                onDateSelect={handleCalendarDateSelect}
-                selectedDate={selectedDateFilter}
-                events={calendarEvents}
-                getEventColor={getEventColor}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <Card className="h-full">
-                <CardHeader><CardTitle className="text-lg">{selectedDateFilter ? `Activities on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  {selectedDateFilter ? (
-                    <div className="space-y-3">
-                      {filteredCalendarList.length > 0 ? filteredCalendarList.map(activity => (
-                        <div key={`${activity.activity_id}-${activity.date}`} onClick={() => handleViewDetails(activity)} className="p-3 bg-gray-50 border rounded-md cursor-pointer hover:bg-white hover:shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-2">
-                            <span className="font-semibold text-sro-primary text-sm line-clamp-2" title={activity.activity_name}>{activity.activity_name}</span>
-                            <StatusPill status={activity.status} compact />
-                          </div>
-                          <div className="text-xs text-gray-600 flex flex-col gap-1">
-                            <div className="truncate"><span className="font-medium">Organization:</span> {activity.organization?.org_name || 'Unknown'}</div>
-                            <div className="truncate"><span className="font-medium">Venue:</span> {activity.venue || 'TBD'}</div>
-                            <div className="truncate"><span className="font-medium">Type:</span> {getActivityTypeLabel(activity.activity_type)}</div>
-                            {activity.isRecurring && <div className="text-orange-700 font-medium">Recurring: {format(new Date(activity.recurringStartDate), 'MMM d')} - {format(new Date(activity.recurringEndDate), 'MMM d, yyyy')}</div>}
-                          </div>
-                        </div>
-                      )) : <div className="text-center py-8 text-gray-400 text-sm">No activities scheduled for this date.</div>}
+
+          <CalendarWithSidePanel
+            currentDate={currentDate}
+            onMonthChange={setCurrentDate}
+            selectedDate={selectedDateFilter}
+            onDateSelect={(date) => {
+              if (selectedDateFilter && isSameDay(date, selectedDateFilter)) {
+                setSelectedDateFilter(null);
+              } else {
+                handleCalendarDateSelect(date);
+              }
+            }}
+            events={calendarEvents}
+            getEventColor={getEventColor}
+            sidePanelTitle={selectedDateFilter ? `Activities on ${format(selectedDateFilter, 'MMM d, yyyy')}` : 'Select a date'}
+            legendItems={[
+              { label: "Approved", colorClass: "text-sro-secondary", indicatorClass: "bg-sro-secondary" },
+              { label: "Pending", colorClass: "text-gray-700", indicatorClass: "bg-gray-300" },
+              { label: "For Reschedule", colorClass: "text-amber-700", indicatorClass: "bg-amber-300" },
+              { label: "Recurring", colorClass: "text-sro-secondary", indicatorClass: "bg-sro-secondary border-2 border-orange-500" },
+            ]}
+            filters={[
+              { label: "Recurring", checked: showRecurring, onChange: setShowRecurring },
+              { label: "Requests", checked: showRequests, onChange: setShowRequests },
+            ]}
+            renderSidePanel={(date) => (
+              <div className="space-y-3">
+                {filteredCalendarList.length > 0 ? filteredCalendarList.map(activity => (
+                  <div key={`${activity.activity_id}-${activity.date}`} onClick={() => handleViewDetails(activity)} className="p-3 bg-white border rounded-lg cursor-pointer hover:border-sro-primary/50 hover:shadow-sm transition-all group">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-2">
+                      <span className="font-semibold text-sro-primary text-sm line-clamp-2 leading-tight group-hover:underline decoration-sro-primary/30 underline-offset-2" title={activity.activity_name}>{activity.activity_name}</span>
+                      <StatusPill status={activity.status} compact />
                     </div>
-                  ) : <div className="text-center py-12 text-gray-400 text-sm">Click on a date in the calendar to view scheduled activities.</div>}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    <div className="text-xs text-gray-500 flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Org:</span> <span className="truncate max-w-[150px]">{activity.organization?.org_name || 'Unknown'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
+                      </div>
+                      {activity.isRecurring && (
+                        <div className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded w-fit font-medium">
+                          Recurring: {format(new Date(activity.recurringStartDate), 'MMM d')} - {format(new Date(activity.recurringEndDate), 'MMM d')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )) : <div className="text-center py-8 text-gray-400 text-sm">No activities scheduled for this date.</div>}
+              </div>
+            )}
+          />
+        </TabsContent>
+
+        {/* Activity Summary Tab */}
+        <TabsContent value="summary">
+          <Card className="rounded-lg overflow-hidden shadow-sm border-0">
+            <CardContent className="p-4">
+              {/* Summary DataTable */}
+              {loading ? (
+                <LoadingSpinner text="Loading activities..." variant="section" />
+              ) : (
+                <DataTable
+                  actionButtons={
+                    <>
+                      <Button
+                        onClick={handleViewPDFsInDrive}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <svg className="h-4 w-4 text-sro-primary" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
+                        </svg>
+                        Drive Folder
+                      </Button>
+                      <Button
+                        onClick={handleGenerateApprovalSlips}
+                        disabled={generatingPDFs || needsSlipCount === 0}
+                        size="sm"
+                        className="bg-sro-primary hover:bg-sro-primary/90 gap-2"
+                      >
+                        {generatingPDFs ? (
+                          <LoadingSpinner variant="inline" className="text-white" />
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            Generate Slips ({needsSlipCount})
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  }
+                  columns={[
+                    {
+                      key: "created_at",
+                      header: "Submission Date",
+                      sortable: true,
+                      width: "w-[12%]",
+                      render: (row) => (
+                        <span className="text-gray-600 font-medium">
+                          {new Date(row.created_at).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "activity_name",
+                      header: "Activity Title",
+                      sortable: true,
+                      width: "w-[25%]",
+                      render: (row) => (
+                        <span className="font-medium text-sro-primary block truncate mx-auto" title={row.activity_name}>
+                          {row.activity_name}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "organization",
+                      header: "Organization",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[20%]",
+                      filterOptions: getUniqueOrgOptions(summaryActivities),
+                      filterAccessor: (row) => row.organization?.org_name || "Unknown",
+                      sortAccessor: (row) => row.organization?.org_name || "Unknown",
+                      accessor: (row) => row.organization?.org_name || "Unknown",
+                      render: (row) => (
+                        <span className="font-medium text-gray-700 block truncate mx-auto" title={row.organization?.org_name || "Unknown"}>
+                          {row.organization?.org_name || "Unknown"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "schedule",
+                      header: "Activity Date",
+                      sortable: true,
+                      width: "w-[12%]",
+                      sortAccessor: (row) => row.schedule?.[0]?.start_date || "",
+                      render: (row) => (
+                        <span className="text-gray-600 font-medium">
+                          {formatDate(row.schedule?.[0]?.start_date)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "activity_type",
+                      header: "Activity Type",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[15%]",
+                      filterOptions: activityTypeOptions.map(o => o.label),
+                      filterAccessor: (row) => getActivityTypeLabel(row.activity_type),
+                      accessor: (row) => getActivityTypeLabel(row.activity_type),
+                      render: (row) => (
+                        <span className="block truncate mx-auto" title={getActivityTypeLabel(row.activity_type)}>
+                          {getActivityTypeLabel(row.activity_type)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "slip_status",
+                      header: "Slip Status",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[12%]",
+                      isStatus: true,
+                      filterOptions: ["Needs Slip", "Printed", "For Pickup"],
+                      accessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
+                      filterAccessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
+                    },
+                  ]}
+                  data={summaryActivities}
+                  onRowClick={handleViewDetails}
+                  emptyMessage="No approved activities found."
+                  viewMode="table"
+                  hideViewToggle={true}
+                  className="border-none shadow-none"
+                  defaultSort={{ key: "created_at", direction: "desc" }}
+                  preventHorizontalScroll={false}
+                />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

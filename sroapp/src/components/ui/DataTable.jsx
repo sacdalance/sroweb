@@ -4,14 +4,21 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Layo
 import PropTypes from "prop-types";
 import StatusPill from "@/components/ui/StatusPill";
 import { cn } from "@/lib/utils";
-import { 
-    Select, 
-    SelectContent, 
-    SelectItem, 
-    SelectTrigger, 
-    SelectValue 
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Filter } from "lucide-react";
 
 /**
  * A reusable data table component with sorting, filtering, pagination, truncation support, and toggleable Card/Table view.
@@ -43,7 +50,9 @@ const DataTable = ({
     preventHorizontalScroll = false,
     compactStatus = false,
     defaultSort = null,
+    defaultFilters = {}, // Added default filters prop
     fixedHeight = true, // Added to prevent layout shifts during pagination
+    actionButtons = null, // Custom action buttons to show inline with filters
 }) => {
     // Current class for the wrapper
     const wrapperClass = cn(
@@ -89,7 +98,7 @@ const DataTable = ({
     const [sortConfig, setSortConfig] = useState(defaultSort || { key: null, direction: null });
 
     // Filter state
-    const [filters, setFilters] = useState({});
+    const [filters, setFilters] = useState(defaultFilters); // Initialize with defaultFilters
 
     // Search state
     const [searchTerm, setSearchTerm] = useState("");
@@ -324,8 +333,8 @@ const DataTable = ({
     return (
         <div className={wrapperClass}>
             {/* Controls Row: Search + Filters + View Toggle */}
-            <div className={`flex flex-col lg:flex-row lg:items-center justify-start gap-4 mb-6 ${hasFilters || !hideViewToggle ? "" : "hidden"}`}>
-                <div className="flex flex-col md:flex-row gap-3 items-center">
+            <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 ${hasFilters || !hideViewToggle ? "" : "hidden"}`}>
+                <div className="flex flex-col md:flex-row gap-3 items-center w-full">
                     {/* Search Bar */}
                     <div className="relative w-full md:w-72">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -341,34 +350,104 @@ const DataTable = ({
 
                     {/* Filters Container */}
                     {hasFilters && (
-                        <div className="flex flex-wrap gap-2 items-center">
-                            <div className="h-6 w-[1px] bg-gray-200 mx-1 hidden md:block" /> {/* Divider */}
-                        {columns
-                            .filter((col) => col.filterable && col.filterOptions)
-                            .map((col) => {
-                                const allLabel = getAllLabel(col);
-                                const currentValue = filters[col.key] || allLabel;
-                                return (
-                                    <div key={col.key} className="w-full sm:w-fit sm:min-w-[160px]">
-                                        <Select
-                                            value={currentValue}
-                                            onValueChange={(value) => handleFilterChange(col.key, value)}
-                                        >
-                                            <SelectTrigger className="h-9 bg-white">
-                                                <SelectValue placeholder={allLabel} />
-                                            </SelectTrigger>
-                                            <SelectContent> 
-                                                <SelectItem value={allLabel}>{allLabel}</SelectItem>
-                                                {col.filterOptions.map((opt) => (
-                                                    <SelectItem key={opt} value={opt}>
-                                                        {opt}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                );
-                            })}
+                        <>
+                            {/* Desktop: Horizontal Scrollable List */}
+                            <div className="hidden md:flex flex-row flex-nowrap overflow-x-auto pb-1 gap-2 items-center max-w-full no-scrollbar">
+                                <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0" /> {/* Divider */}
+                                {columns
+                                    .filter((col) => col.filterable && col.filterOptions)
+                                    .map((col) => {
+                                        const allLabel = getAllLabel(col);
+                                        const currentValue = filters[col.key] || allLabel;
+                                        return (
+                                            <div key={col.key} className="w-fit min-w-[120px] shrink-0">
+                                                <Select
+                                                    value={currentValue}
+                                                    onValueChange={(value) => handleFilterChange(col.key, value)}
+                                                >
+                                                    <SelectTrigger className="h-9 bg-white">
+                                                        <SelectValue placeholder={allLabel} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value={allLabel}>{allLabel}</SelectItem>
+                                                        {col.filterOptions.map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>
+                                                                {opt}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+
+                            {/* Mobile: Filter Button with Popover */}
+                            <div className="md:hidden">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-10 gap-2 bg-white border-gray-200 hover:bg-gray-50 text-gray-700">
+                                            <Filter className="h-4 w-4" />
+                                            Filters
+                                            {(Object.values(filters).filter(v => v && !v.startsWith("All")).length > 0) && (
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sro-primary text-[10px] text-white">
+                                                    {Object.values(filters).filter(v => v && !v.startsWith("All")).length}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="w-[280px] p-4">
+                                        <div className="space-y-4">
+                                            <div className="font-medium text-sm text-gray-900 border-b pb-2 mb-2">Filters</div>
+                                            {columns
+                                                .filter((col) => col.filterable && col.filterOptions)
+                                                .map((col) => {
+                                                    const allLabel = getAllLabel(col);
+                                                    const currentValue = filters[col.key] || allLabel;
+                                                    return (
+                                                        <div key={col.key} className="space-y-1.5">
+                                                            <label className="text-xs font-medium text-gray-500 ml-1">{col.header}</label>
+                                                            <Select
+                                                                value={currentValue}
+                                                                onValueChange={(value) => handleFilterChange(col.key, value)}
+                                                            >
+                                                                <SelectTrigger className="w-full bg-white">
+                                                                    <SelectValue placeholder={allLabel} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value={allLabel}>{allLabel}</SelectItem>
+                                                                    {col.filterOptions.map((opt) => (
+                                                                        <SelectItem key={opt} value={opt}>
+                                                                            {opt}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    );
+                                                })}
+                                            {/* Clear Filters Button inside Popover */}
+                                            {Object.values(filters).some(v => v && !v.startsWith("All")) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setFilters({})}
+                                                    className="w-full mt-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    Clear All Filters
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Action Buttons (inline with filters) */}
+                    {actionButtons && (
+                        <div className="flex gap-2 flex-wrap justify-center md:justify-end md:ml-auto">
+                            {actionButtons}
                         </div>
                     )}
                 </div>
@@ -406,7 +485,7 @@ const DataTable = ({
 
             {/* Table View */}
             {currentViewMode === "table" && (
-                <div 
+                <div
                     className="w-full flex-1 flex flex-col min-h-0 transition-[height] duration-300"
                     style={fixedHeight ? { minHeight: `${(pageSize + 1) * 45 + 2}px` } : {}}
                 >
@@ -483,7 +562,7 @@ const DataTable = ({
 
             {/* Card View */}
             {currentViewMode === "card" && (
-                <div 
+                <div
                     className="space-y-4 px-4 pb-4 transition-[height] duration-300"
                     style={fixedHeight ? { minHeight: `${pageSize * 150}px` } : {}}
                 >
@@ -536,7 +615,7 @@ const DataTable = ({
                     {/* Results count */}
                     <div className="text-sm text-gray-500 flex items-center gap-2">
                         <TableIcon className="h-4 w-4 text-gray-300" />
-                        <span>Showing <span className="font-bold text-gray-800">{startIndex + 1}-{endIndex}</span> of <span className="font-bold text-gray-800">{totalItems}</span> {totalItems === 1 ? "record" : "records"}</span>
+                        <span>Showing <span className="font-medium text-sro-primary">{startIndex + 1}-{endIndex}</span> of <span className="font-medium text-sro-primary">{totalItems}</span> {totalItems === 1 ? "record" : "records"}</span>
                     </div>
 
                     {/* Pagination buttons */}
