@@ -1,10 +1,7 @@
 // Import required modules using ES module syntax
 import express from 'express';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
+// Load environment variables from .env file (handled by server.js)
 
 // Create an Express router
 const router = express.Router();
