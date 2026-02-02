@@ -258,11 +258,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
 
                     <li>
                       <Link
-                        to="/admin/pending-requests"
-                        className={linkClass("/admin/pending-requests")}
+                        to="/admin/student-activities"
+                        className={linkClass("/admin/student-activities")}
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
-                        Activity Requests
+                        Student Activities
                       </Link>
                     </li>
                     <li>
@@ -272,15 +272,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         onClick={() => isSmallScreen && setIsOpen(false)}
                       >
                         Activity Summary
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/admin/activities-calendar"
-                        className={linkClass("/admin/activities-calendar")}
-                        onClick={() => isSmallScreen && setIsOpen(false)}
-                      >
-                        Activity Calendar
                       </Link>
                     </li>
                   </ul>

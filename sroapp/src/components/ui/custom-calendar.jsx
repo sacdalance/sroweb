@@ -97,7 +97,11 @@ const CustomCalendar = ({
   const getDotColor = (category, event) => {
     const classes = getEventColor ? getEventColor(category, event) : "";
     if (classes.includes("bg-orange")) return "bg-orange-400";
+    if (classes.includes("bg-violet")) return "bg-violet-400";
+    if (classes.includes("bg-amber")) return "bg-amber-400";
+    if (classes.includes("bg-gray")) return "bg-gray-400";
     if (classes.includes("bg-red")) return "bg-red-500";
+    if (classes.includes("bg-sro-secondary")) return "bg-sro-secondary";
     return "bg-sro-primary";
   };
 

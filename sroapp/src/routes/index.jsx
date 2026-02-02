@@ -19,9 +19,9 @@ import ActivitiesCalendar from "../pages/ActivitiesCalendar";
 // admin
 import AdminPanel from "../pages/admin/AdminPanel";
 import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
-import AdminPendingRequests from "../pages/admin/AdminPendingRequests";
+import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
 import AdminActivitySummary from "../pages/admin/AdminActivitySummary";
-import AdminActivitiesCalendar from "../pages/admin/AdminActivitiesCalendar";
+
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
@@ -207,18 +207,15 @@ const router = createBrowserRouter([
               { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} />
           },
           {
-            path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} />
+            path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities /> }} />
           },
 
           {
             path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
               { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} />
           },
-          {
-            path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminActivitiesCalendar />, 3: <AdminActivitiesCalendar />, 4: <AdminActivitiesCalendar /> }} />
-          },
+
           {
             path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
               { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
