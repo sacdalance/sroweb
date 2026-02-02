@@ -125,7 +125,6 @@ const AdminOrganizations = () => {
               {row.org_name}
             </div>
             <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium lowercase truncate max-w-[200px]">
-              <Mail className="h-2.5 w-2.5" />
               {row.org_email}
             </div>
           </div>
@@ -152,7 +151,6 @@ const AdminOrganizations = () => {
             {row.chairperson_name}
           </div>
           <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium truncate max-w-[140px]">
-            <Mail className="h-2.5 w-2.5" />
             {row.chairperson_email}
           </div>
         </div>
@@ -168,7 +166,6 @@ const AdminOrganizations = () => {
               {row.adviser_name}
             </div>
             <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium truncate max-w-[140px]">
-              <Mail className="h-2.5 w-2.5" />
               {row.adviser_email}
             </div>
           </div>
@@ -229,7 +226,6 @@ const AdminOrganizations = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-sro-primary flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
               Organization Profile
             </DialogTitle>
             <DialogDescription>
@@ -254,7 +250,7 @@ const AdminOrganizations = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-bold text-gray-900 truncate">{selectedOrg.org_name}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 leading-tight break-words">{selectedOrg.org_name}</h3>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-500">
                       ID: {selectedOrg.org_id}
@@ -266,7 +262,6 @@ const AdminOrganizations = () => {
                       {getCategoryName(selectedOrg.org_type) || "Uncategorized"}
                     </span>
                     <span className="text-[10px] font-bold tracking-widest px-2 py-0.5 bg-gray-100/80 text-gray-500 rounded flex items-center gap-1.5 lowercase">
-                      <Mail className="h-3 w-3" />
                       {selectedOrg.org_email}
                     </span>
                   </div>
@@ -283,7 +278,6 @@ const AdminOrganizations = () => {
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-gray-800">{selectedOrg.chairperson_name}</p>
                     <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-sro-primary transition-colors">
-                      <Mail className="h-3 w-3" />
                       {selectedOrg.chairperson_email}
                     </div>
                   </div>
@@ -297,7 +291,6 @@ const AdminOrganizations = () => {
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-gray-800">{selectedOrg.adviser_name}</p>
                     <div className="flex items-center gap-1.5 text-xs text-gray-500 group-hover:text-sro-primary transition-colors">
-                      <Mail className="h-3 w-3" />
                       {selectedOrg.adviser_email}
                     </div>
                   </div>
@@ -305,7 +298,6 @@ const AdminOrganizations = () => {
 
                 <div className="col-span-1 md:col-span-2 p-4 border rounded-lg bg-gray-50/50">
                   <div className="flex items-center gap-2 text-gray-400 font-bold text-[10px] uppercase mb-1">
-                    <Mail className="h-3 w-3" />
                     Official Organization Email
                   </div>
                   <p className="text-sm font-medium text-gray-700">{selectedOrg.org_email}</p>

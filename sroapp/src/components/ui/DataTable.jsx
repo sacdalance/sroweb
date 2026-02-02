@@ -357,7 +357,7 @@ const DataTable = ({
                                             <SelectTrigger className="h-9 bg-white">
                                                 <SelectValue placeholder={allLabel} />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent> 
                                                 <SelectItem value={allLabel}>{allLabel}</SelectItem>
                                                 {col.filterOptions.map((opt) => (
                                                     <SelectItem key={opt} value={opt}>

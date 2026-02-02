@@ -85,7 +85,7 @@ const AdminAnnualReports = () => {
       filterLabel: "Years",
       filterOptions: [...new Set(reports.map(r => r.academic_year))].sort().reverse(),
       render: (row) => (
-        <div className="text-gray-600 font-mono text-xs">{row.academic_year}</div>
+        <div className="text-xs font-semibold text-gray-600 text-center bg-gray-50 px-2 py-0.5 rounded border border-gray-100 w-fit mx-auto">{row.academic_year}</div>
       )
     },
     {

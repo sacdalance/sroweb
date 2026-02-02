@@ -199,7 +199,7 @@ const AdminOrgApplications = () => {
         header: "Academic Year",
         sortable: true,
         width: "w-32",
-        cellClassName: "font-mono text-xs text-center"
+        render: (row) => <div className="text-xs font-semibold text-gray-600 text-center bg-gray-50 px-2 py-0.5 rounded border border-gray-100 w-fit mx-auto">{row.academic_year}</div>
       },
       {
         key: "existing",
