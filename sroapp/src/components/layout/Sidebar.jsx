@@ -265,15 +265,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Student Activities
                       </Link>
                     </li>
-                    <li>
-                      <Link
-                        to="/admin/activity-summary"
-                        className={linkClass("/admin/activity-summary")}
-                        onClick={() => isSmallScreen && setIsOpen(false)}
-                      >
-                        Activity Summary
-                      </Link>
-                    </li>
                   </ul>
 
                   {/* ORGANIZATIONS Section */}

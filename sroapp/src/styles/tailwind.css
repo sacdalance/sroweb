@@ -170,6 +170,9 @@
   .status-badge-scheduled,
   .status-badge-confirmed,
   .status-badge-reschedule-pending,
+  .status-badge-needs-slip,
+  .status-badge-printed,
+  .status-badge-for-pickup,
   .status-badge-default {
     display: inline-flex;
     align-items: center;
@@ -268,6 +271,23 @@
   .status-badge-default {
     background-color: #d1d5db;
     color: black;
+  }
+
+  /* Slip Status Badges - Solid Pills */
+  .status-badge-needs-slip {
+    background-color: var(--status-pending-bg);
+    color: var(--status-pending-text);
+  }
+
+  .status-badge-slip-ready,
+  .status-badge-printed {
+    background-color: var(--sro-secondary);
+    color: white;
+  }
+
+  .status-badge-for-pickup {
+    background-color: #60a5fa;
+    color: white;
   }
 
   /* Info Card Components */

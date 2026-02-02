@@ -8,12 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Dialog } from "@/components/ui/dialog";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
+import { generateApprovalSlips } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import DataTable from "@/components/ui/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
+import { Badge } from "@/components/ui/badge";
 import { isSameDay, format } from "date-fns";
-import { Database, ClipboardList } from "lucide-react";
+import { Database, ClipboardList, FileText } from "lucide-react";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -54,6 +56,9 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
   const [showRecurring, setShowRecurring] = useState(true);
+
+  // Activity Summary State
+  const [generatingPDFs, setGeneratingPDFs] = useState(false);
 
   // Helper to extract unique options for filters
   const getUniqueOrgOptions = (data) => {
@@ -103,6 +108,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       filterOptions: getUniqueOrgOptions(activities),
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
+      accessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => <span className="font-medium text-gray-700 block truncate mx-auto" title={row.organization?.org_name || "Unknown"}>{row.organization?.org_name || "Unknown"}</span>
     },
     {
@@ -121,6 +127,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       width: "w-[15%]",
       filterOptions: activityTypeOptions.map(o => o.label),
       filterAccessor: (row) => getActivityTypeLabel(row.activity_type),
+      accessor: (row) => getActivityTypeLabel(row.activity_type),
       render: (row) => (
         <span className="block truncate mx-auto" title={getActivityTypeLabel(row.activity_type)}>
           {getActivityTypeLabel(row.activity_type)}
@@ -348,6 +355,46 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
     await refreshSelectedActivity(activityId);
   };
 
+  // --- Activity Summary Helpers ---
+  const handleGenerateApprovalSlips = async () => {
+    try {
+      setGeneratingPDFs(true);
+      const result = await generateApprovalSlips();
+      toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
+      // Refresh activities to update slip_status
+      await fetchAllActivities();
+    } catch (error) {
+      console.error('Error generating approval slips:', error);
+      toast.error(`Failed to generate approval slips: ${error.message}`);
+    } finally {
+      setGeneratingPDFs(false);
+    }
+  };
+
+  const handleViewPDFsInDrive = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to get folder URL');
+      const { folderUrl } = await response.json();
+      window.open(folderUrl, '_blank');
+      toast.success('Opening Google Drive folder...');
+    } catch (error) {
+      toast.error('Failed to open Google Drive folder.');
+    }
+  };
+
+  // Summary counts and filtered activities
+  const summaryActivities = useMemo(() => {
+    return activities.filter(a => a.final_status === 'Approved');
+  }, [activities]);
+
+  const needsSlipCount = summaryActivities.filter(a => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup').length;
+  const printedCount = summaryActivities.filter(a => a.slip_status === 'printed').length;
+
   // --- Calendar Helpers ---
   const getEventColor = (category, event) => {
     const status = event?.status;
@@ -445,13 +492,11 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster />
-      
+
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
         <div>
           <h1 className="page-header text-sro-primary mb-0">Student Activities</h1>
-          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
-            Review and manage organization event requests and schedules.
-          </p>
+
         </div>
         <div className="flex items-center gap-3">
         </div>
@@ -493,6 +538,12 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
             className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
           >
             Calendar
+          </TabsTrigger>
+          <TabsTrigger
+            value="summary"
+            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
+          >
+            Activity Summary
           </TabsTrigger>
         </TabsList>
 
@@ -576,6 +627,137 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        {/* Activity Summary Tab */}
+        <TabsContent value="summary">
+          <Card className="rounded-lg overflow-hidden shadow-sm border-0">
+            <CardContent className="p-4">
+              {/* Summary DataTable */}
+              {loading ? (
+                <LoadingSpinner text="Loading activities..." variant="section" />
+              ) : (
+                <DataTable
+                  actionButtons={
+                    <>
+                      <Button
+                        onClick={handleViewPDFsInDrive}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <svg className="h-4 w-4 text-sro-primary" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
+                        </svg>
+                        Drive Folder
+                      </Button>
+                      <Button
+                        onClick={handleGenerateApprovalSlips}
+                        disabled={generatingPDFs || needsSlipCount === 0}
+                        size="sm"
+                        className="bg-sro-primary hover:bg-sro-primary/90 gap-2"
+                      >
+                        {generatingPDFs ? (
+                          <LoadingSpinner variant="inline" className="text-white" />
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            Generate Slips ({needsSlipCount})
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  }
+                  columns={[
+                    {
+                      key: "created_at",
+                      header: "Submitted",
+                      sortable: true,
+                      width: "w-[10%]",
+                      render: (row) => (
+                        <span className="text-gray-600 font-medium">
+                          {new Date(row.created_at).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "organization",
+                      header: "Organization",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[20%]",
+                      filterOptions: getUniqueOrgOptions(summaryActivities),
+                      filterAccessor: (row) => row.organization?.org_name || "Unknown",
+                      sortAccessor: (row) => row.organization?.org_name || "Unknown",
+                      accessor: (row) => row.organization?.org_name || "Unknown",
+                      render: (row) => (
+                        <span className="font-medium text-gray-700 block truncate mx-auto" title={row.organization?.org_name || "Unknown"}>
+                          {row.organization?.org_name || "Unknown"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "activity_name",
+                      header: "Activity Name",
+                      sortable: true,
+                      width: "w-[25%]",
+                      render: (row) => (
+                        <span className="font-medium text-sro-primary block truncate mx-auto" title={row.activity_name}>
+                          {row.activity_name}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "schedule",
+                      header: "Activity Date",
+                      sortable: true,
+                      width: "w-[12%]",
+                      sortAccessor: (row) => row.schedule?.[0]?.start_date || "",
+                      render: (row) => (
+                        <span className="text-gray-600 font-medium">
+                          {formatDate(row.schedule?.[0]?.start_date)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "activity_type",
+                      header: "Activity Type",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[15%]",
+                      filterOptions: activityTypeOptions.map(o => o.label),
+                      filterAccessor: (row) => getActivityTypeLabel(row.activity_type),
+                      accessor: (row) => getActivityTypeLabel(row.activity_type),
+                      render: (row) => (
+                        <span className="block truncate mx-auto" title={getActivityTypeLabel(row.activity_type)}>
+                          {getActivityTypeLabel(row.activity_type)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "slip_status",
+                      header: "Slip Status",
+                      sortable: true,
+                      filterable: true,
+                      width: "w-[12%]",
+                      isStatus: true,
+                      filterOptions: ["Needs Slip", "Printed", "For Pickup"],
+                      accessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
+                      filterAccessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
+                    },
+                  ]}
+                  data={summaryActivities}
+                  onRowClick={handleViewDetails}
+                  emptyMessage="No approved activities found."
+                  viewMode="table"
+                  hideViewToggle={true}
+                  className="border-none shadow-none"
+                  defaultSort={{ key: "created_at", direction: "desc" }}
+                  preventHorizontalScroll={false}
+                />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

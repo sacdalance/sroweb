@@ -45,7 +45,7 @@ const AdminPanel = () => {
   const statsSummary = [
     { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions", icon: FileText },
     { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/student-activities", icon: Clock },
-    { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/activity-summary", icon: CheckCircle },
+    { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/student-activities", icon: CheckCircle },
     { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications", icon: BookOpen },
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0, path: "/admin/organizations", icon: FileCheck },
     { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports", icon: Calendar },

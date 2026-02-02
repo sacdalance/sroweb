@@ -41,11 +41,11 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   try {
     const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID;
     console.log('📁 Using Google Drive folder ID:', folderId);
-    
+
     if (!folderId) {
       throw new Error('Google Drive approval slips folder ID not configured');
     }
-    
+
     const fileMetadata = {
       name: fileName,
       parents: [folderId],
@@ -121,7 +121,7 @@ router.get('/test-route', (req, res) => {
  */
 router.get('/debug-routes', (req, res) => {
   console.log('🐛 Debug route hit - routes are working!');
-  res.json({ 
+  res.json({
     message: 'Routes are working!',
     availableRoutes: [
       'GET /test-route',
@@ -141,20 +141,20 @@ router.get('/approval-slips-folder-url', (req, res) => {
     console.log('📁 Folder URL route hit!');
     const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID;
     console.log('📁 Using folder ID from env:', folderId);
-    
+
     if (!folderId) {
       console.log('❌ No folder ID configured');
-      return res.status(500).json({ 
-        error: 'Google Drive folder not configured' 
+      return res.status(500).json({
+        error: 'Google Drive folder not configured'
       });
     }
-    
+
     const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
     console.log('🔗 Generated folder URL:', folderUrl);
-    
-    res.json({ 
+
+    res.json({
       folderUrl,
-      folderId 
+      folderId
     });
   } catch (error) {
     console.error('Error getting folder URL:', error);
@@ -168,14 +168,15 @@ router.get('/approval-slips-folder-url', (req, res) => {
 router.post('/reset-pdf-status', authMiddleware, async (req, res) => {
   try {
     const { activity_ids } = req.body; // Optional array of specific activity IDs to reset
-    
+
     console.log('🔄 Resetting PDF generation status...');
-    
+
     let query = supabase
       .from('activity')
       .update({
         pdf_generated: false,
-        pdf_generated_at: null
+        pdf_generated_at: null,
+        slip_status: 'not_generated'
       });
 
     // If specific activity IDs provided, only reset those
@@ -195,7 +196,7 @@ router.post('/reset-pdf-status', authMiddleware, async (req, res) => {
       throw new Error(`Failed to reset PDF status: ${error.message}`);
     }
 
-    const message = activity_ids && activity_ids.length > 0 
+    const message = activity_ids && activity_ids.length > 0
       ? `Reset PDF status for ${activity_ids.length} specific activities`
       : 'Reset PDF status for all approved activities';
 
@@ -208,7 +209,7 @@ router.post('/reset-pdf-status', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('Error resetting PDF status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message || 'Failed to reset PDF status',
     });
   }
@@ -220,7 +221,7 @@ router.post('/reset-pdf-status', authMiddleware, async (req, res) => {
 router.get('/pdf-status', authMiddleware, async (req, res) => {
   try {
     console.log('📊 Checking PDF generation status...');
-    
+
     // Fetch all approved activities with their PDF status
     const { data: activities, error: fetchError } = await supabase
       .from('activity')
@@ -258,7 +259,7 @@ router.get('/pdf-status', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('Error checking PDF status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message || 'Failed to check PDF status',
     });
   }
@@ -270,7 +271,7 @@ router.get('/pdf-status', authMiddleware, async (req, res) => {
 router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
   try {
     console.log('🎯 Starting PDF generation for approved activities...');
-      // Fetch all approved activities that haven't had PDFs generated yet
+    // Fetch all approved activities that haven't had PDFs generated yet
     const { data: approvedActivities, error: fetchError } = await supabase
       .from('activity')
       .select(`
@@ -285,15 +286,15 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
     if (fetchError) {
       console.error('Error fetching approved activities:', fetchError);
       throw new Error(`Failed to fetch activities: ${fetchError.message}`);
-    }    if (!approvedActivities || approvedActivities.length === 0) {
+    } if (!approvedActivities || approvedActivities.length === 0) {
       return res.status(200).json({
         message: 'No approved activities found that need PDF generation',
         pdfCount: 0
       });
-    }    console.log(`Found ${approvedActivities.length} approved activities that need PDF generation`);    // Read the HTML template
+    } console.log(`Found ${approvedActivities.length} approved activities that need PDF generation`);    // Read the HTML template
     const templatePath = path.join(__dirname, '../../../sroapp/OSASROForm1BStudentActivityApprovalSlip.html');
     let htmlTemplate;
-    
+
     try {
       htmlTemplate = await fs.readFile(templatePath, 'utf-8');
     } catch (templateError) {
@@ -333,8 +334,8 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
           .replace(/{greenCampusContact}/g, activity.green_monitor_contact || 'N/A')
           .replace(/{adviserName}/g, activity.organization?.adviser_name || 'N/A')
           .replace(/{adviserContact}/g, activity.organization?.adviser_email || 'N/A')
-          .replace(/{dateApproved}/g, activity.odsa_approval_date ? 
-            new Date(activity.odsa_approval_date).toLocaleDateString() : 
+          .replace(/{dateApproved}/g, activity.odsa_approval_date ?
+            new Date(activity.odsa_approval_date).toLocaleDateString() :
             new Date().toLocaleDateString())
           .replace(/{sroComments}/g, activity.sro_comments || 'None.');
 
@@ -344,7 +345,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
           const startDate = schedule.start_date ? new Date(schedule.start_date).toLocaleDateString() : 'N/A';
           const startTime = schedule.start_time || 'N/A';
           const endTime = schedule.end_time || 'N/A';
-          
+
           processedHtml = processedHtml
             .replace(/{activityDate}/g, startDate)
             .replace(/{activityTime}/g, `${startTime} - ${endTime}`);
@@ -371,13 +372,14 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
         await page.close();        // Upload PDF to Google Drive
         const fileName = `approval_slip_${activity.organization?.org_name || 'Unknown'}_${activity.activity_name || 'Activity'}_${activity.activity_id}.pdf`;
         const uploadResult = await uploadPDFToGoogleDrive(pdfBuffer, fileName);
-        
+
         // Update database to mark PDF as generated
         const { error: updateError } = await supabase
           .from('activity')
           .update({
             pdf_generated: true,
-            pdf_generated_at: new Date().toISOString()
+            pdf_generated_at: new Date().toISOString(),
+            slip_status: 'printed'
           })
           .eq('activity_id', activity.activity_id);
 
@@ -385,9 +387,9 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
           console.error(`Error updating PDF status for activity ${activity.activity_id}:`, updateError);
           throw new Error(`Failed to update PDF status: ${updateError.message}`);
         }
-        
+
         pdfCount++;
-        
+
         console.log(`✅ Generated and uploaded PDF for activity ${activity.activity_id} to Google Drive: ${uploadResult.webViewLink}`);
 
       } catch (activityError) {
@@ -402,7 +404,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
     await browser.close();
 
     console.log(`🎉 PDF generation completed. Generated ${pdfCount} PDFs`);
-    
+
     if (errors.length > 0) {
       console.warn('Some activities had errors:', errors);
     }
@@ -416,7 +418,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error('PDF Generation Error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message || 'Failed to generate approval slips',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
