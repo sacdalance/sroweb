@@ -421,11 +421,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   // Transform activities for calendar view
   const calendarEvents = useMemo(() => {
     return activities.filter(activity => {
-      // Check if has any recurring schedule
-      const hasRecurring = activity.schedule?.some(s => s.is_recurring);
 
-      // Filter out recurring if showRecurring is off
-      if (!showRecurring && hasRecurring) return false;
 
       // Always show approved activities
       if (activity.status === 'Approved') return true;
@@ -441,6 +437,9 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       activity.schedule.forEach(sched => {
         // Check if this schedule is recurring
         if (sched.is_recurring && sched.recurring_days) {
+          // If recurring is hidden, skip this schedule entirely
+          if (!showRecurring) return;
+
           // Parse recurring_days if it's a string
           const recurringDays = typeof sched.recurring_days === 'string'
             ? JSON.parse(sched.recurring_days)
