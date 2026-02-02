@@ -11,19 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
-import {
   Tabs,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import DataTable from "@/components/ui/DataTable";
+import { cn } from "@/lib/utils";
 import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
@@ -40,40 +33,26 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 
 
 
-const activityTypeOptions = [
-  { id: "charitable", label: "Charitable" },
-  { id: "serviceWithinUPB", label: "Service within UPB" },
-  { id: "serviceOutsideUPB", label: "Service outside UPB" },
-  { id: "contestWithinUPB", label: "Contest within UPB" },
-  { id: "contestOutsideUPB", label: "Contest outside UPB" },
-  { id: "educational", label: "Educational" },
-  { id: "incomeGenerating", label: "IGP" },
-  { id: "massOrientation", label: "Mass Orientation/GA" },
-  { id: "booth", label: "Booth" },
-  { id: "rehearsals", label: "Rehearsals/Preparation" },
-  { id: "specialEvents", label: "Special Events" },
-  { id: "others", label: "Others" },
-];
-
-const formatActivityTypeLabel = (id) => {
-  return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
-};
-
 const activityTypes = [
-  { id: 'all', dbValue: 'all', label: 'Show All', color: 'bg-sro-primary' },
-  { id: 'A', dbValue: 'charitable', label: 'Charitable', color: 'bg-sro-primary' },
-  { id: 'B', dbValue: 'serviceWithinUPB', label: 'Service (within UPB)', color: 'bg-sro-primary' },
-  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'Service (outside UPB)', color: 'bg-sro-primary' },
-  { id: 'D', dbValue: 'contestWithinUPB', label: 'Contest (within UPB)', color: 'bg-sro-primary' },
-  { id: 'E', dbValue: 'contestOutsideUPB', label: 'Contest (outside UPB)', color: 'bg-sro-primary' },
-  { id: 'F', dbValue: 'educational', label: 'Educational', color: 'bg-sro-primary' },
-  { id: 'G', dbValue: 'incomeGenerating', label: 'Income Generating Project', color: 'bg-sro-primary' },
-  { id: 'H', dbValue: 'massOrientation', label: 'Mass Orientation/GA', color: 'bg-sro-primary' },
-  { id: 'I', dbValue: 'booth', label: 'Booth', color: 'bg-sro-primary' },
-  { id: 'J', dbValue: 'rehearsals', label: 'Rehearsals/Preparation', color: 'bg-sro-primary' },
-  { id: 'K', dbValue: 'specialEvents', label: 'Special Events', color: 'bg-sro-primary' },
-  { id: 'L', dbValue: 'others', label: 'Others', color: 'bg-sro-primary' }
+  { id: 'A', dbValue: 'charitable', label: 'Charitable' },
+  { id: 'B', dbValue: 'serviceWithinUPB', label: 'Service (within UPB)' },
+  { id: 'C', dbValue: 'serviceOutsideUPB', label: 'Service (outside UPB)' },
+  { id: 'D', dbValue: 'contestWithinUPB', label: 'Contest (within UPB)' },
+  { id: 'E', dbValue: 'contestOutsideUPB', label: 'Contest (outside UPB)' },
+  { id: 'F', dbValue: 'educational', label: 'Educational' },
+  { id: 'G', dbValue: 'incomeGenerating', label: 'IGP' },
+  { id: 'H', dbValue: 'massOrientation', label: 'Mass Orientation/GA' },
+  { id: 'I', dbValue: 'booth', label: 'Booth' },
+  { id: 'J', dbValue: 'rehearsals', label: 'Rehearsals/Preparation' },
+  { id: 'K', dbValue: 'specialEvents', label: 'Special Events' },
+  { id: 'L', dbValue: 'others', label: 'Others' }
 ];
+
+const formatActivityTypeLabel = (idOrCode) => {
+  if (!idOrCode) return "N/A";
+  const type = activityTypes.find(t => t.id === idOrCode || t.dbValue === idOrCode);
+  return type ? type.label : idOrCode;
+};
 
 const months = [
   "All Months",
@@ -83,38 +62,26 @@ const months = [
 
 const AdminActivitySummary = () => {
   const [tabCooldown, setTabCooldown] = useState(false);
-  const [selectedType, setSelectedType] = useState('all');
   const [filter, setFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false); const [selectedOrg, setSelectedOrg] = useState("All Organizations");
-  const [selectedMonth, setSelectedMonth] = useState("All Months");
-  const [selectedYear, setSelectedYear] = useState("All Academic Years");
-  const [orgSearchTerm, setOrgSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [appliedFilters, setAppliedFilters] = useState({
-    organization: "All Organizations",
-    month: "All Months",
-    year: "All Academic Years"
-  });
   const [summaryActivities, setSummaryActivities] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // PDF generation state
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
+
   useEffect(() => {
     const loadSummary = async () => {
       try {
         setLoading(true);
         const activities = await fetchSummaryActivities({
-          activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
-          organization: appliedFilters.organization,
-          month: appliedFilters.month,
-          year: appliedFilters.year
+          activity_type: 'all',
+          organization: 'All Organizations',
+          month: 'All Months',
+          year: 'All Academic Years'
         });
         setSummaryActivities(activities);
-        console.log("Sample activity:", activities[0]);
       } catch (err) {
         console.error("Error loading summary:", err.message);
       } finally {
@@ -123,648 +90,359 @@ const AdminActivitySummary = () => {
     };
 
     loadSummary();
-    setCurrentPage(1);
-  }, [selectedType, appliedFilters]);
-
-  const [organizationOptions, setOrganizationOptions] = useState(["All Organizations"]);
-  useEffect(() => {
-    const loadOrgs = async () => {
-      try {
-        const orgs = await fetchOrganizationNames();
-        setOrganizationOptions(["All Organizations", ...orgs]);
-      } catch (err) {
-        console.error("Failed to load organizations:", err);
-      }
-    };
-
-    loadOrgs();
-  }, []);
-  const filteredOrgOptions = orgSearchTerm.trim() === ""
-    ? organizationOptions
-    : organizationOptions.filter((org) =>
-      org.toLowerCase().includes(orgSearchTerm.toLowerCase())
-    );
-
-  const [academicYears, setAcademicYears] = useState(["All Academic Years"]);
-  useEffect(() => {
-    const loadYears = async () => {
-      try {
-        const years = await fetchAcademicYears();
-        setAcademicYears(years);
-      } catch (err) {
-        console.error("Failed to load academic years:", err);
-      }
-    };
-
-    loadYears();
   }, []);
 
-  // 1. Filter activities based on all filters EXCEPT the status tab
-  const filteredByOtherFilters = summaryActivities.filter((activity) => {
-    const startDateStr = activity.schedule?.[0]?.start_date;
-    if (!startDateStr) return false;
-
-    const startDate = new Date(startDateStr);
-    const startYear = startDate.getFullYear();
-    const activityMonth = startDate.toLocaleString("default", { month: "long" });
-
-    // Academic year filter
-    if (appliedFilters.year !== "All Academic Years") {
-      const selectedStartYear = parseInt(appliedFilters.year.split("-")[0]);
-      if (startYear !== selectedStartYear) return false;
-    }
-
-
-    // Month filter
-    if (appliedFilters.month !== "All Months" && activityMonth !== appliedFilters.month) {
-      return false;
-    }
-
-    // Organization filter
-    if (
-      appliedFilters.organization !== "All Organizations" &&
-      activity.organization?.org_name !== appliedFilters.organization
-    ) {
-      return false;
-    }
-
-    return true;
-  });
-  // 2. Calculate counts from this filtered list
-  const approvedCount = filteredByOtherFilters.filter(a =>
-    a.final_status === "Approved"
-  ).length;
-  const approvedNoSlipCount = filteredByOtherFilters.filter(a =>
-    a.final_status === "Approved" && !a.pdf_generated
-  ).length;
-  const pendingCount = filteredByOtherFilters.filter(a =>
-    a.final_status === null || a.final_status === "For Appeal"
-  ).length;
-
-  // 3. Now filter by the status tab for display
-  const filteredActivities = filteredByOtherFilters.filter((activity) => {
+  // Filter activities based on the status tab for display
+  const filteredActivities = summaryActivities.filter((activity) => {
     const isApproved = activity.final_status === "Approved";
     const isApprovedNoSlip = activity.final_status === "Approved" && !activity.pdf_generated;
-    const isPending = activity.final_status === "For Appeal" || activity.final_status === null;
+    
+    // Status is pending if it's falsy, "For Appeal", or contains "Pending" (e.g., Pending SRO, Pending ODSA)
+    const statusText = (activity.final_status || "").toLowerCase();
+    const isPending = !activity.final_status || 
+                      statusText.includes("pending") || 
+                      statusText === "for appeal";
+    
     if (filter === "approved" && !isApproved) return false;
     if (filter === "approved-no-slip" && !isApprovedNoSlip) return false;
     if (filter === "pending" && !isPending) return false;
     return true;
   });
 
-  const handleApplyFilters = () => {
-    setAppliedFilters({
-      organization: selectedOrg,
-      month: selectedMonth,
-      year: selectedYear
-    });
-    setIsFilterModalOpen(false);
-  };
-  const handleRemoveFilter = (filterType) => {
-    setAppliedFilters(prev => {
-      const newFilters = { ...prev };
-      if (filterType === 'organization') {
-        newFilters.organization = "All Organizations";
-        setSelectedOrg("All Organizations");
-      } else if (filterType === 'month') {
-        newFilters.month = "All Months";
-        setSelectedMonth("All Months");
-      } else if (filterType === 'year') {
-        newFilters.year = "All Academic Years";
-        setSelectedYear("All Academic Years");
-      }
-      return newFilters;
-    });
-  };
-  // PDF generation handler
+  // Calculate counts for tabs (always consistent regardless of filters applied to the table later)
+  const approvedCount = summaryActivities.filter(a => a.final_status === "Approved").length;
+  const approvedNoSlipCount = summaryActivities.filter(a => a.final_status === "Approved" && !a.pdf_generated).length;
+  const pendingCount = summaryActivities.filter(a => {
+    const statusText = (a.final_status || "").toLowerCase();
+    return !a.final_status || statusText.includes("pending") || statusText === "for appeal";
+  }).length;
+
   const handleGenerateApprovalSlips = async () => {
     try {
       setGeneratingPDFs(true);
-
       const result = await generateApprovalSlips();
-
       toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
-
-      // Refresh the summary to update the UI
+      
+      // Refresh
       const activities = await fetchSummaryActivities({
-        activity_type: activityTypes.find(t => t.id === selectedType)?.dbValue || 'all',
-        organization: appliedFilters.organization,
-        month: appliedFilters.month,
-        year: appliedFilters.year
+        activity_type: 'all',
+        organization: 'All Organizations',
+        month: 'All Months',
+        year: 'All Academic Years'
       });
       setSummaryActivities(activities);
-
     } catch (error) {
       console.error('Error generating approval slips:', error);
       toast.error(`Failed to generate approval slips: ${error.message}`);
     } finally {
       setGeneratingPDFs(false);
     }
-  };  // Google Drive handler
+  };
+
   const handleViewPDFsInDrive = async () => {
     try {
-      // Get the folder URL from backend
       const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
         },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to get folder URL');
-      }
-
+      if (!response.ok) throw new Error('Failed to get folder URL');
       const { folderUrl } = await response.json();
-
       window.open(folderUrl, '_blank');
-      toast.success('Opening Google Drive folder in new tab...');
+      toast.success('Opening Google Drive folder...');
     } catch (error) {
-      console.error('Error opening Google Drive:', error);
-      toast.error('Failed to open Google Drive folder. Please contact the administrator.');
+      toast.error('Failed to open Google Drive folder.');
     }
   };
 
-  const startIdx = (currentPage - 1) * rowsPerPage;
-  const paginatedActivities = filteredActivities.slice(startIdx, startIdx + rowsPerPage);
-  const totalPages = Math.ceil(filteredActivities.length / rowsPerPage);
+  const columns = [
+    {
+      key: "final_status",
+      header: "Status",
+      isStatus: true,
+      width: "w-[110px]",
+      accessor: (row) => row.final_status || "Pending",
+    },
+    {
+      key: "created_at",
+      header: "Submission",
+      sortable: true,
+      width: "w-[120px]",
+      render: (row) => (
+        <div className="text-[11px] text-gray-500 text-center">
+          {new Date(row.created_at).toLocaleDateString("en-US", {
+            month: 'short', day: 'numeric', year: 'numeric'
+          })}
+        </div>
+      )
+    },
+    {
+      key: "org_name",
+      header: "Organization",
+      sortable: true,
+      filterable: true,
+      filterLabel: "Orgs",
+      filterOptions: [...new Set(summaryActivities.map(a => a.organization?.org_name))].filter(Boolean).sort(),
+      filterAccessor: (row) => row.organization?.org_name,
+      render: (row) => (
+        <div className="font-semibold text-[13px] text-gray-700 truncate max-w-[180px]" title={row.organization?.org_name}>
+          {row.organization?.org_name}
+        </div>
+      )
+    },
+    {
+      key: "activity_name",
+      header: "Activity Name",
+      sortable: true,
+      render: (row) => (
+        <div className="font-medium text-[13px] text-gray-800 line-clamp-1" title={row.activity_name}>
+          {row.activity_name}
+        </div>
+      )
+    },
+    {
+      key: "activity_type",
+      header: "Type",
+      sortable: true,
+      filterable: true,
+      filterLabel: "Categories",
+      filterOptions: activityTypes.map(opt => opt.label),
+      filterAccessor: (row) => {
+          const codes = row.activity_type?.split(',') || [];
+          // Since DataTable only does strict equality, we return the label of the first code
+          // for the accessor, but we'll improve this if DataTable logic allows more complex matching.
+          return formatActivityTypeLabel(codes[0]);
+      },
+      render: (row) => {
+        const typeIds = row.activity_type?.split(',') || [];
+        return (
+          <div className="flex flex-wrap gap-1 justify-center">
+            {typeIds.slice(0, 1).map(id => (
+              <Badge key={id} variant="secondary" className="text-[10px] px-2 py-0 h-5">
+                {formatActivityTypeLabel(id)}
+              </Badge>
+            ))}
+            {typeIds.length > 1 && (
+              <span className="text-[10px] text-gray-400">+{typeIds.length - 1}</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "academic_year",
+      header: "A.Y.",
+      width: "w-[100px]",
+      sortable: true,
+      filterable: true,
+      filterLabel: "Years",
+      filterOptions: [...new Set(summaryActivities.map(a => {
+          const date = a.schedule?.[0]?.start_date;
+          if (!date) return null;
+          const year = new Date(date).getFullYear();
+          // Assuming AY starts in August (common for UPB)
+          const month = new Date(date).getMonth(); // 0-indexed
+          const startYear = month >= 7 ? year : year - 1;
+          return `${startYear}-${startYear + 1}`;
+      }))].filter(Boolean).sort().reverse(),
+      filterAccessor: (row) => {
+          const date = row.schedule?.[0]?.start_date;
+          if (!date) return "N/A";
+          const d = new Date(date);
+          const year = d.getFullYear();
+          const month = d.getMonth();
+          const startYear = month >= 7 ? year : year - 1;
+          return `${startYear}-${startYear + 1}`;
+      },
+      render: (row) => {
+          const date = row.schedule?.[0]?.start_date;
+          if (!date) return <span className="text-gray-300">—</span>;
+          const d = new Date(date);
+          const year = d.getFullYear();
+          const month = d.getMonth();
+          const startYear = month >= 7 ? year : year - 1;
+          return <span className="text-[10px] bg-gray-50 px-1.5 py-0.5 rounded border font-medium text-gray-600">{startYear}-{startYear+1}</span>;
+      }
+    },
+    {
+      key: "month",
+      header: "Month",
+      width: "w-[100px]",
+      sortable: true,
+      filterable: true,
+      filterLabel: "Months",
+      filterOptions: months.slice(1),
+      filterAccessor: (row) => {
+          const date = row.schedule?.[0]?.start_date;
+          if (!date) return "Other";
+          return new Date(date).toLocaleString("default", { month: "long" });
+      },
+      render: (row) => {
+          const date = row.schedule?.[0]?.start_date;
+          if (!date) return <span className="text-gray-300">—</span>;
+          return <span className="text-[11px] font-medium text-gray-600">{new Date(date).toLocaleString("default", { month: "short" })}</span>;
+      }
+    },
+    {
+      key: "activity_id",
+      header: "ID",
+      width: "w-[80px]",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-500 font-mono text-[10px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+          {row.activity_id}
+        </span>
+      ),
+    },
+    {
+      key: "recognized",
+      header: "Recognized",
+      width: "w-[110px]",
+      isStatus: true,
+      filterLabel: "Recognition",
+      filterable: true,
+      filterOptions: ["Recognized", "Not Recognized"],
+      accessor: (row) => (row.organization?.org_status === "Recognized" || row.organization?.is_recognized) ? "Recognized" : "Not Recognized",
+      render: (row) => {
+        const isRecognized = row.organization?.org_status === "Recognized" || row.organization?.is_recognized;
+        return (
+          <div className="flex items-center justify-center">
+            <Badge
+              className={cn(
+                "text-[10px] px-2 py-0 shadow-none border font-semibold",
+                isRecognized
+                  ? "bg-blue-50 text-blue-700 border-blue-100"
+                  : "bg-gray-50 text-gray-500 border-gray-100"
+              )}
+            >
+              {isRecognized ? "Recognized" : "Not Recognized"}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    {
+      key: "pdf_status",
+      header: "PDF",
+      width: "w-[110px]",
+      render: (row) => (
+        <div className="flex items-center justify-center">
+          {row.final_status === "Approved" ? (
+            <Badge
+              className={cn(
+                "text-[10px] px-2 py-0 shadow-none border font-semibold",
+                row.pdf_generated
+                  ? "bg-green-50 text-green-700 border-green-100"
+                  : "bg-amber-50 text-amber-700 border-amber-100"
+              )}
+            >
+              {row.pdf_generated ? "Generated" : "Needed"}
+            </Badge>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div
-      className="container mx-auto p-4 sm:p-6 max-w-[1600px]"
-    >
-      <Toaster />      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <h1 className="page-header text-sro-primary">Activity Summary</h1>
-        <div className="flex flex-col sm:flex-row gap-2">          <Button
-          onClick={handleViewPDFsInDrive}
-          variant="outline"
-          className="border-sro-secondary text-sro-secondary hover:bg-sro-secondary hover:text-white flex items-center gap-2"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
-          </svg>
-          View PDFs in Drive
-        </Button>          <Button
-          onClick={handleGenerateApprovalSlips}
-          disabled={generatingPDFs || approvedNoSlipCount === 0}
-          className="bg-sro-secondary hover:bg-sro-secondary/90 text-white flex items-center gap-2"
-        >
+    <div className="p-3 md:p-6 max-w-[1700px] mx-auto min-h-screen">
+      <Toaster position="top-center" />
+
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="page-header text-sro-primary mb-1">Activity Summary</h1>
+          <p className="text-sm text-gray-500">Overview and management of all student activity submissions</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Drive Button */}
+          <Button
+            onClick={handleViewPDFsInDrive}
+            variant="outline"
+            className="h-10 border-gray-200 hover:bg-gray-50 text-gray-700 gap-2 font-medium"
+          >
+            <svg className="h-4 w-4 text-sro-primary" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6.5 2C4.57 2 3 3.57 3 5.5S4.57 9 6.5 9H10l3-5.5H6.5zm7.5 5.5L11 13h9.5c1.93 0 3.5-1.57 3.5-3.5S22.43 6 20.5 6H14zM7 14l-3 5.5h7L14 14H7z" />
+            </svg>
+            <span>Drive Folder</span>
+          </Button>
+
+          {/* Generate Slips Button */}
+          <Button
+            onClick={handleGenerateApprovalSlips}
+            disabled={generatingPDFs || approvedNoSlipCount === 0}
+            className="h-10 bg-sro-primary hover:bg-sro-primary/90 text-white gap-2 shadow-sm font-medium px-4"
+          >
             {generatingPDFs ? (
-              <LoadingSpinner text="Generating PDFs..." variant="inline" className="text-white" />
+              <LoadingSpinner variant="inline" className="text-white" />
             ) : (
               <>
                 <FileText className="h-4 w-4" />
-                Generate Approval Slips ({approvedNoSlipCount})
+                <span>Generate Slips ({approvedNoSlipCount})</span>
               </>
             )}
           </Button>
+
+          {/* Calendar Link */}
+          <Link to="/admin/student-activities">
+             <Button variant="outline" className="h-10 border-gray-200 hover:bg-gray-50 gap-2 font-medium">
+                <ArrowRight className="h-4 w-4" />
+                <span>Calendar View</span>
+             </Button>
+          </Link>
         </div>
       </div>
-      {/* Filter Section using Tabs */}
-      <Card className="mb-6">
-        <div className="p-2 sm:px-4 md:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-            <div className="flex flex-row items-center justify-between gap-2">
-              <h2 className="text-lg sm:text-xl px-3 font-semibold">
-                {selectedType === 'all'
-                  ? 'All Activities'
-                  : activityTypes.find(t => t.id === selectedType)?.label}
-              </h2>
-              {/* Filter Button: visible on mobile, hidden on sm+ (shown again in badges area) */}
-              <div className="sm:hidden px-3 ml-2">
-                <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-5 w-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Filter Activities</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <label className="text-sm font-medium">Organization</label>
-                        <UnifiedDropdown
-                          options={filteredOrgOptions}
-                          value={selectedOrg}
-                          onChange={(val) => {
-                            setSelectedOrg(val);
-                            setOrgSearchTerm("");
-                          }}
-                          placeholder="Select organization"
-                          searchable
-                          searchPlaceholder="Search organization..."
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-sm font-medium">Activity Category</label>
-                        <UnifiedDropdown
-                          options={activityTypes.map(t => ({ value: t.id, label: t.label }))}
-                          value={selectedType}
-                          onChange={setSelectedType}
-                          placeholder="Select category"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Month</label>
-                          <UnifiedDropdown
-                            options={months}
-                            value={selectedMonth}
-                            onChange={setSelectedMonth}
-                            placeholder="Select month"
-                          />
-                        </div>
 
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Rows per Page</label>
-                          <UnifiedDropdown
-                            options={["5", "10", "25", "50"]}
-                            value={String(rowsPerPage)}
-                            onChange={(val) => {
-                              setRowsPerPage(Number(val));
-                              setCurrentPage(1);
-                            }}
-                            placeholder="Rows per page"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Academic Year</label>
-                          <UnifiedDropdown
-                            options={academicYears}
-                            value={selectedYear}
-                            onChange={setSelectedYear}
-                            placeholder="Select academic year"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleApplyFilters}
-                        className="bg-sro-primary hover:bg-sro-primary/90 text-white"
-                      >
-                        Apply Filters
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(appliedFilters.organization !== "All Organizations" ||
-                appliedFilters.month !== "All Months" ||
-                appliedFilters.year !== "All Academic Years") && (
-                  <div className="flex items-center gap-2">
-                    {appliedFilters.organization !== "All Organizations" && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        {appliedFilters.organization}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0 hover:bg-transparent"
-                          onClick={() => handleRemoveFilter('organization')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    )}
-                    {appliedFilters.month !== "All Months" && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        {appliedFilters.month}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0 hover:bg-transparent"
-                          onClick={() => handleRemoveFilter('month')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    )}
-                    {appliedFilters.year !== "All Academic Years" && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        {appliedFilters.year}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0 hover:bg-transparent"
-                          onClick={() => handleRemoveFilter('year')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    )}
-                    {selectedType !== "all" && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        {activityTypes.find((t) => t.id === selectedType)?.label}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0 hover:bg-transparent"
-                          onClick={() => setSelectedType("all")}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              {/* Filter Button: hidden on mobile, visible on sm+ */}
-              <div className="hidden sm:block">
-                <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-5 w-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Filter Activities</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <label className="text-sm font-medium">Organization</label>
-                        <UnifiedDropdown
-                          options={filteredOrgOptions}
-                          value={selectedOrg}
-                          onChange={(val) => {
-                            setSelectedOrg(val);
-                            setOrgSearchTerm("");
-                          }}
-                          placeholder="Select organization"
-                          searchable
-                          searchPlaceholder="Search organization..."
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <label className="text-sm font-medium">Activity Category</label>
-                        <UnifiedDropdown
-                          options={activityTypes.map(t => ({ value: t.id, label: t.label }))}
-                          value={selectedType}
-                          onChange={setSelectedType}
-                          placeholder="Select category"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Month</label>
-                          <UnifiedDropdown
-                            options={months}
-                            value={selectedMonth}
-                            onChange={setSelectedMonth}
-                            placeholder="Select month"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Rows per Page</label>
-                          <UnifiedDropdown
-                            options={["5", "10", "25", "50"]}
-                            value={String(rowsPerPage)}
-                            onChange={(val) => {
-                              setRowsPerPage(Number(val));
-                              setCurrentPage(1);
-                            }}
-                            placeholder="Rows per page"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <label className="text-sm font-medium">Academic Year</label>
-                          <UnifiedDropdown
-                            options={academicYears}
-                            value={selectedYear}
-                            onChange={setSelectedYear}
-                            placeholder="Select academic year"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsFilterModalOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleApplyFilters}
-                        className="bg-sro-primary hover:bg-sro-primary/90 text-white"
-                      >
-                        Apply Filters
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-          </div>          <div className="flex justify-center px-0 sm:px-8">
+
+      {/* Main Content: DataTable with integrated tabs and filters */}
+      {loading ? (
+        <div className="bg-white rounded-xl border shadow-sm p-12">
+          <LoadingSpinner text="Loading activities..." variant="section" />
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden p-1 sm:p-0">
+          {/* Tabs Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center p-4 border-b bg-gray-50/50">
             <Tabs
               value={filter}
               onValueChange={(val) => {
                 if (tabCooldown || loading) return;
-
                 setFilter(val);
                 setTabCooldown(true);
-
-                setTimeout(() => {
-                  setTabCooldown(false);
-                }, 800); // cooldown in ms
+                setTimeout(() => setTabCooldown(false), 300);
               }}
-              className="w-full max-w-[600px]"
+              className="w-full lg:w-auto"
             >
-              <TabsList className="grid w-full grid-cols-4 h-8 p-0 bg-gray-100 rounded-4xl">
-                <TabsTrigger
-                  value="all"
-                  disabled={loading || tabCooldown}
-                  className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-l-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-                >
-                  Show All
-                </TabsTrigger>
-                <TabsTrigger
-                  value="approved"
-                  disabled={loading || tabCooldown}
-                  className={`text-xs h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-                >
-                  Approved ({approvedCount})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="approved-no-slip"
-                  disabled={loading || tabCooldown}
-                  className={`text-xs h-8 flex items-center justify-center transition-opacity ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-                >
-                  No Slip ({approvedNoSlipCount})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="pending"
-                  disabled={loading || tabCooldown} className={`text-xs h-8 flex items-center justify-center transition-opacity rounded-r-4xl ${loading || tabCooldown ? "opacity-50 pointer-events-none" : ""
-                    } data-[state=active]:bg-sro-primary data-[state=active]:text-white relative data-[state=active]:shadow-none`}
-                >
-                  Pending ({pendingCount})
-                </TabsTrigger>
+              <TabsList className="bg-white p-1 h-10 rounded-lg border shadow-sm w-full lg:w-auto flex md:inline-flex overflow-x-auto whitespace-nowrap">
+                <TabsTrigger value="all" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">All Submissions</TabsTrigger>
+                <TabsTrigger value="approved" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">Approved ({approvedCount})</TabsTrigger>
+                <TabsTrigger value="approved-no-slip" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white text-sro-secondary">No Slip ({approvedNoSlipCount})</TabsTrigger>
+                <TabsTrigger value="pending" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">Pending ({pendingCount})</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
+
+          {/* DataTable */}
+          <DataTable
+            columns={columns}
+            data={filteredActivities.map(a => ({ ...a, id: a.activity_id }))}
+            onRowClick={(row) => {
+              setSelectedActivity(row);
+              setIsModalOpen(true);
+            }}
+            emptyMessage="No activity submissions found matching your filters."
+            defaultSort={{ key: 'created_at', direction: 'desc' }}
+            className="border-0 shadow-none"
+            defaultPageSize={10}
+            fixedHeight={true}
+          />
         </div>
-        {/* Table Section */}
-        {loading ? (
-          <LoadingSpinner text="Loading submissions..." variant="section" />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>            <TableHeader>
-              <TableRow className="border-b-0">
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Status</TableHead>
-                <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Submission Date</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Organization</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Name</TableHead>
-                <TableHead className="min-w-[180px] w-[250px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Type</TableHead>
-                <TableHead className="min-w-[120px] w-[180px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity Date</TableHead>
-                <TableHead className="min-w-[140px] w-[200px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Venue</TableHead>
-                <TableHead className="w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Adviser</TableHead>
-                <TableHead className="min-w-[120px] w-[150px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">Activity ID</TableHead>
-                <TableHead className="min-w-[100px] w-[120px] text-xs sm:text-sm font-semibold text-center py-3 sm:py-5">PDF Status</TableHead>
-              </TableRow>
-            </TableHeader>
-              <TableBody>
-                {paginatedActivities.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="py-10 text-center text-sm text-gray-500">
-                      No activities found.
-                    </TableCell>
-                  </TableRow>
+      )}
 
-                ) : (
-                  paginatedActivities.map((activity, index) => (
-                    <TableRow
-                      key={index}
-                      className="border-b border-gray-100 cursor-pointer hover:bg-gray-50"
-                      onClick={() => {
-                        setSelectedActivity(activity);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      <TableCell className="py-5 text-sm text-center">
-                        <div className="flex justify-center">
-                          {/* Assuming StatusPill is imported or using similar logic to AdminPendingRequests */}
-                          {/* Since StatusPill might not be imported in this file, we check imports or use badge. 
-                                HEAD didn't show StatusPill usage. kyle-fixes used it. 
-                                Let's check imports. Lines 1-42 showed Badge, but not StatusPill?
-                                Wait, kyle-fixes line 803 usage: <StatusPill ... />.
-                                Functionally, I should probably check if StatusPill is available.
-                                If not, I'll use Badge. 
-                                BUT, if I look at imports in file (step 223), line 25, 33... StatusPill is NOT imported in HEAD.
-                                So I should probably use Badge logic for Status if StatusPill isn't there.
-                                OR, rely on HEAD's PDF Status logic? 
-                                HEAD header has "Status". 
-                                Let's just use a Badge for Status similar to HEAD's other badges.
-                            */}
-                          {activity.final_status || "Pending"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-5 text-sm text-center">
-                        {new Date(activity.created_at).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
-                      </TableCell>
-                      <TableCell className="py-5 text-sm text-center">{activity.organization?.org_name || "N/A"}</TableCell>
-                      <TableCell className="py-5 text-sm text-center">
-                        {activity.activity_name}
-                      </TableCell>
-                      <TableCell className="py-5">
-                        <div className="flex flex-col items-center gap-2 max-w-[220px] mx-auto">
-                          {(activity.activity_type?.split(",") || []).slice(0, 3).map((typeId) => (
-                            <Badge
-                              key={typeId}
-                              variant="secondary"
-                              className={`${typeId === selectedType
-                                ? 'bg-sro-primary text-white hover:bg-sro-primary'
-                                : ''
-                                } w-full text-center text-sm px-6 py-1 flex items-center justify-center min-h-[28px] whitespace-nowrap`}
-                            >
-                              <span className="inline-block truncate max-w-[200px]">
-                                {formatActivityTypeLabel(typeId)}
-                              </span>
-                            </Badge>
-                          ))}
-                          {(activity.activity_type?.split(",") || []).length > 3 && (
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
-                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                                +{activity.activity_type.split(",").length - 3}
-                              </div>
-                              more
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-5 text-sm text-center">
-                        {activity.schedule?.[0]?.start_date
-                          ? new Date(activity.schedule[0]?.start_date).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric"
-                          })
-                          : "TBD"}
-                      </TableCell>
-                      <TableCell className="py-5 text-sm text-center">{activity.venue || "N/A"}</TableCell>
-                      <TableCell className="py-5 text-sm text-center">
-                        {activity.organization?.adviser_name || "N/A"}
-                      </TableCell>
-                      <TableCell className="py-5 text-sm text-center">{activity.activity_id}</TableCell>
-                      <TableCell className="py-5">
-                        <div className="flex items-center justify-center">
-                          {activity.final_status === "Approved" && (
-                            <Badge
-                              className={
-                                activity.pdf_generated
-                                  ? "bg-green-600 text-white"
-                                  : "bg-amber-600 text-white"
-                              }
-                            >
-                              {activity.pdf_generated ? "PDF Generated" : "Needs PDF"}
-                            </Badge>
-                          )}
-                          {activity.final_status !== "Approved" && (
-                            <span className="text-gray-400 text-sm">N/A</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            <div className="flex justify-between items-center mt-4 px-4">
-              <div className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </div>
-        )
-        }
-
-      </Card >
-
+      {/* Activity Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {selectedActivity && (
           <ActivityDialogContent
@@ -775,16 +453,7 @@ const AdminActivitySummary = () => {
           />
         )}
       </Dialog>
-
-      {/* See Activities Calendar Button */}
-      <div className="flex justify-end mt-4">
-        <Link to="/admin/student-activities">
-          <Button className="bg-sro-primary hover:bg-sro-primary/90 text-white text-sm">
-            See Activities Calendar <ArrowRight className="w-4 h-4" />
-          </Button>
-        </Link>
-      </div>
-    </div >
+    </div>
   );
 };
 
