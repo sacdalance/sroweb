@@ -44,7 +44,7 @@ const AdminPanel = () => {
   // Stats data for the summary section
   const statsSummary = [
     { title: "Total Submissions", count: requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved || 0, path: "/admin/all-submissions", icon: FileText },
-    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/pending-requests", icon: Clock },
+    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/student-activities", icon: Clock },
     { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/activity-summary", icon: CheckCircle },
     { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications", icon: BookOpen },
     { title: "Approved Applications", count: requestsCounts.approvedApplications || 0, path: "/admin/organizations", icon: FileCheck },
@@ -477,7 +477,7 @@ const AdminPanel = () => {
                     )}
                   </div>
                   <div className="flex justify-center mt-auto border-t pt-4 pb-4">
-                    <Link to="/admin/pending-requests">
+                    <Link to="/admin/student-activities">
                       <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
                         See More <ArrowRight className="w-4 h-4" />
                       </Button>

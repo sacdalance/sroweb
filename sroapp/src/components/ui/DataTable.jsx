@@ -468,7 +468,7 @@ const DataTable = ({
                     {showPagination && (
                         <div className="flex items-center gap-2">
                             {/* Rows per page dropdown */}
-                            {showPageSizeDropdown && !isMobile && !hideViewToggle && !hidePageSize && (
+                            {showPageSizeDropdown && !isMobile && !hidePageSize && (
                                 <div className="flex items-center gap-2 mr-4">
                                     <span className="text-sm text-gray-600">Rows:</span>
                                     <select

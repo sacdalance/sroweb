@@ -19,7 +19,7 @@ import ActivitiesCalendar from "../pages/ActivitiesCalendar";
 // admin
 import AdminPanel from "../pages/admin/AdminPanel";
 import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
-import AdminPendingRequests from "../pages/admin/AdminPendingRequests";
+import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
 import AdminActivitySummary from "../pages/admin/AdminActivitySummary";
 import AdminActivitiesCalendar from "../pages/admin/AdminActivitiesCalendar";
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
@@ -207,8 +207,8 @@ const router = createBrowserRouter([
               { 2: <AdminCreateActivity />, 4: <AdminCreateActivity /> }} />
           },
           {
-            path: "admin/pending-requests", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminPendingRequests />, 3: <AdminPendingRequests />, 4: <AdminPendingRequests /> }} />
+            path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
+              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities /> }} />
           },
 
           {
