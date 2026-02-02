@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, ClipboardList } from "lucide-react";
 import supabase from "@/lib/supabase";
 import StatusPill from "@/components/ui/StatusPill";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -258,7 +258,20 @@ const AdminOrgApplications = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header text-sro-primary">Recognition Applications</h1>
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
+        <div>
+          <h1 className="page-header text-sro-primary mb-0">Recognition Applications</h1>
+          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
+            Process and evaluate student organization recognition requests.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-sro-primary/5 border border-sro-primary/10 rounded-full px-4 py-2 flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-sro-primary" />
+            <span className="text-sm font-bold text-sro-primary">{applications.length} Applications Total</span>
+          </div>
+        </div>
+      </div>
 
       <DataTable
         columns={columns}

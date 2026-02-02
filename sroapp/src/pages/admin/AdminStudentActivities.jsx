@@ -13,6 +13,7 @@ import DataTable from "@/components/ui/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { isSameDay, format } from "date-fns";
+import { Database, ClipboardList } from "lucide-react";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -444,7 +445,21 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
       <Toaster />
-      <h1 className="page-header text-sro-primary mb-6">Student Activities</h1>
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
+        <div>
+          <h1 className="page-header text-sro-primary mb-0">Student Activities</h1>
+          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
+            Review and manage organization event requests and schedules.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-sro-primary/5 border border-sro-primary/10 rounded-full px-4 py-2 flex items-center gap-2">
+            <Database className="h-4 w-4 text-sro-primary" />
+            <span className="text-sm font-bold text-sro-primary">{activities.length} Total Activities</span>
+          </div>
+        </div>
+      </div>
 
       {userRole === 4 && (
         <div className="flex justify-end mb-4">

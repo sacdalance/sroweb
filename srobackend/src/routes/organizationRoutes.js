@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/list', async (req, res) => {
   const { data, error } = await supabase
     .from('organization')
-        .select(`
+    .select(`
       org_id,
       org_name,
       org_email,
@@ -15,7 +15,9 @@ router.get('/list', async (req, res) => {
       chairperson_name,
       chairperson_email,
       academic_year,
-      drive_folder_link
+      drive_folder_link,
+      org_type,
+      org_status
     `);
 
   if (error) {

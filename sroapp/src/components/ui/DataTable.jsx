@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, LayoutGrid, Table as TableIcon } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, LayoutGrid, Table as TableIcon, Search } from "lucide-react";
 import PropTypes from "prop-types";
 import StatusPill from "@/components/ui/StatusPill";
+import { cn } from "@/lib/utils";
 import { 
     Select, 
     SelectContent, 
@@ -44,6 +45,11 @@ const DataTable = ({
     defaultSort = null,
     fixedHeight = true, // Added to prevent layout shifts during pagination
 }) => {
+    // Current class for the wrapper
+    const wrapperClass = cn(
+        "bg-white rounded-xl border shadow-sm p-2 sm:p-6",
+        className
+    );
     // View Mode State (card vs table)
     const [internalViewMode, setInternalViewMode] = useState("table");
 
@@ -85,13 +91,16 @@ const DataTable = ({
     // Filter state
     const [filters, setFilters] = useState({});
 
+    // Search state
+    const [searchTerm, setSearchTerm] = useState("");
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
 
     // Reset to first page when data length changes (caused by filters/search)
     useEffect(() => {
         setCurrentPage(1);
-    }, [data.length]);
+    }, [data.length, searchTerm]);
 
     const [pageSize, setPageSize] = useState(() => {
         // Default to 5 on mobile, otherwise use prop
@@ -134,12 +143,12 @@ const DataTable = ({
     // Get sort icon for a column
     const getSortIcon = (key) => {
         if (sortConfig.key !== key) {
-            return <ChevronsUpDown className="h-3 w-3 opacity-50" />;
+            return <ChevronsUpDown className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-opacity" />;
         }
         if (sortConfig.direction === "asc") {
-            return <ChevronUp className="h-3 w-3 text-sro-primary" />;
+            return <ChevronUp className="h-4 w-4 text-sro-primary animate-in fade-in zoom-in duration-300" />;
         }
-        return <ChevronDown className="h-3 w-3 text-sro-primary" />;
+        return <ChevronDown className="h-4 w-4 text-sro-primary animate-in fade-in zoom-in duration-300" />;
     };
 
     // Get "All X" label for a filter
@@ -153,6 +162,17 @@ const DataTable = ({
     // Filter and sort data
     const filteredAndSortedData = useMemo(() => {
         let result = [...data];
+
+        // Apply Search
+        if (searchTerm.trim()) {
+            const query = searchTerm.toLowerCase();
+            result = result.filter((row) => {
+                return columns.some((col) => {
+                    const value = col.accessor ? col.accessor(row) : row[col.key];
+                    return String(value || "").toLowerCase().includes(query);
+                });
+            });
+        }
 
         // Apply filters
         Object.entries(filters).forEach(([key, value]) => {
@@ -192,7 +212,7 @@ const DataTable = ({
         }
 
         return result;
-    }, [data, filters, sortConfig, columns]);
+    }, [data, filters, sortConfig, columns, searchTerm]);
 
     // Pagination calculations
     const totalItems = filteredAndSortedData.length;
@@ -302,19 +322,34 @@ const DataTable = ({
     };
 
     return (
-        <div className={className}>
-            {/* Controls Row: Filters + View Toggle */}
-            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 ${hasFilters || !hideViewToggle ? "" : "hidden"}`}>
-                {/* Filters */}
-                {hasFilters ? (
-                    <div className="flex flex-wrap gap-4 justify-center md:justify-start flex-1">
+        <div className={wrapperClass}>
+            {/* Controls Row: Search + Filters + View Toggle */}
+            <div className={`flex flex-col lg:flex-row lg:items-center justify-start gap-4 mb-6 ${hasFilters || !hideViewToggle ? "" : "hidden"}`}>
+                <div className="flex flex-col md:flex-row gap-3 items-center">
+                    {/* Search Bar */}
+                    <div className="relative w-full md:w-72">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <Input
+                            placeholder="Search records..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 h-10 bg-white border-gray-200 focus:border-sro-primary/50 transition-colors shadow-sm"
+                        />
+                    </div>
+
+                    {/* Filters Container */}
+                    {hasFilters && (
+                        <div className="flex flex-wrap gap-2 items-center">
+                            <div className="h-6 w-[1px] bg-gray-200 mx-1 hidden md:block" /> {/* Divider */}
                         {columns
                             .filter((col) => col.filterable && col.filterOptions)
                             .map((col) => {
                                 const allLabel = getAllLabel(col);
                                 const currentValue = filters[col.key] || allLabel;
                                 return (
-                                    <div key={col.key} className="w-full sm:w-48">
+                                    <div key={col.key} className="w-full sm:w-fit sm:min-w-[160px]">
                                         <Select
                                             value={currentValue}
                                             onValueChange={(value) => handleFilterChange(col.key, value)}
@@ -334,12 +369,13 @@ const DataTable = ({
                                     </div>
                                 );
                             })}
-                    </div>
-                ) : <div className="flex-1"></div>}
+                        </div>
+                    )}
+                </div>
 
                 {/* View Mode Toggle (Conditional) */}
                 {!hideViewToggle && (
-                    <div className="flex justify-center md:justify-end">
+                    <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border ml-auto">
                         <div className="inline-flex rounded-md shadow-sm border bg-white p-1">
                             <button
                                 onClick={() => handleViewModeChange("table")}
@@ -386,13 +422,15 @@ const DataTable = ({
                                             {col.sortable ? (
                                                 <button
                                                     onClick={() => handleSort(col.key)}
-                                                    className="inline-flex items-center justify-center gap-1 hover:text-sro-primary transition-colors w-full"
+                                                    className="inline-flex items-center justify-center gap-1.5 hover:text-sro-primary transition-colors w-full group"
                                                 >
+                                                    {col.headerIcon && <span className="opacity-60">{col.headerIcon}</span>}
                                                     <span>{col.header}</span>
                                                     {getSortIcon(col.key)}
                                                 </button>
                                             ) : (
-                                                <div className="w-full text-center">
+                                                <div className="w-full h-full flex items-center justify-center gap-1.5">
+                                                    {col.headerIcon && <span className="opacity-60">{col.headerIcon}</span>}
                                                     {col.header}
                                                 </div>
                                             )}
@@ -496,8 +534,9 @@ const DataTable = ({
             {totalItems > 0 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100">
                     {/* Results count */}
-                    <div className="text-sm text-gray-600">
-                        Showing {startIndex + 1}-{endIndex} of {totalItems} {totalItems === 1 ? "item" : "items"}
+                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                        <TableIcon className="h-4 w-4 text-gray-300" />
+                        <span>Showing <span className="font-bold text-gray-800">{startIndex + 1}-{endIndex}</span> of <span className="font-bold text-gray-800">{totalItems}</span> {totalItems === 1 ? "record" : "records"}</span>
                     </div>
 
                     {/* Pagination buttons */}

@@ -105,7 +105,20 @@ const AdminAnnualReports = () => {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
-      <h1 className="page-header text-sro-primary">Annual Reports</h1>
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
+        <div>
+          <h1 className="page-header text-sro-primary mb-0">Annual Reports</h1>
+          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
+            Archive of organization annual accomplishment reports and official submissions.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-sro-primary/5 border border-sro-primary/10 rounded-full px-4 py-2 flex items-center gap-2">
+            <Database className="h-4 w-4 text-sro-primary" />
+            <span className="text-sm font-bold text-sro-primary">{reports.length} Reports Archived</span>
+          </div>
+        </div>
+      </div>
 
       <DataTable
         columns={columns}
