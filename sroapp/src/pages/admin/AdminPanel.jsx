@@ -385,7 +385,7 @@ const AdminPanel = () => {
 
   // Handle more activities click - navigate to admin calendar with selected date
   const handleMoreActivitiesClick = (date) => {
-    navigate('/admin/activities-calendar', { state: { selectedDate: new Date(date).toISOString() } });
+    navigate('/admin/student-activities', { state: { selectedDate: new Date(date).toISOString() } });
   };
 
   // Consolidate loading states
@@ -493,7 +493,7 @@ const AdminPanel = () => {
                 events={events}
                 loading={false}
                 onEventClick={handleEventClick}
-                calendarLink="/admin/activities-calendar"
+                calendarLink="/admin/student-activities"
                 onMoreActivitiesClick={handleMoreActivitiesClick}
               />
             </div>

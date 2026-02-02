@@ -274,15 +274,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen }) => {
                         Activity Summary
                       </Link>
                     </li>
-                    <li>
-                      <Link
-                        to="/admin/activities-calendar"
-                        className={linkClass("/admin/activities-calendar")}
-                        onClick={() => isSmallScreen && setIsOpen(false)}
-                      >
-                        Activity Calendar
-                      </Link>
-                    </li>
                   </ul>
 
                   {/* ORGANIZATIONS Section */}

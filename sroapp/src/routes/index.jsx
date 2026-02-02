@@ -21,7 +21,7 @@ import AdminPanel from "../pages/admin/AdminPanel";
 import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
 import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
 import AdminActivitySummary from "../pages/admin/AdminActivitySummary";
-import AdminActivitiesCalendar from "../pages/admin/AdminActivitiesCalendar";
+
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
@@ -215,10 +215,7 @@ const router = createBrowserRouter([
             path: "admin/activity-summary", element: <RequireAdminRole childrenByRole={
               { 2: <AdminActivitySummary />, 3: <AdminActivitySummary />, 4: <AdminActivitySummary /> }} />
           },
-          {
-            path: "admin/activities-calendar", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminActivitiesCalendar />, 3: <AdminActivitiesCalendar />, 4: <AdminActivitiesCalendar /> }} />
-          },
+
           {
             path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
               { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />

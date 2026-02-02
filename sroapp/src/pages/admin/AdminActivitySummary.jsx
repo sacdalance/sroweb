@@ -778,7 +778,7 @@ const AdminActivitySummary = () => {
 
       {/* See Activities Calendar Button */}
       <div className="flex justify-end mt-4">
-        <Link to="/admin/activities-calendar">
+        <Link to="/admin/student-activities">
           <Button className="bg-sro-primary hover:bg-sro-primary/90 text-white text-sm">
             See Activities Calendar <ArrowRight className="w-4 h-4" />
           </Button>

@@ -758,7 +758,7 @@ const AdminAppointmentSettings = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
           <TabsTrigger value="requests" className="w-full md:w-auto">Appointment Requests</TabsTrigger>
-          <TabsTrigger value="calendar" className="w-full md:w-auto">Appointments</TabsTrigger>
+          <TabsTrigger value="calendar" className="w-full md:w-auto">Calendar</TabsTrigger>
           <TabsTrigger value="settings" className="w-full md:w-auto">Settings</TabsTrigger>
         </TabsList>
 
@@ -777,15 +777,15 @@ const AdminAppointmentSettings = () => {
 
         <TabsContent value="calendar">
           {/* Calendar Tab Content */}
-          <div className="flex justify-between items-center mb-4 px-1">
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-sro-secondary" /> <span className="text-xs">Confirmed</span></div>
-              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400" /> <span className="text-xs">Scheduled</span></div>
-              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-200 border border-amber-500" /> <span className="text-xs text-gray-600">For Reschedule</span></div>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 px-1">
+            <div className="flex gap-2 sm:gap-4 flex-wrap">
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-sro-secondary" /> <span className="text-[10px] sm:text-xs">Confirmed</span></div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gray-300" /> <span className="text-[10px] sm:text-xs">Scheduled</span></div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-300" /> <span className="text-[10px] sm:text-xs">For Reschedule</span></div>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-md shadow-sm border">
-              <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary" />
-              <span className="text-sm font-medium">Show Requests</span>
+            <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md shadow-sm border text-xs sm:text-sm">
+              <input type="checkbox" checked={showRequests} onChange={(e) => setShowRequests(e.target.checked)} className="rounded text-sro-primary focus:ring-sro-primary w-3.5 h-3.5" />
+              <span className="font-medium">Requests</span>
             </label>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
