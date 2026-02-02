@@ -35,7 +35,7 @@ const DataTable = ({
     emptyMessage = "No data found.",
     className = "",
     defaultPageSize = 10,
-    pageSizeOptions = [10, 25, 50],
+    pageSizeOptions = [10, 20, 30, 40, 50],
     viewMode: controlledViewMode,
     onViewModeChange,
     hideViewToggle = false,
@@ -226,8 +226,8 @@ const DataTable = ({
     }, [filteredAndSortedData, startIndex, endIndex]);
 
     // Determine if pagination is needed
-    const showPagination = totalItems > defaultPageSize;
-    const showPageSizeDropdown = showPagination;
+    const showPageNav = totalPages > 1;
+    const showPageSizeDropdown = !hidePageSize && totalItems > 0;
 
     // Check if any column has filters
     const hasFilters = columns.some((col) => col.filterable);
@@ -540,10 +540,10 @@ const DataTable = ({
                     </div>
 
                     {/* Pagination buttons */}
-                    {showPagination && (
+                    {(showPageNav || showPageSizeDropdown) && (
                         <div className="flex items-center gap-2">
                             {/* Rows per page dropdown */}
-                            {showPageSizeDropdown && !isMobile && !hidePageSize && (
+                            {showPageSizeDropdown && !isMobile && (
                                 <div className="flex items-center gap-2 mr-4 group">
                                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-tighter">Rows:</span>
                                     <Select
@@ -564,45 +564,50 @@ const DataTable = ({
                                 </div>
                             )}
 
-                            {/* Previous button */}
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className="p-1.5 rounded border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                aria-label="Previous page"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </button>
+                            {/* Navigation */}
+                            {showPageNav && (
+                                <>
+                                    {/* Previous button */}
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-1.5 rounded border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        aria-label="Previous page"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
 
-                            {/* Page numbers */}
-                            <div className="flex items-center gap-1">
-                                {getPageNumbers().map((page, index) => (
-                                    page === '...' ? (
-                                        <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
-                                    ) : (
-                                        <button
-                                            key={page}
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${currentPage === page
-                                                ? "bg-sro-primary text-white"
-                                                : "bg-white border hover:bg-gray-50"
-                                                }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    )
-                                ))}
-                            </div>
+                                    {/* Page numbers */}
+                                    <div className="flex items-center gap-1">
+                                        {getPageNumbers().map((page, index) => (
+                                            page === '...' ? (
+                                                <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                                            ) : (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCurrentPage(page)}
+                                                    className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${currentPage === page
+                                                        ? "bg-sro-primary text-white"
+                                                        : "bg-white border hover:bg-gray-50"
+                                                        }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            )
+                                        ))}
+                                    </div>
 
-                            {/* Next button */}
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className="p-1.5 rounded border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                aria-label="Next page"
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </button>
+                                    {/* Next button */}
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-1.5 rounded border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        aria-label="Next page"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
