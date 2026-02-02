@@ -608,9 +608,7 @@ const AppointmentBooking = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
           <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
-          {user && (
-            <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
-          )}
+          <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
         </TabsList>
 
         {/* My Appointments Tab */}

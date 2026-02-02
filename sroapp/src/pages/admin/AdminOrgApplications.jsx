@@ -266,10 +266,6 @@ const AdminOrgApplications = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="bg-sro-primary/5 border border-sro-primary/10 rounded-full px-4 py-2 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-sro-primary" />
-            <span className="text-sm font-bold text-sro-primary">{applications.length} Applications Total</span>
-          </div>
         </div>
       </div>
 
