@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import supabase from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -14,15 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-// Configure axios defaults
-axios.defaults.baseURL = API_BASE_URL;
-axios.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
-  }
-  return config;
-});
 
 const Requests = () => {
   const [requested, setRequested] = useState([]);
@@ -129,9 +119,10 @@ const Requests = () => {
 
       if (!account) return;
 
-      const res = await axios.get(`/activities/user/${account.account_id}`);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${account.account_id}`);
+      if (!res.ok) throw new Error('Failed to fetch activities');
       setAccountId(account.account_id);
-      const all = res.data;
+      const all = await res.json();
 
       const requestedActivities = all.filter((a) => a.final_status !== "Approved");
       const approvedActivities = all.filter((a) => a.final_status === "Approved");
@@ -180,11 +171,12 @@ const Requests = () => {
 
   const handleCancel = async () => {
     try {
-      const response = await axios.put(`/activityCancel/cancel/${cancelActivity.activity_id}`, {
-        appeal_reason: cancelReason
+      const response = await authFetch(`${API_BASE_URL}/activityCancel/cancel/${cancelActivity.activity_id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ appeal_reason: cancelReason }),
       });
 
-      if (response.status === 200) {
+      if (response.ok) {
         setRequested(prev => [...prev, { ...cancelActivity, final_status: "For Cancellation", appeal_reason: cancelReason }]);
         setApproved(prev => prev.filter(act => act.activity_id !== cancelActivity.activity_id));
         setIsCancelOpen(false);
@@ -193,7 +185,7 @@ const Requests = () => {
       }
     } catch (error) {
       console.error("Error cancelling activity:", error);
-      toast.error(error.response?.data?.error || "Failed to cancel activity");
+      toast.error("Failed to cancel activity");
     }
   };
 
@@ -201,8 +193,9 @@ const Requests = () => {
   const handleActivityRowClick = async (act) => {
     setDialogLoading(true);
     try {
-      const res = await axios.get(`/activities/user/${accountId}`);
-      const fullActivity = res.data.find((a) => a.activity_id === act.activity_id);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}`);
+      const data = await res.json();
+      const fullActivity = data.find((a) => a.activity_id === act.activity_id);
       setSelectedActivity(fullActivity);
     } catch (err) {
       console.error("Error fetching activity with account info:", err);
