@@ -253,7 +253,7 @@ const WeeklyCalendar = ({
             </div>
             <div className="flex justify-center mt-auto border-t pt-4 pb-4">
                 <Link to={calendarLink}>
-                    <Button className="bg-sro-secondary hover:bg-sro-secondary/90 text-white text-sm flex items-center gap-1">
+                    <Button variant="sro-secondary" className="text-sm flex items-center gap-1">
                         View Monthly Calendar <ArrowRight className="w-4 h-4" />
                     </Button>
                 </Link>

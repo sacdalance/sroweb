@@ -545,8 +545,8 @@ const Requests = () => {
   ];
 
   return (
-    <div className="p-3 md:p-6 max-w-6xl mx-auto">
-      <h1 className="page-header text-black text-center md:text-left">My Requests</h1>
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Requests</h1>
 
       <Tabs defaultValue="requested" className="w-full">
         <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
@@ -654,7 +654,7 @@ const Requests = () => {
               Cancel
             </Button>
             <Button
-              className="bg-sro-secondary hover:bg-sro-secondary/90 text-white"
+              variant="sro-secondary"
               onClick={() => {
                 navigate("/edit-activity", { state: { activity: editingActivity, appealReason: modalAppealReason } });
                 setIsAppealOpen(false);
@@ -713,8 +713,7 @@ const Requests = () => {
               Keep Submission
             </Button>
             <Button
-              variant="destructive"
-              className="bg-sro-primary hover:bg-sro-primary/90"
+              variant="sro-primary"
               onClick={handleCancel}
               disabled={!cancelReason.trim()}
             >

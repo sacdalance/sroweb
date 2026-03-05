@@ -2,7 +2,7 @@ import ActivityForm from "@/components/ActivityForm";
 
 const ActivityRequest = () => {
 return (
-    <div className="min-h-screen px-4">
+    <div className="max-w-[1350px] mx-auto">
     <ActivityForm
         mode="create"
         showAppealReason={false}
