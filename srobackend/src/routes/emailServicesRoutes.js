@@ -38,15 +38,30 @@ async function sendEmail({ to, subject, text, html }) {
 // Define POST /send-email endpoint - requires admin auth
 import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 
+import { isValidEmail, sanitizeEmailField } from '../lib/sanitize.js';
+
 router.post('/send-email', verifyAdminRoles, async (req, res) => {
   const { to, subject, text, html } = req.body;
 
+  // Validate recipient email
+  if (!to || !isValidEmail(to)) {
+    return res.status(400).json({ success: false, error: 'Invalid recipient email' });
+  }
+  if (!subject) {
+    return res.status(400).json({ success: false, error: 'Subject is required' });
+  }
+
   try {
-    const result = await sendEmail({ to, subject, text, html });
+    const result = await sendEmail({
+      to: sanitizeEmailField(to),
+      subject: sanitizeEmailField(subject),
+      text,
+      html,
+    });
     res.json({ success: true, messageId: result.messageId });
   } catch (err) {
     console.error('Email send error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to send email' });
   }
 });
 

@@ -115,7 +115,10 @@ const AdminOrganizations = () => {
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = `<span class="text-sro-primary font-bold text-sm">${row.org_name.charAt(0)}</span>`;
+                const span = document.createElement('span');
+                span.className = 'text-sro-primary font-bold text-sm';
+                span.textContent = row.org_name.charAt(0);
+                e.target.parentElement.replaceChildren(span);
               }}
               alt=""
             />
@@ -240,7 +243,10 @@ const AdminOrganizations = () => {
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = `<span class="text-white text-2xl font-black">${selectedOrg.org_name.charAt(0)}</span>`;
+                      const span = document.createElement('span');
+                      span.className = 'text-white text-2xl font-black';
+                      span.textContent = selectedOrg.org_name.charAt(0);
+                      e.target.parentElement.replaceChildren(span);
                     }}
                     alt=""
                   />
