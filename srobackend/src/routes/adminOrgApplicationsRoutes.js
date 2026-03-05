@@ -1,6 +1,7 @@
 // routes/adminOrgApplicationsRoutes.js
 import express from "express";
 import { supabase } from "../supabaseClient.js";
+import { createNotification } from '../lib/createNotification.js';
 
 const router = express.Router();
 
@@ -88,6 +89,54 @@ router.post('/update-status', async (req, res) => {
         return res.status(500).json({ error: insertError.message });
       }
     }
+  }
+
+  // 3. Send in-app notifications based on status changes
+  try {
+    const recipientId = updatedRows.submitted_by;
+    if (recipientId) {
+      const orgLabel = org_name || 'your organization';
+
+      if (sro_approved && odsa_approved) {
+        createNotification({
+          recipientId,
+          type: 'org_approved',
+          title: 'Organization recognition approved!',
+          message: `"${orgLabel}" has been fully approved and recognized for ${academic_year}.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.sro_approved === true) {
+        createNotification({
+          recipientId,
+          type: 'org_sro_approved',
+          title: 'Organization approved by SRO',
+          message: `"${orgLabel}" has been approved by SRO and is now pending ODSA review.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.odsa_approved === true) {
+        createNotification({
+          recipientId,
+          type: 'org_odsa_approved',
+          title: 'Organization approved by ODSA',
+          message: `"${orgLabel}" has been approved by ODSA and is now pending SRO review.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.sro_approved === false || update.odsa_approved === false) {
+        createNotification({
+          recipientId,
+          type: 'org_rejected',
+          title: 'Organization recognition rejected',
+          message: `"${orgLabel}" recognition application has been rejected. Please check the remarks for details.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.error('Notification creation failed:', notifErr);
   }
 
   return res.status(200).json({ success: true });

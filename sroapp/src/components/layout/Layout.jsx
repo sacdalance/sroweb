@@ -13,18 +13,22 @@ const Layout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [accountId, setAccountId] = useState(null);
 
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
 
   useEffect(() => {
-    const fetchRole = async () => {
+    const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
-        const { data } = await supabase.from("account").select("role_id").eq("email", user.email).single();
-        if (data) setUserRole(data.role_id);
+        const { data } = await supabase.from("account").select("account_id, role_id").eq("email", user.email).single();
+        if (data) {
+          setUserRole(data.role_id);
+          setAccountId(data.account_id);
+        }
       }
     };
-    fetchRole();
+    fetchUserData();
   }, []);
 
   return (
@@ -53,6 +57,7 @@ const Layout = () => {
           onCollapseToggle={() => setSidebarCollapsed((c) => !c)}
           sidebarCollapsed={sidebarCollapsed}
           sidebarOpen={sidebarOpen}
+          accountId={accountId}
         />
         <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-3.5rem)] overflow-auto">
           <ErrorBoundary>

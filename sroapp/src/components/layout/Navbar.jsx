@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Menu, Search, Bell, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Menu, Search, PanelLeftClose, PanelLeft } from "lucide-react";
 import PropTypes from "prop-types";
 import Breadcrumbs from "./Breadcrumbs";
+import NotificationsDropdown from "./NotificationsDropdown";
 
-const Navbar = ({ onMenuClick, onCollapseToggle, sidebarCollapsed }) => {
+const Navbar = ({ onMenuClick, onCollapseToggle, sidebarCollapsed, accountId }) => {
   return (
     <div className="fixed top-0 left-0 w-full bg-sro-primary text-white z-50 shadow-md">
       <div className="flex items-center justify-between h-14 px-4 md:px-6">
@@ -54,14 +54,8 @@ const Navbar = ({ onMenuClick, onCollapseToggle, sidebarCollapsed }) => {
             </kbd>
           </button>
 
-          {/* Notification bell placeholder */}
-          <button
-            className="relative p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sro-accent rounded-full" />
-          </button>
+          {/* Notifications */}
+          <NotificationsDropdown accountId={accountId} />
         </div>
       </div>
     </div>
@@ -72,6 +66,7 @@ Navbar.propTypes = {
   onMenuClick: PropTypes.func.isRequired,
   onCollapseToggle: PropTypes.func,
   sidebarCollapsed: PropTypes.bool,
+  accountId: PropTypes.number,
 };
 
 export default Navbar;

@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../supabaseClient.js';
 import nodemailer from 'nodemailer';
+import { createNotification } from '../lib/createNotification.js';
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -637,6 +638,26 @@ router.patch('/:id/status', async (req, res) => {
         } catch (emailError) {
           console.error('Error sending status update email:', emailError);
         }
+      }
+    }
+
+    // In-app notification
+    if (currentAppointment.account_id) {
+      const notifMap = {
+        confirmed: { type: 'appointment_confirmed', title: 'Appointment confirmed', msg: `Your appointment on ${currentAppointment.appointment_date} has been confirmed.` },
+        cancelled: { type: 'appointment_cancelled', title: 'Appointment cancelled', msg: `Your appointment on ${currentAppointment.appointment_date} has been cancelled.` },
+        completed: { type: 'appointment_confirmed', title: 'Appointment completed', msg: `Your appointment on ${currentAppointment.appointment_date} has been marked as completed.` },
+      };
+      const notif = notifMap[status];
+      if (notif) {
+        createNotification({
+          recipientId: currentAppointment.account_id,
+          type: notif.type,
+          title: notif.title,
+          message: admin_notes ? `${notif.msg} Notes: ${admin_notes}` : notif.msg,
+          referenceType: 'appointment',
+          referenceId: parseInt(id),
+        });
       }
     }
 

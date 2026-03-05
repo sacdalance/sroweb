@@ -1,5 +1,6 @@
 import supabase from "@/lib/supabase";
 import { API_BASE_URL } from "@/lib/api-config";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * Generates HTML email template for activity approval
@@ -188,8 +189,42 @@ export async function approveActivity(activityId, comment, userRole) {
       await sendEmailNotification(emailData, true);
     } catch (emailError) {
       console.error("Email notification failed:", emailError);
-      // Don't throw error - approval was successful even if email failed
     }
+  }
+
+  // In-app notification
+  try {
+    const { data: actData } = await supabase
+      .from("activity")
+      .select("account_id, activity_name")
+      .eq("activity_id", activityId)
+      .single();
+
+    if (actData) {
+      if (userRole === 2) {
+        // SRO approved — notify student it's now with ODSA
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_sro_approved",
+          title: "Activity approved by SRO",
+          message: `"${actData.activity_name}" has been approved by SRO and is now pending ODSA review.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      } else {
+        // ODSA or SuperAdmin — final approval
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_approved",
+          title: "Activity fully approved!",
+          message: `"${actData.activity_name}" has been approved. You may now retrieve your approval slip.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification creation failed:", notifErr);
   }
 }
 
@@ -235,6 +270,27 @@ export async function rejectActivity(activityId, comment, userRole) {
     await sendEmailNotification(emailData, false);
   } catch (emailError) {
     console.error("Email notification failed:", emailError);
-    // Don't throw error - rejection was successful even if email failed
+  }
+
+  // In-app notification
+  try {
+    const { data: actData } = await supabase
+      .from("activity")
+      .select("account_id, activity_name")
+      .eq("activity_id", activityId)
+      .single();
+
+    if (actData) {
+      createNotification({
+        recipientId: actData.account_id,
+        type: "activity_rejected",
+        title: "Activity rejected",
+        message: `"${actData.activity_name}" has been rejected. Check the remarks for details and submit a new request if needed.`,
+        referenceType: "activity",
+        referenceId: activityId,
+      });
+    }
+  } catch (notifErr) {
+    console.error("Notification creation failed:", notifErr);
   }
 }
