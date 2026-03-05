@@ -26,10 +26,14 @@ const NavItem = ({ to, icon: Icon, label, isActive, collapsed, onClick }) => (
           onClick={onClick}
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-            collapsed && "justify-center px-2",
+            collapsed ? "justify-center px-0 w-10 h-10 mx-auto" : "border-l-[3px]",
             isActive
-              ? "bg-sro-primary/10 text-sro-primary border-l-[3px] border-sro-primary font-semibold"
-              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 border-l-[3px] border-transparent"
+              ? collapsed
+                ? "bg-sro-primary/10 text-sro-primary font-semibold"
+                : "bg-sro-primary/10 text-sro-primary border-sro-primary font-semibold"
+              : collapsed
+                ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 border-transparent"
           )}
         >
           <Icon className={cn("w-[18px] h-[18px] shrink-0", isActive && "text-sro-primary")} />
