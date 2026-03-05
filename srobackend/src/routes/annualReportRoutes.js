@@ -4,13 +4,16 @@ import streamifier from 'streamifier';
 import cors from 'cors';
 import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
-router.use(cors());
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max per file
+});
 
 // Load environment variables
 const parentFolderId = process.env.GDRIVE_ANNUAL_REPORT_FOLDER_ID;
@@ -125,7 +128,7 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
 /**
  * POST / - Handles uploading annual report and storing metadata
  */
-router.post('/', upload.array('files', 2), async (req, res) => {
+router.post('/', authMiddleware, upload.array('files', 2), async (req, res) => {
   try {
     const { org_id, submitted_by, academic_year } = req.body;
     const files = req.files;

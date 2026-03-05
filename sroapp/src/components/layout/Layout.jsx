@@ -1,27 +1,46 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import { useState, useCallback } from "react";
+import CommandPalette from "./CommandPalette";
+import { useState, useCallback, useEffect } from "react";
+import { Toaster } from "@/components/ui/sonner";
 import NetworkGuard from "@/components/NetworkGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
-
-const SIDEBAR_WIDTH = 256; // Tailwind's w-64
+import supabase from "@/lib/supabase";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [accountId, setAccountId] = useState(null);
 
-  // Optional: close sidebar on route change, etc.
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const { data } = await supabase.from("account").select("account_id, role_id").eq("email", user.email).single();
+        if (data) {
+          setUserRole(data.role_id);
+          setAccountId(data.account_id);
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
+
   return (
-    <div className="fixed w-full h-screen flex bg-white">
-      {/* Sidebar: always visible on lg+, toggleable on mobile */}
+    <div className="fixed w-full h-screen flex bg-sro-bg-off-white">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={handleSidebarClose}
         setIsOpen={setSidebarOpen}
+        collapsed={sidebarCollapsed}
       />
-      {/* Overlay for mobile */}
+
+      {/* Mobile overlay */}
       <div
         className={`
           fixed inset-0 bg-black/30 z-[55] transition-opacity duration-300 mt-14
@@ -30,27 +49,35 @@ const Layout = () => {
         `}
         onClick={() => setSidebarOpen(false)}
       />
+
       {/* Main content */}
-      <div
-        className={`
-          flex-1 min-w-0 transition-all duration-300
-          flex flex-col
-          h-screen
-        `}
-      >
-        {/* Mobile menu button */}
+      <div className="flex-1 min-w-0 transition-all duration-300 flex flex-col h-screen">
         <Navbar
-          onMenuClick={() => setSidebarOpen(open => !open)}
+          onMenuClick={() => setSidebarOpen((open) => !open)}
+          onCollapseToggle={() => setSidebarCollapsed((c) => !c)}
+          sidebarCollapsed={sidebarCollapsed}
           sidebarOpen={sidebarOpen}
+          accountId={accountId}
         />
-        <main className="pt-20 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-5rem)] overflow-auto">
+        <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-3.5rem)] overflow-auto">
           <ErrorBoundary>
             <NetworkGuard>
-              <Outlet />
+              <div className="py-6">
+                <Outlet />
+              </div>
             </NetworkGuard>
           </ErrorBoundary>
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        role={userRole}
+      />
+
+      <Toaster position="bottom-right" />
     </div>
   );
 };

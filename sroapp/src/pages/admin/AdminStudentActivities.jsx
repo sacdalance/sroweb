@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
+import { createNotification } from "@/lib/notifications";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
 import { Button } from "../../components/ui/button";
@@ -258,7 +259,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
             const recipientEmail = activity.account?.email;
             if (recipientEmail) {
-              fetch(`${API_BASE_URL}/api/send-email`, {
+              authFetch(`${API_BASE_URL}/api/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -279,6 +280,18 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                   `
                 })
               }).catch(e => console.error('Failed to send auto-reject email:', e));
+            }
+
+            // In-app notification for auto-rejection
+            if (activity.account_id) {
+              createNotification({
+                recipientId: activity.account_id,
+                type: 'activity_auto_rejected',
+                title: 'Activity auto-rejected',
+                message: `"${activity.activity_name}" was automatically rejected because the activity date has elapsed.`,
+                referenceType: 'activity',
+                referenceId: activity.activity_id,
+              });
             }
           });
         } else {
@@ -375,7 +388,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
   const handleViewPDFsInDrive = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
+      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
         },

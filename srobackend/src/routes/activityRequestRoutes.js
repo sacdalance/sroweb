@@ -4,14 +4,17 @@ import multer from 'multer';
 import cors from 'cors';
 import { supabase } from '../supabaseClient.js';
 import { google } from 'googleapis';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
 
-router.use(cors());
 
 // GOOGLE DRIVE AUTH
 const auth = new google.auth.GoogleAuth({
@@ -69,7 +72,7 @@ function generateActivityId() {
 }
 
 // ACTIVITY REQUEST SUBMISSION
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     const {
       account_id, org_id, student_position, student_contact, activity_name, activity_description, activity_type,

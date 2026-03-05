@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
@@ -35,7 +35,7 @@ const AdminOrganizations = () => {
     const fetchOrganizations = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/organization/list`);
+        const res = await authFetch(`${API_BASE_URL}/api/organization/list`);
         const data = await res.json();
         setOrganizations(Array.isArray(data) ? data.map(o => ({ ...o, id: o.org_id })) : []);
       } catch (err) {
@@ -115,7 +115,10 @@ const AdminOrganizations = () => {
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = `<span class="text-sro-primary font-bold text-sm">${row.org_name.charAt(0)}</span>`;
+                const span = document.createElement('span');
+                span.className = 'text-sro-primary font-bold text-sm';
+                span.textContent = row.org_name.charAt(0);
+                e.target.parentElement.replaceChildren(span);
               }}
               alt=""
             />
@@ -240,7 +243,10 @@ const AdminOrganizations = () => {
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = `<span class="text-white text-2xl font-black">${selectedOrg.org_name.charAt(0)}</span>`;
+                      const span = document.createElement('span');
+                      span.className = 'text-white text-2xl font-black';
+                      span.textContent = selectedOrg.org_name.charAt(0);
+                      e.target.parentElement.replaceChildren(span);
                     }}
                     alt=""
                   />

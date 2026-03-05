@@ -14,7 +14,7 @@ import {
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { ChevronDown, Check, AlertTriangle, FileText } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { submitOrgApplication } from "@/api/orgApplicationAPI";
@@ -329,9 +329,8 @@ const OrgApplication = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <Toaster />
-      <h1 className="page-header text-black">Recognition Application</h1>
+    <div className="max-w-7xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Recognition Application</h1>
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
         <div className="space-y-5">
           {/* Organization Name */}
@@ -683,7 +682,7 @@ const OrgApplication = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={isUploading}
-                className="bg-sro-secondary hover:bg-sro-secondary/90 text-white w-full sm:w-auto"
+                variant="sro-secondary" className="w-full sm:w-auto"
               >
                 {isUploading ? (
                   <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
@@ -751,7 +750,7 @@ const OrgApplication = () => {
               </Button>
               <Button
                 onClick={handleRestoreDraft}
-                className="bg-sro-secondary hover:bg-sro-secondary/90 w-full sm:w-auto text-white"
+                variant="sro-secondary" className="w-full sm:w-auto"
               >
                 Restore Draft
               </Button>
@@ -784,7 +783,7 @@ const OrgApplication = () => {
                   Stay Here
                 </AlertDialogCancel>
                 <AlertDialogAction
-                  className="w-full sm:w-auto bg-sro-primary hover:bg-sro-primary/90 text-white"
+                  variant="sro-primary" className="w-full sm:w-auto"
                   onClick={() => blocker.proceed()}
                 >
                   Leave Page
@@ -810,7 +809,7 @@ const OrgApplication = () => {
           </DialogHeader>
           <DialogFooter className="flex flex-row justify-center gap-6 mt-4">
             <Button
-              className="bg-sro-secondary hover:bg-sro-secondary/90 text-white font-semibold px-6 py-2 rounded-xl shadow-none"
+              variant="sro-secondary" className="font-semibold px-6 py-2 rounded-xl shadow-none"
               onClick={() => handleInterviewResponse(true)}
             >
               Schedule Now

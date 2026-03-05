@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -141,7 +141,7 @@ const AdminActivitySummary = () => {
 
   const handleViewPDFsInDrive = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
+      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
         },

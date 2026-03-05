@@ -1,6 +1,12 @@
 import express from 'express';
 import { supabase } from '../supabaseClient.js';
 import nodemailer from 'nodemailer';
+import { createNotification } from '../lib/createNotification.js';
+import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.js';
+import { escapeHtml } from '../lib/sanitize.js';
+
+// Shorthand for escaping user data in email templates
+const e = escapeHtml;
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -14,7 +20,7 @@ const transporter = nodemailer.createTransport({
 const router = express.Router();
 
 // Get appointment settings
-router.get('/settings', async (req, res) => {
+router.get('/settings', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('appointment_settings')
@@ -36,7 +42,7 @@ router.get('/settings', async (req, res) => {
 });
 
 // Update or insert appointment settings
-router.post('/settings', async (req, res) => {
+router.post('/settings', verifyAdminRoles, async (req, res) => {
   try {
     const {
       allowed_days,
@@ -84,7 +90,7 @@ router.post('/settings', async (req, res) => {
 });
 
 // Get all blocked slots
-router.get('/blocked-slots', async (req, res) => {
+router.get('/blocked-slots', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('blocked_slots')
@@ -105,7 +111,7 @@ router.get('/blocked-slots', async (req, res) => {
 });
 
 // Block a date or time slot
-router.post('/blocked-slots', async (req, res) => {
+router.post('/blocked-slots', verifyAdminRoles, async (req, res) => {
   try {
     const { block_date, block_time, reason, account_id } = req.body;
 
@@ -140,7 +146,7 @@ router.post('/blocked-slots', async (req, res) => {
 });
 
 // Remove a blocked slot
-router.delete('/blocked-slots/:id', async (req, res) => {
+router.delete('/blocked-slots/:id', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { account_id } = req.body;
@@ -171,7 +177,7 @@ router.delete('/blocked-slots/:id', async (req, res) => {
 });
 
 // Get available time slots for a specific date
-router.get('/available-slots', async (req, res) => {
+router.get('/available-slots', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
 
@@ -303,7 +309,7 @@ router.get('/available-slots', async (req, res) => {
 });
 
 // Get appointments (with optional filtering)
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { date, status, user_id } = req.query;
 
@@ -338,7 +344,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific appointment
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -365,7 +371,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create a new appointment
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       account_id,
@@ -383,11 +389,19 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Validate date/time format before querying
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(appointment_date)) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(appointment_time)) {
+      return res.status(400).json({ error: 'Invalid time format' });
+    }
+
     // Check if date or time is blocked
     const { data: blockedSlots, error: blockedError } = await supabase
       .from('blocked_slots')
       .select('*')
-      .or(`block_date.eq.${appointment_date},block_time.eq.${appointment_time}`);
+      .or(`block_date.eq."${appointment_date}",block_time.eq."${appointment_time}"`);
 
     if (blockedError) throw blockedError;
 
@@ -473,7 +487,7 @@ router.post('/', async (req, res) => {
             Date: ${appointment_date}
             Time: ${appointment_time}
             Purpose: ${reason}
-            
+
             Your appointment is currently pending approval. You will receive another email once it has been confirmed.
           `,
           html: `
@@ -481,7 +495,7 @@ router.post('/', async (req, res) => {
             <p>Thank you for scheduling an appointment.</p>
             <p><strong>Date:</strong> ${appointment_date}</p>
             <p><strong>Time:</strong> ${appointment_time}</p>
-            <p><strong>Purpose:</strong> ${reason}</p>
+            <p><strong>Purpose:</strong> ${e(reason)}</p>
             <p>Your appointment is currently pending approval. You will receive another email once it has been confirmed.</p>
           `
         };
@@ -500,7 +514,7 @@ router.post('/', async (req, res) => {
           Date: ${appointment_date}
           Time: ${appointment_time}
           Purpose: ${reason}
-          
+
           Please review this request in the admin dashboard.
         `,
         html: `
@@ -508,7 +522,7 @@ router.post('/', async (req, res) => {
           <p>A new appointment request has been submitted.</p>
           <p><strong>Date:</strong> ${appointment_date}</p>
           <p><strong>Time:</strong> ${appointment_time}</p>
-          <p><strong>Purpose:</strong> ${reason}</p>
+          <p><strong>Purpose:</strong> ${e(reason)}</p>
           <p>Please review this request in the admin dashboard.</p>
         `
       };
@@ -525,8 +539,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update appointment status
-router.patch('/:id/status', async (req, res) => {
+// Update appointment status (admin only)
+router.patch('/:id/status', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_notes } = req.body;
@@ -584,7 +598,7 @@ router.patch('/:id/status', async (req, res) => {
             <p>Your appointment has been confirmed for:</p>
             <p><strong>Date:</strong> ${currentAppointment.date}</p>
             <p><strong>Time:</strong> ${currentAppointment.time_slot}</p>
-            ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+            ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
           `;
           break;
         case 'cancelled':
@@ -594,7 +608,7 @@ router.patch('/:id/status', async (req, res) => {
             <p>Your appointment for the following date and time has been cancelled:</p>
             <p><strong>Date:</strong> ${currentAppointment.date}</p>
             <p><strong>Time:</strong> ${currentAppointment.time_slot}</p>
-            ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+            ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
           `;
           break;
         case 'completed':
@@ -604,7 +618,7 @@ router.patch('/:id/status', async (req, res) => {
             <p>Thank you for attending your appointment.</p>
             <p><strong>Date:</strong> ${currentAppointment.date}</p>
             <p><strong>Time:</strong> ${currentAppointment.time_slot}</p>
-            ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+            ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
           `;
           break;
         case 'no-show':
@@ -615,7 +629,7 @@ router.patch('/:id/status', async (req, res) => {
             <p><strong>Date:</strong> ${currentAppointment.date}</p>
             <p><strong>Time:</strong> ${currentAppointment.time_slot}</p>
             <p>If you need to reschedule, please make a new appointment through the system.</p>
-            ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+            ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
           `;
           break;
         default:
@@ -640,6 +654,26 @@ router.patch('/:id/status', async (req, res) => {
       }
     }
 
+    // In-app notification
+    if (currentAppointment.account_id) {
+      const notifMap = {
+        confirmed: { type: 'appointment_confirmed', title: 'Appointment confirmed', msg: `Your appointment on ${currentAppointment.appointment_date} has been confirmed.` },
+        cancelled: { type: 'appointment_cancelled', title: 'Appointment cancelled', msg: `Your appointment on ${currentAppointment.appointment_date} has been cancelled.` },
+        completed: { type: 'appointment_confirmed', title: 'Appointment completed', msg: `Your appointment on ${currentAppointment.appointment_date} has been marked as completed.` },
+      };
+      const notif = notifMap[status];
+      if (notif) {
+        createNotification({
+          recipientId: currentAppointment.account_id,
+          type: notif.type,
+          title: notif.title,
+          message: admin_notes ? `${notif.msg} Notes: ${admin_notes}` : notif.msg,
+          referenceType: 'appointment',
+          referenceId: parseInt(id),
+        });
+      }
+    }
+
     return res.status(200).json(data[0]);
   } catch (error) {
     console.error('Error updating appointment status:', error);
@@ -648,7 +682,7 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // Request to reschedule an appointment
-router.post('/:id/reschedule-request', async (req, res) => {
+router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { new_date, new_time, reason } = req.body;
@@ -680,11 +714,19 @@ router.post('/:id/reschedule-request', async (req, res) => {
       });
     }
 
+    // Validate date/time format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(new_date)) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(new_time)) {
+      return res.status(400).json({ error: 'Invalid time format' });
+    }
+
     // Check if new date/time is blocked
     const { data: blockedSlots, error: blockedError } = await supabase
       .from('blocked_slots')
       .select('*')
-      .or(`block_date.eq.${new_date},block_time.eq.${new_time}`);
+      .or(`block_date.eq."${new_date}",block_time.eq."${new_time}"`);
 
     if (blockedError) throw blockedError;
 
@@ -738,12 +780,12 @@ router.post('/:id/reschedule-request', async (req, res) => {
         subject: 'Appointment Reschedule Request',
         html: `
           <h2>Appointment Reschedule Request</h2>
-          <p><strong>User:</strong> ${appointment.account.account_name}</p>
+          <p><strong>User:</strong> ${e(appointment.account.account_name)}</p>
           <p><strong>Original Date:</strong> ${appointment.appointment_date}</p>
           <p><strong>Original Time:</strong> ${appointment.appointment_time}</p>
           <p><strong>Requested Date:</strong> ${new_date}</p>
           <p><strong>Requested Time:</strong> ${new_time}</p>
-          <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+          <p><strong>Reason:</strong> ${e(reason) || 'No reason provided'}</p>
           <p>Please review this request in the admin dashboard.</p>
         `
       };
@@ -781,7 +823,7 @@ router.post('/:id/reschedule-request', async (req, res) => {
 });
 
 // Admin approve/reject reschedule request
-router.patch('/:id/reschedule-decision', async (req, res) => {
+router.patch('/:id/reschedule-decision', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { approved, admin_notes } = req.body;
@@ -879,7 +921,7 @@ router.patch('/:id/reschedule-decision', async (req, res) => {
           <p><strong>Time:</strong> ${appointment.time_slot}</p>
           `}
           
-          ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+          ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
         `
       };
 
@@ -898,7 +940,7 @@ router.patch('/:id/reschedule-decision', async (req, res) => {
 });
 
 // Request to cancel an appointment
-router.post('/:id/cancellation-request', async (req, res) => {
+router.post('/:id/cancellation-request', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -956,7 +998,7 @@ router.post('/:id/cancellation-request', async (req, res) => {
         Date: ${appointment.date}
         Time: ${appointment.time_slot}
         Reason: ${reason}
-        
+
         Please review this request in the admin dashboard.
       `,
       html: `
@@ -964,7 +1006,7 @@ router.post('/:id/cancellation-request', async (req, res) => {
         <p><strong>User:</strong> ${appointment.users.first_name} ${appointment.users.last_name} (${appointment.users.email})</p>
         <p><strong>Date:</strong> ${appointment.date}</p>
         <p><strong>Time:</strong> ${appointment.time_slot}</p>
-        <p><strong>Reason:</strong> ${reason}</p>
+        <p><strong>Reason:</strong> ${e(reason)}</p>
         <p>Please review this request in the admin dashboard.</p>
       `
     };
@@ -1015,7 +1057,7 @@ router.post('/:id/cancellation-request', async (req, res) => {
 });
 
 // Admin approve/reject cancellation request
-router.patch('/:id/cancellation-decision', async (req, res) => {
+router.patch('/:id/cancellation-decision', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { approved, admin_notes } = req.body;
@@ -1107,7 +1149,7 @@ router.patch('/:id/cancellation-decision', async (req, res) => {
           <p><strong>Time:</strong> ${appointment.time_slot}</p>
           `}
           
-          ${admin_notes ? `<p><strong>Notes:</strong> ${admin_notes}</p>` : ''}
+          ${admin_notes ? `<p><strong>Notes:</strong> ${e(admin_notes)}</p>` : ''}
         `
       };
 
@@ -1125,8 +1167,8 @@ router.patch('/:id/cancellation-decision', async (req, res) => {
   }
 });
 
-// Send confirmation email for appointment
-router.post('/:id/send-confirmation', async (req, res) => {
+// Send confirmation email for appointment (admin only)
+router.post('/:id/send-confirmation', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { notes, status } = req.body;

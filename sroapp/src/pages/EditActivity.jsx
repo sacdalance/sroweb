@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import {
     Select,
     SelectContent,
@@ -17,7 +17,7 @@ import { Separator } from "../components/ui/separator";
 import { Progress } from "../components/ui/progress";
 import { createActivity } from '../api/activityRequestAPI';
 import { useNavigate } from "react-router-dom";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import supabase from "@/lib/supabase";
 import {
     AlertDialog,
@@ -698,7 +698,7 @@ const EditActivity = () => {
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/organization/list`);
+                const response = await authFetch(`${API_BASE_URL}/api/organization/list`);
                 const data = await response.json();
                 setOrgOptions(data);
             } catch (err) {
@@ -774,13 +774,10 @@ const EditActivity = () => {
     }, [activity]);
 
     return (
-        <div className="min-h-screen flex flex-col items-start justify-start py-8">
-            <div className="w-full max-w-2xl mx-auto px-6">
-                <h1 className="page-header text-black">Edit Submission</h1>
+        <div className="flex flex-col items-start justify-start">
+            <div className="w-full max-w-2xl mx-auto">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Edit Submission</h1>
                 <form onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
-
-                    {/* Sonner, side pop up */}
-                    <Toaster />
 
                     {/* Menu Bar */}
                     <div className="flex items-center space-x-4 mb-4">

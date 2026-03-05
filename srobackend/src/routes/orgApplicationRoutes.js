@@ -4,13 +4,16 @@ import streamifier from 'streamifier';
 import cors from 'cors';
 import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
-router.use(cors());
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max per file
+});
 
 // ✅ Load environment variables
 const parentFolderId = process.env.GDRIVE_ORG_APP_FOLDER_ID;
@@ -124,7 +127,7 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
 /**
  * ✅ POST /api/org-application - Handles uploading org recognition docs and storing metadata
  */
-router.post('/', upload.array('files', 6), async (req, res) => {
+router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
   try {
     const {
       org_name,

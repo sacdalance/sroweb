@@ -1,26 +1,42 @@
 // routes/adminOrgApplicationsRoutes.js
 import express from "express";
 import { supabase } from "../supabaseClient.js";
+import { createNotification } from '../lib/createNotification.js';
+import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/update-status', async (req, res) => {
+router.post('/update-status', verifyAdminRoles, async (req, res) => {
   const { recognition_id, update } = req.body;
   if (!recognition_id || !update) {
     return res.status(400).json({ error: 'Missing data' });
   }
 
+  // Whitelist allowed fields to prevent arbitrary field injection
+  const allowedFields = [
+    'sro_approved', 'odsa_approved', 'sro_remarks', 'odsa_remarks',
+    'org_status', 'interview_slot_id',
+  ];
+  const sanitizedUpdate = {};
+  for (const key of allowedFields) {
+    if (key in update) sanitizedUpdate[key] = update[key];
+  }
+
+  if (Object.keys(sanitizedUpdate).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
   // 1. Update org_recognition and fetch the updated row
   const { data: updatedRows, error } = await supabase
     .from('org_recognition')
-    .update(update)
+    .update(sanitizedUpdate)
     .eq('recognition_id', recognition_id)
     .select()
     .single();
 
   if (error) {
     console.error('Supabase update error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Failed to update application status' });
   }
 
   // 2. Check if both SRO and ODSA are approved
@@ -88,6 +104,54 @@ router.post('/update-status', async (req, res) => {
         return res.status(500).json({ error: insertError.message });
       }
     }
+  }
+
+  // 3. Send in-app notifications based on status changes
+  try {
+    const recipientId = updatedRows.submitted_by;
+    if (recipientId) {
+      const orgLabel = org_name || 'your organization';
+
+      if (sro_approved && odsa_approved) {
+        createNotification({
+          recipientId,
+          type: 'org_approved',
+          title: 'Organization recognition approved!',
+          message: `"${orgLabel}" has been fully approved and recognized for ${academic_year}.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.sro_approved === true) {
+        createNotification({
+          recipientId,
+          type: 'org_sro_approved',
+          title: 'Organization approved by SRO',
+          message: `"${orgLabel}" has been approved by SRO and is now pending ODSA review.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.odsa_approved === true) {
+        createNotification({
+          recipientId,
+          type: 'org_odsa_approved',
+          title: 'Organization approved by ODSA',
+          message: `"${orgLabel}" has been approved by ODSA and is now pending SRO review.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      } else if (update.sro_approved === false || update.odsa_approved === false) {
+        createNotification({
+          recipientId,
+          type: 'org_rejected',
+          title: 'Organization recognition rejected',
+          message: `"${orgLabel}" recognition application has been rejected. Please check the remarks for details.`,
+          referenceType: 'org_recognition',
+          referenceId: recognition_id,
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.error('Notification creation failed:', notifErr);
   }
 
   return res.status(200).json({ success: true });

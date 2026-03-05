@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
-import { toast, Toaster } from 'sonner';
+import { toast } from 'sonner';
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
@@ -590,9 +590,10 @@ const AppointmentBooking = () => {
           disabled={row.status !== 'scheduled'}
           size="sm"
           className={`text-xs ${row.status === 'scheduled'
-            ? 'bg-sro-primary hover:bg-sro-primary/90 text-white'
+            ? ''
             : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
             }`}
+          variant={row.status === 'scheduled' ? 'sro-primary' : 'ghost'}
         >
           Reschedule
         </Button>
@@ -601,9 +602,8 @@ const AppointmentBooking = () => {
   ], []);
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <Toaster position="top-center" richColors />
-      <h1 className="page-header text-black text-center md:text-left">Appointments</h1>
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Appointments</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
@@ -964,7 +964,7 @@ const AppointmentBooking = () => {
           <DialogFooter>
             <Button
               onClick={() => handleRescheduleRequest(reschedulingAppointment.id)}
-              className="bg-sro-primary hover:bg-sro-primary/90 text-white"
+              variant="sro-primary"
               disabled={!rescheduleData.date || !rescheduleData.time || !rescheduleReason.trim()}
             >
               Request Reschedule

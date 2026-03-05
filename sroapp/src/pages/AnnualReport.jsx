@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Check, ChevronDown, AlertTriangle, FileText } from "lucide-react"; // Added AlertTriangle, FileText
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
 import supabase from "@/lib/supabase";
@@ -252,9 +252,8 @@ const AnnualReport = () => {
   const relevantForms = REQUIRED_FORMS.filter(f => f.category === 'Annual Report');
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <Toaster />
-      <h1 className="page-header text-black">Annual Report</h1>
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Annual Report</h1>
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Fields Section */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
@@ -531,7 +530,7 @@ const AnnualReport = () => {
               </Button>
               <Button
                 onClick={handleRestoreDraft}
-                className="bg-sro-secondary hover:bg-sro-secondary/90 w-full sm:w-auto text-white"
+                variant="sro-secondary" className="w-full sm:w-auto"
               >
                 Restore Draft
               </Button>
@@ -564,7 +563,7 @@ const AnnualReport = () => {
                   Stay Here
                 </AlertDialogCancel>
                 <AlertDialogAction
-                  className="w-full sm:w-auto bg-sro-primary hover:bg-sro-primary/90 text-white"
+                  variant="sro-primary" className="w-full sm:w-auto"
                   onClick={() => blocker.proceed()}
                 >
                   Leave Page

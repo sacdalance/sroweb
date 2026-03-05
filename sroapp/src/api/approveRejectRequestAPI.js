@@ -1,5 +1,9 @@
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
+import { createNotification } from "@/lib/notifications";
+
+/** Escape HTML special chars to prevent XSS in email templates */
+const esc = (str) => String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 /**
  * Generates HTML email template for activity approval
@@ -9,13 +13,13 @@ const generateApprovalEmailHTML = (activityData) => {
 
   return `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-  <p>Dear, <strong>${orgName}</strong>!</p>
-  <p>We are pleased to inform you that your request to hold "<strong>${activityName}</strong>", in "<strong>${venue}</strong>", on "<strong>${displayDate}</strong>" has been <strong>APPROVED!</strong></p>
+  <p>Dear, <strong>${esc(orgName)}</strong>!</p>
+  <p>We are pleased to inform you that your request to hold "<strong>${esc(activityName)}</strong>", in "<strong>${esc(venue)}</strong>", on "<strong>${esc(displayDate)}</strong>" has been <strong>APPROVED!</strong></p>
   <p>Please ensure that you retrieve your OSA-SRO Form 1B - Student Activity Approval Slip from the outgoing bin at OSA. You will need to submit a copy of this slip to the UPB Security Office, and to some of the Venue Approvers to finalize your venue reservation.</p>
-  <p>Take note of your Activity Form Id: <strong>#${formCode}</strong>.</p>
+  <p>Take note of your Activity Form Id: <strong>#${esc(formCode)}</strong>.</p>
   <p>Please refer to these comments for other reminders and notes by the SRO/OSA:<br>
-  SRO Comment: <strong>"${sroComments || 'No additional comments'}"</strong><br>
-  ODSA Comment: <strong>"${odsaComments || 'No additional comments'}"</strong></p>
+  SRO Comment: <strong>"${esc(sroComments) || 'No additional comments'}"</strong><br>
+  ODSA Comment: <strong>"${esc(odsaComments) || 'No additional comments'}"</strong></p>
   <p><strong>REMINDER: This is an automated e-mail. Kindly do not reply to this e-mail.</strong><br>
   If you have concerns, please send a separate e-mail with the subject: "<strong>Activity Concern, #${formCode}</strong>".</p>
   <p>Thank you,<br>
@@ -35,15 +39,15 @@ const generateRejectionEmailHTML = (activityData) => {
 
   return `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-  <p>Dear, <strong>${orgName}</strong>!</p>
-  <p>We regret to inform you that your request to hold "<strong>${activityName}</strong>", at "<strong>${venue}</strong>", on "<strong>${displayDate}</strong>" has been <strong>REJECTED!</strong></p>
+  <p>Dear, <strong>${esc(orgName)}</strong>!</p>
+  <p>We regret to inform you that your request to hold "<strong>${esc(activityName)}</strong>", at "<strong>${esc(venue)}</strong>", on "<strong>${esc(displayDate)}</strong>" has been <strong>REJECTED!</strong></p>
   <p>Please refer to these comments as to why your request was rejected:<br>
-  SRO Comment: <strong>"${sroComments || 'No additional comments'}"</strong><br>
-  ODSA Comment: <strong>"${odsaComments || 'No additional comments'}"</strong><br></p>
+  SRO Comment: <strong>"${esc(sroComments) || 'No additional comments'}"</strong><br>
+  ODSA Comment: <strong>"${esc(odsaComments) || 'No additional comments'}"</strong><br></p>
   <p>For your request to be approved, please send a new submission in accordance to the comments provided.</p>
-  <p>Take note of your Activity Form Id: <strong>#${formCode}</strong>.</p>
+  <p>Take note of your Activity Form Id: <strong>#${esc(formCode)}</strong>.</p>
   <p><strong>REMINDER: This is an automated e-mail. Kindly do not reply to this e-mail.</strong><br>
-  If you have concerns, please send a separate e-mail with the subject: "<strong>Activity Concern, #${formCode}</strong>".</p>
+  If you have concerns, please send a separate e-mail with the subject: "<strong>Activity Concern, #${esc(formCode)}</strong>".</p>
   <p>Thank you,<br>
   <small><i>Yours in honour, excellence and service,</i></small><br><br>
   <strong>Office of Student Affairs | Student Relations Office<br>
@@ -116,7 +120,7 @@ const sendEmailNotification = async (emailData, isApproval) => {
 
     const subject = `Activity ${isApproval ? 'Approved' : 'Rejected'} - ${emailData.activityName}`;
 
-    const response = await fetch(`${API_BASE_URL}/api/send-email`, {
+    const response = await authFetch(`${API_BASE_URL}/api/send-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -188,8 +192,42 @@ export async function approveActivity(activityId, comment, userRole) {
       await sendEmailNotification(emailData, true);
     } catch (emailError) {
       console.error("Email notification failed:", emailError);
-      // Don't throw error - approval was successful even if email failed
     }
+  }
+
+  // In-app notification
+  try {
+    const { data: actData } = await supabase
+      .from("activity")
+      .select("account_id, activity_name")
+      .eq("activity_id", activityId)
+      .single();
+
+    if (actData) {
+      if (userRole === 2) {
+        // SRO approved — notify student it's now with ODSA
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_sro_approved",
+          title: "Activity approved by SRO",
+          message: `"${actData.activity_name}" has been approved by SRO and is now pending ODSA review.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      } else {
+        // ODSA or SuperAdmin — final approval
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_approved",
+          title: "Activity fully approved!",
+          message: `"${actData.activity_name}" has been approved. You may now retrieve your approval slip.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification creation failed:", notifErr);
   }
 }
 
@@ -235,6 +273,27 @@ export async function rejectActivity(activityId, comment, userRole) {
     await sendEmailNotification(emailData, false);
   } catch (emailError) {
     console.error("Email notification failed:", emailError);
-    // Don't throw error - rejection was successful even if email failed
+  }
+
+  // In-app notification
+  try {
+    const { data: actData } = await supabase
+      .from("activity")
+      .select("account_id, activity_name")
+      .eq("activity_id", activityId)
+      .single();
+
+    if (actData) {
+      createNotification({
+        recipientId: actData.account_id,
+        type: "activity_rejected",
+        title: "Activity rejected",
+        message: `"${actData.activity_name}" has been rejected. Check the remarks for details and submit a new request if needed.`,
+        referenceType: "activity",
+        referenceId: activityId,
+      });
+    }
+  } catch (notifErr) {
+    console.error("Notification creation failed:", notifErr);
   }
 }

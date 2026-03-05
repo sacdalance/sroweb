@@ -1,5 +1,5 @@
 // src/api/orgApplicationAPI.js
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
 export const submitOrgApplication = async ({
   org_name,
@@ -40,7 +40,7 @@ export const submitOrgApplication = async ({
   files.forEach((file) => formData.append("files", file));
 
   // Send to backend
-  const response = await fetch(`${API_BASE_URL}/api/orgApplication`, {
+  const response = await authFetch(`${API_BASE_URL}/api/orgApplication`, {
     method: "POST",
     body: formData,
   });

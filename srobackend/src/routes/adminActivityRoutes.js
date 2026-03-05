@@ -1,6 +1,6 @@
 import express from 'express';
 import { supabase } from '../supabaseClient.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.js';
 import streamifier from 'streamifier';
 import multer from 'multer';
 import { google } from 'googleapis';
@@ -8,7 +8,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
 
 // Google Drive setup
 const auth = new google.auth.GoogleAuth({
@@ -63,7 +66,7 @@ function generateActivityId() {
   return `${mm}${yy}-${random}`;
 }
 
-router.post('/admin/activity', authMiddleware, upload.single('file'), async (req, res) => {
+router.post('/admin/activity', verifyAdminRoles, upload.single('file'), async (req, res) => {
   try {
     const {
       org_id, student_position, student_contact, activity_name, activity_description, activity_type,

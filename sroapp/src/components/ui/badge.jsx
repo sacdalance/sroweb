@@ -19,6 +19,16 @@ const badgeVariants = cva(
           "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80",
         warning:
           "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80",
+        "sro-approved":
+          "border-transparent bg-sro-secondary text-white",
+        "sro-pending":
+          "border-transparent bg-sro-accent-50 text-sro-accent-700",
+        "sro-rejected":
+          "border-transparent bg-sro-primary text-white",
+        "sro-info":
+          "border-transparent bg-blue-50 text-blue-700",
+        "sro-neutral":
+          "border-transparent bg-gray-100 text-gray-600",
       },
     },
     defaultVariants: {

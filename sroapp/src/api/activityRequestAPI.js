@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
 export async function createActivity(activity, file, schedule) {
   const formData = new FormData();
@@ -12,7 +12,7 @@ export async function createActivity(activity, file, schedule) {
     formData.append(key, value ?? '');
   });
 
-  const response = await fetch(`${API_BASE_URL}/activityRequest`, {
+  const response = await authFetch(`${API_BASE_URL}/activityRequest`, {
     method: 'POST',
     body: formData,
   });
