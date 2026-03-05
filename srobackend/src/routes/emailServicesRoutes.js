@@ -1,7 +1,8 @@
 // Import required modules using ES module syntax
 import express from 'express';
 import nodemailer from 'nodemailer';
-// Load environment variables from .env file (handled by server.js)
+import { verifyAdminRoles } from '../middleware/authMiddleware.js';
+import { isValidEmail, sanitizeEmailField } from '../lib/sanitize.js';
 
 // Create an Express router
 const router = express.Router();
@@ -36,9 +37,6 @@ async function sendEmail({ to, subject, text, html }) {
 }
 
 // Define POST /send-email endpoint - requires admin auth
-import { verifyAdminRoles } from '../middleware/authMiddleware.js';
-
-import { isValidEmail, sanitizeEmailField } from '../lib/sanitize.js';
 
 router.post('/send-email', verifyAdminRoles, async (req, res) => {
   const { to, subject, text, html } = req.body;

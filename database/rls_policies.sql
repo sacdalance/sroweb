@@ -9,7 +9,7 @@ RETURNS INT AS $$
   SELECT role_id FROM public.account
   WHERE email = auth.jwt()->>'email'
   LIMIT 1;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
 
 -- Helper: reusable function to get current user's account_id
 CREATE OR REPLACE FUNCTION public.user_account_id()
@@ -17,7 +17,7 @@ RETURNS INT AS $$
   SELECT account_id FROM public.account
   WHERE email = auth.jwt()->>'email'
   LIMIT 1;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public;
 
 
 -- ============================================================
@@ -61,7 +61,10 @@ CREATE POLICY "activity_select_admin" ON activity
 
 -- Anyone authenticated can see approved activities (for calendar)
 CREATE POLICY "activity_select_approved" ON activity
-  FOR SELECT USING (final_status = 'Approved');
+  FOR SELECT USING (
+    final_status = 'Approved'
+    AND auth.role() = 'authenticated'
+  );
 
 -- Students can insert their own activities
 CREATE POLICY "activity_insert_own" ON activity
@@ -94,10 +97,11 @@ CREATE POLICY "schedule_select_own" ON activity_schedule
 CREATE POLICY "schedule_select_admin" ON activity_schedule
   FOR SELECT USING (public.user_role() IN (2, 3, 4));
 
--- Approved activity schedules are visible to all (calendar)
+-- Approved activity schedules are visible to authenticated users (calendar)
 CREATE POLICY "schedule_select_approved" ON activity_schedule
   FOR SELECT USING (
-    activity_id IN (SELECT activity_id FROM activity WHERE final_status = 'Approved')
+    auth.role() = 'authenticated'
+    AND activity_id IN (SELECT activity_id FROM activity WHERE final_status = 'Approved')
   );
 
 -- Students can insert schedules for their own activities

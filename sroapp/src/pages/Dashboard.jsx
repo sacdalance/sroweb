@@ -67,25 +67,25 @@ const Dashboard = () => {
       const [pendingRes, approvedRes, applicationsRes] = await Promise.all([
         supabase
           .from("activity")
-          .select("activity_id", { count: "exact" })
+          .select("activity_id", { count: "exact", head: true })
           .eq("account_id", account.account_id)
           .or("final_status.is.null,final_status.eq.Pending"),
         supabase
           .from("activity")
-          .select("activity_id", { count: "exact" })
+          .select("activity_id", { count: "exact", head: true })
           .eq("account_id", account.account_id)
           .eq("final_status", "Approved"),
         supabase
           .from("org_recognition")
-          .select("recognition_id", { count: "exact" })
+          .select("recognition_id", { count: "exact", head: true })
           .eq("account_id", account.account_id),
       ]);
 
       setStatCounts({
-        pending: pendingRes.data?.length || 0,
-        approved: approvedRes.data?.length || 0,
+        pending: pendingRes.count || 0,
+        approved: approvedRes.count || 0,
         upcoming: 0, // will be calculated from events
-        applications: applicationsRes.data?.length || 0,
+        applications: applicationsRes.count || 0,
       });
     } catch (err) {
       console.error("Error fetching stats:", err);

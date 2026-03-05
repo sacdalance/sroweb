@@ -44,7 +44,10 @@ const Navbar = ({ onMenuClick, onCollapseToggle, sidebarCollapsed, accountId }) 
         <div className="flex items-center gap-2">
           {/* Command palette hint */}
           <button
-            onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+            onClick={() => {
+              const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+              document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: isMac, ctrlKey: !isMac }));
+            }}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-white/60 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
           >
             <Search className="w-3.5 h-3.5" />

@@ -32,7 +32,7 @@ CREATE POLICY "Users can update own notifications"
         SELECT account_id FROM account WHERE email = auth.jwt()->>'email'
     ));
 
--- Service role can insert notifications (from backend or admin frontend)
+-- Only the service role (backend) can insert notifications
 CREATE POLICY "Service role can insert notifications"
     ON notifications FOR INSERT
-    WITH CHECK (true);
+    WITH CHECK (auth.jwt()->>'role' = 'service_role');

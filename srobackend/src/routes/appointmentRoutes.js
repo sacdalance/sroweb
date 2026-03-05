@@ -486,8 +486,8 @@ router.post('/', authMiddleware, async (req, res) => {
             
             Date: ${appointment_date}
             Time: ${appointment_time}
-            Purpose: ${e(reason)}
-            
+            Purpose: ${reason}
+
             Your appointment is currently pending approval. You will receive another email once it has been confirmed.
           `,
           html: `
@@ -513,8 +513,8 @@ router.post('/', authMiddleware, async (req, res) => {
           
           Date: ${appointment_date}
           Time: ${appointment_time}
-          Purpose: ${e(reason)}
-          
+          Purpose: ${reason}
+
           Please review this request in the admin dashboard.
         `,
         html: `
@@ -667,7 +667,7 @@ router.patch('/:id/status', verifyAdminRoles, async (req, res) => {
           recipientId: currentAppointment.account_id,
           type: notif.type,
           title: notif.title,
-          message: admin_notes ? `${notif.msg} Notes: ${e(admin_notes)}` : notif.msg,
+          message: admin_notes ? `${notif.msg} Notes: ${admin_notes}` : notif.msg,
           referenceType: 'appointment',
           referenceId: parseInt(id),
         });
@@ -785,7 +785,7 @@ router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
           <p><strong>Original Time:</strong> ${appointment.appointment_time}</p>
           <p><strong>Requested Date:</strong> ${new_date}</p>
           <p><strong>Requested Time:</strong> ${new_time}</p>
-          <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+          <p><strong>Reason:</strong> ${e(reason) || 'No reason provided'}</p>
           <p>Please review this request in the admin dashboard.</p>
         `
       };
@@ -905,7 +905,7 @@ router.patch('/:id/reschedule-decision', verifyAdminRoles, async (req, res) => {
           Time: ${appointment.time_slot}
           `}
           
-          ${admin_notes ? `Notes: ${e(admin_notes)}` : ''}
+          ${admin_notes ? `Notes: ${admin_notes}` : ''}
         `,
         html: `
           <h2>Your Appointment Reschedule Request</h2>
@@ -997,8 +997,8 @@ router.post('/:id/cancellation-request', authMiddleware, async (req, res) => {
         User: ${appointment.users.first_name} ${appointment.users.last_name} (${appointment.users.email})
         Date: ${appointment.date}
         Time: ${appointment.time_slot}
-        Reason: ${e(reason)}
-        
+        Reason: ${reason}
+
         Please review this request in the admin dashboard.
       `,
       html: `
@@ -1133,7 +1133,7 @@ router.patch('/:id/cancellation-decision', verifyAdminRoles, async (req, res) =>
           Time: ${appointment.time_slot}
           `}
           
-          ${admin_notes ? `Notes: ${e(admin_notes)}` : ''}
+          ${admin_notes ? `Notes: ${admin_notes}` : ''}
         `,
         html: `
           <h2>Your Appointment Cancellation Request</h2>

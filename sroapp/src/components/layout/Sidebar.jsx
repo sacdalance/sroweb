@@ -184,8 +184,8 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                 "https://static.vecteezy.com/system/resources/thumbnails/018/795/669/small_2x/man-or-profile-icon-png.png"
               }
               className={cn(
-                "rounded-full ring-2 ring-sro-primary/20 transition-all",
-                collapsed ? "w-9 h-9" : "w-11 h-11"
+                "rounded-full ring-2 ring-sro-primary/20 transition-all shrink-0",
+                collapsed ? "w-9 h-9 min-w-[36px]" : "w-11 h-11 min-w-[44px]"
               )}
               alt="User"
               referrerPolicy="no-referrer"
