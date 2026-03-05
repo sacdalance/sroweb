@@ -1,8 +1,9 @@
 import express from 'express';
 import { supabase } from '../supabaseClient.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
-router.put('/cancel/:activity_id', async (req, res) => {
+router.put('/cancel/:activity_id', authMiddleware, async (req, res) => {
   const { activity_id } = req.params;
   const { appeal_reason } = req.body;
 

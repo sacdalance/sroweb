@@ -2,6 +2,7 @@ import express from 'express';
 import { supabase } from '../supabaseClient.js';
 import nodemailer from 'nodemailer';
 import { createNotification } from '../lib/createNotification.js';
+import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.js';
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -15,7 +16,7 @@ const transporter = nodemailer.createTransport({
 const router = express.Router();
 
 // Get appointment settings
-router.get('/settings', async (req, res) => {
+router.get('/settings', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('appointment_settings')
@@ -37,7 +38,7 @@ router.get('/settings', async (req, res) => {
 });
 
 // Update or insert appointment settings
-router.post('/settings', async (req, res) => {
+router.post('/settings', verifyAdminRoles, async (req, res) => {
   try {
     const {
       allowed_days,
@@ -85,7 +86,7 @@ router.post('/settings', async (req, res) => {
 });
 
 // Get all blocked slots
-router.get('/blocked-slots', async (req, res) => {
+router.get('/blocked-slots', authMiddleware, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('blocked_slots')
@@ -106,7 +107,7 @@ router.get('/blocked-slots', async (req, res) => {
 });
 
 // Block a date or time slot
-router.post('/blocked-slots', async (req, res) => {
+router.post('/blocked-slots', verifyAdminRoles, async (req, res) => {
   try {
     const { block_date, block_time, reason, account_id } = req.body;
 
@@ -141,7 +142,7 @@ router.post('/blocked-slots', async (req, res) => {
 });
 
 // Remove a blocked slot
-router.delete('/blocked-slots/:id', async (req, res) => {
+router.delete('/blocked-slots/:id', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { account_id } = req.body;
@@ -172,7 +173,7 @@ router.delete('/blocked-slots/:id', async (req, res) => {
 });
 
 // Get available time slots for a specific date
-router.get('/available-slots', async (req, res) => {
+router.get('/available-slots', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
 
@@ -304,7 +305,7 @@ router.get('/available-slots', async (req, res) => {
 });
 
 // Get appointments (with optional filtering)
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { date, status, user_id } = req.query;
 
@@ -339,7 +340,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific appointment
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -366,7 +367,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create a new appointment
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
       account_id,
@@ -526,8 +527,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update appointment status
-router.patch('/:id/status', async (req, res) => {
+// Update appointment status (admin only)
+router.patch('/:id/status', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_notes } = req.body;
@@ -669,7 +670,7 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // Request to reschedule an appointment
-router.post('/:id/reschedule-request', async (req, res) => {
+router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { new_date, new_time, reason } = req.body;
@@ -802,7 +803,7 @@ router.post('/:id/reschedule-request', async (req, res) => {
 });
 
 // Admin approve/reject reschedule request
-router.patch('/:id/reschedule-decision', async (req, res) => {
+router.patch('/:id/reschedule-decision', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { approved, admin_notes } = req.body;
@@ -919,7 +920,7 @@ router.patch('/:id/reschedule-decision', async (req, res) => {
 });
 
 // Request to cancel an appointment
-router.post('/:id/cancellation-request', async (req, res) => {
+router.post('/:id/cancellation-request', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -1036,7 +1037,7 @@ router.post('/:id/cancellation-request', async (req, res) => {
 });
 
 // Admin approve/reject cancellation request
-router.patch('/:id/cancellation-decision', async (req, res) => {
+router.patch('/:id/cancellation-decision', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { approved, admin_notes } = req.body;
@@ -1146,8 +1147,8 @@ router.patch('/:id/cancellation-decision', async (req, res) => {
   }
 });
 
-// Send confirmation email for appointment
-router.post('/:id/send-confirmation', async (req, res) => {
+// Send confirmation email for appointment (admin only)
+router.post('/:id/send-confirmation', verifyAdminRoles, async (req, res) => {
   try {
     const { id } = req.params;
     const { notes, status } = req.body;

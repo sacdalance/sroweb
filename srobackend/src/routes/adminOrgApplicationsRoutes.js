@@ -2,26 +2,41 @@
 import express from "express";
 import { supabase } from "../supabaseClient.js";
 import { createNotification } from '../lib/createNotification.js';
+import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/update-status', async (req, res) => {
+router.post('/update-status', verifyAdminRoles, async (req, res) => {
   const { recognition_id, update } = req.body;
   if (!recognition_id || !update) {
     return res.status(400).json({ error: 'Missing data' });
   }
 
+  // Whitelist allowed fields to prevent arbitrary field injection
+  const allowedFields = [
+    'sro_approved', 'odsa_approved', 'sro_remarks', 'odsa_remarks',
+    'org_status', 'interview_slot_id',
+  ];
+  const sanitizedUpdate = {};
+  for (const key of allowedFields) {
+    if (key in update) sanitizedUpdate[key] = update[key];
+  }
+
+  if (Object.keys(sanitizedUpdate).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
   // 1. Update org_recognition and fetch the updated row
   const { data: updatedRows, error } = await supabase
     .from('org_recognition')
-    .update(update)
+    .update(sanitizedUpdate)
     .eq('recognition_id', recognition_id)
     .select()
     .single();
 
   if (error) {
     console.error('Supabase update error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Failed to update application status' });
   }
 
   // 2. Check if both SRO and ODSA are approved

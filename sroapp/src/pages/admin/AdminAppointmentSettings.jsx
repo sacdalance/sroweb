@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import supabase from "../../lib/supabase";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -213,7 +213,7 @@ const AdminAppointmentSettings = () => {
           } else {
             // Send Emails
             Promise.all(expiredAppointments.map(app =>
-              fetch(`${API_BASE_URL}/api/send-email`, {
+              authFetch(`${API_BASE_URL}/api/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -404,7 +404,7 @@ const AdminAppointmentSettings = () => {
                             <p>Best regards,<br/>SRO Admin</p>
                         `;
 
-                  await fetch(`${API_BASE_URL}/api/send-email`, {
+                  await authFetch(`${API_BASE_URL}/api/send-email`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -576,7 +576,7 @@ const AdminAppointmentSettings = () => {
       const emailSubject = action === 'confirm' ? 'Appointment Confirmed' : (action === 'cancel' ? 'Appointment Cancelled' : 'Appointment Rejected');
 
       try {
-        await fetch(`${API_BASE_URL}/api/send-email`, {
+        await authFetch(`${API_BASE_URL}/api/send-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

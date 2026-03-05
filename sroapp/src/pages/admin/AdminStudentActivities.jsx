@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { createNotification } from "@/lib/notifications";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
@@ -259,7 +259,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
             const recipientEmail = activity.account?.email;
             if (recipientEmail) {
-              fetch(`${API_BASE_URL}/api/send-email`, {
+              authFetch(`${API_BASE_URL}/api/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -388,7 +388,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
 
   const handleViewPDFsInDrive = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
+      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
         },

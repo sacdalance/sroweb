@@ -1,10 +1,9 @@
 // src/api/updateOrgStatus.js
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
 export async function updateOrgStatus(recognition_id, update) {
-  const res = await fetch(`${API_BASE_URL}/api/org-applications/update-status`, {
+  const res = await authFetch(`${API_BASE_URL}/api/org-applications/update-status`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ recognition_id, update }),
   });
   if (!res.ok) {

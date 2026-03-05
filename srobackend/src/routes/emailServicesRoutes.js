@@ -35,8 +35,10 @@ async function sendEmail({ to, subject, text, html }) {
   return result;
 }
 
-// Define POST /send-email endpoint for frontend to trigger email
-router.post('/send-email', async (req, res) => {
+// Define POST /send-email endpoint - requires admin auth
+import { verifyAdminRoles } from '../middleware/authMiddleware.js';
+
+router.post('/send-email', verifyAdminRoles, async (req, res) => {
   const { to, subject, text, html } = req.body;
 
   try {

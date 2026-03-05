@@ -1,5 +1,5 @@
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { createNotification } from "@/lib/notifications";
 
 /**
@@ -117,7 +117,7 @@ const sendEmailNotification = async (emailData, isApproval) => {
 
     const subject = `Activity ${isApproval ? 'Approved' : 'Rejected'} - ${emailData.activityName}`;
 
-    const response = await fetch(`${API_BASE_URL}/api/send-email`, {
+    const response = await authFetch(`${API_BASE_URL}/api/send-email`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

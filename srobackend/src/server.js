@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/authRoutes.js';
 import protectedRoutes from './routes/protectedRoutes.js';
@@ -41,11 +42,46 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// CORS - restrict to frontend origin
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
-// Public routes
-app.use('/auth', authRoutes);
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '10mb' }));
+
+// Global rate limit: 100 requests per minute per IP
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+app.use(globalLimiter);
+
+// Stricter rate limit for auth and email endpoints
+const strictLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+// Public routes (strict rate limit)
+app.use('/auth', strictLimiter, authRoutes);
 
 // Protected routes
 app.use('/api', protectedRoutes);
@@ -73,8 +109,8 @@ app.use("/api/appointments", appointmentRoutes);
 // Org Application (approve/reject)
 app.use('/api/org-applications', adminOrgApplicationsRoutes);
 
-// Email Services
-app.use('/api', emailServicesRoutes);
+// Email Services (strict rate limit)
+app.use('/api', strictLimiter, emailServicesRoutes);
 
 // Activity Approval Slip Generation
 app.use('/api', activityApprovalSlipRoutes);

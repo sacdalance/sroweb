@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
@@ -35,7 +35,7 @@ const AdminOrganizations = () => {
     const fetchOrganizations = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/organization/list`);
+        const res = await authFetch(`${API_BASE_URL}/api/organization/list`);
         const data = await res.json();
         setOrganizations(Array.isArray(data) ? data.map(o => ({ ...o, id: o.org_id })) : []);
       } catch (err) {
