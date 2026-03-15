@@ -135,9 +135,11 @@ const ActivityDialogContent = ({
   const isSRO = userRole === 2;
   const isODSA = userRole === 3;
   const isSuperAdmin = userRole === 4;
+  const isAdviser = userRole === 5;
   const [hasViewedScannedForm, setHasViewedScannedForm] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [comment, setComment] = useState(() =>
+    userRole === 5 ? activity?.adviser_remarks || "" :
     userRole === 2 ? activity?.sro_remarks || "" : activity?.odsa_remarks || ""
   );
   const [showDecisionBox, setShowDecisionBox] = useState(false);
@@ -156,6 +158,7 @@ const ActivityDialogContent = ({
 
   const isActionLocked =
     localActivity?.final_status === "Approved" ||
+    (isAdviser && activity?.adviser_approval_status) ||
     (isSRO && activity?.sro_approval_status) ||
     (isODSA && activity?.odsa_approval_status);
 
@@ -178,6 +181,7 @@ const ActivityDialogContent = ({
     if (!isModalOpen || !localActivity?.activity_id) return;
 
     const actionTaken =
+      (isAdviser && localActivity?.adviser_approval_status !== null) ||
       (isSRO && localActivity?.sro_approval_status !== null) ||
       (isODSA && localActivity?.odsa_approval_status !== null) ||
       (isSuperAdmin && localActivity?.sro_approval_status !== null && localActivity?.odsa_approval_status !== null);
@@ -187,6 +191,7 @@ const ActivityDialogContent = ({
     setConfirmationOpen(false);
     setDecisionType(null);
     setComment(
+      isAdviser ? localActivity?.adviser_remarks || "" :
       isSRO ? localActivity?.sro_remarks || "" : localActivity?.odsa_remarks || ""
     );
     setSroComment(localActivity?.sro_remarks || "");
@@ -307,14 +312,14 @@ const ActivityDialogContent = ({
           <div className="info-card-grid mb-3">
             {/* Submitter Card */}
             <InfoCard icon={User} title="Submitter">
-              <InfoRow label="Name" value={activity.account?.account_name} />
+              <InfoRow label="Name" value={publicView ? "Hidden" : activity.account?.account_name} />
               <InfoRow label="Position" value={activity.student_position} />
               {!publicView && <InfoRow label="Contact" value={activity.student_contact} />}
             </InfoCard>
 
             {/* Venue Card */}
             <InfoCard icon={MapPin} title="Venue & Location">
-              <InfoRow label="Venue" value={activity.venue} />
+              <InfoRow label="Proposed Venue" value={activity.venue} />
               <InfoRow label="Approver" value={activity.venue_approver} />
               <InfoRow label="Off-Campus" value={activity.is_off_campus === "true" ? "Yes" : "No"} />
             </InfoCard>
@@ -338,7 +343,7 @@ const ActivityDialogContent = ({
 
             {/* Adviser Card */}
             <InfoCard icon={GraduationCap} title="Adviser & Fees">
-              <InfoRow label="Name" value={activity.organization?.adviser_name} />
+              <InfoRow label="Name" value={publicView ? "Hidden" : activity.organization?.adviser_name} />
               {!publicView && <InfoRow label="Email" value={activity.organization?.adviser_email} />}
               <InfoRow label="Charge Fee" value={activity.charge_fee === "true" ? "Yes" : "No"} />
             </InfoCard>
@@ -445,8 +450,17 @@ const ActivityDialogContent = ({
           </div>
 
           {/* Remarks Section (Read-Only) */}
-          {readOnly && !publicView && (activity.sro_remarks || activity.odsa_remarks) && (
+          {readOnly && !publicView && (activity.adviser_remarks || activity.sro_remarks || activity.odsa_remarks) && (
             <div className="mt-3 space-y-2">
+              {activity.adviser_remarks && (
+                <div className="info-card">
+                  <div className="info-card-header">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>Adviser Remarks</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap">{activity.adviser_remarks.trim()}</p>
+                </div>
+              )}
               {activity.sro_remarks && (
                 <div className="info-card">
                   <div className="info-card-header">
@@ -479,6 +493,16 @@ const ActivityDialogContent = ({
                     <span>Appeal/Cancellation Reason</span>
                   </div>
                   <p className="text-xs sm:text-sm text-amber-800">{activity.appeal_reason}</p>
+                </div>
+              )}
+
+              {/* SRO viewing Adviser remarks */}
+              {isSRO && activity?.adviser_remarks && (
+                <div className="info-card bg-gray-50">
+                  <div className="info-card-header">
+                    <span>Adviser Remarks</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-700">{activity.adviser_remarks.trim()}</p>
                 </div>
               )}
 
@@ -519,13 +543,13 @@ const ActivityDialogContent = ({
               ) : (
                 <div>
                   <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
-                    {isSRO ? "SRO Remarks" : "ODSA Remarks"}
+                    {isAdviser ? "Adviser Remarks" : isSRO ? "SRO Remarks" : "ODSA Remarks"}
                   </label>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={2}
-                    placeholder={((isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                    placeholder={((isAdviser && activity.adviser_approval_status) || (isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
                     className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
@@ -548,7 +572,7 @@ const ActivityDialogContent = ({
                       </span>
                     ) : (
                       <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">
-                        {isSRO ? "Waiting for ODSA approval" : "Action already taken"}
+                        {isAdviser ? "Waiting for SRO approval" : isSRO ? "Waiting for ODSA approval" : "Action already taken"}
                       </span>
                     )}
                   </div>

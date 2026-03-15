@@ -261,11 +261,23 @@ const Requests = () => {
       width: "w-[12%]",
       sortable: true,
       filterable: true,
-      filterOptions: ["Pending", "For Appeal", "Rejected", "For Cancellation"],
+      filterOptions: ["Pending Adviser", "Pending SRO", "Pending ODSA", "For Appeal", "Rejected", "For Cancellation"],
       filterLabel: "Statuses",
-      filterAccessor: (row) => row.final_status || "Pending",
+      filterAccessor: (row) => {
+        if (row.final_status) return row.final_status;
+        if (!row.adviser_approval_status) return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && !row.sro_approval_status) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && !row.odsa_approval_status) return "Pending ODSA";
+        return "Pending Adviser";
+      },
       isStatus: true,
-      accessor: (row) => row.final_status || "Pending",
+      accessor: (row) => {
+        if (row.final_status) return row.final_status;
+        if (!row.adviser_approval_status) return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && !row.sro_approval_status) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && !row.odsa_approval_status) return "Pending ODSA";
+        return "Pending Adviser";
+      },
     },
     {
       key: "actions",
@@ -343,7 +355,7 @@ const Requests = () => {
     },
     {
       key: "venue",
-      header: "Venue",
+      header: "Proposed Venue",
       width: "w-[18%]",
       sortable: true,
       render: (row) => (

@@ -40,8 +40,9 @@ const getDerivedStatus = (activity) => {
   if (activity.final_status === "Rejected") return "Rejected";
   if (activity.final_status === "For Appeal") return "For Appeal";
   if (activity.final_status === "For Cancellation") return "For Cancellation";
+  if (!activity.adviser_approval_status) return "Pending Adviser";
+  if (activity.adviser_approval_status === "Approved" && !activity.sro_approval_status) return "Pending SRO";
   if (activity.sro_approval_status === "Approved" && !activity.odsa_approval_status) return "Pending ODSA";
-  if (!activity.sro_approval_status) return "Pending SRO";
   return "Unknown";
 };
 
@@ -144,7 +145,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       filterable: true,
       width: "w-[15%]",
       isStatus: true,
-      filterOptions: ["Pending SRO", "Pending ODSA", "Approved", "Rejected", "For Appeal", "For Cancellation"],
+      filterOptions: ["Pending Adviser", "Pending SRO", "Pending ODSA", "Approved", "Rejected", "For Appeal", "For Cancellation"],
       filterAccessor: (row) => row.status,
       render: (row) => (
         <div className="flex justify-center">
@@ -201,7 +202,10 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const fetchAllActivities = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      // Get current user email for adviser filtering
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      let query = supabase
         .from("activity")
         .select(`
             *,
@@ -210,6 +214,30 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
             account:account(email)
           `)
         .order('created_at', { ascending: false });
+
+      // Adviser (role 5): only fetch activities from orgs they advise
+      if (userRole === 5 && currentUser?.email) {
+        const { data: adviserOrgs, error: orgError } = await supabase
+          .from("organization")
+          .select("org_id")
+          .eq("adviser_email", currentUser.email);
+
+        if (orgError) {
+          console.error("Error fetching adviser orgs:", orgError);
+        } else {
+          const orgIds = adviserOrgs.map(o => o.org_id);
+          if (orgIds.length > 0) {
+            query = query.in("org_id", orgIds);
+          } else {
+            // Adviser has no orgs assigned - show nothing
+            setActivities([]);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -304,6 +332,21 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         ...a,
         status: getDerivedStatus(a)
       }));
+
+      // Apply Adviser View Filter (superadmin sees all orgs, but same status filtering)
+      if (userRole === 4 && superadminView === 'adviser') {
+        processed = processed.filter(a =>
+          ["Pending Adviser", "Approved", "Rejected"].includes(a.status)
+        );
+      }
+
+      // Apply SRO Role Filters (only see adviser-endorsed + final activities)
+      if (userRole === 2 || (userRole === 4 && superadminView === 'sro')) {
+        processed = processed.filter(a =>
+          a.adviser_approval_status === "Approved" ||
+          ["Approved", "Rejected"].includes(a.status)
+        );
+      }
 
       // Apply ODSA Role Filters
       if (userRole === 3 || (userRole === 4 && superadminView === 'odsa')) {
@@ -416,7 +459,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
     let classes = '';
 
     if (status === 'Approved') classes = 'bg-sro-secondary text-white';
-    else if (status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
+    else if (status === 'Pending Adviser' || status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
     else if (status === 'For Appeal') classes = 'bg-amber-100 text-amber-700 border border-amber-300';
     else if (status === 'Rejected') classes = 'bg-red-100 text-sro-primary border border-sro-primary';
     else classes = 'bg-blue-100 text-blue-700';
@@ -448,7 +491,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       // Always show approved activities
       if (activity.status === 'Approved') return true;
       // Show requests if toggle is on
-      if (showRequests) return ['Pending SRO', 'Pending ODSA', 'For Appeal'].includes(activity.status);
+      if (showRequests) return ['Pending Adviser', 'Pending SRO', 'Pending ODSA', 'For Appeal'].includes(activity.status);
       return false;
     }).flatMap(activity => {
       // Transform each activity schedule into calendar events
@@ -526,6 +569,12 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       {userRole === 4 && (
         <div className="flex justify-end mb-4">
           <div className="bg-white border rounded-lg p-1 inline-flex shadow-sm">
+            <button
+              onClick={() => setSuperadminView('adviser')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'adviser' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              Adviser View
+            </button>
             <button
               onClick={() => setSuperadminView('sro')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'sro' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
@@ -631,7 +680,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                         <span className="font-medium">Org:</span> <span className="truncate max-w-[150px]">{activity.organization?.org_name || 'Unknown'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-medium">Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
+                        <span className="font-medium">Proposed Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
                       </div>
                       {activity.isRecurring && (
                         <div className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded w-fit font-medium">
