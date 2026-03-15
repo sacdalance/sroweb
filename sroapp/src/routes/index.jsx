@@ -67,7 +67,7 @@ const RedirectHome = () => {
       const roleId = data?.role_id;
 
       if (!error && roleId) {
-        if ([2, 3, 4].includes(roleId)) {
+        if ([2, 3, 4, 5].includes(roleId)) {
           navigate("/admin");
         } else {
           navigate("/dashboard");
@@ -196,7 +196,7 @@ const router = createBrowserRouter([
           },
           {
             path: "admin", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} />
+              { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel />, 5: <AdminPanel /> }} />
           },
           {
             path: "admin/appointment-settings", element: <RequireAdminRole childrenByRole={
@@ -208,11 +208,11 @@ const router = createBrowserRouter([
           },
           {
             path: "admin/documents", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminDocuments />, 3: <AdminDocuments />, 4: <AdminDocuments /> }} />
+              { 2: <AdminDocuments />, 4: <AdminDocuments /> }} />
           },
           {
             path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities /> }} />
+              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities />, 5: <AdminStudentActivities /> }} />
           },
 
           {
@@ -221,11 +221,11 @@ const router = createBrowserRouter([
 
           {
             path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
+              { 2: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
           },
           {
             path: "admin/organizations", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminOrganizations />, 3: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
+              { 2: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
           },
           {
             path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={

@@ -113,9 +113,10 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
   const isSRO = role === 2;
   const isODSA = role === 3;
   const isSuperAdmin = role === 4;
+  const isAdviser = role === 5;
   const isSuperAdminEmail = user && SUPERADMIN_EMAILS.includes(user.email);
   const showStudent = isUser || isSuperAdmin;
-  const showAdmin = isSRO || isODSA || isSuperAdmin;
+  const showAdmin = isSRO || isODSA || isSuperAdmin || isAdviser;
   const dashboardLink = showStudent ? "/dashboard" : "/admin";
 
   const handleSignOut = async () => {
@@ -148,6 +149,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
     2: "SRO Staff",
     3: "ODSA Staff",
     4: "Super Admin",
+    5: "Adviser",
   }[role];
 
   return (
@@ -255,15 +257,23 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                   <NavItem to="/admin/student-activities" icon={ClipboardList} label="Student Activities" isActive={location.pathname === "/admin/student-activities"} collapsed={collapsed} onClick={handleNavClick} />
                 </NavSection>
 
-                <NavSection title="Organizations" collapsed={collapsed}>
-                  {(isSRO || isSuperAdmin) && (
-                    <NavItem to="/admin/appointment-settings" icon={CalendarCheck} label="Appointments" isActive={location.pathname === "/admin/appointment-settings"} collapsed={collapsed} onClick={handleNavClick} />
-                  )}
-                  <NavItem to="/admin/documents" icon={FolderOpen} label="Student Forms" isActive={location.pathname === "/admin/documents"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/organizations" icon={Users} label="Organization Summary" isActive={location.pathname === "/admin/organizations"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/org-applications" icon={Award} label="Recognition Applications" isActive={location.pathname === "/admin/org-applications"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/annual-reports" icon={BookOpen} label="Annual Reports" isActive={location.pathname === "/admin/annual-reports"} collapsed={collapsed} onClick={handleNavClick} />
-                </NavSection>
+                {!isAdviser && (
+                  <NavSection title="Organizations" collapsed={collapsed}>
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/appointment-settings" icon={CalendarCheck} label="Appointments" isActive={location.pathname === "/admin/appointment-settings"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/documents" icon={FolderOpen} label="Student Forms" isActive={location.pathname === "/admin/documents"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/organizations" icon={Users} label="Organization Summary" isActive={location.pathname === "/admin/organizations"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/org-applications" icon={Award} label="Recognition Applications" isActive={location.pathname === "/admin/org-applications"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    <NavItem to="/admin/annual-reports" icon={BookOpen} label="Annual Reports" isActive={location.pathname === "/admin/annual-reports"} collapsed={collapsed} onClick={handleNavClick} />
+                  </NavSection>
+                )}
               </>
             )}
 
