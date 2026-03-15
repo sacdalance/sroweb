@@ -173,7 +173,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
         </button>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 pt-16 xl:pt-14">
+      <ScrollArea className="flex-1 min-h-0 pt-16 xl:pt-14 [&_[data-slot=scroll-area-scrollbar]]:hidden">
         <div className="flex flex-col min-h-full px-3 pb-4">
           {/* Profile section */}
           <div className={cn(
