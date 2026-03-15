@@ -390,8 +390,7 @@ const ActivityForm = ({
     const currentIndex = sectionOrder.indexOf(currentSection);
     const targetIndex = sectionOrder.indexOf(targetSection);
 
-    if (targetIndex <= currentIndex) {
-      // Allow back navigation freely
+    if (targetIndex <= currentIndex || skipValidation) {
       setCurrentSection(targetSection);
       return;
     }
