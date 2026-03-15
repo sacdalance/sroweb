@@ -16,6 +16,7 @@ const getStatusClass = (status) => {
     'recognized': 'status-badge-recognized',
     'completed': 'status-badge-completed',
     'pending': 'status-badge-pending',
+    'pending-adviser': 'status-badge-pending',
     'pending-sro': 'status-badge-pending',
     'pending-odsa': 'status-badge-pending',
     'odsa-pending': 'status-badge-odsa-pending',
@@ -49,6 +50,7 @@ const formatDisplayText = (status) => {
   // Special cases for specific formatting
   const specialCases = {
     'odsa-pending': 'ODSA Pending',
+    'pending-adviser': 'Pending Adviser',
     'pending-odsa': 'Pending ODSA',
     'pending-sro': 'Pending SRO',
     'reschedule-pending': 'For Reschedule',

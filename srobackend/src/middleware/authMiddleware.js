@@ -33,7 +33,7 @@ export const authMiddleware = async (req, res, next) => {
 };
 
 /**
- * Verifies the user has an admin role (SRO=2, ODSA=3, SuperAdmin=4).
+ * Verifies the user has an admin role (SRO=2, ODSA=3, SuperAdmin=4, Adviser=5).
  * Must be used after authMiddleware or standalone (it authenticates too).
  */
 export const verifyAdminRoles = async (req, res, next) => {
@@ -50,7 +50,7 @@ export const verifyAdminRoles = async (req, res, next) => {
       .eq("email", user.email)
       .single();
 
-    if (accountError || !account || ![2, 3, 4].includes(account.role_id)) {
+    if (accountError || !account || ![2, 3, 4, 5].includes(account.role_id)) {
       return res.status(403).json({ error: "Forbidden: Admin roles only" });
     }
 
@@ -103,7 +103,7 @@ export const verifyOwnership = (req, res, next) => {
   if (!req.account) return res.status(401).json({ error: 'Not authenticated' });
 
   // Admins bypass ownership checks
-  if ([2, 3, 4].includes(req.account.role_id)) return next();
+  if ([2, 3, 4, 5].includes(req.account.role_id)) return next();
 
   if (req.account.account_id !== paramId) {
     return res.status(403).json({ error: 'Forbidden: You can only access your own data' });

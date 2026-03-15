@@ -9,6 +9,7 @@ const ROLE_OPTIONS = [
     { id: 2, label: "SRO" },
     { id: 3, label: "ODSA" },
     { id: 4, label: "Superadmin" },
+    { id: 5, label: "Advisor" },
 ];
 
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";

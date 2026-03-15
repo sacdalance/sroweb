@@ -153,7 +153,10 @@ export async function approveActivity(activityId, comment, userRole) {
     .eq('activity_id', activityId)
     .single();
 
-  if (userRole === 2) {
+  if (userRole === 5) {
+    updates.adviser_approval_status = "Approved";
+    updates.adviser_remarks = comment;
+  } else if (userRole === 2) {
     updates.sro_approval_status = "Approved";
     updates.sro_remarks = comment;
     // If currently For Appeal, set final_status to null
@@ -185,7 +188,7 @@ export async function approveActivity(activityId, comment, userRole) {
     throw new Error("Failed to approve activity.");
   }
 
-  // Send email notification only when ODSA approves (final approval)
+  // Send email notification only when ODSA approves (final approval) — NOT for adviser
   if (userRole === 3) {
     try {
       const emailData = await getActivityEmailData(activityId);
@@ -204,7 +207,17 @@ export async function approveActivity(activityId, comment, userRole) {
       .single();
 
     if (actData) {
-      if (userRole === 2) {
+      if (userRole === 5) {
+        // Adviser endorsed — notify student it's now with SRO
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_endorsed",
+          title: "Activity Endorsed by Adviser",
+          message: `Your activity "${actData.activity_name}" has been endorsed by your adviser and is now pending SRO review.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      } else if (userRole === 2) {
         // SRO approved — notify student it's now with ODSA
         createNotification({
           recipientId: actData.account_id,
@@ -237,7 +250,11 @@ export async function approveActivity(activityId, comment, userRole) {
 export async function rejectActivity(activityId, comment, userRole) {
   const updates = {};
 
-  if (userRole === 2) {
+  if (userRole === 5) {
+    updates.adviser_approval_status = "Rejected";
+    updates.adviser_remarks = comment;
+    updates.final_status = "Rejected";
+  } else if (userRole === 2) {
     updates.sro_approval_status = "Rejected";
     updates.sro_remarks = comment;
     updates.odsa_approval_status = "Rejected"; // Skip ODSA
@@ -267,12 +284,14 @@ export async function rejectActivity(activityId, comment, userRole) {
     throw error;
   }
 
-  // Send email notification for rejection
-  try {
-    const emailData = await getActivityEmailData(activityId);
-    await sendEmailNotification(emailData, false);
-  } catch (emailError) {
-    console.error("Email notification failed:", emailError);
+  // Send email notification for rejection (skip for adviser — intermediate step)
+  if (userRole !== 5) {
+    try {
+      const emailData = await getActivityEmailData(activityId);
+      await sendEmailNotification(emailData, false);
+    } catch (emailError) {
+      console.error("Email notification failed:", emailError);
+    }
   }
 
   // In-app notification
@@ -284,14 +303,25 @@ export async function rejectActivity(activityId, comment, userRole) {
       .single();
 
     if (actData) {
-      createNotification({
-        recipientId: actData.account_id,
-        type: "activity_rejected",
-        title: "Activity rejected",
-        message: `"${actData.activity_name}" has been rejected. Check the remarks for details and submit a new request if needed.`,
-        referenceType: "activity",
-        referenceId: activityId,
-      });
+      if (userRole === 5) {
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_rejected",
+          title: "Activity Rejected by Adviser",
+          message: `Your activity "${actData.activity_name}" has been rejected by your adviser. Check the remarks for details.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      } else {
+        createNotification({
+          recipientId: actData.account_id,
+          type: "activity_rejected",
+          title: "Activity rejected",
+          message: `"${actData.activity_name}" has been rejected. Check the remarks for details and submit a new request if needed.`,
+          referenceType: "activity",
+          referenceId: activityId,
+        });
+      }
     }
   } catch (notifErr) {
     console.error("Notification creation failed:", notifErr);
