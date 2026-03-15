@@ -103,38 +103,10 @@ const EditActivity = () => {
 
     const getRequiredDocuments = () => {
         const required = [
-            "Concept Paper",
             "Form 1A (Scanned Copy of Activity Request Form)",
         ];
-
-        if (isOffCampus === "yes") {
-            required.push(
-                "Form 2A (Notice of Off-Campus Activity)",
-                "Form 2B (Waiver for Off-Campus Student Activities), Notarized"
-            );
-        }
-
-        const isWeekend = (dateStr) => {
-            const date = new Date(dateStr);
-            const day = date.getDay();
-            return day === 0 || day === 6; // Sunday or Saturday
-        };
-
-        const isLate = (time) => {
-            if (!time) return false;
-            const [hours] = time.split(":").map(Number);
-            return hours >= 21;
-        };
-
-        if (
-            isWeekend(startDate) ||
-            isWeekend(endDate) ||
-            isLate(startTime) ||
-            isLate(endTime)
-        ) {
-            required.push(
-                "Form 3 (Permission to Stay on Campus After 9:00 PM and On Weekends)"
-            );
+        if (selectedActivityType !== "massOrientation") {
+            required.unshift("Concept Paper");
         }
 
         return required;
@@ -1237,7 +1209,7 @@ const EditActivity = () => {
                                     {/* Venue Information */}
                                     <div className="space-y-6">
                                         <div>
-                                            <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
+                                            <h3 className="text-sm font-medium mb-2">Proposed Venue <span className="text-red-500">*</span></h3>
                                             <Input
                                                 id="venue"
                                                 onBlur={() => setFieldError("venue", venue.trim() === "" || venue.length > 100)}
