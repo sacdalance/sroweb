@@ -426,7 +426,13 @@ const EditActivity = () => {
         }
     };
 
+    const skipValidation = sessionStorage.getItem("sroSkipValidation") === "true";
+
     const handleNextSection = (nextSection) => {
+        if (skipValidation) {
+            setCurrentSection(nextSection);
+            return;
+        }
         const result = validateCurrentSection(currentSection, {
             selectedValue,
             studentPosition,

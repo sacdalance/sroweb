@@ -509,12 +509,16 @@ const ActivityForm = ({
   };
 
 
+  const skipValidation = sessionStorage.getItem("sroSkipValidation") === "true";
+
   const handleNext = () => {
-    const result = validateCurrentSection();
-    if (!result.valid) {
-      toast.error(result.message || "Validation failed");
-      setFieldError(result.field, true);
-      return;
+    if (!skipValidation) {
+      const result = validateCurrentSection();
+      if (!result.valid) {
+        toast.error(result.message || "Validation failed");
+        setFieldError(result.field, true);
+        return;
+      }
     }
     if (currentSection === "general-info") setCurrentSection("date-info");
     else if (currentSection === "date-info") setCurrentSection("specifications");
@@ -524,11 +528,12 @@ const ActivityForm = ({
   const handleSubmit = async (e) => {
     e?.preventDefault();
 
-
-    const result = validateCurrentSection();
-    if (!result.valid) {
-      toast.error(result.message || "Validation failed");
-      return;
+    if (!skipValidation) {
+      const result = validateCurrentSection();
+      if (!result.valid) {
+        toast.error(result.message || "Validation failed");
+        return;
+      }
     }
 
     setIsSubmitting(true);
