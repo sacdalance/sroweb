@@ -561,11 +561,11 @@ const Requests = () => {
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Requests</h1>
 
       <Tabs defaultValue="requested" className="w-full">
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger value="requested" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Activity Requests</TabsTrigger>
-          <TabsTrigger value="approved" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Approved Activities</TabsTrigger>
-          <TabsTrigger value="recognition" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Org Recognition</TabsTrigger>
-          <TabsTrigger value="reports" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Annual Reports</TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="requested">Activity Requests</TabsTrigger>
+          <TabsTrigger value="approved">Approved Activities</TabsTrigger>
+          <TabsTrigger value="recognition">Org Recognition</TabsTrigger>
+          <TabsTrigger value="reports">Annual Reports</TabsTrigger>
         </TabsList>
 
         {/* Activity Requests Tab */}

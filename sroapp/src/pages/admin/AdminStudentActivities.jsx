@@ -596,25 +596,10 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         className="w-full mb-8"
         onValueChange={setTab}
       >
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger
-            value="requests"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Activity Requests
-          </TabsTrigger>
-          <TabsTrigger
-            value="activities"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Calendar
-          </TabsTrigger>
-          <TabsTrigger
-            value="summary"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Activity Summary
-          </TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="requests">Activity Requests</TabsTrigger>
+          <TabsTrigger value="activities">Calendar</TabsTrigger>
+          <TabsTrigger value="summary">Activity Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">

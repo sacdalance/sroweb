@@ -183,9 +183,9 @@ const AdminDocuments = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
-                    <TabsTrigger value="forms" className="w-full md:w-auto">Forms List</TabsTrigger>
-                    <TabsTrigger value="settings" className="w-full md:w-auto">Access Settings</TabsTrigger>
+                <TabsList>
+                    <TabsTrigger value="forms">Forms List</TabsTrigger>
+                    <TabsTrigger value="settings">Access Settings</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="forms">

@@ -606,9 +606,9 @@ const AppointmentBooking = () => {
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Appointments</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
-          <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="booking">Book Appointment</TabsTrigger>
+          <TabsTrigger value="appointments">My Appointments</TabsTrigger>
         </TabsList>
 
         {/* My Appointments Tab */}

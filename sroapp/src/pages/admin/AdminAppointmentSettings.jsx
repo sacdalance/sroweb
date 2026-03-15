@@ -756,10 +756,10 @@ const AdminAppointmentSettings = () => {
       <h1 className="page-header text-sro-primary">Appointments</h1>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
-          <TabsTrigger value="requests" className="w-full md:w-auto">Appointment Requests</TabsTrigger>
-          <TabsTrigger value="calendar" className="w-full md:w-auto">Calendar</TabsTrigger>
-          <TabsTrigger value="settings" className="w-full md:w-auto">Settings</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="requests">Appointment Requests</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
