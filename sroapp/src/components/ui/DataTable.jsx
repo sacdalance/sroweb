@@ -575,16 +575,16 @@ const DataTable = ({
                                 return (
                                     <Card
                                         key={row.id || rowIndex}
-                                        className={`shadow-sm border h-[134px] flex flex-col justify-center ${onRowClick ? "active:bg-gray-50" : ""}`}
+                                        className={`shadow-sm border flex flex-col justify-center ${onRowClick ? "active:bg-gray-50" : ""}`}
                                         onClick={() => onRowClick?.(row)}
                                     >
                                         <CardContent className="p-4 space-y-3">
-                                            {dataCols.slice(0, 3).map((col) => ( // Show first 3 important cols in fixed card
-                                                <div key={col.key} className="flex justify-between items-start gap-4">
-                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[30%] shrink-0 pt-0.5">
+                                            {dataCols.slice(0, 3).map((col) => ( // Show first 3 important cols in card
+                                                <div key={col.key} className="flex justify-between items-baseline gap-4">
+                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide shrink-0 min-w-[35%]">
                                                         {col.header}
                                                     </span>
-                                                    <div className="text-sm text-right flex-1 text-gray-700 truncate" title={row[col.key]}>
+                                                    <div className="text-sm text-right min-w-0 text-gray-700 max-w-[55%] [&>span]:truncate [&>span]:block overflow-hidden truncate">
                                                         {renderCell(row, col)}
                                                     </div>
                                                 </div>
@@ -596,7 +596,7 @@ const DataTable = ({
                             {/* Card Spacers */}
                             {fixedHeight && paginatedData.length < pageSize && (
                                 Array.from({ length: pageSize - paginatedData.length }).map((_, i) => (
-                                    <div key={`spacer-card-${i}`} className="h-[134px] border border-dashed border-gray-100 rounded-xl" />
+                                    <div key={`spacer-card-${i}`} className="border border-dashed border-gray-100 rounded-xl" />
                                 ))
                             )}
                         </>

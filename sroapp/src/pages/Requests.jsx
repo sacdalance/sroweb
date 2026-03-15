@@ -217,7 +217,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -228,7 +228,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -327,7 +327,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -338,7 +338,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -359,7 +359,7 @@ const Requests = () => {
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.venue}>
+        <span className="truncate block text-gray-600" title={row.venue}>
           {row.venue}
         </span>
       ),
@@ -421,7 +421,7 @@ const Requests = () => {
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -468,7 +468,7 @@ const Requests = () => {
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -518,7 +518,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
           {row.organization?.org_name || row.org_name || "Unknown"}
         </span>
       ),
