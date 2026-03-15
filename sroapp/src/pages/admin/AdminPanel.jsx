@@ -3,9 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useAuth } from "@/context/UserAuthContext";
-import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { DashboardSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,24 +77,19 @@ const AdminPanel = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const { data: sessionData } = await supabase.auth.getSession();
-        const access_token = sessionData?.session?.access_token;
-
         // A. Fetch Approved Activities (For Calendar & Chart)
         const { data: approvedData, error: approvedError } = await supabase
           .from("activity")
-          .select(`*, organization:organization(*), schedule:activity_schedule(*)`)
+          .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
           .eq("final_status", "Approved");
 
         if (approvedError) throw approvedError;
 
         // B. Fetch Incoming Requests (For Stats & Chart)
         let incomingData = [];
-        if (access_token) {
-          const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
-            headers: { Authorization: `Bearer ${access_token}` },
-          });
-          incomingData = res.data || [];
+        const res = await authFetch(`${API_BASE_URL}/api/activities/incoming`);
+        if (res.ok) {
+          incomingData = await res.json();
         }
 
         // C. Fetch Appointments

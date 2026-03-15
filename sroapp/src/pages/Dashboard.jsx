@@ -98,7 +98,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from("activity")
-        .select(`*, organization:organization(*), schedule:activity_schedule(*), account:account(*)`)
+        .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
         .eq("final_status", "Approved");
 
       if (error) throw error;
