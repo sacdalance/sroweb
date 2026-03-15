@@ -61,14 +61,14 @@ const StudentStatCards = ({ counts = {}, loading = false }) => {
           key={stat.key}
           className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow duration-200"
         >
-          <div className={`p-2.5 rounded-lg ${stat.bgColor}`}>
+          <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor}`}>
             <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className={`text-2xl font-bold ${stat.countColor}`}>
               {counts[stat.key] ?? 0}
             </p>
-            <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
+            <p className="text-xs text-gray-500 font-medium leading-tight">{stat.label}</p>
           </div>
         </StaggerItem>
       ))}

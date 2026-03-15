@@ -314,12 +314,12 @@ const AdminPanel = () => {
               key={index}
               className={`group flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-sro-primary/30 transition-all duration-200 h-[100px] ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
             >
-              <div className={`p-3 rounded-full bg-sro-primary/10 text-sro-primary group-hover:scale-110 transition-transform`}>
+              <div className={`p-3 rounded-full shrink-0 bg-sro-primary/10 text-sro-primary group-hover:scale-110 transition-transform`}>
                 <stat.icon className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors">{stat.count}</h3>
-                <p className="text-xs font-medium text-gray-500 line-clamp-2">{stat.title}</p>
+                <p className="text-xs font-medium text-gray-500 leading-tight line-clamp-2">{stat.title}</p>
               </div>
             </Link>
           ))}
