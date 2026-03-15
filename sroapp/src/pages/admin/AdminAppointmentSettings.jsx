@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import supabase from "../../lib/supabase";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { SettingsSkeleton } from "@/components/ui/skeletons";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -748,7 +749,7 @@ const AdminAppointmentSettings = () => {
       .map(a => new Date(a.appointment_date));
   }, [appointments]);
 
-  if (loading) return <LoadingSpinner text="Loading settings..." variant="section" />;
+  if (loading) return <SettingsSkeleton />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">

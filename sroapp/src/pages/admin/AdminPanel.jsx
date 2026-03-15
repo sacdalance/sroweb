@@ -6,7 +6,8 @@ import supabase from "@/lib/supabase";
 import { API_BASE_URL } from "@/lib/api-config";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { DashboardSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen, Database, ClipboardList } from "lucide-react";
 import StatusPill from "@/components/ui/StatusPill";
 import { isSameDay, format } from "date-fns";
@@ -45,23 +46,17 @@ const AdminPanel = () => {
   }, []);
 
   // Stats
-  const [requestsCounts, setRequestsCounts] = useState({
-    approved: 0,
-    forAppeal: 0,
-    pending: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
-    annualReports: 0,
-  });
+  const [requestsCounts, setRequestsCounts] = useState(null);
 
   // Stats data for the summary section - STRICT SRO PRIMARY
+  const rc = requestsCounts || {};
   const statsSummary = [
-    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/student-activities", icon: Clock },
-    { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/student-activities", icon: CheckCircle },
-    { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications", icon: BookOpen },
-    { title: "Approved Applications", count: requestsCounts.approvedApplications || 0, path: "/admin/organizations", icon: FileCheck },
-    { title: "Total Submissions", count: (requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved) || 0, path: "/admin/all-submissions", icon: FileText },
-    { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports", icon: Calendar },
+    { title: "Pending Requests", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) : null, path: "/admin/student-activities", icon: Clock },
+    { title: "Approved Requests", count: requestsCounts ? rc.approved || 0 : null, path: "/admin/student-activities", icon: CheckCircle },
+    { title: "Pending Applications", count: requestsCounts ? rc.pendingApplications || 0 : null, path: "/admin/org-applications", icon: BookOpen },
+    { title: "Approved Applications", count: requestsCounts ? rc.approvedApplications || 0 : null, path: "/admin/organizations", icon: FileCheck },
+    { title: "Total Submissions", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) + (rc.approved || 0) : null, path: "/admin/all-submissions", icon: FileText },
+    { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar },
   ];
 
   const getActivityTypeLabel = (id) => {
@@ -288,7 +283,7 @@ const AdminPanel = () => {
   ];
 
   if (loading && !rawActivities.length && !appointments.length) {
-    return <LoadingSpinner text="Loading dashboard..." variant="fullscreen" />;
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -318,7 +313,11 @@ const AdminPanel = () => {
                 <stat.icon className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors">{stat.count}</h3>
+                {stat.count !== null ? (
+                  <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors animate-[fadeIn_0.4s_ease-in-out]">{stat.count}</h3>
+                ) : (
+                  <Skeleton className="h-7 w-10 mb-1" />
+                )}
                 <p className="text-xs font-medium text-gray-500 leading-tight line-clamp-2">{stat.title}</p>
               </div>
             </Link>
@@ -331,7 +330,7 @@ const AdminPanel = () => {
             <ActivityTrendsChart activities={rawActivities} />
           </div>
           <div className="xl:col-span-1 h-full">
-            <ActionCenter counts={requestsCounts} />
+            <ActionCenter counts={requestsCounts} loading={loading} />
           </div>
         </div>
 
@@ -397,7 +396,7 @@ const AdminPanel = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <LoadingSpinner text="Loading detail..." variant="inline" />
+            <DetailSkeleton />
           </div>
         ) : (
           selectedActivity && (

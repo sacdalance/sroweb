@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { History, User, Activity, FileText, Settings } from "lucide-react";
 import supabase from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { ListSkeleton } from "@/components/ui/skeletons";
 
 const ActivityItem = ({ log }) => {
     // Determine icon and color based on action text
@@ -103,7 +103,7 @@ const RecentActivityFeed = ({ className }) => {
             <CardContent className="flex-1 p-0 overflow-hidden">
                 {loading ? (
                     <div className="p-4">
-                        <LoadingSpinner text="Loading feed..." variant="inline" />
+                        <ListSkeleton rows={4} />
                     </div>
                 ) : logs.length === 0 ? (
                     <div className="p-8 text-center text-gray-400 text-sm">

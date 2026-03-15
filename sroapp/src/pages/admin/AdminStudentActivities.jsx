@@ -13,6 +13,7 @@ import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 import { generateApprovalSlips } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
@@ -550,7 +551,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   }, [calendarEvents, selectedDateFilter]);
 
   if (!userRole) {
-    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+    return <TableSkeleton />;
   }
 
   return (
@@ -606,7 +607,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
           <Card className="rounded-lg overflow-hidden shadow-sm border-0">
             <CardContent className="p-4">
               {loading ? (
-                <LoadingSpinner text="Loading activity requests..." variant="section" />
+                <TableSkeleton />
               ) : (
                 <DataTable
                   columns={columns}
@@ -686,7 +687,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
             <CardContent className="p-4">
               {/* Summary DataTable */}
               {loading ? (
-                <LoadingSpinner text="Loading activities..." variant="section" />
+                <CalendarSkeleton />
               ) : (
                 <DataTable
                   actionButtons={

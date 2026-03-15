@@ -2,7 +2,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } fr
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
-import LoadingSpinner from "../components/ui/loading-spinner";
+import { PageLoadingSkeleton } from "@/components/ui/skeletons";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 
@@ -82,7 +82,7 @@ const RedirectHome = () => {
     checkUserAndRole();
   }, [navigate]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
   return null;
 };
 
@@ -119,7 +119,7 @@ const PrivateRoute = () => {
     navigate("/login");
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
 
   // Show error if email is not a UP Mail
   if (user && !user.email.endsWith("@up.edu.ph")) {
@@ -164,7 +164,7 @@ const RedirectIfLoggedIn = ({ element }) => {
     };
   }, []);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };

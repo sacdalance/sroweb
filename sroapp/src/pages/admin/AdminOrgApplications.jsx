@@ -14,7 +14,7 @@ import {
 import { Download, ExternalLink, ClipboardList } from "lucide-react";
 import supabase from "@/lib/supabase";
 import StatusPill from "@/components/ui/StatusPill";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 
 const statusList = [
@@ -254,7 +254,7 @@ const AdminOrgApplications = () => {
     return cols;
   }, [roleId, existingOrgs]);
 
-  if (dataLoading) return <LoadingSpinner text="Loading recognition data..." variant="section" />;
+  if (dataLoading) return <TableSkeleton />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">

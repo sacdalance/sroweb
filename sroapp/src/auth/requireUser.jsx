@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import supabase from "@/lib/supabase";
+import { PageLoadingSkeleton } from "@/components/ui/skeletons";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +10,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import LoadingSpinner from "@/components/ui/loading-spinner";
 
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 
@@ -50,7 +50,7 @@ const RequireUser = ({ children }) => {
   }, [navigate]);
 
   if (loading) {
-    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+    return <PageLoadingSkeleton />;
   }
 
   return hasAccess ? (

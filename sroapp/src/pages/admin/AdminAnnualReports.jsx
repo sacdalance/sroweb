@@ -5,7 +5,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog";
 import { ExternalLink, Database, FileText } from "lucide-react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 
 const AdminAnnualReports = () => {
@@ -101,7 +101,7 @@ const AdminAnnualReports = () => {
     }
   ], [reports]);
 
-  if (loading) return <LoadingSpinner text="Loading annual reports..." variant="section" />;
+  if (loading) return <TableSkeleton />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">

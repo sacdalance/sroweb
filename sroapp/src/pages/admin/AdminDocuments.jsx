@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import DataTable from "@/components/ui/DataTable";
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { CardListSkeleton } from '@/components/ui/skeletons';
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useStudentForms, REQUIRED_FORMS } from '@/hooks/useStudentForms';
@@ -158,7 +158,7 @@ const AdminDocuments = () => {
     ];
 
     if (loading && !publicForms.files?.length && activeTab === 'forms') {
-        return <LoadingSpinner text="Loading forms..." variant="section" />;
+        return <CardListSkeleton count={6} />;
     }
 
     return (

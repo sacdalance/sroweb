@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { ListSkeleton } from "@/components/ui/skeletons";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
@@ -650,7 +650,7 @@ const AppointmentBooking = () => {
           )}
 
           {loading ? (
-            <LoadingSpinner text="Loading your appointments..." variant="section" />
+            <ListSkeleton rows={4} />
           ) : (
             <>
               <DataTable

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 
 
@@ -400,7 +401,7 @@ const AdminActivitySummary = () => {
       {/* Main Content: DataTable with integrated tabs and filters */}
       {loading ? (
         <div className="bg-white rounded-xl border shadow-sm p-12">
-          <LoadingSpinner text="Loading activities..." variant="section" />
+          <TableSkeleton />
         </div>
       ) : (
         <div className="bg-white rounded-xl border shadow-sm overflow-hidden p-1 sm:p-0">

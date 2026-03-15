@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { PageLoadingSkeleton } from "@/components/ui/skeletons";
 
 const RequireAdminRole = ({ childrenByRole }) => {
   const [role, setRole] = useState(null);
@@ -50,7 +50,7 @@ const RequireAdminRole = ({ childrenByRole }) => {
     fetchRole();
   }, [navigate, childrenByRole]);
 
-  if (loading) return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+  if (loading) return <PageLoadingSkeleton />;
 
   return role && childrenByRole[role] ? (
     cloneElement(childrenByRole[role], { userRole: role })

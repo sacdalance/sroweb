@@ -8,7 +8,7 @@ import {
   Building2, Users, UserCircle, Mail, ExternalLink, Award, FileSpreadsheet, FileText, 
   Layout, Shield, Calendar 
 } from "lucide-react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 
 const AdminOrganizations = () => {
@@ -198,7 +198,7 @@ const AdminOrganizations = () => {
     }
   ], [organizations]);
 
-  if (loading) return <LoadingSpinner text="Loading recognized organizations..." variant="section" />;
+  if (loading) return <TableSkeleton />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">

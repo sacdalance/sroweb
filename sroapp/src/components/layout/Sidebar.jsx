@@ -8,7 +8,7 @@ import {
   Users, FolderOpen, Settings,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PropTypes from "prop-types";
@@ -199,7 +199,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                 </h2>
                 <p className="text-xs text-sro-primary font-medium">
                   {roleName || (
-                    <LoadingSpinner text="..." variant="inline" className="text-sro-primary" />
+                    <Skeleton className="h-3 w-16 mt-0.5" />
                   )}
                 </p>
               </div>

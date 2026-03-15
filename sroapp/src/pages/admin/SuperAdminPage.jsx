@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import supabase from "@/lib/supabase";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Button } from "@/components/ui/button";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { SettingsSkeleton } from "@/components/ui/skeletons";
 
 const ROLE_OPTIONS = [
     { id: 1, label: "Student" },
@@ -65,7 +65,7 @@ const SuperAdminPage = () => {
         }
     };
 
-    if (loading) return <LoadingSpinner />;
+    if (loading) return <SettingsSkeleton />;
 
     if (!user || !SUPERADMIN_EMAILS.includes(user.email)) {
         return <div className="p-8 text-center text-red-600">Unauthorized Access</div>;

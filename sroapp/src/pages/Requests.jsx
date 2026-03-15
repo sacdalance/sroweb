@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
@@ -166,7 +167,18 @@ const Requests = () => {
   }, [accountId]);
 
   if (loading) {
-    return <LoadingSpinner text="Loading activities..." variant="section" />;
+    return (
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Requests</h1>
+        <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-5 w-28" />
+        </div>
+        <TableSkeleton />
+      </div>
+    );
   }
 
   const handleCancel = async () => {
@@ -743,7 +755,7 @@ const Requests = () => {
               className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <LoadingSpinner text="Loading activity details..." variant="section" />
+              <DetailSkeleton />
             </DialogContent>
           ) : (
             <ActivityDialogContent
