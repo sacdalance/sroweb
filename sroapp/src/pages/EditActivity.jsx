@@ -18,7 +18,7 @@ import { Progress } from "../components/ui/progress";
 import { createActivity } from '../api/activityRequestAPI';
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import {
     AlertDialog,
     AlertDialogContent,
@@ -37,6 +37,7 @@ import { editActivity } from "../api/activityEditAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
 
 const EditActivity = () => {
+    const { accountId } = useAuth();
     const [selectedValue, setSelectedValue] = useState("");
     const [studentPosition, setStudentPosition] = useState("");
     const [studentContact, setStudentContact] = useState("");
@@ -351,30 +352,11 @@ const EditActivity = () => {
 
         // Send data to database and file to cloud
         try {
-            const {
-                data: { user },
-                error: userError
-            } = await supabase.auth.getUser(); // supabase
-
-            if (userError || !user) {
+            if (!accountId) {
                 toast.dismiss();
                 toast.error("You're not logged in.");
                 return;
             }
-
-            const { data: accountData, error: accountError } = await supabase
-                .from("account")
-                .select("account_id")
-                .eq("email", user.email)
-                .single();
-
-            if (accountError || !accountData) {
-                toast.dismiss();
-                toast.error("No matching account found.");
-                return;
-            }
-
-            const account_id = accountData.account_id;
 
             const activityData = {
                 activity_id: activity.activity_id,

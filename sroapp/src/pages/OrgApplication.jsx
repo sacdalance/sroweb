@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { submitOrgApplication } from "@/api/orgApplicationAPI";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { orgApplicationSchema } from "@/lib/zodSchemas";
 import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
@@ -40,6 +40,7 @@ const categoriesList = [
 const academicYearsList = ["2024-2025", "2025-2026", "2026-2027", "2027-2028"];
 
 const OrgApplication = () => {
+  const { accountId } = useAuth();
   const navigate = useNavigate();
   const { getFileForForm } = useStudentForms();
 
@@ -65,8 +66,6 @@ const OrgApplication = () => {
   const [selectedOrgTypeName, setSelectedOrgTypeName] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  const [userId, setUserId] = useState(null);
-
   // Draft States
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [pendingDraft, setPendingDraft] = useState(null);
@@ -186,22 +185,6 @@ const OrgApplication = () => {
   }, [isDirty, isSuccessfullySubmitted]);
 
 
-  // === AUTH: GET USER ACCOUNT ID ===
-  useEffect(() => {
-    const fetchUserAccount = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data?.session?.user;
-      if (!user) return;
-      const { data: accountData } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-      if (accountData?.account_id) setUserId(accountData.account_id);
-    };
-    fetchUserAccount();
-  }, []);
-
   // === VALIDATION HELPERS ===
   const validateSingleField = (field, value) => {
     try {
@@ -283,7 +266,7 @@ const OrgApplication = () => {
         coadviser_email: coAdviserEmail.trim() || null,
         org_type: orgType,
         files,
-        submitted_by: userId,
+        submitted_by: accountId,
       });
 
       // Clear draft on success

@@ -15,6 +15,7 @@ import { cn, sanitizeInput } from "@/lib/utils";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useBlocker } from "react-router-dom";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ const ActivityForm = ({
   autoApprove = false,
   onSubmit
 }) => {
+  const { accountId } = useAuth();
   const [currentSection, setCurrentSection] = useState("general-info");
   const [fieldErrors, setFieldErrors] = useState({});
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
@@ -538,25 +540,10 @@ const ActivityForm = ({
     setIsSubmitting(true);
 
     try {
-      const {
-        data: { user },
-        error: userError
-      } = await supabase.auth.getUser();
+      if (!accountId) throw new Error("User not authenticated");
 
-      if (userError || !user) throw new Error("User not authenticated");
-
-      // Fetch matching account_id
-      const { data: accountData, error: accountError } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-
-      if (accountError || !accountData?.account_id) throw new Error("Account not found");
-
-      const account_id = accountData.account_id;
       const { activityData, scheduleData } = buildActivityPayload(formData);
-      activityData.account_id = account_id;
+      activityData.account_id = accountId;
       if (mode === "edit") {
         if (!defaultValues?.activity_id) throw new Error("Missing activity_id for edit");
         const payload = {

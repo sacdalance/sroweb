@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "@/lib/supabase";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Button } from "@/components/ui/button";
@@ -16,37 +17,22 @@ import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 
 
 const SuperAdminPage = () => {
-    const [user, setUser] = useState(null);
+    const { user, accountId, role, loading: authLoading } = useAuth();
     const [currentRole, setCurrentRole] = useState(null);
     const [selectedRole, setSelectedRole] = useState(null);
-    const [accountId, setAccountId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [skipValidation, setSkipValidation] = useState(
         () => sessionStorage.getItem("sroSkipValidation") === "true"
     );
 
     useEffect(() => {
-        const fetchUserAndRole = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser(user);
-                const { data, error } = await supabase
-                    .from("account")
-                    .select("role_id, account_id")
-                    .eq("email", user.email)
-                    .single();
-
-                if (!error && data) {
-                    setCurrentRole(data.role_id);
-                    setSelectedRole(data.role_id); // Initialize dropdown with current role
-                    setAccountId(data.account_id);
-                }
-            }
-            setLoading(false);
-        };
-
-        fetchUserAndRole();
-    }, []);
+        if (authLoading) return;
+        if (role) {
+            setCurrentRole(role);
+            setSelectedRole(role);
+        }
+        setLoading(false);
+    }, [role, authLoading]);
 
     const handleRoleChange = async () => {
         if (!accountId) return;

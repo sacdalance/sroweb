@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ import { appointmentSchema } from "@/lib/zodSchemas";
 import { sanitizeInput } from "@/lib/utils";
 
 const AppointmentBooking = () => {
+  const { accountId, email } = useAuth();
   const [formData, setFormData] = useState({
     reason: "",
     subject: "",
@@ -67,13 +69,11 @@ const AppointmentBooking = () => {
     );
   };
 
-  const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [userAccountId, setUserAccountId] = useState(null);
   const [blockedDates, setBlockedDates] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [timeSlotLoading, setTimeSlotLoading] = useState(false);
@@ -85,32 +85,23 @@ const AppointmentBooking = () => {
   const [activeTab, setActiveTab] = useState("booking");
   const [lastBooking, setLastBooking] = useState(null); // For confirmation card
 
-  // Fetch initial data
+  // Load user appointments when accountId becomes available
+  useEffect(() => {
+    if (!accountId) return;
+    loadUserAppointments(accountId);
+  }, [accountId]);
+
+  // Auto-fill email from auth context
+  useEffect(() => {
+    if (email) {
+      setFormData(prev => ({ ...prev, email }));
+    }
+  }, [email]);
+
+  // Fetch initial data (settings and blocked dates)
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser) {
-          setUser(currentUser);
-
-          // Get user's account details
-          const { data: accountData, error: accountError } = await supabase
-            .from('account')
-            .select('account_id')
-            .eq('email', currentUser.email)
-            .single();
-
-          if (accountError) throw accountError;
-
-          if (accountData?.account_id) {
-            setUserAccountId(accountData.account_id);
-            await loadUserAppointments(accountData.account_id);
-          }
-
-          // Auto-fill email from logged-in user
-          setFormData(prev => ({ ...prev, email: currentUser.email }));
-        }
-
         // Get appointment settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('appointment_settings')
@@ -394,7 +385,7 @@ const AppointmentBooking = () => {
 
     try {
       setSubmitting(true); const appointmentData = {
-        account_id: userAccountId,
+        account_id: accountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
         reason: formData.reason,
@@ -446,8 +437,8 @@ const AppointmentBooking = () => {
       });
 
       // Refresh appointments list if user is logged in
-      if (user && userAccountId) {
-        loadUserAppointments(userAccountId);
+      if (accountId) {
+        loadUserAppointments(accountId);
         // Switch to My Appointments tab to show the new booking
         setActiveTab("appointments");
       }
@@ -483,7 +474,7 @@ const AppointmentBooking = () => {
       setReschedulingAppointment(null);
       setRescheduleData({ date: null, time: "" });
       setRescheduleReason("");
-      loadUserAppointments(userAccountId);
+      loadUserAppointments(accountId);
     } catch (error) {
       console.error("Error requesting reschedule:", error);
       toast.error("Failed to request reschedule");

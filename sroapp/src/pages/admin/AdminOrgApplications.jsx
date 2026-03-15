@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Download, ExternalLink, ClipboardList } from "lucide-react";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "@/lib/supabase";
 import StatusPill from "@/components/ui/StatusPill";
 import { TableSkeleton } from "@/components/ui/skeletons";
@@ -36,7 +37,8 @@ const categoriesList = [
 const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.name || id;
 
 const AdminOrgApplications = () => {
-  const [roleId, setRoleId] = useState(null);
+  const { role } = useAuth();
+  const roleId = role;
   const [applications, setApplications] = useState([]);
   const [existingOrgs, setExistingOrgs] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -47,22 +49,7 @@ const AdminOrgApplications = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // 1. Fetch roleId from account using supabase_uid
-  useEffect(() => {
-    const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("supabase_uid", user.id)
-        .single();
-      if (profile) setRoleId(profile.role_id);
-    };
-    fetchRole();
-  }, []);
-
-  // 2. Fetch applications - Preserving existing role-based filtering logic
+  // Fetch applications - Preserving existing role-based filtering logic
   useEffect(() => {
     if (!roleId) return;
     const fetchData = async () => {

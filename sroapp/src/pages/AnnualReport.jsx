@@ -9,7 +9,7 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { annualReportSchema } from "@/lib/zodSchemas";
 import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
@@ -35,6 +35,7 @@ const academicYearOptions = [
 ];
 
 const AnnualReport = () => {
+  const { accountId } = useAuth();
   const { getFileForForm } = useStudentForms();
   // === STATE HOOKS ===
   const [files, setFiles] = useState([]);
@@ -44,7 +45,6 @@ const AnnualReport = () => {
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [annualReportEmail, setAnnualReportEmail] = useState("");
   const [academicYear, setAcademicYear] = useState("");
-  const [userId, setUserId] = useState(null);
 
   // Draft States
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -160,21 +160,6 @@ const AnnualReport = () => {
 
   // === DATA FETCHING ===
 
-  // Fetch user ID (for submission metadata)
-  useEffect(() => {
-    const fetchUserAccount = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) return;
-      const { data, error: fetchErr } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-      if (!fetchErr && data) setUserId(data.account_id);
-    };
-    fetchUserAccount();
-  }, []);
-
   // Fetch orgs for org dropdown
   useEffect(() => {
     const loadOrgs = async () => {
@@ -224,7 +209,7 @@ const AnnualReport = () => {
     try {
       await submitAnnualReport({
         org_id: selectedOrgId,
-        submitted_by: userId,
+        submitted_by: accountId,
         academic_year: academicYear,
         files,
       });
