@@ -100,8 +100,17 @@ const DataTable = ({
     // Filter state
     const [filters, setFilters] = useState(defaultFilters); // Initialize with defaultFilters
 
-    // Search state
+    // Search state (debounced: searchInput is immediate, searchTerm is delayed)
+    const [searchInput, setSearchInput] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Debounce search input by 300ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchTerm(searchInput);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -342,8 +351,8 @@ const DataTable = ({
                         </div>
                         <Input
                             placeholder="Search records..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             className="pl-10 h-10 bg-white border-gray-200 focus:border-sro-primary/50 transition-colors shadow-sm"
                         />
                     </div>
