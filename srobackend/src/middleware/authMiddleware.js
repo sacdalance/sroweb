@@ -4,6 +4,19 @@ import express from 'express';
 
 const router = express.Router();
 
+const authCache = new Map();
+const AUTH_CACHE_TTL = 60000; // 1 minute
+
+// Clean up expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of authCache) {
+    if (now - value.timestamp > AUTH_CACHE_TTL) {
+      authCache.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
 /**
  * Verifies the user is authenticated via Supabase JWT.
  * Sets req.user (Supabase user) and req.account (account_id, role_id, email).
@@ -11,6 +24,13 @@ const router = express.Router();
 export const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  const cached = authCache.get(token);
+  if (cached && Date.now() - cached.timestamp < AUTH_CACHE_TTL) {
+    req.user = cached.user;
+    req.account = cached.account;
+    return next();
+  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -25,6 +45,7 @@ export const authMiddleware = async (req, res, next) => {
 
     req.user = user;
     req.account = account || null;
+    authCache.set(token, { user, account: account || null, timestamp: Date.now() });
     next();
   } catch (err) {
     console.error("Auth error:", err.message || err);
@@ -39,6 +60,16 @@ export const authMiddleware = async (req, res, next) => {
 export const verifyAdminRoles = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  const cached = authCache.get(token);
+  if (cached && Date.now() - cached.timestamp < AUTH_CACHE_TTL) {
+    if (!cached.account || ![2, 3, 4, 5].includes(cached.account.role_id)) {
+      return res.status(403).json({ error: "Forbidden: Admin roles only" });
+    }
+    req.user = cached.user;
+    req.account = cached.account;
+    return next();
+  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -56,6 +87,7 @@ export const verifyAdminRoles = async (req, res, next) => {
 
     req.user = user;
     req.account = account;
+    authCache.set(token, { user, account, timestamp: Date.now() });
     next();
   } catch (err) {
     console.error("Admin role check error:", err.message || err);
@@ -69,6 +101,16 @@ export const verifyAdminRoles = async (req, res, next) => {
 export const verifySuperAdmin = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  const cached = authCache.get(token);
+  if (cached && Date.now() - cached.timestamp < AUTH_CACHE_TTL) {
+    if (!cached.account || cached.account.role_id !== 4) {
+      return res.status(403).json({ error: "Forbidden: SuperAdmin only" });
+    }
+    req.user = cached.user;
+    req.account = cached.account;
+    return next();
+  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -86,6 +128,7 @@ export const verifySuperAdmin = async (req, res, next) => {
 
     req.user = user;
     req.account = account;
+    authCache.set(token, { user, account, timestamp: Date.now() });
     next();
   } catch (err) {
     console.error("SuperAdmin check error:", err.message || err);

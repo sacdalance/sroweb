@@ -26,6 +26,7 @@ router.get('/list', authMiddleware, async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch organizations' });
   }
 
+  res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
   res.json(data);
 });
 
