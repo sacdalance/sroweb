@@ -123,7 +123,7 @@ const WeeklyCalendar = ({
     const renderDayLabel = (date, day, isToday, isMobile = false) => (
         <div
             className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] ${isMobile ? 'flex-shrink-0' : ''}
-        ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
+        ${isToday ? "bg-sro-accent-50 text-sro-accent-500 font-bold border-2 border-sro-accent-200 shadow-sm" : ""}
       `}
         >
             <span className="text-xs">{day}</span>
