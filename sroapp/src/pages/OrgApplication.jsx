@@ -331,7 +331,7 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Recognition Application</h1>
-      <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
+      <form className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-10" onSubmit={e => e.preventDefault()} noValidate>
         <div className="space-y-5">
           {/* Organization Name */}
           <div>

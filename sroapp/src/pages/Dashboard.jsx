@@ -227,7 +227,7 @@ const Dashboard = () => {
 
       {/* Bento Grid */}
       <AnimatedContainer delay={0.15}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-6">
           {/* Calendar - spans 3 cols and 2 rows */}
           <div className="lg:col-span-3 lg:row-span-2">
             <WeeklyCalendar

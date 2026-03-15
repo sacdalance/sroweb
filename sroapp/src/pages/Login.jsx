@@ -89,7 +89,7 @@ const Login = () => {
                             >
                                 Login with UPmail
                             </Button>
-                            <div className="flex flex-row justify-around gap-4 text-sro-primary text-base">
+                            <div className="flex flex-row justify-around gap-2 sm:gap-4 text-sro-primary text-base">
                                 <div className="flex flex-col items-center">
                                     <FileText className="w-7 h-7 mb-1" />
                                     <p className="font-medium">Activity Requests</p>

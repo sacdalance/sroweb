@@ -309,7 +309,7 @@ const AdminOrganizations = () => {
               {/* Actions Section */}
               <div className="space-y-3">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Administrative Actions</h4>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Button
                     onClick={() => handleGenerateCertificate(selectedOrg.org_name, selectedOrg.academic_year)}
                     className="bg-sro-primary text-white hover:bg-sro-primary/90 shadow-md shadow-sro-primary/10 gap-2 h-10 text-xs"

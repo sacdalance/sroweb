@@ -821,7 +821,7 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                <div className="flex flex-wrap gap-x-2 md:gap-x-4 gap-y-2 mt-4">
                   <div className="flex items-center gap-2">
                     <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary"></span>
                     <span className="text-xs text-sro-secondary font-medium">Selected</span>
@@ -929,7 +929,7 @@ const AppointmentBooking = () => {
             {rescheduleData.date && (
               <div>
                 <label className="block text-sm font-medium mb-2">Select New Time</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {timeSlots.map((slot) => (
                     <button
                       key={slot.time}

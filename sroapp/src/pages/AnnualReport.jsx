@@ -254,9 +254,9 @@ const AnnualReport = () => {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Annual Report</h1>
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
         {/* Fields Section */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4 md:space-y-6">
           {/* Organization Name (searchable dropdown) */}
           <div>
             <label className="text-sm font-medium mb-2 block">

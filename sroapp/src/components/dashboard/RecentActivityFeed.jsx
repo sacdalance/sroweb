@@ -46,12 +46,12 @@ const ActivityItem = ({ log }) => {
             <div className={cn("mt-1 p-1.5 rounded-full h-fit", colorClass)}>
                 <Icon className="w-3.5 h-3.5" />
             </div>
-            <div className="flex-1 space-y-0.5">
+            <div className="flex-1 min-w-0 space-y-0.5">
                 <p className="text-sm font-medium text-gray-800 leading-none">
                     {log.action}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-sro-secondary">
+                    <span className="font-medium text-sro-secondary truncate">
                         {log.account?.email || `User #${log.account_id}`}
                     </span>
                     <span>•</span>
