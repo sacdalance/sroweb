@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, AlertCircle, Clock, FileCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { ListSkeleton } from "@/components/ui/skeletons";
 
 const ActionItem = ({ icon: Icon, title, count, link, description }) => (
     <Link
@@ -34,8 +35,8 @@ const ActionItem = ({ icon: Icon, title, count, link, description }) => (
     </Link>
 );
 
-const ActionCenter = ({ counts = {}, className }) => {
-    const { pending = 0, forAppeal = 0, pendingApplications = 0 } = counts;
+const ActionCenter = ({ counts, loading = false, className }) => {
+    const { pending = 0, forAppeal = 0, pendingApplications = 0 } = counts || {};
     const totalActionable = pending + forAppeal + pendingApplications;
 
     return (
@@ -48,7 +49,9 @@ const ActionCenter = ({ counts = {}, className }) => {
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-4 pt-4 space-y-3">
-                {totalActionable === 0 ? (
+                {loading || !counts ? (
+                    <ListSkeleton rows={3} />
+                ) : totalActionable === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center py-8 text-gray-400">
                         <FileCheck className="w-12 h-12 mb-2 opacity-20" />
                         <p className="text-sm">All caught up!</p>
