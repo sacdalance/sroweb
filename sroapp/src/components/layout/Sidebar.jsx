@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import {
   LogOut, X, ChevronDown,
   LayoutDashboard, FileText, PlusCircle, CalendarCheck,
@@ -76,37 +77,9 @@ const NavSection = ({ title, children, collapsed, defaultOpen = true }) => {
 };
 
 const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user || null);
-
-      if (user) {
-        const { data, error } = await supabase
-          .from("account")
-          .select("role_id")
-          .eq("email", user.email)
-          .single();
-        if (!error && data) setRole(data.role_id);
-      }
-    };
-
-    fetchUser();
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
   const isUser = role === 1;
@@ -197,11 +170,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                 <h2 className="text-sm font-semibold text-gray-900 truncate">
                   {user?.user_metadata?.full_name || "User"}
                 </h2>
-                <p className="text-xs text-sro-primary font-medium">
+                <span className="text-xs text-sro-primary font-medium block">
                   {roleName || (
                     <Skeleton className="h-3 w-16 mt-0.5" />
                   )}
-                </p>
+                </span>
               </div>
             )}
           </div>

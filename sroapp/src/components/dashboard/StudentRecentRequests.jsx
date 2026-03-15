@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import { cn } from "@/lib/utils";
 
 const statusStyles = {
@@ -19,25 +20,16 @@ const statusStyles = {
 const StudentRecentRequests = ({ className }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { accountId } = useAuth();
 
   useEffect(() => {
+    if (!accountId) return;
     const fetchRequests = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: account } = await supabase
-          .from("account")
-          .select("account_id")
-          .eq("email", user.email)
-          .single();
-
-        if (!account) return;
-
         const { data, error } = await supabase
           .from("activity")
           .select("activity_id, activity_name, final_status, created_at")
-          .eq("account_id", account.account_id)
+          .eq("account_id", accountId)
           .order("created_at", { ascending: false })
           .limit(5);
 
@@ -49,7 +41,7 @@ const StudentRecentRequests = ({ className }) => {
       }
     };
     fetchRequests();
-  }, []);
+  }, [accountId]);
 
   return (
     <Card className={cn("shadow-sm h-full flex flex-col", className)}>

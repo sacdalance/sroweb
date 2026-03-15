@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { X, AlertTriangle, Pencil } from "lucide-react";
@@ -28,7 +29,7 @@ const Requests = () => {
   const [editingActivity, setEditingActivity] = useState(null);
   const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
-  const [accountId, setAccountId] = useState(null);
+  const { accountId, loading: authLoading } = useAuth();
   const [annualReports, setAnnualReports] = useState([]);
   const [recognitionApps, setRecognitionApps] = useState([]);
 
@@ -107,22 +108,11 @@ const Requests = () => {
   );
 
   useEffect(() => {
+    if (authLoading || !accountId) return;
+
     const fetchActivities = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const { data: account } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-
-      if (!account) return;
-
-      const res = await authFetch(`${API_BASE_URL}/activities/user/${account.account_id}`);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}`);
       if (!res.ok) throw new Error('Failed to fetch activities');
-      setAccountId(account.account_id);
       const all = await res.json();
 
       const requestedActivities = all.filter((a) => a.final_status !== "Approved");
@@ -134,7 +124,7 @@ const Requests = () => {
     };
 
     fetchActivities();
-  }, []);
+  }, [accountId, authLoading]);
 
   useEffect(() => {
     const fetchAnnualReports = async () => {

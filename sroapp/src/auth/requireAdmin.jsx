@@ -1,6 +1,5 @@
 import { useEffect, useState, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
-import supabase from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -10,45 +9,24 @@ import {
 } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/skeletons";
+import { useAuth } from "@/context/UserAuthContext";
 
 const RequireAdminRole = ({ childrenByRole }) => {
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { role, loading } = useAuth();
   const [showDialog, setShowDialog] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        setLoading(false);
-        navigate("/login");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      const roleId = data?.role_id;
-
-      if (!error && childrenByRole[roleId]) {
-        setRole(roleId);
-      } else {
-        setShowDialog(true);
-        setTimeout(() => {
-          navigate("/");
-        }, 3000);
-      }
-
-      setLoading(false);
-    };
-
-    fetchRole();
-  }, [navigate, childrenByRole]);
+    if (!loading && role !== null && !childrenByRole[role]) {
+      setShowDialog(true);
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    }
+    if (!loading && role === null) {
+      navigate("/login");
+    }
+  }, [loading, role, childrenByRole, navigate]);
 
   if (loading) return <PageLoadingSkeleton />;
 

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
+import { useAuth } from "@/context/UserAuthContext";
 import { createNotification } from "@/lib/notifications";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
@@ -47,13 +48,13 @@ const getDerivedStatus = (activity) => {
   return "Unknown";
 };
 
-const AdminPendingRequests = ({ userRole: initialUserRole }) => {
+const AdminPendingRequests = () => {
   const [loading, setLoading] = useState(true);
   const [superadminView, setSuperadminView] = useState('sro');
   const [tab, setTab] = useState("requests");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [userRole, setUserRole] = useState(initialUserRole || null);
+  const { role: userRole, email: userEmail } = useAuth();
   const [activities, setActivities] = useState([]);
 
   // Calendar State
@@ -156,30 +157,6 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
     }
   ];
 
-  useEffect(() => {
-    if (userRole) return;
-
-    const fetchRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: account, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      if (error) {
-        console.error("Error fetching role:", error);
-      } else {
-        setUserRole(account?.role_id);
-      }
-    };
-
-    fetchRole();
-  }, [userRole]);
-
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
       .from("activity")
@@ -203,8 +180,6 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const fetchAllActivities = async () => {
     try {
       setLoading(true);
-      // Get current user email for adviser filtering
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
 
       let query = supabase
         .from("activity")
@@ -217,11 +192,11 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         .order('created_at', { ascending: false });
 
       // Adviser (role 5): only fetch activities from orgs they advise
-      if (userRole === 5 && currentUser?.email) {
+      if (userRole === 5 && userEmail) {
         const { data: adviserOrgs, error: orgError } = await supabase
           .from("organization")
           .select("org_id")
-          .eq("adviser_email", currentUser.email);
+          .eq("adviser_email", userEmail);
 
         if (orgError) {
           console.error("Error fetching adviser orgs:", orgError);

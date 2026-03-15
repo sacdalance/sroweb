@@ -1,8 +1,9 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
 import { PageLoadingSkeleton } from "@/components/ui/skeletons";
+import { UserAuthProvider, useAuth } from "@/context/UserAuthContext";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 
@@ -37,19 +38,18 @@ import RequireAdminRole from "@/auth/RequireAdmin";
 import EmailTestButton from "@/pages/EmailTestButton";
 
 const RedirectHome = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUserAndRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    if (loading) return;
 
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
+    const syncAndRedirect = async () => {
       try {
         await checkOrCreateUser(user.email, user.user_metadata.full_name);
         console.log("User synced!");
@@ -57,30 +57,15 @@ const RedirectHome = () => {
         console.error("Sync error:", err.message);
       }
 
-      // Fetch role from 'account' table
-      const { data, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      const roleId = data?.role_id;
-
-      if (!error && roleId) {
-        if ([2, 3, 4, 5].includes(roleId)) {
-          navigate("/admin");
-        } else {
-          navigate("/dashboard");
-        }
+      if (role && [2, 3, 4, 5].includes(role)) {
+        navigate("/admin");
       } else {
-        navigate("/dashboard"); // defaul fallback
+        navigate("/dashboard");
       }
-
-      setLoading(false);
     };
 
-    checkUserAndRole();
-  }, [navigate]);
+    syncAndRedirect();
+  }, [user, role, loading, navigate]);
 
   if (loading) return <PageLoadingSkeleton />;
   return null;
@@ -90,32 +75,11 @@ const RedirectHome = () => {
  * Protects routes from unauthenticated users.
  */
 const PrivateRoute = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    checkUser();
-
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  // Handles sign out when clicked
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
     navigate("/login");
   };
 
@@ -143,42 +107,33 @@ const PrivateRoute = () => {
  * Redirects logged-in users from `/login` to `/dashboard`.
  */
 const RedirectIfLoggedIn = ({ element }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    checkUser();
-
-    // Listen for authentication state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+  const { user, loading } = useAuth();
 
   if (loading) return <PageLoadingSkeleton />;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };
 
+// Auth wrapper — provides UserAuthContext to all route components
+const AuthWrapper = () => (
+  <UserAuthProvider>
+    <Outlet />
+  </UserAuthProvider>
+);
+
 // Define routes
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Layout />,
+    element: <AuthWrapper />,
     children: [
-      { index: true, element: <RedirectHome /> },
       {
-        element: <PrivateRoute />,
+        path: "/",
+        element: <Layout />,
         children: [
+          { index: true, element: <RedirectHome /> },
+          {
+            element: <PrivateRoute />,
+            children: [
           // ✅ USER ROUTES (User + SuperAdmin)
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
@@ -236,9 +191,11 @@ const router = createBrowserRouter([
       },
     ],
   },
-  { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
-  { path: "/offline", element: <NotFound /> },
-  { path: "*", element: <NotFound /> },
+      { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
+      { path: "/offline", element: <NotFound /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
 ]);
 
 const AppRoutes = () => {

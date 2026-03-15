@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import { Dialog } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
@@ -32,9 +33,9 @@ const Dashboard = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const [statCounts, setStatCounts] = useState(null);
   const navigate = useNavigate();
+  const { user, email, accountId, loading: authLoading } = useAuth();
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -44,42 +45,42 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        await Promise.all([fetchActivities(), fetchStats(user.email)]);
-      }
+    if (authLoading) return;
+    if (!user) {
       setLoading(false);
+      return;
+    }
+    const init = async () => {
+      try {
+        await Promise.all([fetchActivities(), fetchStats(accountId)]);
+      } catch (err) {
+        console.error("Dashboard init error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     init();
-  }, []);
+  }, [user, authLoading]);
 
-  const fetchStats = async (email) => {
+  const fetchStats = async (acctId) => {
     try {
-      const { data: account } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", email)
-        .single();
-
-      if (!account) return;
+      if (!acctId) return;
 
       const [pendingRes, approvedRes, applicationsRes] = await Promise.all([
         supabase
           .from("activity")
           .select("activity_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id)
+          .eq("account_id", acctId)
           .or("final_status.is.null,final_status.eq.Pending"),
         supabase
           .from("activity")
           .select("activity_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id)
+          .eq("account_id", acctId)
           .eq("final_status", "Approved"),
         supabase
           .from("org_recognition")
           .select("recognition_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id),
+          .eq("account_id", acctId),
       ]);
 
       setStatCounts({

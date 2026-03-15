@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
-import supabase from "@/lib/supabase";
 import { PageLoadingSkeleton } from "@/components/ui/skeletons";
 import {
   Dialog,
@@ -12,42 +11,23 @@ import {
 } from "@/components/ui/dialog";
 
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";
+import { useAuth } from "@/context/UserAuthContext";
 
 const RequireUser = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  const { user, role, email, loading } = useAuth();
   const [showDialog, setShowDialog] = useState(false);
   const navigate = useNavigate();
 
+  const hasAccess = user && (role === 1 || role === 4 || SUPERADMIN_EMAILS.includes(email));
+
   useEffect(() => {
-    const checkRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      if (!error && (data?.role_id === 1 || data?.role_id === 4 || SUPERADMIN_EMAILS.includes(user.email))) {
-        setHasAccess(true);
-      } else {
-        setShowDialog(true);
-        setTimeout(() => {
-          navigate("/");
-        }, 3000); // redirect in 3s
-      }
-
-      setLoading(false);
-    };
-
-    checkRole();
-  }, [navigate]);
+    if (!loading && user && !hasAccess) {
+      setShowDialog(true);
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    }
+  }, [loading, user, hasAccess, navigate]);
 
   if (loading) {
     return <PageLoadingSkeleton />;

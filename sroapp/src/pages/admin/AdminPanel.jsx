@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Dialog } from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL } from "@/lib/api-config";
+import { useAuth } from "@/context/UserAuthContext";
 import axios from "axios";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { DashboardSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
@@ -34,7 +35,7 @@ const AdminPanel = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
 
-  const [userRole, setUserRole] = useState(null);
+  const { role: userRole } = useAuth();
   const navigate = useNavigate();
 
   // Dynamic Greeting
@@ -72,23 +73,7 @@ const AdminPanel = () => {
     return map[id] || id;
   };
 
-  // 1. Fetch User Role
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          const { data: account } = await supabase.from("account").select("role_id").eq("email", user.email).single();
-          if (account) setUserRole(account.role_id);
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-      }
-    };
-    fetchUserRole();
-  }, []);
-
-  // 2. Main Data Fetch (Combined)
+  // Main Data Fetch (Combined)
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
