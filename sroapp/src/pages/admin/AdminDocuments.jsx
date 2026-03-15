@@ -9,6 +9,7 @@ import DataTable from "@/components/ui/DataTable";
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
 import { CardListSkeleton } from '@/components/ui/skeletons';
+import { Skeleton } from "@/components/ui/skeleton";
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useStudentForms, REQUIRED_FORMS } from '@/hooks/useStudentForms';
@@ -158,7 +159,27 @@ const AdminDocuments = () => {
     ];
 
     if (loading && !publicForms.files?.length && activeTab === 'forms') {
-        return <CardListSkeleton count={6} />;
+        return (
+            <div className="container mx-auto p-4 sm:p-6 max-w-[1700px]">
+                <div className="flex items-center justify-between mb-6">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-9 w-36 rounded-lg" />
+                </div>
+                <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-28" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="bg-white rounded-xl border p-4 space-y-3">
+                            <Skeleton className="h-32 w-full rounded-lg" />
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     return (

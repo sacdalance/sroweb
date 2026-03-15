@@ -262,7 +262,33 @@ const AdminPanel = () => {
   ];
 
   if (loading && !rawActivities.length && !appointments.length) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="space-y-6 p-6 md:p-10">
+        <div className="flex justify-between items-end">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48 mt-2" />
+          </div>
+          <Skeleton className="h-9 w-52 rounded-full" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border p-4 flex items-center gap-3 h-[100px]">
+              <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <Skeleton className="xl:col-span-2 h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
   }
 
   return (

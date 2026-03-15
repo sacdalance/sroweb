@@ -4,6 +4,7 @@ import supabase from "@/lib/supabase";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Button } from "@/components/ui/button";
 import { SettingsSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ROLE_OPTIONS = [
     { id: 1, label: "Student" },
@@ -51,7 +52,26 @@ const SuperAdminPage = () => {
         }
     };
 
-    if (loading) return <SettingsSkeleton />;
+    if (loading) return (
+        <div className="p-6 md:p-10 space-y-6">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+            <div className="bg-white p-6 rounded-lg shadow-md border max-w-md space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="flex items-center justify-between pb-4 border-b">
+                    <div className="space-y-1">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-52" />
+                    </div>
+                    <Skeleton className="h-6 w-11 rounded-full" />
+                </div>
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+        </div>
+    );
 
     if (!user || !SUPERADMIN_EMAILS.includes(user.email)) {
         return <div className="p-8 text-center text-red-600">Unauthorized Access</div>;
