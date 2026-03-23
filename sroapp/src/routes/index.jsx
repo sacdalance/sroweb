@@ -7,8 +7,9 @@ import { UserAuthProvider, useAuth } from "@/context/UserAuthContext";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 
-// user 
+// user
 import Dashboard from "../pages/Dashboard";
+import AdviserDashboard from "../pages/AdviserDashboard";
 import ActivityRequest from "../pages/ActivityRequest";
 import Requests from "../pages/Requests";
 import OrgApplication from "../pages/OrgApplication";
@@ -57,7 +58,9 @@ const RedirectHome = () => {
         console.error("Sync error:", err.message);
       }
 
-      if (role && [2, 3, 4, 5].includes(role)) {
+      if (role === 5) {
+        navigate("/adviser");
+      } else if (role && [2, 3, 4].includes(role)) {
         navigate("/admin");
       } else {
         navigate("/dashboard");
@@ -145,13 +148,19 @@ const router = createBrowserRouter([
           { path: "appointment-booking", element: <RequireUser><AppointmentBooking /></RequireUser> },
           { path: "email-test-button", element: <RequireUser><EmailTestButton /></RequireUser> },
 
+          // Adviser route
+          {
+            path: "adviser", element: <RequireAdminRole childrenByRole={
+              { 5: <AdviserDashboard /> }} />
+          },
+
           // Admin routes using unified RequireAdminRole
           {
             path: "admin/super-admin", element: <RequireUser><SuperAdminPage /></RequireUser>
           },
           {
             path: "admin", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel />, 5: <AdminPanel /> }} />
+              { 2: <AdminPanel />, 3: <AdminPanel />, 4: <AdminPanel /> }} />
           },
           {
             path: "admin/appointment-settings", element: <RequireAdminRole childrenByRole={
@@ -167,7 +176,7 @@ const router = createBrowserRouter([
           },
           {
             path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities />, 5: <AdminStudentActivities /> }} />
+              { 2: <AdminStudentActivities />, 3: <AdminStudentActivities />, 4: <AdminStudentActivities /> }} />
           },
 
           {

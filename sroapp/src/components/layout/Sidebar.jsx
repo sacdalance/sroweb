@@ -89,8 +89,8 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
   const isAdviser = role === 5;
   const isSuperAdminEmail = user && SUPERADMIN_EMAILS.includes(user.email);
   const showStudent = isUser || isSuperAdmin;
-  const showAdmin = isSRO || isODSA || isSuperAdmin || isAdviser;
-  const dashboardLink = showStudent ? "/dashboard" : "/admin";
+  const showAdmin = isSRO || isODSA || isSuperAdmin;
+  const dashboardLink = isAdviser ? "/adviser" : showStudent ? "/dashboard" : "/admin";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -209,6 +209,21 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
               </>
             )}
 
+            {/* Adviser */}
+            {isAdviser && (
+              <>
+                {showStudent && <div className="h-px bg-gray-100 mx-2 my-2" />}
+                <NavItem
+                  to="/adviser"
+                  icon={ClipboardList}
+                  label="Adviser Dashboard"
+                  isActive={location.pathname === "/adviser"}
+                  collapsed={collapsed}
+                  onClick={handleNavClick}
+                />
+              </>
+            )}
+
             {/* Admin */}
             {showAdmin && (
               <>
@@ -230,8 +245,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                   <NavItem to="/admin/student-activities" icon={ClipboardList} label="Student Activities" isActive={location.pathname === "/admin/student-activities"} collapsed={collapsed} onClick={handleNavClick} />
                 </NavSection>
 
-                {!isAdviser && (
-                  <NavSection title="Organizations" collapsed={collapsed}>
+                    <NavSection title="Organizations" collapsed={collapsed}>
                     {(isSRO || isSuperAdmin) && (
                       <NavItem to="/admin/appointment-settings" icon={CalendarCheck} label="Appointments" isActive={location.pathname === "/admin/appointment-settings"} collapsed={collapsed} onClick={handleNavClick} />
                     )}
@@ -246,7 +260,6 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                     )}
                     <NavItem to="/admin/annual-reports" icon={BookOpen} label="Annual Reports" isActive={location.pathname === "/admin/annual-reports"} collapsed={collapsed} onClick={handleNavClick} />
                   </NavSection>
-                )}
               </>
             )}
 
