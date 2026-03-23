@@ -593,7 +593,7 @@ const AdminPendingRequests = () => {
                   hideViewToggle={true}
                   className="border-none shadow-none"
                   defaultSort={{ key: "created_at", direction: "desc" }}
-                  defaultFilters={{ status: "Pending SRO" }}
+                  defaultFilters={{ status: (userRole === 3 || (userRole === 4 && superadminView === 'odsa')) ? "Pending ODSA" : "Pending SRO" }}
                   preventHorizontalScroll={false}
                 />
               )}
