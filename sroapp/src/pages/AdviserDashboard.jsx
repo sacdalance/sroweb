@@ -144,17 +144,15 @@ const AdviserDashboard = () => {
     }
   };
 
-  const handleApprove = async (activityId, comment) => {
+  const handleApprove = async (comment, activityId) => {
     await approveActivity(activityId, comment, 5);
-    toast.success("Activity endorsed successfully");
     setIsModalOpen(false);
     setSelectedActivity(null);
     fetchData(selectedOrgId || undefined);
   };
 
-  const handleReject = async (activityId, comment) => {
+  const handleReject = async (comment, activityId) => {
     await rejectActivity(activityId, comment, 5);
-    toast.success("Activity rejected");
     setIsModalOpen(false);
     setSelectedActivity(null);
     fetchData(selectedOrgId || undefined);
@@ -326,8 +324,8 @@ const AdviserDashboard = () => {
             isModalOpen={isModalOpen}
             onClose={() => { setIsModalOpen(false); setSelectedActivity(null); }}
             userRole={5}
-            onApprove={handleApprove}
-            onReject={handleReject}
+            handleApprove={handleApprove}
+            handleReject={handleReject}
             onActivityUpdate={fetchData}
           />
         </Dialog>
