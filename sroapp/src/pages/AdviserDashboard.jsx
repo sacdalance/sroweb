@@ -18,9 +18,9 @@ const getDerivedStatus = (activity) => {
   if (activity.final_status === "Rejected") return "Rejected";
   if (activity.final_status === "For Appeal") return "For Appeal";
   if (activity.final_status === "For Cancellation") return "For Cancellation";
-  if (!activity.adviser_approval_status) return "Pending Adviser";
-  if (activity.adviser_approval_status === "Approved" && !activity.sro_approval_status) return "Pending SRO";
-  if (activity.sro_approval_status === "Approved" && !activity.odsa_approval_status) return "Pending ODSA";
+  if (!activity.adviser_approval_status || activity.adviser_approval_status === "Pending") return "Pending Adviser";
+  if (activity.adviser_approval_status === "Approved" && (!activity.sro_approval_status || activity.sro_approval_status === "Pending")) return "Pending SRO";
+  if (activity.sro_approval_status === "Approved" && (!activity.odsa_approval_status || activity.odsa_approval_status === "Pending")) return "Pending ODSA";
   return "Unknown";
 };
 
@@ -315,6 +315,7 @@ const AdviserDashboard = () => {
         onRowClick={handleViewDetails}
         emptyMessage="No activity requests found for your organizations."
         defaultSort={{ key: "created_at", direction: "desc" }}
+        defaultFilters={{ status: "Pending Adviser" }}
       />
 
       {/* Activity Detail Dialog */}

@@ -267,17 +267,17 @@ const Requests = () => {
       filterLabel: "Statuses",
       filterAccessor: (row) => {
         if (row.final_status) return row.final_status;
-        if (!row.adviser_approval_status) return "Pending Adviser";
-        if (row.adviser_approval_status === "Approved" && !row.sro_approval_status) return "Pending SRO";
-        if (row.sro_approval_status === "Approved" && !row.odsa_approval_status) return "Pending ODSA";
+        if (!row.adviser_approval_status || row.adviser_approval_status === "Pending") return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && (!row.sro_approval_status || row.sro_approval_status === "Pending")) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && (!row.odsa_approval_status || row.odsa_approval_status === "Pending")) return "Pending ODSA";
         return "Pending Adviser";
       },
       isStatus: true,
       accessor: (row) => {
         if (row.final_status) return row.final_status;
-        if (!row.adviser_approval_status) return "Pending Adviser";
-        if (row.adviser_approval_status === "Approved" && !row.sro_approval_status) return "Pending SRO";
-        if (row.sro_approval_status === "Approved" && !row.odsa_approval_status) return "Pending ODSA";
+        if (!row.adviser_approval_status || row.adviser_approval_status === "Pending") return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && (!row.sro_approval_status || row.sro_approval_status === "Pending")) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && (!row.odsa_approval_status || row.odsa_approval_status === "Pending")) return "Pending ODSA";
         return "Pending Adviser";
       },
     },

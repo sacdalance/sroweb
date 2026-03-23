@@ -156,11 +156,12 @@ const ActivityDialogContent = ({
   const [localActivity, setLocalActivity] = useState(activity);
   useEffect(() => setLocalActivity(activity), [activity]);
 
+  const hasActed = (status) => status && status !== "Pending";
   const isActionLocked =
     localActivity?.final_status === "Approved" ||
-    (isAdviser && activity?.adviser_approval_status) ||
-    (isSRO && activity?.sro_approval_status) ||
-    (isODSA && activity?.odsa_approval_status);
+    (isAdviser && hasActed(activity?.adviser_approval_status)) ||
+    (isSRO && hasActed(activity?.sro_approval_status)) ||
+    (isODSA && hasActed(activity?.odsa_approval_status));
 
   const googleCalendarUrl = generateGoogleCalendarUrl(activity);
 
@@ -181,10 +182,10 @@ const ActivityDialogContent = ({
     if (!isModalOpen || !localActivity?.activity_id) return;
 
     const actionTaken =
-      (isAdviser && localActivity?.adviser_approval_status !== null) ||
-      (isSRO && localActivity?.sro_approval_status !== null) ||
-      (isODSA && localActivity?.odsa_approval_status !== null) ||
-      (isSuperAdmin && localActivity?.sro_approval_status !== null && localActivity?.odsa_approval_status !== null);
+      (isAdviser && hasActed(localActivity?.adviser_approval_status)) ||
+      (isSRO && hasActed(localActivity?.sro_approval_status)) ||
+      (isODSA && hasActed(localActivity?.odsa_approval_status)) ||
+      (isSuperAdmin && hasActed(localActivity?.sro_approval_status) && hasActed(localActivity?.odsa_approval_status));
 
     setHasViewedScannedForm(false);
     setShowDecisionBox(false);
@@ -549,7 +550,7 @@ const ActivityDialogContent = ({
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={2}
-                    placeholder={((isAdviser && activity.adviser_approval_status) || (isSRO && activity.sro_approval_status) || (isODSA && activity.odsa_approval_status)) && comment.trim() === ""
+                    placeholder={((isAdviser && hasActed(activity.adviser_approval_status)) || (isSRO && hasActed(activity.sro_approval_status)) || (isODSA && hasActed(activity.odsa_approval_status))) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
                     className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
