@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
@@ -56,6 +56,8 @@ const AdminPendingRequests = () => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const { role: userRole, email: userEmail } = useAuth();
   const [activities, setActivities] = useState([]);
+
+  const autoRejectRan = useRef(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -217,7 +219,7 @@ const AdminPendingRequests = () => {
 
       if (error) throw error;
 
-      // --- Auto-Reject Elapsed Activities ---
+      // --- Auto-Reject Elapsed Activities (once per mount) ---
       const today = new Date().toISOString().split('T')[0];
       const autoRejectReason = 'Activity date has elapsed without approval. Please submit a new request if you wish to reschedule.';
       const expiredActivities = data.filter(activity => {
@@ -226,7 +228,8 @@ const AdminPendingRequests = () => {
         return isNotFinal && startDate && startDate < today;
       });
 
-      if (expiredActivities.length > 0) {
+      if (expiredActivities.length > 0 && !autoRejectRan.current) {
+        autoRejectRan.current = true;
         const expiredIds = expiredActivities.map(a => a.activity_id);
 
         const { error: updateError } = await supabase
