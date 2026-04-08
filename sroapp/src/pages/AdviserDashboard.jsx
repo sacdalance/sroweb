@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import supabase from "@/lib/supabase";
 import { useAuth } from "@/context/UserAuthContext";
 import { Dialog } from "@/components/ui/dialog";
@@ -8,6 +8,8 @@ import { Clock, CheckCircle, XCircle, Building2 } from "lucide-react";
 import DataTable from "@/components/ui/DataTable";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from "sonner";
+import { createNotification } from "@/lib/notifications";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 import { StaggerContainer, StaggerItem } from "@/components/ui/animated-container";
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";
@@ -31,6 +33,8 @@ const AdviserDashboard = () => {
   const [activities, setActivities] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const autoRejectRan = useRef(false);
 
   // Superadmin org selection
   const isSuperadmin = SUPERADMIN_EMAILS.includes(email);
@@ -103,6 +107,92 @@ const AdviserDashboard = () => {
         .order("created_at", { ascending: false });
 
       if (actError) throw actError;
+
+      // --- Auto-Reject Elapsed Activities (once per mount) ---
+      const today = new Date().toISOString().split('T')[0];
+      const autoRejectReason = 'Activity date has elapsed without approval. Please submit a new request if you wish to reschedule.';
+      const expiredActivities = (activityData || []).filter(activity => {
+        const isNotFinal = activity.final_status !== 'Approved' && activity.final_status !== 'Rejected';
+        const startDate = activity.schedule?.[0]?.start_date;
+        return isNotFinal && startDate && startDate < today;
+      });
+
+      if (expiredActivities.length > 0 && !autoRejectRan.current) {
+        autoRejectRan.current = true;
+        const expiredIds = expiredActivities.map(a => a.activity_id);
+
+        const { error: updateError } = await supabase
+          .from('activity')
+          .update({
+            final_status: 'Rejected',
+            sro_approval_status: 'Rejected',
+            odsa_approval_status: 'Rejected',
+            sro_remarks: autoRejectReason
+          })
+          .in('activity_id', expiredIds);
+
+        if (!updateError) {
+          toast.info(`Auto-rejected ${expiredActivities.length} activity(ies) due to elapsed dates.`);
+
+          expiredActivities.forEach(a => {
+            a.final_status = 'Rejected';
+            a.sro_approval_status = 'Rejected';
+            a.sro_remarks = autoRejectReason;
+          });
+
+          // Send email + in-app notifications (fire-and-forget)
+          expiredActivities.forEach(activity => {
+            const orgName = activity.organization?.org_name || 'Organization';
+            const activityName = activity.activity_name;
+            const venue = activity.venue;
+            const schedule = activity.schedule?.[0];
+            let displayDate = 'Date TBD';
+            if (schedule?.start_date) {
+              displayDate = new Date(schedule.start_date).toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+              });
+            }
+
+            const recipientEmail = activity.account?.email;
+            if (recipientEmail) {
+              authFetch(`${API_BASE_URL}/api/send-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  to: recipientEmail,
+                  subject: `Activity Auto-Rejected - ${activityName}`,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+                      <p>Dear <strong>${orgName}</strong>,</p>
+                      <p>We regret to inform you that your request to hold "<strong>${activityName}</strong>", at "<strong>${venue}</strong>", on "<strong>${displayDate}</strong>" has been <strong>automatically rejected</strong>.</p>
+                      <p><strong>Reason:</strong> ${autoRejectReason}</p>
+                      <p>Take note of your Activity Form Id: <strong>#${activity.activity_id}</strong>.</p>
+                      <p><strong>REMINDER: This is an automated e-mail. Kindly do not reply to this e-mail.</strong></p>
+                      <p>Thank you,<br>
+                      <small><i>Yours in honour, excellence and service,</i></small><br><br>
+                      <strong>Office of Student Affairs | Student Relations Office<br>
+                      E-mail: sro.upbaguio@up.edu.ph</strong></p>
+                    </div>
+                  `
+                })
+              }).catch(e => console.error('Failed to send auto-reject email:', e));
+            }
+
+            if (activity.account_id) {
+              createNotification({
+                recipientId: activity.account_id,
+                type: 'activity_auto_rejected',
+                title: 'Activity auto-rejected',
+                message: `"${activity.activity_name}" was automatically rejected because the activity date has elapsed.`,
+                referenceType: 'activity',
+                referenceId: activity.activity_id,
+              });
+            }
+          });
+        } else {
+          console.error('Auto-reject update failed', updateError);
+        }
+      }
 
       const processed = (activityData || []).map(a => ({
         ...a,
