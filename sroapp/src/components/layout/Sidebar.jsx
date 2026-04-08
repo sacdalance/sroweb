@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
 import { useAuth } from "@/context/UserAuthContext";
 import {
@@ -78,7 +78,6 @@ const NavSection = ({ title, children, collapsed, defaultOpen = true }) => {
 
 const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
   const { user, role } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");

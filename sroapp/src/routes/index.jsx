@@ -79,11 +79,14 @@ const RedirectHome = () => {
  */
 const PrivateRoute = () => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Clear session even if the API call fails
+    }
+    window.location.href = "/login";
   };
 
   if (loading) return <PageLoadingSkeleton />;
