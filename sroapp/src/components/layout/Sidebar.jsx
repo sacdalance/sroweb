@@ -92,9 +92,13 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
   const dashboardLink = isAdviser ? "/adviser" : showStudent ? "/dashboard" : "/admin";
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Clear session even if the API call fails
+    }
     sessionStorage.removeItem("sroRemindersSeen");
-    navigate("/login");
+    window.location.href = "/login";
   };
 
   const isSmallScreen = typeof window !== "undefined" && window.innerWidth < XL_BREAKPOINT;
@@ -209,7 +213,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
             )}
 
             {/* Adviser */}
-            {isAdviser && (
+            {(isAdviser || isSuperAdmin) && (
               <>
                 {showStudent && <div className="h-px bg-gray-100 mx-2 my-2" />}
                 <NavItem

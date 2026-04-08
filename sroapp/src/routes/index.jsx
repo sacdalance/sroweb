@@ -154,7 +154,7 @@ const router = createBrowserRouter([
           // Adviser route
           {
             path: "adviser", element: <RequireAdminRole childrenByRole={
-              { 5: <AdviserDashboard /> }} />
+              { 4: <AdviserDashboard />, 5: <AdviserDashboard /> }} />
           },
 
           // Admin routes using unified RequireAdminRole
