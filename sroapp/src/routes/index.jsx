@@ -25,6 +25,7 @@ import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
 
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
+import OrgProfile from "../pages/admin/OrgProfile";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
 import AdminDocuments from "../pages/admin/AdminDocuments";
@@ -193,6 +194,10 @@ const router = createBrowserRouter([
           {
             path: "admin/organizations", element: <RequireAdminRole childrenByRole={
               { 2: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
+          },
+          {
+            path: "admin/organizations/:orgId", element: <RequireAdminRole childrenByRole={
+              { 2: <OrgProfile />, 4: <OrgProfile /> }} />
           },
           {
             path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
