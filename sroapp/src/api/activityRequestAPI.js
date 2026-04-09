@@ -1,8 +1,9 @@
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
-export async function createActivity(activity, file, schedule) {
+export async function createActivity(activity, files, schedule) {
   const formData = new FormData();
-  formData.append('file', file);
+  if (files.conceptPaperFile) formData.append('conceptPaper', files.conceptPaperFile);
+  if (files.form2bFile) formData.append('form2b', files.form2bFile);
 
   Object.entries(activity).forEach(([key, value]) => {
     formData.append(key, value);

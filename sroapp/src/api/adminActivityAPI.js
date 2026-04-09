@@ -2,7 +2,7 @@ import supabase from "@/lib/supabase";
 import axios from "axios";
 import { API_BASE_URL } from "@/lib/api-config";
 
-export const submitAdminActivity = async (activity, schedule, file) => {
+export const submitAdminActivity = async (activity, schedule, files) => {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
   if (sessionError || !session) {
@@ -10,7 +10,8 @@ export const submitAdminActivity = async (activity, schedule, file) => {
   }
 
   const formData = new FormData();
-  formData.append("file", file);
+  if (files.conceptPaperFile) formData.append("conceptPaper", files.conceptPaperFile);
+  if (files.form2bFile) formData.append("form2b", files.form2bFile);
 
   Object.entries(activity).forEach(([key, value]) => {
     formData.append(key, value);
