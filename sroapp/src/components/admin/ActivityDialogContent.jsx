@@ -1,5 +1,4 @@
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronDown, User, MapPin, Calendar, GraduationCap, Building2, FileText, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -136,17 +135,16 @@ const ActivityDialogContent = ({
   const isODSA = userRole === 3;
   const isSuperAdmin = userRole === 4;
   const isAdviser = userRole === 5;
-  const [hasViewedScannedForm, setHasViewedScannedForm] = useState(false);
+  const hasFiles = !!(activity.concept_paper_link || activity.form_2b_link || activity.drive_folder_link);
+  const [hasViewedScannedForm, setHasViewedScannedForm] = useState(!hasFiles);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [comment, setComment] = useState(() =>
     userRole === 5 ? activity?.adviser_remarks || "" :
     userRole === 2 ? activity?.sro_remarks || "" : activity?.odsa_remarks || ""
   );
-  const [showDecisionBox, setShowDecisionBox] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [decisionType, setDecisionType] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [scrollKey, setScrollKey] = useState(0);
 
   const description = activity.activity_description || activity.activityDescription || "";
   const isLong = description.length > 300;
@@ -170,13 +168,6 @@ const ActivityDialogContent = ({
   const [sroComment, setSroComment] = useState(activity?.sro_remarks || "");
   const [odsaComment, setOdsaComment] = useState(activity?.odsa_remarks || "");
 
-  useEffect(() => {
-    if (showDecisionBox && commentRef.current) {
-      setTimeout(() => {
-        commentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    }
-  }, [scrollKey]);
 
   useEffect(() => {
     if (!isModalOpen || !localActivity?.activity_id) return;
@@ -187,8 +178,7 @@ const ActivityDialogContent = ({
       (isODSA && hasActed(localActivity?.odsa_approval_status)) ||
       (isSuperAdmin && hasActed(localActivity?.sro_approval_status) && hasActed(localActivity?.odsa_approval_status));
 
-    setHasViewedScannedForm(false);
-    setShowDecisionBox(false);
+    setHasViewedScannedForm(!hasFiles);
     setConfirmationOpen(false);
     setDecisionType(null);
     setComment(
@@ -197,13 +187,6 @@ const ActivityDialogContent = ({
     );
     setSroComment(localActivity?.sro_remarks || "");
     setOdsaComment(localActivity?.odsa_remarks || "");
-
-    if (actionTaken) {
-      setTimeout(() => {
-        setShowDecisionBox(true);
-        setScrollKey((k) => k + 1);
-      }, 100);
-    }
   }, [isModalOpen, localActivity?.activity_id]);
 
   const formatDate = (dateStr) => {
@@ -241,8 +224,8 @@ const ActivityDialogContent = ({
   const isRecurring = activity.schedule?.[0]?.is_recurring === "true";
 
   return (
-    <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] h-auto max-h-[90vh] sm:max-h-[80vh] p-0 overflow-hidden">
-      <ScrollArea className="h-full max-h-[85vh] sm:max-h-[75vh] overflow-x-hidden">
+    <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
           {/* Header Section */}
           <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
@@ -259,11 +242,12 @@ const ActivityDialogContent = ({
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   {activity.organization?.org_name || activity.organization || "Organization"}
                 </p>
-                <p className="text-xs sm:text-sm text-gray-500">
+                <span className="inline-block mt-1 text-xs font-medium px-2.5 py-0.5 rounded-full bg-sro-secondary/10 text-sro-secondary">
                   {formatLabel(activity.activity_type, activityTypeOptions)}
-                </p>
+                </span>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <p className="text-xs text-gray-500"><span className="font-medium">Activity ID:</span> {activity.activity_id || "N/A"}</p>
                 <StatusPill status={activity.final_status || activity.status || "Pending"} />
               </div>
             </div>
@@ -370,8 +354,11 @@ const ActivityDialogContent = ({
                   </div>
                   <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-sro-primary transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="px-3 py-2 text-xs sm:text-sm bg-gray-50 border-t border-gray-200">
+                <CollapsibleContent className="px-3 py-2 text-xs sm:text-sm bg-gray-50 border-t border-gray-200 space-y-1">
                   <p className="text-gray-700">{activity.partner_name || "None listed"}</p>
+                  {activity.partner_role && (
+                    <p className="text-gray-500"><span className="font-medium text-gray-600">Role:</span> {activity.partner_role}</p>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}
@@ -392,63 +379,62 @@ const ActivityDialogContent = ({
             )}
           </div>
 
-          {/* Meta Info & Actions */}
-          <div className="border-t border-gray-200 pt-3 space-y-2">
-            <div className="flex flex-col items-center sm:flex-row sm:justify-between gap-2 text-center sm:text-left">
-              <p className="text-xs sm:text-sm text-gray-500">
-                <span className="font-medium">Activity ID:</span> {activity.activity_id || "N/A"}
-              </p>
-              {activity.drive_folder_link && !publicView && (
-                <div className="flex items-center gap-2">
+          {/* File Links */}
+          {hasFiles && !publicView && (
+            <div className="border-t border-gray-200 pt-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                {activity.concept_paper_link && (
+                  <a
+                    href={activity.concept_paper_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setHasViewedScannedForm(true)}
+                    className="inline-block bg-sro-secondary text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg hover:bg-sro-secondary/90 transition"
+                  >
+                    View Concept Paper
+                  </a>
+                )}
+                {activity.form_2b_link && (
+                  <a
+                    href={activity.form_2b_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setHasViewedScannedForm(true)}
+                    className="inline-block bg-sro-secondary text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg hover:bg-sro-secondary/90 transition"
+                  >
+                    View Form 2B
+                  </a>
+                )}
+                {!activity.concept_paper_link && !activity.form_2b_link && activity.drive_folder_link && (
                   <a
                     href={activity.drive_folder_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => {
-                      setHasViewedScannedForm(true);
-                      setShowDecisionBox(true);
-                    }}
+                    onClick={() => setHasViewedScannedForm(true)}
                     className="inline-block bg-sro-secondary text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg hover:bg-sro-secondary/90 transition"
                   >
                     View Scanned Form
                   </a>
-                  {!readOnly && (
-                    <button
-                      onClick={() => setShowDecisionBox((prev) => !prev)}
-                      className="text-sro-secondary hover:text-sro-secondary/90 transition-transform transform hover:scale-110 p-2"
-                      title="Toggle comment and approval options"
-                    >
-                      <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showDecisionBox ? "rotate-180" : ""}`} />
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
-            {/* Add to Calendar Button (Read-Only Mode) */}
-            {readOnly && googleCalendarUrl && showAddToCalendar && (
-              <div className="flex justify-center sm:justify-end pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-sro-secondary border-sro-secondary hover:bg-sro-secondary/10 w-full sm:w-auto"
-                  onClick={() => window.open(googleCalendarUrl, '_blank')}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Add to Google Calendar
-                  <ExternalLink className="h-3 w-3 ml-1.5" />
-                </Button>
-              </div>
-            )}
-            {/* Scanned Form Button in Read-Only Mode (if exists but not usually shown in footer for admin) */}
-            {readOnly && activity.drive_folder_link && !publicView && (
-              <div className="hidden">
-                {/* Kept hidden or maybe you want it? The design in ActivitiesCalendar.jsx usually just has the link. 
-                      Actually, let's leave it as part of the Meta Info section above. 
-                      I see the Meta Info section handles the drive link visibility. 
-                  */}
-              </div>
-            )}
-          </div>
+          )}
+
+          {/* Add to Calendar Button (Read-Only Mode) */}
+          {readOnly && googleCalendarUrl && showAddToCalendar && (
+            <div className="flex justify-center sm:justify-end pt-3 border-t border-gray-200">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-sro-secondary border-sro-secondary hover:bg-sro-secondary/10 w-full sm:w-auto"
+                onClick={() => window.open(googleCalendarUrl, '_blank')}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Add to Google Calendar
+                <ExternalLink className="h-3 w-3 ml-1.5" />
+              </Button>
+            </div>
+          )}
 
           {/* Remarks Section (Read-Only) */}
           {readOnly && !publicView && (activity.adviser_remarks || activity.sro_remarks || activity.odsa_remarks) && (
@@ -483,113 +469,124 @@ const ActivityDialogContent = ({
             </div>
           )}
 
-          {/* Admin Decision Box */}
-          {!readOnly && showDecisionBox && (
-            <div className="mt-3 space-y-2 border-t border-gray-200 pt-3" ref={commentRef}>
-              {/* Appeal/Cancellation Reason */}
-              {(activity.final_status === "For Appeal" || activity.final_status === "For Cancellation") && activity.appeal_reason && (
-                <div className="info-card bg-amber-50 border-amber-200">
-                  <div className="info-card-header text-amber-700 border-amber-200">
-                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>Appeal/Cancellation Reason</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-amber-800">{activity.appeal_reason}</p>
-                </div>
-              )}
+        </div>
+      </div>
 
-              {/* SRO viewing Adviser remarks */}
-              {isSRO && activity?.adviser_remarks && (
-                <div className="info-card bg-gray-50">
-                  <div className="info-card-header">
-                    <span>Adviser Remarks</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-700">{activity.adviser_remarks.trim()}</p>
-                </div>
-              )}
+      {/* Admin Decision Box - pinned below scroll area */}
+      {!readOnly && (
+        <div className="shrink-0 space-y-2 border-t border-gray-200 pt-2 px-4 pb-3" ref={commentRef}>
+          {/* Appeal/Cancellation Reason */}
+          {(activity.final_status === "For Appeal" || activity.final_status === "For Cancellation") && activity.appeal_reason && (
+            <div className="info-card bg-amber-50 border-amber-200">
+              <div className="info-card-header text-amber-700 border-amber-200">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Appeal/Cancellation Reason</span>
+              </div>
+              <p className="text-xs sm:text-sm text-amber-800">{activity.appeal_reason}</p>
+            </div>
+          )}
 
-              {/* ODSA viewing SRO remarks */}
-              {isODSA && (
-                <div className="info-card bg-gray-50">
-                  <div className="info-card-header">
-                    <span>SRO Remarks</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-700">{activity.sro_remarks?.trim() || "No comment provided."}</p>
-                </div>
-              )}
+          {/* SRO viewing Adviser remarks */}
+          {isSRO && activity?.adviser_remarks && (
+            <div className="info-card bg-gray-50">
+              <div className="info-card-header">
+                <span>Adviser Remarks</span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-700">{activity.adviser_remarks.trim()}</p>
+            </div>
+          )}
 
-              {/* Remarks Textareas */}
-              {isSuperAdmin ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">SRO Remarks</label>
-                    <textarea
-                      value={sroComment}
-                      onChange={e => setSroComment(e.target.value)}
-                      rows={2}
-                      placeholder="Enter SRO remarks..."
-                      className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">ODSA Remarks</label>
-                    <textarea
-                      value={odsaComment}
-                      onChange={e => setOdsaComment(e.target.value)}
-                      rows={2}
-                      placeholder="Enter ODSA remarks..."
-                      className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
-                    />
-                  </div>
-                </div>
-              ) : (
+          {/* ODSA viewing SRO remarks */}
+          {isODSA && (
+            <div className="info-card bg-gray-50">
+              <div className="info-card-header">
+                <span>SRO Remarks</span>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-700">{activity.sro_remarks?.trim() || "No comment provided."}</p>
+            </div>
+          )}
+
+          {/* Remarks + Action Buttons */}
+          {isSuperAdmin ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
-                    {isAdviser ? "Adviser Remarks" : isSRO ? "SRO Remarks" : "ODSA Remarks"}
-                  </label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">SRO Remarks</label>
+                  <textarea
+                    value={sroComment}
+                    onChange={e => setSroComment(e.target.value)}
+                    rows={1}
+                    placeholder="Enter SRO remarks..."
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">ODSA Remarks</label>
+                  <textarea
+                    value={odsaComment}
+                    onChange={e => setOdsaComment(e.target.value)}
+                    rows={1}
+                    placeholder="Enter ODSA remarks..."
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                {isActionLocked ? (
+                  localActivity.final_status === "Rejected" ? (
+                    <span className="px-3 py-1.5 rounded-lg border border-sro-primary text-xs sm:text-sm text-sro-primary font-medium italic">Activity Rejected</span>
+                  ) : localActivity.final_status === "Approved" ? (
+                    <span className="px-3 py-1.5 rounded-lg border border-sro-secondary text-xs sm:text-sm text-sro-secondary font-medium italic">Activity Approved!</span>
+                  ) : (
+                    <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">Action already taken</span>
+                  )
+                ) : (
+                  <>
+                    <button onClick={() => { setDecisionType("approve"); setConfirmationOpen(true); }} className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-secondary text-white hover:bg-sro-secondary/90 transition">Approve</button>
+                    <button onClick={() => { setDecisionType("reject"); setConfirmationOpen(true); }} className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white hover:bg-sro-primary/90 transition">Reject</button>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1">
+                {isAdviser ? "Adviser Remarks" : isSRO ? "SRO Remarks" : "ODSA Remarks"}
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    rows={2}
+                    rows={1}
                     placeholder={((isAdviser && hasActed(activity.adviser_approval_status)) || (isSRO && hasActed(activity.sro_approval_status)) || (isODSA && hasActed(activity.odsa_approval_status))) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
-                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
                     disabled={isActionLocked}
                   />
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-1">
+                <div className="flex items-start gap-2 shrink-0">
                 {isActionLocked ? (
-                  <div className="w-full flex justify-end">
-                    {localActivity.final_status === "Rejected" ? (
-                      <span className="px-3 py-1.5 rounded-lg border border-sro-primary text-xs sm:text-sm text-sro-primary font-medium italic">
-                        Activity Rejected
-                      </span>
-                    ) : localActivity.final_status === "Approved" ? (
-                      <span className="px-3 py-1.5 rounded-lg border border-sro-secondary text-xs sm:text-sm text-sro-secondary font-medium italic">
-                        Activity Approved!
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">
-                        {isAdviser ? "Waiting for SRO approval" : isSRO ? "Waiting for ODSA approval" : "Action already taken"}
-                      </span>
-                    )}
-                  </div>
+                  localActivity.final_status === "Rejected" ? (
+                    <span className="px-3 py-1.5 rounded-lg border border-sro-primary text-xs sm:text-sm text-sro-primary font-medium italic">Activity Rejected</span>
+                  ) : localActivity.final_status === "Approved" ? (
+                    <span className="px-3 py-1.5 rounded-lg border border-sro-secondary text-xs sm:text-sm text-sro-secondary font-medium italic">Activity Approved!</span>
+                  ) : (
+                    <span className="px-3 py-1.5 rounded-lg border border-gray-400 text-xs sm:text-sm text-gray-500 font-medium italic">
+                      {isAdviser ? "Waiting for SRO approval" : isSRO ? "Waiting for ODSA approval" : "Action already taken"}
+                    </span>
+                  )
                 ) : (
                   <>
-                    {!hasViewedScannedForm && (
-                      <p className="text-xs text-gray-500 italic w-full sm:w-auto">Click "View Scanned Form" first.</p>
+                    {!hasViewedScannedForm && hasFiles && (
+                      <p className="text-xs text-gray-500 italic">View documents first.</p>
                     )}
                     {activity.final_status === "For Cancellation" ? (
                       <button
                         disabled={!hasViewedScannedForm}
-                        onClick={() => {
-                          setDecisionType("cancel");
-                          setConfirmationOpen(true);
-                        }}
-                        className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-primary/90 transition"
+                        onClick={() => { setDecisionType("cancel"); setConfirmationOpen(true); }}
+                        className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white disabled:opacity-50 hover:bg-sro-primary/90 transition"
                       >
                         Cancel Activity
                       </button>
@@ -597,21 +594,15 @@ const ActivityDialogContent = ({
                       <>
                         <button
                           disabled={!hasViewedScannedForm}
-                          onClick={() => {
-                            setDecisionType("approve");
-                            setConfirmationOpen(true);
-                          }}
-                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-secondary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-secondary/90 transition"
+                          onClick={() => { setDecisionType("approve"); setConfirmationOpen(true); }}
+                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-secondary text-white disabled:opacity-50 hover:bg-sro-secondary/90 transition"
                         >
                           Approve
                         </button>
                         <button
                           disabled={!hasViewedScannedForm}
-                          onClick={() => {
-                            setDecisionType("reject");
-                            setConfirmationOpen(true);
-                          }}
-                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 hover:bg-sro-primary/90 transition"
+                          onClick={() => { setDecisionType("reject"); setConfirmationOpen(true); }}
+                          className="px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm bg-sro-primary text-white disabled:opacity-50 hover:bg-sro-primary/90 transition"
                         >
                           Reject
                         </button>
@@ -621,9 +612,10 @@ const ActivityDialogContent = ({
                 )}
               </div>
             </div>
+            </div>
           )}
         </div>
-      </ScrollArea>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
