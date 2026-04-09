@@ -12,9 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Download, ExternalLink, ClipboardList } from "lucide-react";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "@/lib/supabase";
 import StatusPill from "@/components/ui/StatusPill";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 
 const statusList = [
@@ -36,7 +37,8 @@ const categoriesList = [
 const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.name || id;
 
 const AdminOrgApplications = () => {
-  const [roleId, setRoleId] = useState(null);
+  const { role } = useAuth();
+  const roleId = role;
   const [applications, setApplications] = useState([]);
   const [existingOrgs, setExistingOrgs] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -47,22 +49,7 @@ const AdminOrgApplications = () => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // 1. Fetch roleId from account using supabase_uid
-  useEffect(() => {
-    const fetchRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("supabase_uid", user.id)
-        .single();
-      if (profile) setRoleId(profile.role_id);
-    };
-    fetchRole();
-  }, []);
-
-  // 2. Fetch applications - Preserving existing role-based filtering logic
+  // Fetch applications - Preserving existing role-based filtering logic
   useEffect(() => {
     if (!roleId) return;
     const fetchData = async () => {
@@ -254,7 +241,7 @@ const AdminOrgApplications = () => {
     return cols;
   }, [roleId, existingOrgs]);
 
-  if (dataLoading) return <LoadingSpinner text="Loading recognition data..." variant="section" />;
+  if (dataLoading) return <TableSkeleton />;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
@@ -295,7 +282,7 @@ const AdminOrgApplications = () => {
           {selectedApp && (
             <div className="space-y-6 pt-4">
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <div className="space-y-1">
                   <p className="text-[10px] uppercase text-gray-400 font-bold">Organization Name</p>
                   <p className="text-sm font-semibold">{selectedApp.org_name}</p>

@@ -84,6 +84,9 @@ cd srowebapp
 ### 🔧 2. Install necessary node modules
 
 ```bash
+nvm install 22
+nvm use 22
+
 # For sroapp
 cd sroapp
 npm install
@@ -92,6 +95,8 @@ npm install
 cd srobackend
 npm install
 ```
+
+This project currently expects Node.js `20`, `22`, or `24`. Avoid Node.js `25+` for the backend because one of the Google authentication dependencies crashes during startup there.
 ### 🔧 3. Create and configure .env files per folder
 
 ```bash
@@ -105,7 +110,7 @@ VITE_SUPABASE_URL="fill"
 VITE_SUPABASE_ANON_KEY="fill"
 
 # For srobackend
-cd sroapp
+cd srobackend
 touch .env
 
 # Write inside .env in srobackend
@@ -132,4 +137,3 @@ npm run dev
 cd srobackend
 npm run start
 ```
-

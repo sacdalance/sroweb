@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/authRoutes.js';
@@ -61,6 +62,7 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 
 // Global rate limit: 100 requests per minute per IP

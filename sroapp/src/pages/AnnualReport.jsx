@@ -9,7 +9,7 @@ import LoadingSpinner from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { fetchOrganizations, submitAnnualReport } from "@/api/annualReportAPI";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { annualReportSchema } from "@/lib/zodSchemas";
 import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
@@ -35,6 +35,7 @@ const academicYearOptions = [
 ];
 
 const AnnualReport = () => {
+  const { accountId } = useAuth();
   const { getFileForForm } = useStudentForms();
   // === STATE HOOKS ===
   const [files, setFiles] = useState([]);
@@ -44,7 +45,6 @@ const AnnualReport = () => {
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [annualReportEmail, setAnnualReportEmail] = useState("");
   const [academicYear, setAcademicYear] = useState("");
-  const [userId, setUserId] = useState(null);
 
   // Draft States
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -160,21 +160,6 @@ const AnnualReport = () => {
 
   // === DATA FETCHING ===
 
-  // Fetch user ID (for submission metadata)
-  useEffect(() => {
-    const fetchUserAccount = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) return;
-      const { data, error: fetchErr } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-      if (!fetchErr && data) setUserId(data.account_id);
-    };
-    fetchUserAccount();
-  }, []);
-
   // Fetch orgs for org dropdown
   useEffect(() => {
     const loadOrgs = async () => {
@@ -224,7 +209,7 @@ const AnnualReport = () => {
     try {
       await submitAnnualReport({
         org_id: selectedOrgId,
-        submitted_by: userId,
+        submitted_by: accountId,
         academic_year: academicYear,
         files,
       });
@@ -254,92 +239,93 @@ const AnnualReport = () => {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Annual Report</h1>
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
         {/* Fields Section */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-6">
-          {/* Organization Name (searchable dropdown) */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Organization Name <span className="text-red-600">*</span>
-            </label>
-            <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
-              <PopoverTrigger asChild>
-                <div
-                  className={cn(
-                    "w-full flex items-center justify-between border bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400 transition-colors",
-                    fieldErrors.org && "border-sro-primary bg-red-50"
-                  )}
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4 md:space-y-6">
+          {/* Organization Name + Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Organization Name <span className="text-red-600">*</span>
+              </label>
+              <Popover open={orgPopoverOpen} onOpenChange={setOrgPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <div
+                    className={cn(
+                      "w-full flex items-center justify-between border bg-transparent rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring hover:border-gray-400 transition-colors",
+                      fieldErrors.org && "border-sro-primary bg-red-50"
+                    )}
+                  >
+                    <span className={cn(!selectedOrg && "text-muted-foreground")}>
+                      {selectedOrg || "Type your org name..."}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="p-0"
+                  style={{ width: "var(--radix-popover-trigger-width)" }}
                 >
-                  <span className={cn(!selectedOrg && "text-muted-foreground")}>
-                    {selectedOrg || "Type your org name..."}
-                  </span>
-                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                className="p-0"
-                style={{ width: "var(--radix-popover-trigger-width)" }}
-              >
-                <Input
-                  placeholder="Search org..."
-                  value={orgSearchTerm}
-                  onChange={(e) => setOrgSearchTerm(sanitizeInput(e.target.value))}
-                  className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
-                />
-                <div className="max-h-48 overflow-y-auto">
-                  {filteredOrgs.length > 0 ? (
-                    filteredOrgs.map((org) => (
-                      <button
-                        key={org.org_id}
-                        onClick={() => {
-                          setSelectedOrg(org.org_name);
-                          setSelectedOrgId(org.org_id);
-                          setAnnualReportEmail(org.org_email || "");
-                          setOrgSearchTerm("");
-                          setOrgPopoverOpen(false);
-                          setFieldError("org", false);
-                        }}
-                        type="button"
-                        className={cn(
-                          "w-full text-left px-4 py-2 hover:bg-gray-100",
-                          selectedOrg === org.org_name && "bg-gray-100 font-medium"
-                        )}
-                        disabled={isUploading}
-                      >
-                        {org.org_name}
-                        {selectedOrg === org.org_name && (
-                          <Check className="ml-2 inline h-4 w-4 text-green-600" />
-                        )}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            {fieldErrors.org && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
-                {fieldErrors.org}
-              </p>
-            )}
-          </div>
+                  <Input
+                    placeholder="Search org..."
+                    value={orgSearchTerm}
+                    onChange={(e) => setOrgSearchTerm(sanitizeInput(e.target.value))}
+                    className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                  />
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredOrgs.length > 0 ? (
+                      filteredOrgs.map((org) => (
+                        <button
+                          key={org.org_id}
+                          onClick={() => {
+                            setSelectedOrg(org.org_name);
+                            setSelectedOrgId(org.org_id);
+                            setAnnualReportEmail(org.org_email || "");
+                            setOrgSearchTerm("");
+                            setOrgPopoverOpen(false);
+                            setFieldError("org", false);
+                          }}
+                          type="button"
+                          className={cn(
+                            "w-full text-left px-4 py-2 hover:bg-gray-100",
+                            selectedOrg === org.org_name && "bg-gray-100 font-medium"
+                          )}
+                          disabled={isUploading}
+                        >
+                          {org.org_name}
+                          {selectedOrg === org.org_name && (
+                            <Check className="ml-2 inline h-4 w-4 text-green-600" />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-4 py-2 text-sm text-muted-foreground">No results found</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {fieldErrors.org && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">
+                  {fieldErrors.org}
+                </p>
+              )}
+            </div>
 
-          {/* Organization E-mail (auto-filled from org, read-only) */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Organization E-mail
-            </label>
-            <Input
-              id="annualReportEmail"
-              type="email"
-              value={annualReportEmail}
-              readOnly
-              disabled
-              placeholder="Select an organization to autofill"
-              className="w-full px-3 py-2 rounded-md text-sm bg-gray-50"
-            />
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Organization E-mail
+              </label>
+              <Input
+                id="annualReportEmail"
+                type="email"
+                value={annualReportEmail}
+                readOnly
+                disabled
+                placeholder="Auto-filled from org"
+                className="w-full px-3 py-2 rounded-md text-sm bg-gray-50"
+              />
+            </div>
           </div>
 
           {/* Academic Year (searchable dropdown, same UX as org) */}

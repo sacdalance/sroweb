@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { submitOrgApplication } from "@/api/orgApplicationAPI";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { orgApplicationSchema } from "@/lib/zodSchemas";
 import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
@@ -40,6 +40,7 @@ const categoriesList = [
 const academicYearsList = ["2024-2025", "2025-2026", "2026-2027", "2027-2028"];
 
 const OrgApplication = () => {
+  const { accountId } = useAuth();
   const navigate = useNavigate();
   const { getFileForForm } = useStudentForms();
 
@@ -50,7 +51,6 @@ const OrgApplication = () => {
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showInterviewPrompt, setShowInterviewPrompt] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Form fields
   const [orgName, setOrgName] = useState("");
@@ -65,8 +65,6 @@ const OrgApplication = () => {
   const [selectedOrgTypeName, setSelectedOrgTypeName] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  const [userId, setUserId] = useState(null);
-
   // Draft States
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [pendingDraft, setPendingDraft] = useState(null);
@@ -186,22 +184,6 @@ const OrgApplication = () => {
   }, [isDirty, isSuccessfullySubmitted]);
 
 
-  // === AUTH: GET USER ACCOUNT ID ===
-  useEffect(() => {
-    const fetchUserAccount = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data?.session?.user;
-      if (!user) return;
-      const { data: accountData } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-      if (accountData?.account_id) setUserId(accountData.account_id);
-    };
-    fetchUserAccount();
-  }, []);
-
   // === VALIDATION HELPERS ===
   const validateSingleField = (field, value) => {
     try {
@@ -283,7 +265,7 @@ const OrgApplication = () => {
         coadviser_email: coAdviserEmail.trim() || null,
         org_type: orgType,
         files,
-        submitted_by: userId,
+        submitted_by: accountId,
       });
 
       // Clear draft on success
@@ -331,8 +313,9 @@ const OrgApplication = () => {
   return (
     <div className="max-w-7xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Recognition Application</h1>
-      <form className="grid grid-cols-1 lg:grid-cols-2 gap-10" onSubmit={e => e.preventDefault()} noValidate>
-        <div className="space-y-5">
+      <form className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-10" onSubmit={e => e.preventDefault()} noValidate>
+        <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 space-y-5">
+          <h3 className="text-sm font-semibold text-gray-700 pt-2">Organization Details</h3>
           {/* Organization Name */}
           <div>
             <label className="text-sm font-medium block mb-1">
@@ -508,131 +491,139 @@ const OrgApplication = () => {
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.orgEmail}</p>
             )}
           </div>
-          {/* Chairperson */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              Organization Chairperson/President <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={chairperson}
-              onChange={e => {
-                setChairperson(e.target.value);
-                setFieldError("chairperson", "");
-              }}
-              onBlur={e => validateSingleField("chairperson", e.target.value)}
-              className={fieldErrors.chairperson ? "border-sro-primary bg-red-50" : ""}
-              placeholder="DEL PILAR, Marcelo H."
-              disabled={isUploading}
-            />
-            {fieldErrors.chairperson && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairperson}</p>
-            )}
+          <h3 className="text-sm font-semibold text-gray-700 pt-2">Officers</h3>
+
+          {/* Chairperson Name + Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Chairperson/President <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                value={chairperson}
+                onChange={e => {
+                  setChairperson(e.target.value);
+                  setFieldError("chairperson", "");
+                }}
+                onBlur={e => validateSingleField("chairperson", e.target.value)}
+                className={fieldErrors.chairperson ? "border-sro-primary bg-red-50" : ""}
+                placeholder="DEL PILAR, Marcelo H."
+                disabled={isUploading}
+              />
+              {fieldErrors.chairperson && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairperson}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Chairperson E-mail <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="email"
+                value={chairpersonEmail}
+                onChange={e => {
+                  setChairpersonEmail(e.target.value);
+                  setFieldError("chairpersonEmail", "");
+                }}
+                onBlur={e => validateSingleField("chairpersonEmail", e.target.value)}
+                placeholder="delpilarmh@up.edu.ph"
+                className={fieldErrors.chairpersonEmail ? "border-sro-primary bg-red-50" : ""}
+                disabled={isUploading}
+              />
+              {fieldErrors.chairpersonEmail && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairpersonEmail}</p>
+              )}
+            </div>
           </div>
-          {/* Chairperson Email */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              E-mail of Chairperson/President <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="email"
-              value={chairpersonEmail}
-              onChange={e => {
-                setChairpersonEmail(e.target.value);
-                setFieldError("chairpersonEmail", "");
-              }}
-              onBlur={e => validateSingleField("chairpersonEmail", e.target.value)}
-              placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.chairpersonEmail ? "border-sro-primary bg-red-50" : ""}
-              disabled={isUploading}
-            />
-            {fieldErrors.chairpersonEmail && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.chairpersonEmail}</p>
-            )}
+
+          {/* Adviser Name + Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Adviser <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                value={adviser}
+                onChange={e => {
+                  setAdviser(e.target.value);
+                  setFieldError("adviser", "");
+                }}
+                onBlur={e => validateSingleField("adviser", e.target.value)}
+                className={fieldErrors.adviser ? "border-sro-primary bg-red-50" : ""}
+                placeholder="DEL PILAR, Marcelo H."
+                disabled={isUploading}
+              />
+              {fieldErrors.adviser && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviser}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Adviser E-mail <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="email"
+                value={adviserEmail}
+                onChange={e => {
+                  setAdviserEmail(e.target.value);
+                  setFieldError("adviserEmail", "");
+                }}
+                onBlur={e => validateSingleField("adviserEmail", e.target.value)}
+                placeholder="delpilarmh@up.edu.ph"
+                className={fieldErrors.adviserEmail ? "border-sro-primary bg-red-50" : ""}
+                disabled={isUploading}
+              />
+              {fieldErrors.adviserEmail && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviserEmail}</p>
+              )}
+            </div>
           </div>
-          {/* Adviser */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              Adviser <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={adviser}
-              onChange={e => {
-                setAdviser(e.target.value);
-                setFieldError("adviser", "");
-              }}
-              onBlur={e => validateSingleField("adviser", e.target.value)}
-              className={fieldErrors.adviser ? "border-sro-primary bg-red-50" : ""}
-              placeholder="DEL PILAR, Marcelo H."
-              disabled={isUploading}
-            />
-            {fieldErrors.adviser && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviser}</p>
-            )}
-          </div>
-          {/* Adviser Email */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              Adviser E-mail <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="email"
-              value={adviserEmail}
-              onChange={e => {
-                setAdviserEmail(e.target.value);
-                setFieldError("adviserEmail", "");
-              }}
-              onBlur={e => validateSingleField("adviserEmail", e.target.value)}
-              placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.adviserEmail ? "border-sro-primary bg-red-50" : ""}
-              disabled={isUploading}
-            />
-            {fieldErrors.adviserEmail && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.adviserEmail}</p>
-            )}
-          </div>
-          {/* Co-Adviser */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              Co-Adviser
-            </label>
-            <Input
-              type="text"
-              value={coAdviser}
-              onChange={e => {
-                const value = sanitizeInput(e.target.value);
-                setCoAdviser(value);
-                setFieldError("coAdviser", "");
-              }}
-              onBlur={e => validateSingleField("coAdviser", e.target.value)}
-              className={fieldErrors.coAdviser ? "border-sro-primary bg-red-50" : ""}
-              placeholder="DEL PILAR, Marcelo H."
-            />
-            {fieldErrors.coAdviser && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviser}</p>
-            )}
-          </div>
-          {/* Co-Adviser Email */}
-          <div>
-            <label className="text-sm font-medium block mb-1">
-              Co-Adviser E-mail
-            </label>
-            <Input
-              type="email"
-              value={coAdviserEmail}
-              onChange={e => {
-                setCoAdviserEmail(e.target.value);
-                setFieldError("coAdviserEmail", "");
-              }}
-              onBlur={e => validateSingleField("coAdviserEmail", e.target.value)}
-              placeholder="delpilarmh@up.edu.ph"
-              className={fieldErrors.coAdviserEmail ? "border-sro-primary bg-red-50" : ""}
-              disabled={isUploading}
-            />
-            {fieldErrors.coAdviserEmail && (
-              <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviserEmail}</p>
-            )}
+
+          {/* Co-Adviser Name + Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Co-Adviser
+              </label>
+              <Input
+                type="text"
+                value={coAdviser}
+                onChange={e => {
+                  const value = sanitizeInput(e.target.value);
+                  setCoAdviser(value);
+                  setFieldError("coAdviser", "");
+                }}
+                onBlur={e => validateSingleField("coAdviser", e.target.value)}
+                className={fieldErrors.coAdviser ? "border-sro-primary bg-red-50" : ""}
+                placeholder="DEL PILAR, Marcelo H."
+                disabled={isUploading}
+              />
+              {fieldErrors.coAdviser && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviser}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">
+                Co-Adviser E-mail
+              </label>
+              <Input
+                type="email"
+                value={coAdviserEmail}
+                onChange={e => {
+                  setCoAdviserEmail(e.target.value);
+                  setFieldError("coAdviserEmail", "");
+                }}
+                onBlur={e => validateSingleField("coAdviserEmail", e.target.value)}
+                placeholder="delpilarmh@up.edu.ph"
+                className={fieldErrors.coAdviserEmail ? "border-sro-primary bg-red-50" : ""}
+                disabled={isUploading}
+              />
+              {fieldErrors.coAdviserEmail && (
+                <p className="text-xs text-sro-primary mt-1 px-1 font-medium">{fieldErrors.coAdviserEmail}</p>
+              )}
+            </div>
           </div>
         </div>
         {/* Forms & Files Section */}
@@ -693,36 +684,6 @@ const OrgApplication = () => {
             </div>
           </CardContent>
         </Card>
-        {/* Submission Confirmation Dialog (UI/UX match) */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Submit Organization Application</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to submit this application? You cannot edit after submission.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction
-                onClick={async (e) => {
-                  setShowConfirmDialog(false);
-                  await handleSubmit(e);
-                }}
-                disabled={isUploading}
-                className="bg-sro-secondary text-white hover:bg-sro-secondary/90 px-6"
-              >
-                {isUploading ? "Submitting..." : "Submit"}
-              </AlertDialogAction>
-              <AlertDialogCancel
-                onClick={() => setShowConfirmDialog(false)}
-                disabled={isUploading}
-              >
-                Cancel
-              </AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
         {/* Restore Draft Dialog */}
         <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
           <AlertDialogContent className="rounded-xl border border-sro-secondary/20 shadow-2xl">

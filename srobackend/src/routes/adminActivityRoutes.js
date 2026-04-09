@@ -66,28 +66,36 @@ function generateActivityId() {
   return `${mm}${yy}-${random}`;
 }
 
-router.post('/admin/activity', verifyAdminRoles, upload.single('file'), async (req, res) => {
+router.post('/admin/activity', verifyAdminRoles, upload.fields([
+  { name: 'conceptPaper', maxCount: 1 },
+  { name: 'form2b', maxCount: 1 }
+]), async (req, res) => {
   try {
     const {
       org_id, student_position, student_contact, activity_name, activity_description, activity_type,
       sdg_goals, charge_fee, university_partner, partner_name, partner_role, venue,
       venue_approver, venue_approver_contact, is_off_campus, green_monitor_name,
-      green_monitor_contact, is_recurring, start_date, end_date, start_time, end_time, recurring_days
+      green_monitor_contact, has_outside_visitors, is_recurring, start_date, end_date, start_time, end_time, recurring_days
     } = req.body;
 
-    const file = req.file;
-    let drive_folder_link = 'N/A';
+    let concept_paper_link = null;
+    let form_2b_link = null;
 
-    if (file) {
-      if (!file.originalname.toLowerCase().endsWith('.pdf') || file.mimetype !== 'application/pdf') {
-        return res.status(400).json({ error: 'Only PDF files are allowed.' });
+    const conceptPaperFile = req.files?.conceptPaper?.[0];
+    const form2bFile = req.files?.form2b?.[0];
+
+    if (conceptPaperFile) {
+      if (!conceptPaperFile.originalname.toLowerCase().endsWith('.pdf') || conceptPaperFile.mimetype !== 'application/pdf') {
+        return res.status(400).json({ error: 'Only PDF files are allowed for Concept Paper.' });
       }
+      concept_paper_link = await uploadToGoogleDrive(conceptPaperFile.buffer, conceptPaperFile.originalname, conceptPaperFile.mimetype);
+    }
 
-      drive_folder_link = await uploadToGoogleDrive(
-        file.buffer,
-        file.originalname,
-        file.mimetype
-      );
+    if (form2bFile) {
+      if (!form2bFile.originalname.toLowerCase().endsWith('.pdf') || form2bFile.mimetype !== 'application/pdf') {
+        return res.status(400).json({ error: 'Only PDF files are allowed for Form 2B.' });
+      }
+      form_2b_link = await uploadToGoogleDrive(form2bFile.buffer, form2bFile.originalname, form2bFile.mimetype);
     }
 
     const user = req.user;
@@ -124,7 +132,9 @@ router.post('/admin/activity', verifyAdminRoles, upload.single('file'), async (r
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      drive_folder_link,
+      has_outside_visitors: has_outside_visitors === 'true' || has_outside_visitors === true,
+      concept_paper_link,
+      form_2b_link,
       sro_approval_status: 'Approved',
       odsa_approval_status: 'Approved',
       final_status: 'Approved'

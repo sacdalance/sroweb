@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import {
   LogOut, X, ChevronDown,
   LayoutDashboard, FileText, PlusCircle, CalendarCheck,
@@ -8,7 +9,7 @@ import {
   Users, FolderOpen, Settings,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SUPERADMIN_EMAILS } from "@/lib/permissions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PropTypes from "prop-types";
@@ -76,52 +77,28 @@ const NavSection = ({ title, children, collapsed, defaultOpen = true }) => {
 };
 
 const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const navigate = useNavigate();
+  const { user, role } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user || null);
-
-      if (user) {
-        const { data, error } = await supabase
-          .from("account")
-          .select("role_id")
-          .eq("email", user.email)
-          .single();
-        if (!error && data) setRole(data.role_id);
-      }
-    };
-
-    fetchUser();
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
   const isValidUPMail = user && user.email.endsWith("@up.edu.ph");
   const isUser = role === 1;
   const isSRO = role === 2;
   const isODSA = role === 3;
   const isSuperAdmin = role === 4;
+  const isAdviser = role === 5;
   const isSuperAdminEmail = user && SUPERADMIN_EMAILS.includes(user.email);
   const showStudent = isUser || isSuperAdmin;
   const showAdmin = isSRO || isODSA || isSuperAdmin;
-  const dashboardLink = showStudent ? "/dashboard" : "/admin";
+  const dashboardLink = isAdviser ? "/adviser" : showStudent ? "/dashboard" : "/admin";
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Clear session even if the API call fails
+    }
     sessionStorage.removeItem("sroRemindersSeen");
-    navigate("/login");
+    window.location.href = "/login";
   };
 
   const isSmallScreen = typeof window !== "undefined" && window.innerWidth < XL_BREAKPOINT;
@@ -148,6 +125,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
     2: "SRO Staff",
     3: "ODSA Staff",
     4: "Super Admin",
+    5: "Adviser",
   }[role];
 
   return (
@@ -171,7 +149,7 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
         </button>
       </div>
 
-      <ScrollArea className="flex-1 pt-16 xl:pt-14">
+      <ScrollArea className="flex-1 min-h-0 pt-16 xl:pt-14 [&_[data-slot=scroll-area-scrollbar]]:hidden">
         <div className="flex flex-col min-h-full px-3 pb-4">
           {/* Profile section */}
           <div className={cn(
@@ -195,11 +173,11 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                 <h2 className="text-sm font-semibold text-gray-900 truncate">
                   {user?.user_metadata?.full_name || "User"}
                 </h2>
-                <p className="text-xs text-sro-primary font-medium">
+                <span className="text-xs text-sro-primary font-medium block">
                   {roleName || (
-                    <LoadingSpinner text="..." variant="inline" className="text-sro-primary" />
+                    <Skeleton className="h-3 w-16 mt-0.5" />
                   )}
-                </p>
+                </span>
               </div>
             )}
           </div>
@@ -234,6 +212,21 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
               </>
             )}
 
+            {/* Adviser */}
+            {(isAdviser || isSuperAdmin) && (
+              <>
+                {showStudent && <div className="h-px bg-gray-100 mx-2 my-2" />}
+                <NavItem
+                  to="/adviser"
+                  icon={ClipboardList}
+                  label="Adviser Dashboard"
+                  isActive={location.pathname === "/adviser"}
+                  collapsed={collapsed}
+                  onClick={handleNavClick}
+                />
+              </>
+            )}
+
             {/* Admin */}
             {showAdmin && (
               <>
@@ -255,15 +248,21 @@ const Sidebar = ({ isOpen, onClose, setIsOpen, collapsed = false }) => {
                   <NavItem to="/admin/student-activities" icon={ClipboardList} label="Student Activities" isActive={location.pathname === "/admin/student-activities"} collapsed={collapsed} onClick={handleNavClick} />
                 </NavSection>
 
-                <NavSection title="Organizations" collapsed={collapsed}>
-                  {(isSRO || isSuperAdmin) && (
-                    <NavItem to="/admin/appointment-settings" icon={CalendarCheck} label="Appointments" isActive={location.pathname === "/admin/appointment-settings"} collapsed={collapsed} onClick={handleNavClick} />
-                  )}
-                  <NavItem to="/admin/documents" icon={FolderOpen} label="Student Forms" isActive={location.pathname === "/admin/documents"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/organizations" icon={Users} label="Organization Summary" isActive={location.pathname === "/admin/organizations"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/org-applications" icon={Award} label="Recognition Applications" isActive={location.pathname === "/admin/org-applications"} collapsed={collapsed} onClick={handleNavClick} />
-                  <NavItem to="/admin/annual-reports" icon={BookOpen} label="Annual Reports" isActive={location.pathname === "/admin/annual-reports"} collapsed={collapsed} onClick={handleNavClick} />
-                </NavSection>
+                    <NavSection title="Organizations" collapsed={collapsed}>
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/appointment-settings" icon={CalendarCheck} label="Appointments" isActive={location.pathname === "/admin/appointment-settings"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/documents" icon={FolderOpen} label="Student Forms" isActive={location.pathname === "/admin/documents"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/organizations" icon={Users} label="Organization Summary" isActive={location.pathname === "/admin/organizations"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    {(isSRO || isSuperAdmin) && (
+                      <NavItem to="/admin/org-applications" icon={Award} label="Recognition Applications" isActive={location.pathname === "/admin/org-applications"} collapsed={collapsed} onClick={handleNavClick} />
+                    )}
+                    <NavItem to="/admin/annual-reports" icon={BookOpen} label="Annual Reports" isActive={location.pathname === "/admin/annual-reports"} collapsed={collapsed} onClick={handleNavClick} />
+                  </NavSection>
               </>
             )}
 

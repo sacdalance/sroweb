@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, X, Info, LayoutGrid, Table } from "lucide-react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { CalendarSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -260,8 +260,8 @@ const UnifiedActivitiesCalendar = ({
   };
 
   const LoadingState = () => (
-    <div className="flex items-center justify-center p-8">
-      <LoadingSpinner text="Loading activities..." variant="section" />
+    <div className="p-4">
+      <CalendarSkeleton />
     </div>
   );
 
@@ -574,7 +574,7 @@ const UnifiedActivitiesCalendar = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <LoadingSpinner text="Loading details..." variant="section" />
+            <DetailSkeleton />
           </div>
         ) : (
           selectedEvent && (

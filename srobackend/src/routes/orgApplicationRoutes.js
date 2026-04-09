@@ -153,9 +153,7 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
     if (
       !org_name || !academic_year || !org_email ||
       !org_chairperson || !chairperson_email ||
-      !org_adviser || !adviser_email ||
-      !org_coadviser || !coadviser_email || !org_type ||
-      !org_status
+      !org_adviser || !adviser_email || !org_type
     ) {
       return res.status(400).json({ error: "Missing required fields." });
     }
@@ -221,8 +219,8 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
       adviser_email,
       org_coadviser,
       coadviser_email,
-      org_type, 
-      org_status,
+      org_type,
+      org_status: "Pending",
       submission_file_url: JSON.stringify(uploadedLinks),
       drive_folder_link: folder.webViewLink, 
       submitted_at: new Date(),

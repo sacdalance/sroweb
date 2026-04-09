@@ -34,6 +34,7 @@ router.get('/settings', authMiddleware, async (req, res) => {
 
     if (error) throw error;
 
+    res.set('Cache-Control', 'private, max-age=300');
     return res.status(200).json(data[0] || {});
   } catch (error) {
     console.error('Error fetching appointment settings:', error);

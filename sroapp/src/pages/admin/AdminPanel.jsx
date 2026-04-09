@@ -3,10 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import supabase from "@/lib/supabase";
-import { API_BASE_URL } from "@/lib/api-config";
-import axios from "axios";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
+import { useAuth } from "@/context/UserAuthContext";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { DashboardSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen, Database, ClipboardList } from "lucide-react";
 import StatusPill from "@/components/ui/StatusPill";
 import { isSameDay, format } from "date-fns";
@@ -33,7 +34,7 @@ const AdminPanel = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
 
-  const [userRole, setUserRole] = useState(null);
+  const { role: userRole } = useAuth();
   const navigate = useNavigate();
 
   // Dynamic Greeting
@@ -45,23 +46,17 @@ const AdminPanel = () => {
   }, []);
 
   // Stats
-  const [requestsCounts, setRequestsCounts] = useState({
-    approved: 0,
-    forAppeal: 0,
-    pending: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
-    annualReports: 0,
-  });
+  const [requestsCounts, setRequestsCounts] = useState(null);
 
   // Stats data for the summary section - STRICT SRO PRIMARY
+  const rc = requestsCounts || {};
   const statsSummary = [
-    { title: "Pending Requests", count: requestsCounts.forAppeal + requestsCounts.pending || 0, path: "/admin/student-activities", icon: Clock },
-    { title: "Approved Requests", count: requestsCounts.approved || 0, path: "/admin/student-activities", icon: CheckCircle },
-    { title: "Pending Applications", count: requestsCounts.pendingApplications || 0, path: "/admin/org-applications", icon: BookOpen },
-    { title: "Approved Applications", count: requestsCounts.approvedApplications || 0, path: "/admin/organizations", icon: FileCheck },
-    { title: "Total Submissions", count: (requestsCounts.forAppeal + requestsCounts.pending + requestsCounts.approved) || 0, path: "/admin/all-submissions", icon: FileText },
-    { title: "Annual Reports", count: requestsCounts.annualReports || 0, path: "/admin/annual-reports", icon: Calendar },
+    { title: "Pending Requests", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) : null, path: "/admin/student-activities", icon: Clock },
+    { title: "Approved Requests", count: requestsCounts ? rc.approved || 0 : null, path: "/admin/student-activities", icon: CheckCircle },
+    { title: "Pending Applications", count: requestsCounts ? rc.pendingApplications || 0 : null, path: "/admin/org-applications", icon: BookOpen },
+    { title: "Approved Applications", count: requestsCounts ? rc.approvedApplications || 0 : null, path: "/admin/organizations", icon: FileCheck },
+    { title: "Total Submissions", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) + (rc.approved || 0) : null, path: "/admin/all-submissions", icon: FileText },
+    { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar },
   ];
 
   const getActivityTypeLabel = (id) => {
@@ -77,45 +72,24 @@ const AdminPanel = () => {
     return map[id] || id;
   };
 
-  // 1. Fetch User Role
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          const { data: account } = await supabase.from("account").select("role_id").eq("email", user.email).single();
-          if (account) setUserRole(account.role_id);
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-      }
-    };
-    fetchUserRole();
-  }, []);
-
-  // 2. Main Data Fetch (Combined)
+  // Main Data Fetch (Combined)
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const { data: sessionData } = await supabase.auth.getSession();
-        const access_token = sessionData?.session?.access_token;
-
         // A. Fetch Approved Activities (For Calendar & Chart)
         const { data: approvedData, error: approvedError } = await supabase
           .from("activity")
-          .select(`*, organization:organization(*), schedule:activity_schedule(*)`)
+          .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
           .eq("final_status", "Approved");
 
         if (approvedError) throw approvedError;
 
         // B. Fetch Incoming Requests (For Stats & Chart)
         let incomingData = [];
-        if (access_token) {
-          const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
-            headers: { Authorization: `Bearer ${access_token}` },
-          });
-          incomingData = res.data || [];
+        const res = await authFetch(`${API_BASE_URL}/api/activities/incoming`);
+        if (res.ok) {
+          incomingData = await res.json();
         }
 
         // C. Fetch Appointments
@@ -288,7 +262,33 @@ const AdminPanel = () => {
   ];
 
   if (loading && !rawActivities.length && !appointments.length) {
-    return <LoadingSpinner text="Loading dashboard..." variant="fullscreen" />;
+    return (
+      <div className="space-y-6 p-6 md:p-10">
+        <div className="flex justify-between items-end">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48 mt-2" />
+          </div>
+          <Skeleton className="h-9 w-52 rounded-full" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border p-4 flex items-center gap-3 h-[100px]">
+              <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <Skeleton className="xl:col-span-2 h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
   }
 
   return (
@@ -307,19 +307,23 @@ const AdminPanel = () => {
         </div>
 
         {/* 1. Stats Grid (Strict SRO Primary) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {statsSummary.map((stat, index) => (
             <Link
               to={stat.path || "#"}
               key={index}
               className={`group flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-sro-primary/30 transition-all duration-200 h-[100px] ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
             >
-              <div className={`p-3 rounded-full bg-sro-primary/10 text-sro-primary group-hover:scale-110 transition-transform`}>
+              <div className={`p-3 rounded-full shrink-0 bg-sro-primary/10 text-sro-primary group-hover:scale-110 transition-transform`}>
                 <stat.icon className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors">{stat.count}</h3>
-                <p className="text-xs font-medium text-gray-500 line-clamp-2">{stat.title}</p>
+              <div className="min-w-0">
+                {stat.count !== null ? (
+                  <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors animate-[fadeIn_0.4s_ease-in-out]">{stat.count}</h3>
+                ) : (
+                  <Skeleton className="h-7 w-10 mb-1" />
+                )}
+                <p className="text-xs font-medium text-gray-500 leading-tight line-clamp-2">{stat.title}</p>
               </div>
             </Link>
           ))}
@@ -331,7 +335,7 @@ const AdminPanel = () => {
             <ActivityTrendsChart activities={rawActivities} />
           </div>
           <div className="xl:col-span-1 h-full">
-            <ActionCenter counts={requestsCounts} />
+            <ActionCenter counts={requestsCounts} loading={loading} />
           </div>
         </div>
 
@@ -397,7 +401,7 @@ const AdminPanel = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         {modalLoading ? (
           <div className="flex items-center justify-center min-h-[300px]">
-            <LoadingSpinner text="Loading detail..." variant="inline" />
+            <DetailSkeleton />
           </div>
         ) : (
           selectedActivity && (

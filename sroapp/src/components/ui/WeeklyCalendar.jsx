@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { CalendarSkeleton } from "@/components/ui/skeletons";
 import PropTypes from 'prop-types';
 
 /**
@@ -123,7 +123,7 @@ const WeeklyCalendar = ({
     const renderDayLabel = (date, day, isToday, isMobile = false) => (
         <div
             className={`flex flex-col items-center justify-center rounded-lg w-16 h-[100px] ${isMobile ? 'flex-shrink-0' : ''}
-        ${isToday ? "bg-sro-accent text-sro-primary font-bold border-2 border-sro-accent shadow" : ""}
+        ${isToday ? "bg-sro-accent-50 text-sro-accent-500 font-bold border-2 border-sro-accent-200 shadow-sm" : ""}
       `}
         >
             <span className="text-xs">{day}</span>
@@ -159,7 +159,7 @@ const WeeklyCalendar = ({
             </CardHeader>
             <CardContent className="flex-grow min-w-0">
                 {loading ? (
-                    <LoadingSpinner text="Loading Calendar..." variant="section" />
+                    <CalendarSkeleton />
                 ) : (
                     <div className="w-full">
                         {/* Desktop/tablet: Days left, cards right (vertical) */}

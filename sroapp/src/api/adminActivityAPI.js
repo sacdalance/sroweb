@@ -1,16 +1,10 @@
 import supabase from "@/lib/supabase";
-import axios from "axios";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
-export const submitAdminActivity = async (activity, schedule, file) => {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    throw new Error("No active session. Please log in again.");
-  }
-
+export const submitAdminActivity = async (activity, schedule, files) => {
   const formData = new FormData();
-  formData.append("file", file);
+  if (files.conceptPaperFile) formData.append("conceptPaper", files.conceptPaperFile);
+  if (files.form2bFile) formData.append("form2b", files.form2bFile);
 
   Object.entries(activity).forEach(([key, value]) => {
     formData.append(key, value);
@@ -20,72 +14,40 @@ export const submitAdminActivity = async (activity, schedule, file) => {
     formData.append(key, value ?? "");
   });
 
-  const response = await fetch(`${API_BASE_URL}/api/admin/activity`, {
+  const response = await authFetch(`${API_BASE_URL}/api/admin/activity`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
     body: formData,
   });
 
   const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || "Failed to submit activity.");
-  }
-
+  if (!response.ok) throw new Error(result.error || "Failed to submit activity.");
   return result;
 };
 
-// Summary of Activities
-
 export const fetchSummaryActivities = async (filters) => {
-  const { data: { session } } = await supabase.auth.getSession();
-
   const params = new URLSearchParams(filters);
-  const res = await fetch(`${API_BASE_URL}/api/activities/summary?${params.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-
+  const res = await authFetch(`${API_BASE_URL}/api/activities/summary?${params.toString()}`);
   const result = await res.json();
   if (!res.ok) throw new Error(result.error || "Failed to fetch summary data.");
-
   return result;
 };
 
 export const fetchOrganizationNames = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const res = await fetch(`${API_BASE_URL}/api/activities/organizations`, {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-
+  const res = await authFetch(`${API_BASE_URL}/api/activities/organizations`);
   if (!res.ok) throw new Error("Failed to fetch organizations.");
   return await res.json();
 };
 
 export const fetchAcademicYears = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const res = await fetch(`${API_BASE_URL}/api/activities/academic-years`, {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-
+  const res = await authFetch(`${API_BASE_URL}/api/activities/academic-years`);
   if (!res.ok) throw new Error("Failed to fetch academic years");
   return await res.json();
 };
 
-export const fetchIncomingRequests = async (access_token) => {
-  const res = await axios.get(`${API_BASE_URL}/api/activities/incoming`, {
-    headers: { Authorization: `Bearer ${access_token}` },
-  });
-  return res.data;
+export const fetchIncomingRequests = async () => {
+  const res = await authFetch(`${API_BASE_URL}/api/activities/incoming`);
+  if (!res.ok) throw new Error("Failed to fetch incoming requests");
+  return await res.json();
 };
 
 export const fetchApprovedActivities = async () => {
@@ -101,7 +63,7 @@ export const fetchApprovedActivities = async () => {
 export const fetchOrgStats = async () => {
   const currentYear = new Date().getFullYear();
 
-  const [{ data: annualReports, error: annualError }, { data: pendingApps, error: appError }] =
+  const [{ data: annualReports }, { data: pendingApps }] =
     await Promise.all([
       supabase
         .from("org_annual_report")
@@ -138,8 +100,6 @@ export const fetchActivityCounts = async () => {
 
   const { annualReportsCount, pendingApplicationsCount } = await fetchOrgStats();
 
-  console.log("Counts from DB:", { approved, pending, annualReportsCount, pendingApplicationsCount });
-
   return {
     approved,
     pending,
@@ -168,23 +128,12 @@ export const fetchActivityDetails = async (activityId) => {
 };
 
 export const generateApprovalSlips = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) throw new Error("No active session");
-
-  const res = await fetch(`${API_BASE_URL}/api/generate-approval-slips`, {
+  const res = await authFetch(`${API_BASE_URL}/api/generate-approval-slips`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
   });
 
   const result = await res.json();
-
-  if (!res.ok) {
-    throw new Error(result.error || "Failed to generate approval slips");
-  }
-
+  if (!res.ok) throw new Error(result.error || "Failed to generate approval slips");
   return result;
 };

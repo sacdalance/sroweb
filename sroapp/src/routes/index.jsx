@@ -1,13 +1,15 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
-import LoadingSpinner from "../components/ui/loading-spinner";
+import { PageLoadingSkeleton } from "@/components/ui/skeletons";
+import { UserAuthProvider, useAuth } from "@/context/UserAuthContext";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 
-// user 
+// user
 import Dashboard from "../pages/Dashboard";
+import AdviserDashboard from "../pages/AdviserDashboard";
 import ActivityRequest from "../pages/ActivityRequest";
 import Requests from "../pages/Requests";
 import OrgApplication from "../pages/OrgApplication";
@@ -23,6 +25,7 @@ import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
 
 import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
 import AdminOrganizations from "../pages/admin/AdminOrganizations";
+import OrgProfile from "../pages/admin/OrgProfile";
 import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
 import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
 import AdminDocuments from "../pages/admin/AdminDocuments";
@@ -37,19 +40,18 @@ import RequireAdminRole from "@/auth/RequireAdmin";
 import EmailTestButton from "@/pages/EmailTestButton";
 
 const RedirectHome = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUserAndRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    if (loading) return;
 
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
+    const syncAndRedirect = async () => {
       try {
         await checkOrCreateUser(user.email, user.user_metadata.full_name);
         console.log("User synced!");
@@ -57,32 +59,19 @@ const RedirectHome = () => {
         console.error("Sync error:", err.message);
       }
 
-      // Fetch role from 'account' table
-      const { data, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      const roleId = data?.role_id;
-
-      if (!error && roleId) {
-        if ([2, 3, 4].includes(roleId)) {
-          navigate("/admin");
-        } else {
-          navigate("/dashboard");
-        }
+      if (role === 5) {
+        navigate("/adviser");
+      } else if (role && [2, 3, 4].includes(role)) {
+        navigate("/admin");
       } else {
-        navigate("/dashboard"); // defaul fallback
+        navigate("/dashboard");
       }
-
-      setLoading(false);
     };
 
-    checkUserAndRole();
-  }, [navigate]);
+    syncAndRedirect();
+  }, [user, role, loading, navigate]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
   return null;
 };
 
@@ -90,36 +79,18 @@ const RedirectHome = () => {
  * Protects routes from unauthenticated users.
  */
 const PrivateRoute = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    checkUser();
-
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  // Handles sign out when clicked
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    navigate("/login");
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // Clear session even if the API call fails
+    }
+    window.location.href = "/login";
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
 
   // Show error if email is not a UP Mail
   if (user && !user.email.endsWith("@up.edu.ph")) {
@@ -143,42 +114,33 @@ const PrivateRoute = () => {
  * Redirects logged-in users from `/login` to `/dashboard`.
  */
 const RedirectIfLoggedIn = ({ element }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    checkUser();
-
-    // Listen for authentication state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <PageLoadingSkeleton />;
 
   return user ? <Navigate to="/dashboard" replace /> : element;
 };
 
+// Auth wrapper — provides UserAuthContext to all route components
+const AuthWrapper = () => (
+  <UserAuthProvider>
+    <Outlet />
+  </UserAuthProvider>
+);
+
 // Define routes
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Layout />,
+    element: <AuthWrapper />,
     children: [
-      { index: true, element: <RedirectHome /> },
       {
-        element: <PrivateRoute />,
+        path: "/",
+        element: <Layout />,
         children: [
+          { index: true, element: <RedirectHome /> },
+          {
+            element: <PrivateRoute />,
+            children: [
           // ✅ USER ROUTES (User + SuperAdmin)
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
@@ -189,6 +151,12 @@ const router = createBrowserRouter([
           { path: "annual-report", element: <RequireUser><AnnualReport /></RequireUser> },
           { path: "appointment-booking", element: <RequireUser><AppointmentBooking /></RequireUser> },
           { path: "email-test-button", element: <RequireUser><EmailTestButton /></RequireUser> },
+
+          // Adviser route
+          {
+            path: "adviser", element: <RequireAdminRole childrenByRole={
+              { 4: <AdviserDashboard />, 5: <AdviserDashboard /> }} />
+          },
 
           // Admin routes using unified RequireAdminRole
           {
@@ -208,7 +176,7 @@ const router = createBrowserRouter([
           },
           {
             path: "admin/documents", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminDocuments />, 3: <AdminDocuments />, 4: <AdminDocuments /> }} />
+              { 2: <AdminDocuments />, 4: <AdminDocuments /> }} />
           },
           {
             path: "admin/student-activities", element: <RequireAdminRole childrenByRole={
@@ -221,11 +189,15 @@ const router = createBrowserRouter([
 
           {
             path: "admin/org-applications", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminOrgApplications />, 3: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
+              { 2: <AdminOrgApplications />, 4: <AdminOrgApplications /> }} />
           },
           {
             path: "admin/organizations", element: <RequireAdminRole childrenByRole={
-              { 2: <AdminOrganizations />, 3: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
+              { 2: <AdminOrganizations />, 4: <AdminOrganizations /> }} />
+          },
+          {
+            path: "admin/organizations/:orgId", element: <RequireAdminRole childrenByRole={
+              { 2: <OrgProfile />, 4: <OrgProfile /> }} />
           },
           {
             path: "admin/annual-reports", element: <RequireAdminRole childrenByRole={
@@ -236,9 +208,11 @@ const router = createBrowserRouter([
       },
     ],
   },
-  { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
-  { path: "/offline", element: <NotFound /> },
-  { path: "*", element: <NotFound /> },
+      { path: "/login", element: <RedirectIfLoggedIn element={<Login />} /> },
+      { path: "/offline", element: <NotFound /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
 ]);
 
 const AppRoutes = () => {

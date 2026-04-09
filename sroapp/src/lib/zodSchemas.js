@@ -118,7 +118,8 @@ export const activityFormSchema = z.object({
     greenCampusMonitorContact: z.string().regex(/^09\d{9}$|^[^@]+@(up\.edu\.ph|gmail\.com)$/, "Provide valid phone or UP/Gmail email"),
 
     // Submission
-    selectedFile: z.any().refine((file) => file instanceof File || (file && file.name), "Please upload your Activity Request PDF"),
+    conceptPaperFile: z.any().optional(),
+    form2bFile: z.any().optional(),
     appealReason: z.string().regex(safeStringMultilineRegex, "Invalid characters").optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
     // DATE LOGIC
@@ -168,6 +169,22 @@ export const activityFormSchema = z.object({
         );
         if (!hasPartner) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select at least one partner", path: ["partnerUnits"] }); // "partnerUnits" alias for error key
+        }
+    }
+
+    // CONCEPT PAPER: required for all activity types except massOrientation
+    if (data.selectedActivityType !== "massOrientation") {
+        const file = data.conceptPaperFile;
+        if (!(file instanceof File) && !(file && file.name)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please upload your Concept Paper PDF", path: ["conceptPaperFile"] });
+        }
+    }
+
+    // FORM 2B: required for off-campus activities
+    if (data.isOffCampus === "yes") {
+        const file = data.form2bFile;
+        if (!(file instanceof File) && !(file && file.name)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please upload Form 2B (Waiver) PDF", path: ["form2bFile"] });
         }
     }
 });

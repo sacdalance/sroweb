@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "../lib/supabase";
 import { format, isToday, isPast } from "date-fns";
 import { toast } from 'sonner';
-import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { ListSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Check, X, Info } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +20,7 @@ import { appointmentSchema } from "@/lib/zodSchemas";
 import { sanitizeInput } from "@/lib/utils";
 
 const AppointmentBooking = () => {
+  const { accountId, email } = useAuth();
   const [formData, setFormData] = useState({
     reason: "",
     subject: "",
@@ -67,13 +70,12 @@ const AppointmentBooking = () => {
     );
   };
 
-  const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [existingAppointments, setExistingAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [userAccountId, setUserAccountId] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const [blockedDates, setBlockedDates] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [timeSlotLoading, setTimeSlotLoading] = useState(false);
@@ -85,32 +87,23 @@ const AppointmentBooking = () => {
   const [activeTab, setActiveTab] = useState("booking");
   const [lastBooking, setLastBooking] = useState(null); // For confirmation card
 
-  // Fetch initial data
+  // Load user appointments when accountId becomes available
+  useEffect(() => {
+    if (!accountId) return;
+    loadUserAppointments(accountId);
+  }, [accountId]);
+
+  // Auto-fill email from auth context
+  useEffect(() => {
+    if (email) {
+      setFormData(prev => ({ ...prev, email }));
+    }
+  }, [email]);
+
+  // Fetch initial data (settings and blocked dates)
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser) {
-          setUser(currentUser);
-
-          // Get user's account details
-          const { data: accountData, error: accountError } = await supabase
-            .from('account')
-            .select('account_id')
-            .eq('email', currentUser.email)
-            .single();
-
-          if (accountError) throw accountError;
-
-          if (accountData?.account_id) {
-            setUserAccountId(accountData.account_id);
-            await loadUserAppointments(accountData.account_id);
-          }
-
-          // Auto-fill email from logged-in user
-          setFormData(prev => ({ ...prev, email: currentUser.email }));
-        }
-
         // Get appointment settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('appointment_settings')
@@ -150,6 +143,8 @@ const AppointmentBooking = () => {
       } catch (error) {
         console.error("Error loading initial data:", error);
         toast.error("Failed to load settings");
+      } finally {
+        setPageLoading(false);
       }
     };
 
@@ -393,8 +388,9 @@ const AppointmentBooking = () => {
     }
 
     try {
-      setSubmitting(true); const appointmentData = {
-        account_id: userAccountId,
+      setSubmitting(true);
+      const appointmentData = {
+        account_id: accountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
         reason: formData.reason,
@@ -446,8 +442,8 @@ const AppointmentBooking = () => {
       });
 
       // Refresh appointments list if user is logged in
-      if (user && userAccountId) {
-        loadUserAppointments(userAccountId);
+      if (accountId) {
+        loadUserAppointments(accountId);
         // Switch to My Appointments tab to show the new booking
         setActiveTab("appointments");
       }
@@ -483,7 +479,7 @@ const AppointmentBooking = () => {
       setReschedulingAppointment(null);
       setRescheduleData({ date: null, time: "" });
       setRescheduleReason("");
-      loadUserAppointments(userAccountId);
+      loadUserAppointments(accountId);
     } catch (error) {
       console.error("Error requesting reschedule:", error);
       toast.error("Failed to request reschedule");
@@ -601,14 +597,37 @@ const AppointmentBooking = () => {
     },
   ], []);
 
+  if (pageLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <Skeleton className="h-8 w-48 mb-6" />
+        <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Appointments</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger value="booking" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Book Appointment</TabsTrigger>
-          <TabsTrigger value="appointments" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">My Appointments</TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="booking">Book Appointment</TabsTrigger>
+          <TabsTrigger value="appointments">My Appointments</TabsTrigger>
         </TabsList>
 
         {/* My Appointments Tab */}
@@ -619,9 +638,7 @@ const AppointmentBooking = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-start">
                   <div className="w-10 h-10 rounded-full bg-sro-secondary/20 flex items-center justify-center mr-3 flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-sro-secondary">
-                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                    </svg>
+                    <Check className="w-5 h-5 text-sro-secondary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sro-secondary">Appointment Confirmed!</h3>
@@ -641,16 +658,14 @@ const AppointmentBooking = () => {
                   className="text-sro-secondary/60 hover:text-sro-secondary p-1"
                   aria-label="Dismiss"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                  </svg>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
           )}
 
           {loading ? (
-            <LoadingSpinner text="Loading your appointments..." variant="section" />
+            <ListSkeleton rows={4} />
           ) : (
             <>
               <DataTable
@@ -661,9 +676,7 @@ const AppointmentBooking = () => {
 
               {/* Cancellation Policy Note */}
               <div className="mt-4 text-xs text-gray-500 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 flex-shrink-0">
-                  <path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" />
-                </svg>
+                <Info className="w-4 h-4 flex-shrink-0" />
                 <span>
                   <strong>Need to cancel?</strong> Appointments are final. Please contact the SRO via email if you need to cancel.
                 </span>
@@ -675,12 +688,10 @@ const AppointmentBooking = () => {
         {/* Book Appointment Tab */}
         <TabsContent value="booking">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 space-y-6">
               <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
                 <div className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
+                  <Info className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary" />
                   <div>
                     <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
                     <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
@@ -821,7 +832,7 @@ const AppointmentBooking = () => {
                   isDateAvailable={isDateAvailable}
                 />
 
-                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                <div className="flex flex-wrap gap-x-2 md:gap-x-4 gap-y-2 mt-4">
                   <div className="flex items-center gap-2">
                     <span className="inline-block w-4 h-4 rounded-full bg-sro-secondary"></span>
                     <span className="text-xs text-sro-secondary font-medium">Selected</span>
@@ -929,7 +940,7 @@ const AppointmentBooking = () => {
             {rescheduleData.date && (
               <div>
                 <label className="block text-sm font-medium mb-2">Select New Time</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {timeSlots.map((slot) => (
                     <button
                       key={slot.time}

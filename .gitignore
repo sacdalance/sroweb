@@ -29,4 +29,5 @@ dist-ssr
 #GDrive Credentials
 gdrive-creds.json
 /.github
-CLAUDE.md
+.claude/settings.local.json
+241107 - Impormasyon ng mga Organisasyong Pangmag-aaral sa UPB (AT 2024-2025) - [UPDATED] Organization Details.pdf

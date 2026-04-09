@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, cloneElement } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
-import supabase from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -9,52 +7,31 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { AlertTriangle } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/skeletons";
+import { useAuth } from "@/context/UserAuthContext";
 
-import { SUPERADMIN_EMAILS } from "@/lib/permissions";
-
-const RequireUser = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+const RequireAdminRole = ({ childrenByRole }) => {
+  const { role, loading } = useAuth();
   const [showDialog, setShowDialog] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    if (!loading && role !== null && !childrenByRole[role]) {
+      setShowDialog(true);
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    }
+    if (!loading && role === null) {
+      navigate("/login");
+    }
+  }, [loading, role, childrenByRole, navigate]);
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+  if (loading) return <PageLoadingSkeleton />;
 
-      const { data, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      if (!error && (data?.role_id === 1 || data?.role_id === 4 || SUPERADMIN_EMAILS.includes(user.email))) {
-        setHasAccess(true);
-      } else {
-        setShowDialog(true);
-        setTimeout(() => {
-          navigate("/");
-        }, 3000); // redirect in 3s
-      }
-
-      setLoading(false);
-    };
-
-    checkRole();
-  }, [navigate]);
-
-  if (loading) {
-    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
-  }
-
-  return hasAccess ? (
-    children
+  return role && childrenByRole[role] ? (
+    cloneElement(childrenByRole[role], { userRole: role })
   ) : (
     <Dialog open={showDialog}>
       <DialogContent className="max-w-md rounded-lg shadow-lg bg-white p-6 border-none focus:outline-none">
@@ -69,8 +46,6 @@ const RequireUser = ({ children }) => {
             You are not authorized to view this page. You will be redirected to the homepage shortly.
           </DialogDescription>
         </DialogHeader>
-
-        {/* Animated Loading Dots */}
         <div className="mt-6 flex justify-center space-x-2">
           <div className="w-2.5 h-2.5 bg-sro-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <div className="w-2.5 h-2.5 bg-sro-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -81,4 +56,4 @@ const RequireUser = ({ children }) => {
   );
 };
 
-export default RequireUser;
+export default RequireAdminRole;

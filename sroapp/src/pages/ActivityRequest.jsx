@@ -34,6 +34,7 @@ return (
             Saturday: false,
         },
         isOffCampus: "",
+        hasOutsideVisitors: false,
         venue: "",
         venueApprover: "",
         venueApproverContact: "",
@@ -41,7 +42,8 @@ return (
         organizationAdviserContact: "",
         greenCampusMonitor: "",
         greenCampusMonitorContact: "",
-        selectedFile: null,
+        conceptPaperFile: null,
+        form2bFile: null,
         appealReason: "",
         }}
     />

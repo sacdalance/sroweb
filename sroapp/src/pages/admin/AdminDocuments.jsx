@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import DataTable from "@/components/ui/DataTable";
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { CardListSkeleton } from '@/components/ui/skeletons';
+import { Skeleton } from "@/components/ui/skeleton";
 import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useStudentForms, REQUIRED_FORMS } from '@/hooks/useStudentForms';
@@ -158,7 +159,27 @@ const AdminDocuments = () => {
     ];
 
     if (loading && !publicForms.files?.length && activeTab === 'forms') {
-        return <LoadingSpinner text="Loading forms..." variant="section" />;
+        return (
+            <div className="container mx-auto p-4 sm:p-6 max-w-[1700px]">
+                <div className="flex items-center justify-between mb-6">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-9 w-36 rounded-lg" />
+                </div>
+                <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-5 w-28" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="bg-white rounded-xl border p-4 space-y-3">
+                            <Skeleton className="h-32 w-full rounded-lg" />
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -183,9 +204,9 @@ const AdminDocuments = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="flex flex-col h-auto w-full md:inline-flex md:w-auto md:h-10 md:flex-row">
-                    <TabsTrigger value="forms" className="w-full md:w-auto">Forms List</TabsTrigger>
-                    <TabsTrigger value="settings" className="w-full md:w-auto">Access Settings</TabsTrigger>
+                <TabsList>
+                    <TabsTrigger value="forms">Forms List</TabsTrigger>
+                    <TabsTrigger value="settings">Access Settings</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="forms">

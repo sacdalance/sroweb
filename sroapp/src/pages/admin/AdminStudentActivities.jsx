@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import supabase from "@/lib/supabase";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
+import { useAuth } from "@/context/UserAuthContext";
 import { createNotification } from "@/lib/notifications";
 import ActionButtons from "@/components/ui/ActionButtons";
 import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
@@ -13,6 +14,7 @@ import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 import { generateApprovalSlips } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
@@ -40,19 +42,22 @@ const getDerivedStatus = (activity) => {
   if (activity.final_status === "Rejected") return "Rejected";
   if (activity.final_status === "For Appeal") return "For Appeal";
   if (activity.final_status === "For Cancellation") return "For Cancellation";
-  if (activity.sro_approval_status === "Approved" && !activity.odsa_approval_status) return "Pending ODSA";
-  if (!activity.sro_approval_status) return "Pending SRO";
+  if (!activity.adviser_approval_status || activity.adviser_approval_status === "Pending") return "Pending Adviser";
+  if (activity.adviser_approval_status === "Approved" && (!activity.sro_approval_status || activity.sro_approval_status === "Pending")) return "Pending SRO";
+  if (activity.sro_approval_status === "Approved" && (!activity.odsa_approval_status || activity.odsa_approval_status === "Pending")) return "Pending ODSA";
   return "Unknown";
 };
 
-const AdminPendingRequests = ({ userRole: initialUserRole }) => {
+const AdminPendingRequests = () => {
   const [loading, setLoading] = useState(true);
   const [superadminView, setSuperadminView] = useState('sro');
   const [tab, setTab] = useState("requests");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [userRole, setUserRole] = useState(initialUserRole || null);
+  const { role: userRole, email: userEmail } = useAuth();
   const [activities, setActivities] = useState([]);
+
+  const autoRejectRan = useRef(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -144,7 +149,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       filterable: true,
       width: "w-[15%]",
       isStatus: true,
-      filterOptions: ["Pending SRO", "Pending ODSA", "Approved", "Rejected", "For Appeal", "For Cancellation"],
+      filterOptions: ["Pending Adviser", "Pending SRO", "Pending ODSA", "Approved", "Rejected", "For Appeal", "For Cancellation"],
       filterAccessor: (row) => row.status,
       render: (row) => (
         <div className="flex justify-center">
@@ -153,30 +158,6 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       )
     }
   ];
-
-  useEffect(() => {
-    if (userRole) return;
-
-    const fetchRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: account, error } = await supabase
-        .from("account")
-        .select("role_id")
-        .eq("email", user.email)
-        .single();
-
-      if (error) {
-        console.error("Error fetching role:", error);
-      } else {
-        setUserRole(account?.role_id);
-      }
-    };
-
-    fetchRole();
-  }, [userRole]);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
@@ -201,7 +182,8 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   const fetchAllActivities = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      let query = supabase
         .from("activity")
         .select(`
             *,
@@ -211,9 +193,33 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
           `)
         .order('created_at', { ascending: false });
 
+      // Adviser (role 5): only fetch activities from orgs they advise
+      if (userRole === 5 && userEmail) {
+        const { data: adviserOrgs, error: orgError } = await supabase
+          .from("organization")
+          .select("org_id")
+          .eq("adviser_email", userEmail);
+
+        if (orgError) {
+          console.error("Error fetching adviser orgs:", orgError);
+        } else {
+          const orgIds = adviserOrgs.map(o => o.org_id);
+          if (orgIds.length > 0) {
+            query = query.in("org_id", orgIds);
+          } else {
+            // Adviser has no orgs assigned - show nothing
+            setActivities([]);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
-      // --- Auto-Reject Elapsed Activities ---
+      // --- Auto-Reject Elapsed Activities (once per mount) ---
       const today = new Date().toISOString().split('T')[0];
       const autoRejectReason = 'Activity date has elapsed without approval. Please submit a new request if you wish to reschedule.';
       const expiredActivities = data.filter(activity => {
@@ -222,7 +228,8 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         return isNotFinal && startDate && startDate < today;
       });
 
-      if (expiredActivities.length > 0) {
+      if (expiredActivities.length > 0 && !autoRejectRan.current) {
+        autoRejectRan.current = true;
         const expiredIds = expiredActivities.map(a => a.activity_id);
 
         const { error: updateError } = await supabase
@@ -304,6 +311,21 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         ...a,
         status: getDerivedStatus(a)
       }));
+
+      // Apply Adviser View Filter (superadmin sees all orgs, but same status filtering)
+      if (userRole === 4 && superadminView === 'adviser') {
+        processed = processed.filter(a =>
+          ["Pending Adviser", "Approved", "Rejected"].includes(a.status)
+        );
+      }
+
+      // Apply SRO Role Filters (only see adviser-endorsed + final activities)
+      if (userRole === 2 || (userRole === 4 && superadminView === 'sro')) {
+        processed = processed.filter(a =>
+          a.adviser_approval_status === "Approved" ||
+          ["Approved", "Rejected"].includes(a.status)
+        );
+      }
 
       // Apply ODSA Role Filters
       if (userRole === 3 || (userRole === 4 && superadminView === 'odsa')) {
@@ -416,7 +438,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
     let classes = '';
 
     if (status === 'Approved') classes = 'bg-sro-secondary text-white';
-    else if (status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
+    else if (status === 'Pending Adviser' || status === 'Pending SRO' || status === 'Pending ODSA') classes = 'bg-gray-100 text-gray-700 border border-gray-300';
     else if (status === 'For Appeal') classes = 'bg-amber-100 text-amber-700 border border-amber-300';
     else if (status === 'Rejected') classes = 'bg-red-100 text-sro-primary border border-sro-primary';
     else classes = 'bg-blue-100 text-blue-700';
@@ -448,7 +470,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       // Always show approved activities
       if (activity.status === 'Approved') return true;
       // Show requests if toggle is on
-      if (showRequests) return ['Pending SRO', 'Pending ODSA', 'For Appeal'].includes(activity.status);
+      if (showRequests) return ['Pending Adviser', 'Pending SRO', 'Pending ODSA', 'For Appeal'].includes(activity.status);
       return false;
     }).flatMap(activity => {
       // Transform each activity schedule into calendar events
@@ -507,7 +529,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
   }, [calendarEvents, selectedDateFilter]);
 
   if (!userRole) {
-    return <LoadingSpinner text="Checking User Role..." variant="fullscreen" />;
+    return <TableSkeleton />;
   }
 
   return (
@@ -526,6 +548,12 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
       {userRole === 4 && (
         <div className="flex justify-end mb-4">
           <div className="bg-white border rounded-lg p-1 inline-flex shadow-sm">
+            <button
+              onClick={() => setSuperadminView('adviser')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'adviser' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+            >
+              Adviser View
+            </button>
             <button
               onClick={() => setSuperadminView('sro')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'sro' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
@@ -547,32 +575,17 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
         className="w-full mb-8"
         onValueChange={setTab}
       >
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger
-            value="requests"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Activity Requests
-          </TabsTrigger>
-          <TabsTrigger
-            value="activities"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Calendar
-          </TabsTrigger>
-          <TabsTrigger
-            value="summary"
-            className="px-4 py-2 text-sm font-medium flex-1 md:flex-none data-[state=active]:bg-white data-[state=active]:text-sro-primary data-[state=active]:shadow-sm rounded-md transition-all"
-          >
-            Activity Summary
-          </TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="requests">Activity Requests</TabsTrigger>
+          <TabsTrigger value="activities">Calendar</TabsTrigger>
+          <TabsTrigger value="summary">Activity Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
           <Card className="rounded-lg overflow-hidden shadow-sm border-0">
             <CardContent className="p-4">
               {loading ? (
-                <LoadingSpinner text="Loading activity requests..." variant="section" />
+                <TableSkeleton />
               ) : (
                 <DataTable
                   columns={columns}
@@ -583,7 +596,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                   hideViewToggle={true}
                   className="border-none shadow-none"
                   defaultSort={{ key: "created_at", direction: "desc" }}
-                  defaultFilters={{ status: "Pending SRO" }}
+                  defaultFilters={{ status: (userRole === 3 || (userRole === 4 && superadminView === 'odsa')) ? "Pending ODSA" : "Pending SRO" }}
                   preventHorizontalScroll={false}
                 />
               )}
@@ -631,7 +644,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
                         <span className="font-medium">Org:</span> <span className="truncate max-w-[150px]">{activity.organization?.org_name || 'Unknown'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-medium">Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
+                        <span className="font-medium">Proposed Venue:</span> <span className="truncate max-w-[150px]">{activity.venue || 'TBD'}</span>
                       </div>
                       {activity.isRecurring && (
                         <div className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded w-fit font-medium">
@@ -652,7 +665,7 @@ const AdminPendingRequests = ({ userRole: initialUserRole }) => {
             <CardContent className="p-4">
               {/* Summary DataTable */}
               {loading ? (
-                <LoadingSpinner text="Loading activities..." variant="section" />
+                <CalendarSkeleton />
               ) : (
                 <DataTable
                   actionButtons={

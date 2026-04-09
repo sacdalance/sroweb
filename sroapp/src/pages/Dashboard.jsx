@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import { Dialog } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import WeeklyCalendar from "@/components/ui/WeeklyCalendar";
 import StudentStatCards from "@/components/dashboard/StudentStatCards";
@@ -31,9 +33,9 @@ const Dashboard = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [statCounts, setStatCounts] = useState({});
+  const [statCounts, setStatCounts] = useState(null);
   const navigate = useNavigate();
+  const { user, email, accountId, loading: authLoading } = useAuth();
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -43,42 +45,42 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        fetchActivities();
-        fetchStats(user.email);
+      try {
+        await Promise.all([fetchActivities(), fetchStats(accountId)]);
+      } catch (err) {
+        console.error("Dashboard init error:", err);
+      } finally {
+        setLoading(false);
       }
     };
     init();
-  }, []);
+  }, [user, authLoading]);
 
-  const fetchStats = async (email) => {
+  const fetchStats = async (acctId) => {
     try {
-      const { data: account } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", email)
-        .single();
-
-      if (!account) return;
+      if (!acctId) return;
 
       const [pendingRes, approvedRes, applicationsRes] = await Promise.all([
         supabase
           .from("activity")
           .select("activity_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id)
+          .eq("account_id", acctId)
           .or("final_status.is.null,final_status.eq.Pending"),
         supabase
           .from("activity")
           .select("activity_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id)
+          .eq("account_id", acctId)
           .eq("final_status", "Approved"),
         supabase
           .from("org_recognition")
           .select("recognition_id", { count: "exact", head: true })
-          .eq("account_id", account.account_id),
+          .eq("account_id", acctId),
       ]);
 
       setStatCounts({
@@ -94,10 +96,9 @@ const Dashboard = () => {
 
   const fetchActivities = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from("activity")
-        .select(`*, organization:organization(*), schedule:activity_schedule(*), account:account(*)`)
+        .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
         .eq("final_status", "Approved");
 
       if (error) throw error;
@@ -169,8 +170,6 @@ const Dashboard = () => {
       setStatCounts((prev) => ({ ...prev, upcoming: upcomingCount }));
     } catch (err) {
       console.error("Error fetching activities:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -195,7 +194,7 @@ const Dashboard = () => {
     navigate("/activities-calendar", { state: { selectedDate: new Date(date).toISOString() } });
   };
 
-  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "Student";
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || null;
 
   return (
     <div className="max-w-[1350px] mx-auto space-y-6">
@@ -203,8 +202,13 @@ const Dashboard = () => {
       <AnimatedContainer>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-              {greeting}, {firstName}!
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+              {greeting},{" "}
+              {firstName ? (
+                <span className="animate-[fadeIn_0.4s_ease-in-out]">{firstName}!</span>
+              ) : (
+                <Skeleton className="h-8 w-32 inline-block rounded" />
+              )}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
               Here's what's happening with your activities today.
@@ -227,7 +231,7 @@ const Dashboard = () => {
 
       {/* Bento Grid */}
       <AnimatedContainer delay={0.15}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 md:gap-6">
           {/* Calendar - spans 3 cols and 2 rows */}
           <div className="lg:col-span-3 lg:row-span-2">
             <WeeklyCalendar

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 
 
@@ -400,7 +401,7 @@ const AdminActivitySummary = () => {
       {/* Main Content: DataTable with integrated tabs and filters */}
       {loading ? (
         <div className="bg-white rounded-xl border shadow-sm p-12">
-          <LoadingSpinner text="Loading activities..." variant="section" />
+          <TableSkeleton />
         </div>
       ) : (
         <div className="bg-white rounded-xl border shadow-sm overflow-hidden p-1 sm:p-0">
@@ -416,11 +417,11 @@ const AdminActivitySummary = () => {
               }}
               className="w-full lg:w-auto"
             >
-              <TabsList className="bg-white p-1 h-10 rounded-lg border shadow-sm w-full lg:w-auto flex md:inline-flex overflow-x-auto whitespace-nowrap">
-                <TabsTrigger value="all" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">All Submissions</TabsTrigger>
-                <TabsTrigger value="approved" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">Approved ({approvedCount})</TabsTrigger>
-                <TabsTrigger value="approved-no-slip" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white text-sro-secondary">No Slip ({approvedNoSlipCount})</TabsTrigger>
-                <TabsTrigger value="pending" className="px-6 text-xs font-semibold data-[state=active]:bg-sro-primary data-[state=active]:text-white">Pending ({pendingCount})</TabsTrigger>
+              <TabsList>
+                <TabsTrigger value="all">All Submissions</TabsTrigger>
+                <TabsTrigger value="approved">Approved ({approvedCount})</TabsTrigger>
+                <TabsTrigger value="approved-no-slip">No Slip ({approvedNoSlipCount})</TabsTrigger>
+                <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>

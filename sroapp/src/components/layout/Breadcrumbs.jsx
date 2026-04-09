@@ -18,6 +18,7 @@ const routeLabels = {
   "annual-reports": "Annual Reports",
   "appointment-settings": "Appointments",
   documents: "Student Forms",
+  adviser: "Adviser Dashboard",
   "super-admin": "Super Admin",
 };
 
@@ -29,8 +30,9 @@ const Breadcrumbs = () => {
 
   const crumbs = pathSegments.map((segment, index) => {
     const path = "/" + pathSegments.slice(0, index + 1).join("/");
-    const label = routeLabels[segment] || segment;
     const isLast = index === pathSegments.length - 1;
+    // Use location state label for the last segment if available (e.g. org name for /admin/organizations/:id)
+    const label = (isLast && location.state?.breadcrumbLabel) ? location.state.breadcrumbLabel : (routeLabels[segment] || segment);
 
     return { path, label, isLast };
   });

@@ -2,34 +2,19 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import CommandPalette from "./CommandPalette";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import NetworkGuard from "@/components/NetworkGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
-  const [userRole, setUserRole] = useState(null);
-  const [accountId, setAccountId] = useState(null);
+  const { role, accountId } = useAuth();
 
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const { data } = await supabase.from("account").select("account_id, role_id").eq("email", user.email).single();
-        if (data) {
-          setUserRole(data.role_id);
-          setAccountId(data.account_id);
-        }
-      }
-    };
-    fetchUserData();
-  }, []);
 
   return (
     <div className="fixed w-full h-screen flex bg-sro-bg-off-white">
@@ -59,7 +44,7 @@ const Layout = () => {
           sidebarOpen={sidebarOpen}
           accountId={accountId}
         />
-        <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-3.5rem)] overflow-auto">
+        <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-3.5rem)] overflow-auto no-scrollbar">
           <ErrorBoundary>
             <NetworkGuard>
               <div className="py-6">
@@ -74,7 +59,7 @@ const Layout = () => {
       <CommandPalette
         open={commandOpen}
         onOpenChange={setCommandOpen}
-        role={userRole}
+        role={role}
       />
 
       <Toaster position="bottom-right" />

@@ -53,8 +53,9 @@ const CommandPalette = ({ open, onOpenChange, role }) => {
   const isSRO = role === 2;
   const isODSA = role === 3;
   const isSuperAdmin = role === 4;
+  const isAdviser = role === 5;
   const showStudent = isStudent || isSuperAdmin;
-  const showAdmin = isSRO || isODSA || isSuperAdmin;
+  const showAdmin = isSRO || isODSA || isSuperAdmin || isAdviser;
 
   useEffect(() => {
     const handleKeyDown = (e) => {

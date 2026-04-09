@@ -5,8 +5,13 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "node scripts/check-node-version.js",
     "start": "node src/server",
+    "predev": "node scripts/check-node-version.js",
     "dev": "nodemon src/server"
+  },
+  "engines": {
+    "node": ">=20 <25"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +19,7 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",

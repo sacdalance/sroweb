@@ -15,6 +15,7 @@ import { cn, sanitizeInput } from "@/lib/utils";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useBlocker } from "react-router-dom";
+import { useAuth } from "@/context/UserAuthContext";
 import supabase from "@/lib/supabase";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ const ActivityForm = ({
   autoApprove = false,
   onSubmit
 }) => {
+  const { accountId } = useAuth();
   const [currentSection, setCurrentSection] = useState("general-info");
   const [fieldErrors, setFieldErrors] = useState({});
   const [showRemindersDialog, setShowRemindersDialog] = useState(false);
@@ -144,6 +146,7 @@ const ActivityForm = ({
       Saturday: false,
     },
     isOffCampus: defaultValues?.isOffCampus || "",
+    hasOutsideVisitors: defaultValues?.hasOutsideVisitors || false,
     venue: defaultValues?.venue || "",
     venueApprover: defaultValues?.venueApprover || "",
     venueApproverContact: defaultValues?.venueApproverContact || "",
@@ -151,7 +154,8 @@ const ActivityForm = ({
     organizationAdviserContact: defaultValues?.organizationAdviserContact || "",
     greenCampusMonitor: defaultValues?.greenCampusMonitor || "",
     greenCampusMonitorContact: defaultValues?.greenCampusMonitorContact || "",
-    selectedFile: defaultValues?.selectedFile || null,
+    conceptPaperFile: defaultValues?.conceptPaperFile || null,
+    form2bFile: defaultValues?.form2bFile || null,
     appealReason: defaultValues?.appealReason || ""
   });
 
@@ -182,7 +186,8 @@ const ActivityForm = ({
           }
 
           // Don't restore file or transient state
-          delete dataToRestore.selectedFile;
+          delete dataToRestore.conceptPaperFile;
+          delete dataToRestore.form2bFile;
           delete dataToRestore.open;
           delete dataToRestore.searchTerm;
 
@@ -208,7 +213,7 @@ const ActivityForm = ({
     const timeoutId = setTimeout(() => {
       try {
         // Exclude transient/file data from draft
-        const { selectedFile, open, searchTerm, ...draftData } = formData;
+        const { conceptPaperFile, form2bFile, open, searchTerm, ...draftData } = formData;
 
         // GUARD: Don't save if form is empty (avoids overwriting draft on mount or with empty defaults)
         const hasData = draftData.activityName?.trim() ||
@@ -348,45 +353,6 @@ const ActivityForm = ({
     }
   }, []);
 
-  const getRequiredDocuments = () => {
-    const required = [
-      "Concept Paper",
-      "Form 1A (Scanned Copy of Activity Request Form)",
-    ];
-
-    if (formData.isOffCampus === "yes") {
-      required.push(
-        "Form 2A (Notice of Off-Campus Activity)",
-        "Form 2B (Waiver for Off-Campus Student Activities), Notarized"
-      );
-    }
-
-    const isWeekend = (dateStr) => {
-      const date = new Date(dateStr);
-      const day = date.getDay();
-      return day === 0 || day === 6;
-    };
-
-    const isLate = (time) => {
-      if (!time) return false;
-      const [hours] = time.split(":").map(Number);
-      return hours >= 21;
-    };
-
-    if (
-      isWeekend(formData.startDate) ||
-      isWeekend(formData.endDate) ||
-      isLate(formData.startTime) ||
-      isLate(formData.endTime)
-    ) {
-      required.push(
-        "Form 3 (Permission to Stay on Campus After 9:00 PM and On Weekends)"
-      );
-    }
-
-    return required;
-  };
-
   const setFieldError = (field, hasError) => {
     setFieldErrors((prev) => ({ ...prev, [field]: hasError }));
   };
@@ -418,8 +384,7 @@ const ActivityForm = ({
     const currentIndex = sectionOrder.indexOf(currentSection);
     const targetIndex = sectionOrder.indexOf(targetSection);
 
-    if (targetIndex <= currentIndex) {
-      // Allow back navigation freely
+    if (targetIndex <= currentIndex || skipValidation) {
       setCurrentSection(targetSection);
       return;
     }
@@ -473,7 +438,7 @@ const ActivityForm = ({
         "greenCampusMonitor",
         "greenCampusMonitorContact",
       ],
-      "submission": ["selectedFile", "appealReason"],
+      "submission": ["conceptPaperFile", "form2bFile", "appealReason"],
     };
 
     const currentFields = sectionFields[currentSection] || [];
@@ -537,12 +502,16 @@ const ActivityForm = ({
   };
 
 
+  const skipValidation = sessionStorage.getItem("sroSkipValidation") === "true";
+
   const handleNext = () => {
-    const result = validateCurrentSection();
-    if (!result.valid) {
-      toast.error(result.message || "Validation failed");
-      setFieldError(result.field, true);
-      return;
+    if (!skipValidation) {
+      const result = validateCurrentSection();
+      if (!result.valid) {
+        toast.error(result.message || "Validation failed");
+        setFieldError(result.field, true);
+        return;
+      }
     }
     if (currentSection === "general-info") setCurrentSection("date-info");
     else if (currentSection === "date-info") setCurrentSection("specifications");
@@ -552,35 +521,21 @@ const ActivityForm = ({
   const handleSubmit = async (e) => {
     e?.preventDefault();
 
-
-    const result = validateCurrentSection();
-    if (!result.valid) {
-      toast.error(result.message || "Validation failed");
-      return;
+    if (!skipValidation) {
+      const result = validateCurrentSection();
+      if (!result.valid) {
+        toast.error(result.message || "Validation failed");
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
-      const {
-        data: { user },
-        error: userError
-      } = await supabase.auth.getUser();
+      if (!accountId) throw new Error("User not authenticated");
 
-      if (userError || !user) throw new Error("User not authenticated");
-
-      // Fetch matching account_id
-      const { data: accountData, error: accountError } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-
-      if (accountError || !accountData?.account_id) throw new Error("Account not found");
-
-      const account_id = accountData.account_id;
       const { activityData, scheduleData } = buildActivityPayload(formData);
-      activityData.account_id = account_id;
+      activityData.account_id = accountId;
       if (mode === "edit") {
         if (!defaultValues?.activity_id) throw new Error("Missing activity_id for edit");
         const payload = {
@@ -596,14 +551,14 @@ const ActivityForm = ({
         };
         await editActivity(payload, {}); // schedule is already merged in payload
       } else if (mode === "admin") {
-        await submitAdminActivity(activityData, scheduleData, formData.selectedFile);
+        await submitAdminActivity(activityData, scheduleData, { conceptPaperFile: formData.conceptPaperFile, form2bFile: formData.form2bFile });
       } else {
-        await createActivity(activityData, formData.selectedFile, scheduleData);
+        await createActivity(activityData, { conceptPaperFile: formData.conceptPaperFile, form2bFile: formData.form2bFile }, scheduleData);
       }
 
       setShowSuccessDialog(true);
       clearDraft(); // Clear saved draft on successful submission
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/requests"), 1500);
     } catch (err) {
       console.error(err);
       toast.error("Submission failed: " + err.message);
@@ -636,6 +591,7 @@ const ActivityForm = ({
       activity_description: form.activityDescription.trim(),
       activity_type: form.selectedActivityType,
       is_off_campus: form.isOffCampus === "yes",
+      has_outside_visitors: form.hasOutsideVisitors,
       is_recurring: form.recurring === "recurring",
       venue: form.venue,
       venue_approver: form.venueApprover,
@@ -1385,10 +1341,22 @@ const ActivityForm = ({
                   </RadioGroup>
                 </div>
 
+                {/* Outside UPB Visitors */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasOutsideVisitors"
+                    checked={formData.hasOutsideVisitors}
+                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, hasOutsideVisitors: checked === true }))}
+                  />
+                  <label htmlFor="hasOutsideVisitors" className="text-sm font-medium leading-none cursor-pointer">
+                    This activity will have visitors from outside UP Baguio
+                  </label>
+                </div>
+
                 {/* Venue Information */}
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-medium mb-2">Venue <span className="text-red-500">*</span></h3>
+                    <h3 className="text-sm font-medium mb-2">Proposed Venue <span className="text-red-500">*</span></h3>
                     <Input
                       id="venue"
                       maxLength={100}
@@ -1769,48 +1737,109 @@ const ActivityForm = ({
                 </div>
               )}
 
-              <h3 className="text-sm font-medium mb-2">
-                Scanned Copy of Activity Request Form (PDF){" "}
-                <span className="text-red-500">*</span>
-              </h3>
-
-              <div className="border rounded-md p-4">
-                <p className="text-sm text-gray-600 mb-3">
-                  Provide a scanned copy of your activity request form with your point
-                  person's, venue approver's, and adviser's signature.
-                </p>
-                <p className="text-sm text-gray-600 font-bold mb-3">
-                  NOTE: INCLUDE OTHER SCANNED FORMS IN THE PDF IF RELEVANT
-                  <br />
-                  (Notice of Off-Campus Activity, Job Request Forms, etc.)
-                </p>
-                <p className="text-sm text-gray-600 font-bold mb-3 break-all">
-                  [LAST NAME OF REQUESTING STUDENT]_[ORG]_Activity Request
-                  Form_(mm-dd-yyyy)
-                  <br />
-                  i.e. LARUA-TinigAmianan_Activity-Request-Form_01-01-2024
-                </p>
-
-                <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
-                  <h4 className="font-medium text-base mb-2 text-sro-primary">
-                    What to include in your single PDF file:
-                  </h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    {getRequiredDocuments().map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))}
-                  </ul>
+              {/* Review Summary */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Review Your Request</h3>
+                <div className="border rounded-md divide-y text-sm">
+                  {[
+                    { label: "Organization", value: formData.selectedOrgName },
+                    { label: "Position", value: formData.studentPosition },
+                    { label: "Contact", value: formData.studentContact },
+                    { label: "Activity Name", value: formData.activityName },
+                    { label: "Activity Type", value: activityTypeOptions.find(o => o.id === formData.selectedActivityType)?.label || formData.selectedActivityType },
+                    { label: "Description", value: formData.activityDescription },
+                    { label: "Date", value: formData.startDate ? `${formData.startDate}${formData.recurring === "recurring" && formData.endDate ? ` to ${formData.endDate}` : ""}` : null },
+                    { label: "Time", value: formData.startTime && formData.endTime ? `${formData.startTime} – ${formData.endTime}` : null },
+                    ...(formData.recurring === "recurring" ? [{ label: "Recurring Days", value: Object.entries(formData.recurringDays).filter(([_, v]) => v).map(([k]) => k).join(", ") || null }] : []),
+                    { label: "Venue", value: formData.venue },
+                    { label: "Off-Campus", value: formData.isOffCampus === "yes" ? "Yes" : "No" },
+                    ...(formData.hasOutsideVisitors ? [{ label: "Outside Visitors", value: "Yes" }] : []),
+                    ...(formData.isOffCampus !== "yes" ? [
+                      { label: "Venue Approver", value: formData.venueApprover },
+                      { label: "Approver Contact", value: formData.venueApproverContact },
+                    ] : []),
+                    { label: "Charging Fees", value: formData.chargingFees1 === "yes" ? "Yes" : formData.chargingFees1 === "no" ? "No" : null },
+                    ...(formData.partnering === "yes" ? [{ label: "Partner Role", value: formData.partnerDescription }] : []),
+                    { label: "Green Monitor", value: formData.greenCampusMonitor },
+                    { label: "Monitor Contact", value: formData.greenCampusMonitorContact },
+                  ].filter(row => row.value).map((row, i) => (
+                    <div key={i} className="flex flex-col sm:flex-row px-4 py-2.5">
+                      <span className="font-medium text-gray-700 sm:w-40 shrink-0">{row.label}</span>
+                      <span className="text-gray-600 break-words min-w-0">{row.value}</span>
+                    </div>
+                  ))}
+                  {(() => {
+                    const selected = sdgOptions.filter(o => formData.selectedSDGs[o.id]);
+                    return selected.length > 0 ? (
+                      <div className="flex flex-col sm:flex-row px-4 py-2.5">
+                        <span className="font-medium text-gray-700 sm:w-40 shrink-0">SDGs</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selected.map(o => (
+                            <span key={o.id} className="inline-block bg-sro-secondary/10 text-sro-secondary text-xs font-medium px-2 py-0.5 rounded">
+                              {o.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+                  {formData.partnering === "yes" && (() => {
+                    const partners = Object.entries(formData.selectedPublicAffairs)
+                      .filter(([_, val]) => (Array.isArray(val) ? val.some(v => v.trim() !== "") : val === true))
+                      .map(([unit]) => unit);
+                    return partners.length > 0 ? (
+                      <div className="flex flex-col sm:flex-row px-4 py-2.5">
+                        <span className="font-medium text-gray-700 sm:w-40 shrink-0">Partners</span>
+                        <span className="text-gray-600">{partners.join(", ")}</span>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
-
-                <FileDropzone
-                  files={formData.selectedFile ? [formData.selectedFile] : []}
-                  onFilesChange={(files) => setFormData((prev) => ({ ...prev, selectedFile: files[0] || null }))}
-                  maxFiles={1}
-                  disabled={isSubmitting}
-                  error={fieldErrors.selectedFile}
-                />
-
               </div>
+
+              {/* Concept Paper Upload - required for all except Mass Orientation */}
+              {formData.selectedActivityType !== "massOrientation" && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium mb-2">
+                    Concept Paper (PDF){" "}
+                    <span className="text-red-500">*</span>
+                  </h3>
+                  <div className="border rounded-md p-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upload your Concept Paper in PDF format.
+                    </p>
+                    <FileDropzone
+                      files={formData.conceptPaperFile ? [formData.conceptPaperFile] : []}
+                      onFilesChange={(files) => setFormData((prev) => ({ ...prev, conceptPaperFile: files[0] || null }))}
+                      maxFiles={1}
+                      disabled={isSubmitting}
+                      error={fieldErrors.conceptPaperFile}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Form 2B Upload - required for off-campus activities */}
+              {formData.isOffCampus === "yes" && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium mb-2">
+                    Form 2B — Waiver (PDF){" "}
+                    <span className="text-red-500">*</span>
+                  </h3>
+                  <div className="border rounded-md p-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upload a notarized Form 2B (Waiver) for off-campus activities.
+                    </p>
+                    <FileDropzone
+                      files={formData.form2bFile ? [formData.form2bFile] : []}
+                      onFilesChange={(files) => setFormData((prev) => ({ ...prev, form2bFile: files[0] || null }))}
+                      maxFiles={1}
+                      disabled={isSubmitting}
+                      error={fieldErrors.form2bFile}
+                    />
+                  </div>
+                </div>
+              )}
 
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
@@ -1965,7 +1994,7 @@ const ActivityForm = ({
                     <li>If borrowing from OSA, schedule and coordinate early. Only officers listed in the org’s annual report are allowed.</li>
                     <li>Extensions of use (time/facility) require new approval. Do not assume approval from previous forms carries over.</li>
                     <li>Partnered activities require all partner representatives to sign the concept paper before submission.</li>
-                    <li>Off-campus activities require Form 2A and a notarized Form 2B (Waiver) per participant.</li>
+                    <li>Off-campus activities require Form 2A and a notarized Form 2B (Waiver) per participant. You will be asked to upload Form 2B in the submission step.</li>
                     <li>Venue approver is required only if your event is on-campus and in-person.</li>
                     <li>Violations will be recorded and may affect org standing or recognition.</li>
                   </ol>

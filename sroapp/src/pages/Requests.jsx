@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import { TableSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
+import { useAuth } from "@/context/UserAuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { X, AlertTriangle, Pencil } from "lucide-react";
@@ -27,7 +29,7 @@ const Requests = () => {
   const [editingActivity, setEditingActivity] = useState(null);
   const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
-  const [accountId, setAccountId] = useState(null);
+  const { accountId, loading: authLoading } = useAuth();
   const [annualReports, setAnnualReports] = useState([]);
   const [recognitionApps, setRecognitionApps] = useState([]);
 
@@ -106,22 +108,11 @@ const Requests = () => {
   );
 
   useEffect(() => {
+    if (authLoading || !accountId) return;
+
     const fetchActivities = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const { data: account } = await supabase
-        .from("account")
-        .select("account_id")
-        .eq("email", user.email)
-        .single();
-
-      if (!account) return;
-
-      const res = await authFetch(`${API_BASE_URL}/activities/user/${account.account_id}`);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}`);
       if (!res.ok) throw new Error('Failed to fetch activities');
-      setAccountId(account.account_id);
       const all = await res.json();
 
       const requestedActivities = all.filter((a) => a.final_status !== "Approved");
@@ -133,7 +124,7 @@ const Requests = () => {
     };
 
     fetchActivities();
-  }, []);
+  }, [accountId, authLoading]);
 
   useEffect(() => {
     const fetchAnnualReports = async () => {
@@ -166,7 +157,18 @@ const Requests = () => {
   }, [accountId]);
 
   if (loading) {
-    return <LoadingSpinner text="Loading activities..." variant="section" />;
+    return (
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Requests</h1>
+        <div className="flex gap-4 mb-6 border-b border-gray-200 pb-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-5 w-28" />
+        </div>
+        <TableSkeleton />
+      </div>
+    );
   }
 
   const handleCancel = async () => {
@@ -217,7 +219,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -228,7 +230,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -261,11 +263,23 @@ const Requests = () => {
       width: "w-[12%]",
       sortable: true,
       filterable: true,
-      filterOptions: ["Pending", "For Appeal", "Rejected", "For Cancellation"],
+      filterOptions: ["Pending Adviser", "Pending SRO", "Pending ODSA", "For Appeal", "Rejected", "For Cancellation"],
       filterLabel: "Statuses",
-      filterAccessor: (row) => row.final_status || "Pending",
+      filterAccessor: (row) => {
+        if (row.final_status) return row.final_status;
+        if (!row.adviser_approval_status || row.adviser_approval_status === "Pending") return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && (!row.sro_approval_status || row.sro_approval_status === "Pending")) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && (!row.odsa_approval_status || row.odsa_approval_status === "Pending")) return "Pending ODSA";
+        return "Pending Adviser";
+      },
       isStatus: true,
-      accessor: (row) => row.final_status || "Pending",
+      accessor: (row) => {
+        if (row.final_status) return row.final_status;
+        if (!row.adviser_approval_status || row.adviser_approval_status === "Pending") return "Pending Adviser";
+        if (row.adviser_approval_status === "Approved" && (!row.sro_approval_status || row.sro_approval_status === "Pending")) return "Pending SRO";
+        if (row.sro_approval_status === "Approved" && (!row.odsa_approval_status || row.odsa_approval_status === "Pending")) return "Pending ODSA";
+        return "Pending Adviser";
+      },
     },
     {
       key: "actions",
@@ -315,7 +329,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || "Unknown"}>
           {row.organization?.org_name || "Unknown"}
         </span>
       ),
@@ -326,7 +340,7 @@ const Requests = () => {
       width: "w-[22%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700 font-medium" title={row.activity_name}>
+        <span className="truncate block text-gray-700 font-medium" title={row.activity_name}>
           {row.activity_name}
         </span>
       ),
@@ -343,11 +357,11 @@ const Requests = () => {
     },
     {
       key: "venue",
-      header: "Venue",
+      header: "Proposed Venue",
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-600" title={row.venue}>
+        <span className="truncate block text-gray-600" title={row.venue}>
           {row.venue}
         </span>
       ),
@@ -409,7 +423,7 @@ const Requests = () => {
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -456,7 +470,7 @@ const Requests = () => {
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
           {row.org_name || "Unknown"}
         </span>
       ),
@@ -506,7 +520,7 @@ const Requests = () => {
       filterAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       sortAccessor: (row) => row.organization?.org_name || row.org_name || "Unknown",
       render: (row) => (
-        <span className="break-words whitespace-normal md:truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
+        <span className="truncate block text-gray-700" title={row.organization?.org_name || row.org_name || "Unknown"}>
           {row.organization?.org_name || row.org_name || "Unknown"}
         </span>
       ),
@@ -549,11 +563,11 @@ const Requests = () => {
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">My Requests</h1>
 
       <Tabs defaultValue="requested" className="w-full">
-        <TabsList className="mb-6 bg-gray-100 p-1 rounded-lg inline-flex flex-wrap h-auto justify-center md:justify-start w-full md:w-auto">
-          <TabsTrigger value="requested" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Activity Requests</TabsTrigger>
-          <TabsTrigger value="approved" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Approved Activities</TabsTrigger>
-          <TabsTrigger value="recognition" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Org Recognition</TabsTrigger>
-          <TabsTrigger value="reports" className="px-4 py-2 text-sm font-medium flex-1 md:flex-none">Annual Reports</TabsTrigger>
+        <TabsList className="mb-6">
+          <TabsTrigger value="requested">Activity Requests</TabsTrigger>
+          <TabsTrigger value="approved">Approved Activities</TabsTrigger>
+          <TabsTrigger value="recognition">Org Recognition</TabsTrigger>
+          <TabsTrigger value="reports">Annual Reports</TabsTrigger>
         </TabsList>
 
         {/* Activity Requests Tab */}
@@ -731,7 +745,7 @@ const Requests = () => {
               className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <LoadingSpinner text="Loading activity details..." variant="section" />
+              <DetailSkeleton />
             </DialogContent>
           ) : (
             <ActivityDialogContent

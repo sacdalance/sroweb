@@ -19,14 +19,40 @@ router.post('/check-or-create', async (req, res) => {
       .single();
 
     if (existingUser) {
+      // Check if user should be upgraded to adviser (role_id 5)
+      if (existingUser.role_id === 1) {
+        const { data: adviserOrgs, error: adviserErr } = await supabase
+          .from('organization')
+          .select('org_id')
+          .eq('adviser_email', email);
+
+        if (adviserErr) console.error('Adviser org lookup error:', adviserErr);
+
+        if (adviserOrgs && adviserOrgs.length > 0) {
+          const { error: updateErr } = await supabase
+            .from('account')
+            .update({ role_id: 5 })
+            .eq('account_id', existingUser.account_id);
+          if (updateErr) console.error('Role upgrade error:', updateErr);
+          return res.status(200).json({ message: 'User upgraded to adviser' });
+        }
+      }
       return res.status(200).json({ message: 'User already exists' });
     }
+
+    // Check if new user's email matches an org adviser
+    const { data: adviserOrgs } = await supabase
+      .from('organization')
+      .select('org_id')
+      .eq('adviser_email', email);
+
+    const assignedRole = (adviserOrgs && adviserOrgs.length > 0) ? 5 : 1;
 
     const { error } = await supabase.from('account').insert([
       {
         account_name: name,
         email,
-        role_id: 1, // role_id 1 for student/basic user
+        role_id: assignedRole,
       },
     ]);
 
