@@ -41,7 +41,8 @@ return (
         organizationAdviserContact: "",
         greenCampusMonitor: "",
         greenCampusMonitorContact: "",
-        selectedFile: null,
+        conceptPaperFile: null,
+        form2bFile: null,
         appealReason: "",
         }}
     />
