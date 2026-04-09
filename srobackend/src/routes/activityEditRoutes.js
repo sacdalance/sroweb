@@ -26,6 +26,7 @@ router.put('/edit/:activity_id', authMiddleware, async (req, res) => {
     is_off_campus: body.is_off_campus === 'true',
     green_monitor_name: body.green_monitor_name,
     green_monitor_contact: body.green_monitor_contact,
+    has_outside_visitors: body.has_outside_visitors,
     appeal_reason: body.appeal_reason,
     final_status: "For Appeal",
     sro_remarks: null,

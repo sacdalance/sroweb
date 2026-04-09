@@ -30,7 +30,7 @@ import {
     AlertDialogAction
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FileText, UploadCloud, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { editActivity } from "../api/activityEditAPI";
@@ -76,7 +76,6 @@ const EditActivity = () => {
     const [organizationAdviserContact, setOrganizationAdviserContact] = useState("");
     const [greenCampusMonitor, setGreenCampusMonitor] = useState("");
     const [greenCampusMonitorContact, setGreenCampusMonitorContact] = useState("");
-    const [selectedFile, setSelectedFile] = useState(null);
     const [recurringDays, setRecurringDays] = useState({
         Monday: false,
         Tuesday: false,
@@ -102,17 +101,6 @@ const EditActivity = () => {
         }
     }, [activity, navigate]);
 
-    const getRequiredDocuments = () => {
-        const required = [
-            "Form 1A (Scanned Copy of Activity Request Form)",
-        ];
-        if (selectedActivityType !== "massOrientation") {
-            required.unshift("Concept Paper");
-        }
-
-        return required;
-    };
-
     // Validation function for navigating in forms
     const validateCurrentSection = (section, state) => {
         const {
@@ -132,7 +120,6 @@ const EditActivity = () => {
             venueApproverContact,
             greenCampusMonitor,
             greenCampusMonitorContact,
-            selectedFile,
             chargingFees1,
             selectedSDGs,
             partnering,
@@ -215,9 +202,6 @@ const EditActivity = () => {
                 return { valid: false, field: "appealReason", message: "Appeal reason is required." };
             }
 
-            // if (!selectedFile || selectedFile.type !== "application/pdf") {
-            // return { valid: false, field: "activityRequestFileUpload", message: "Please upload a valid PDF file." };
-            // }
         }
 
         return { valid: true };
@@ -317,35 +301,11 @@ const EditActivity = () => {
         ]
     };
 
-    // Handles file upload validation
-    const handleFileChange = (e) => {
-        const file = e.target.files?.[0];
-        if (file && file.type !== 'application/pdf') {
-            alert("Only PDF files are allowed.");
-            return;
-        }
-        setSelectedFile(file);
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Prevent submission if you're not in the submission step
         if (currentSection !== "submission") return;
-
-        // Prevent submission without a file
-        // if (!selectedFile) {
-        //     toast.dismiss();
-        //     toast.error("Please upload a PDF file before submitting.");
-        //     return;
-        // }
-
-        // Only allow PDF files
-        // if (selectedFile.type !== "application/pdf") {
-        //     toast.dismiss();
-        //     toast.error("Only PDF files are allowed.");
-        //     return;
-        // }
 
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -432,7 +392,6 @@ const EditActivity = () => {
             venueApproverContact,
             greenCampusMonitor,
             greenCampusMonitorContact,
-            selectedFile,
             chargingFees1,
             selectedSDGs,
             partnering,
@@ -559,7 +518,6 @@ const EditActivity = () => {
                 venueApproverContact,
                 greenCampusMonitor,
                 greenCampusMonitorContact,
-                selectedFile,
                 chargingFees1,
                 selectedSDGs,
                 partnering,
@@ -1475,72 +1433,8 @@ const EditActivity = () => {
                                             className="min-h-[100px]"
                                         />
                                     </div>
-                                    <h3 className="text-sm font-medium mb-2">Scanned Copy of Activity Request Form (PDF) <span className="text-red-500">*</span></h3>
-                                    <div className="border rounded-md p-4">
-                                        <p className="text-sm text-gray-600 mb-3">
-                                            Provide a scanned copy of your activity request form with your point person's, venue approver's, and adviser's signature.
-                                        </p>
-                                        <p className="text-sm text-gray-600 font-bold mb-3">
-                                            NOTE: INCLUDE OTHER SCANNED FORMS IN THE PDF IF RELEVANT
-                                            <br />
-                                            (Notice of Off-Campus Activity, Job Request Forms, etc.)
-                                        </p>
-                                        <p className="text-sm text-gray-600 font-bold mb-3">
-                                            [LAST NAME OF REQUESTING STUDENT]_[ORG]_Activity Request Form_(mm-dd-yyyy)
-                                            <br />
-                                            i.e. LARUA-TinigAmianan_Activity-Request-Form_01-01-2024
-                                        </p>
-
-                                        <div className="mt-4">
-                                            <div className="mb-4 p-4 bg-muted/40 border rounded-md text-sm">
-                                                <h4 className="font-medium text-base mb-2 text-sro-primary">What to include in your single PDF file:</h4>
-                                                <ul className="list-disc list-inside space-y-1">
-                                                    {getRequiredDocuments().map((item, index) => (
-                                                        <li key={index}>{item}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <div className="border-2 border-dashed border-gray-300 p-4 rounded-md text-center hover:border-gray-400 hover:bg-muted transition-colors">
-                                                <label
-                                                    htmlFor="activityRequestFileUpload"
-                                                    className="cursor-pointer flex flex-col items-center"
-                                                >
-                                                    <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
-                                                    <p className="text-sm">Drag and Drop or Click to Upload File</p>
-                                                    <p className="text-xs text-gray-500 italic mt-2">
-                                                        * File upload not required for now. You may submit the form without attaching a PDF.
-                                                    </p>
-                                                    <input
-                                                        id="activityRequestFileUpload"
-                                                        type="file"
-                                                        accept=".pdf"
-                                                        onChange={handleFileChange}
-                                                        className="hidden"
-                                                        disabled
-                                                    // disabled={isSubmitting}
-                                                    />
-                                                </label>
-                                            </div>
-
-                                            {selectedFile && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-1">Selected File</h4>
-                                                    <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground border px-3 py-2 rounded-md">
-                                                        <div className="flex items-center gap-2 truncate">
-                                                            <FileText className="w-4 h-4 text-red-500 shrink-0" />
-                                                            <span className="truncate max-w-[240px]">{selectedFile.name}</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedFile(null)}
-                                                            className="text-muted-foreground hover:text-red-600"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="border rounded-md p-4 bg-muted/40 text-sm text-gray-600">
+                                        <p>Previously uploaded documents are preserved. File uploads cannot be changed during an appeal.</p>
                                     </div>
                                 </div>
                                 <div className="flex justify-between">
