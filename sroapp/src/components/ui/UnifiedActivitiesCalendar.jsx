@@ -260,7 +260,7 @@ const UnifiedActivitiesCalendar = ({
   };
 
   const LoadingState = () => (
-    <div className="flex items-center justify-center p-8">
+    <div className="p-4">
       <CalendarSkeleton />
     </div>
   );

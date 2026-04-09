@@ -1,34 +1,15 @@
-import ReactSkeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import { cn } from "@/lib/utils";
 
 /**
- * Skeleton component backed by react-loading-skeleton.
+ * Skeleton component with shimmer animation.
  *
- * Two usage patterns:
- * 1. Props: <Skeleton height={32} width={128} circle count={3} />
- * 2. Tailwind classes: <Skeleton className="h-8 w-32 rounded-full" />
+ * Usage: <Skeleton className="h-8 w-32 rounded-full" />
  *
- * Pattern 2 uses a CSS shimmer div for backward compatibility.
+ * Uses a CSS shimmer gradient animation for a polished loading effect.
+ * react-loading-skeleton is available as a dependency for advanced
+ * use cases (count, circle, inline) — import it directly where needed.
  */
-function Skeleton({ className, circle, count, height, width, inline, borderRadius, containerClassName, ...props }) {
-  if (height !== undefined || width !== undefined || count || circle || inline || containerClassName) {
-    return (
-      <ReactSkeleton
-        className={cn(className)}
-        circle={circle}
-        count={count}
-        height={height}
-        width={width}
-        inline={inline}
-        borderRadius={borderRadius}
-        containerClassName={containerClassName}
-        {...props}
-      />
-    );
-  }
-
-  // Fallback: className-based sizing with CSS shimmer animation
+function Skeleton({ className, ...props }) {
   return (
     <div
       data-slot="skeleton"
