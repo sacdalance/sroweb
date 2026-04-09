@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { ListSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Check, X, Info } from "lucide-react";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -388,7 +388,8 @@ const AppointmentBooking = () => {
     }
 
     try {
-      setSubmitting(true); const appointmentData = {
+      setSubmitting(true);
+      const appointmentData = {
         account_id: accountId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: formData.time,
@@ -637,9 +638,7 @@ const AppointmentBooking = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-start">
                   <div className="w-10 h-10 rounded-full bg-sro-secondary/20 flex items-center justify-center mr-3 flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-sro-secondary">
-                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                    </svg>
+                    <Check className="w-5 h-5 text-sro-secondary" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sro-secondary">Appointment Confirmed!</h3>
@@ -659,9 +658,7 @@ const AppointmentBooking = () => {
                   className="text-sro-secondary/60 hover:text-sro-secondary p-1"
                   aria-label="Dismiss"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                  </svg>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -679,9 +676,7 @@ const AppointmentBooking = () => {
 
               {/* Cancellation Policy Note */}
               <div className="mt-4 text-xs text-gray-500 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 flex-shrink-0">
-                  <path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" />
-                </svg>
+                <Info className="w-4 h-4 flex-shrink-0" />
                 <span>
                   <strong>Need to cancel?</strong> Appointments are final. Please contact the SRO via email if you need to cancel.
                 </span>
@@ -693,12 +688,10 @@ const AppointmentBooking = () => {
         {/* Book Appointment Tab */}
         <TabsContent value="booking">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 space-y-6">
               <div className="bg-sro-secondary/10 border border-sro-secondary/20 text-sro-secondary rounded-md p-4 mb-6">
                 <div className="flex items-start">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
+                  <Info className="w-5 h-5 mr-2 mt-0.5 text-sro-secondary" />
                   <div>
                     <p className="font-medium mb-1 text-sro-secondary">Important Information</p>
                     <ul className="list-disc list-inside text-sm space-y-1 text-sro-secondary/90">
