@@ -26,7 +26,7 @@ const fetchOrganizations = async () => {
 const fetchDialogActivity = async (activityId) => {
     const { data, error } = await supabase
         .from("activity")
-        .select("*, account:account(*), schedule:activity_schedule(*), organization:organization(*)")
+        .select("*, schedule:activity_schedule(*), organization:organization(*)")
         .eq("activity_id", activityId)
         .single();
     if (error) throw error;

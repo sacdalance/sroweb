@@ -1346,7 +1346,7 @@ const ActivityForm = ({
                   <Checkbox
                     id="hasOutsideVisitors"
                     checked={formData.hasOutsideVisitors}
-                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, hasOutsideVisitors: checked }))}
+                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, hasOutsideVisitors: checked === true }))}
                   />
                   <label htmlFor="hasOutsideVisitors" className="text-sm font-medium leading-none cursor-pointer">
                     This activity will have visitors from outside UP Baguio

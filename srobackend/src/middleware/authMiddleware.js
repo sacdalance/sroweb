@@ -8,7 +8,7 @@ const authCache = new Map();
 const AUTH_CACHE_TTL = 60000; // 1 minute
 
 // Clean up expired entries every 5 minutes
-setInterval(() => {
+const cacheCleanup = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of authCache) {
     if (now - value.timestamp > AUTH_CACHE_TTL) {
@@ -16,6 +16,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+cacheCleanup.unref();
 
 /**
  * Verifies the user is authenticated via Supabase JWT.
