@@ -12,7 +12,6 @@ export const submitOrgApplication = async ({
   org_coadviser,
   coadviser_email,
   org_type,
-  org_status,
   submitted_by,
   files,
 }) => {
@@ -32,8 +31,7 @@ export const submitOrgApplication = async ({
   formData.append("adviser_email", adviser_email);
   formData.append("org_coadviser", org_coadviser);
   formData.append("coadviser_email", coadviser_email);
-  formData.append("org_type", org_type); // ✅ renamed
-  formData.append("org_status", org_status);
+  formData.append("org_type", org_type);
   formData.append("submitted_by", submitted_by);
 
   // Attach all 6 PDF files
