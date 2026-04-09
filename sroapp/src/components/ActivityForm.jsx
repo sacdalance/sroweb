@@ -146,6 +146,7 @@ const ActivityForm = ({
       Saturday: false,
     },
     isOffCampus: defaultValues?.isOffCampus || "",
+    hasOutsideVisitors: defaultValues?.hasOutsideVisitors || false,
     venue: defaultValues?.venue || "",
     venueApprover: defaultValues?.venueApprover || "",
     venueApproverContact: defaultValues?.venueApproverContact || "",
@@ -590,6 +591,7 @@ const ActivityForm = ({
       activity_description: form.activityDescription.trim(),
       activity_type: form.selectedActivityType,
       is_off_campus: form.isOffCampus === "yes",
+      has_outside_visitors: form.hasOutsideVisitors,
       is_recurring: form.recurring === "recurring",
       venue: form.venue,
       venue_approver: form.venueApprover,
@@ -1339,6 +1341,18 @@ const ActivityForm = ({
                   </RadioGroup>
                 </div>
 
+                {/* Outside UPB Visitors */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasOutsideVisitors"
+                    checked={formData.hasOutsideVisitors}
+                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, hasOutsideVisitors: checked }))}
+                  />
+                  <label htmlFor="hasOutsideVisitors" className="text-sm font-medium leading-none cursor-pointer">
+                    This activity will have visitors from outside UP Baguio
+                  </label>
+                </div>
+
                 {/* Venue Information */}
                 <div className="space-y-6">
                   <div>
@@ -1739,6 +1753,7 @@ const ActivityForm = ({
                     ...(formData.recurring === "recurring" ? [{ label: "Recurring Days", value: Object.entries(formData.recurringDays).filter(([_, v]) => v).map(([k]) => k).join(", ") || null }] : []),
                     { label: "Venue", value: formData.venue },
                     { label: "Off-Campus", value: formData.isOffCampus === "yes" ? "Yes" : "No" },
+                    ...(formData.hasOutsideVisitors ? [{ label: "Outside Visitors", value: "Yes" }] : []),
                     ...(formData.isOffCampus !== "yes" ? [
                       { label: "Venue Approver", value: formData.venueApprover },
                       { label: "Approver Contact", value: formData.venueApproverContact },

@@ -34,6 +34,7 @@ return (
             Saturday: false,
         },
         isOffCampus: "",
+        hasOutsideVisitors: false,
         venue: "",
         venueApprover: "",
         venueApproverContact: "",

@@ -307,6 +307,7 @@ const ActivityDialogContent = ({
               <InfoRow label="Proposed Venue" value={activity.venue} />
               <InfoRow label="Approver" value={activity.venue_approver} />
               <InfoRow label="Off-Campus" value={activity.is_off_campus === "true" ? "Yes" : "No"} />
+              {activity.has_outside_visitors && <InfoRow label="Outside Visitors" value="Yes" />}
             </InfoCard>
 
             {/* Schedule Card */}
