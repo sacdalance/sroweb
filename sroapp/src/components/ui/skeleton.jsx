@@ -23,8 +23,6 @@ function Skeleton({ className, circle, count, height, width, inline, borderRadiu
         inline={inline}
         borderRadius={borderRadius}
         containerClassName={containerClassName}
-        baseColor="hsl(var(--muted))"
-        highlightColor="hsl(var(--muted) / 0.5)"
         {...props}
       />
     );
