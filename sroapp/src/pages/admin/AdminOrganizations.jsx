@@ -103,10 +103,7 @@ const AdminOrganizations = () => {
       header: "Organization Name",
       sortable: true,
       render: (row) => (
-        <div>
-          <span className="font-medium text-sm text-gray-800">{row.org_name}</span>
-          <p className="text-xs text-gray-400">{row.org_email}</p>
-        </div>
+        <span className="font-medium text-sm text-gray-800">{row.org_name}</span>
       )
     },
     {
@@ -124,10 +121,7 @@ const AdminOrganizations = () => {
       header: "Chairperson",
       sortable: true,
       render: (row) => (
-        <div>
-          <span className="text-sm text-gray-700">{row.chairperson_name}</span>
-          <p className="text-xs text-gray-400 truncate max-w-[160px]">{row.chairperson_email}</p>
-        </div>
+        <span className="text-sm text-gray-700">{row.chairperson_name}</span>
       )
     },
     {
@@ -135,10 +129,7 @@ const AdminOrganizations = () => {
       header: "Adviser",
       sortable: true,
       render: (row) => (
-        <div>
-          <span className="text-sm text-gray-700">{row.adviser_name}</span>
-          <p className="text-xs text-gray-400 truncate max-w-[160px]">{row.adviser_email}</p>
-        </div>
+        <span className="text-sm text-gray-700">{row.adviser_name}</span>
       )
     },
     {
