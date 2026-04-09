@@ -132,7 +132,7 @@ router.post('/admin/activity', verifyAdminRoles, upload.fields([
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      has_outside_visitors,
+      has_outside_visitors: has_outside_visitors === 'true' || has_outside_visitors === true,
       concept_paper_link,
       form_2b_link,
       sro_approval_status: 'Approved',

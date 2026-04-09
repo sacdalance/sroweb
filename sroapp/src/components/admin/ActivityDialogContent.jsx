@@ -172,12 +172,6 @@ const ActivityDialogContent = ({
   useEffect(() => {
     if (!isModalOpen || !localActivity?.activity_id) return;
 
-    const actionTaken =
-      (isAdviser && hasActed(localActivity?.adviser_approval_status)) ||
-      (isSRO && hasActed(localActivity?.sro_approval_status)) ||
-      (isODSA && hasActed(localActivity?.odsa_approval_status)) ||
-      (isSuperAdmin && hasActed(localActivity?.sro_approval_status) && hasActed(localActivity?.odsa_approval_status));
-
     setHasViewedScannedForm(!hasFiles);
     setConfirmationOpen(false);
     setDecisionType(null);
@@ -307,7 +301,7 @@ const ActivityDialogContent = ({
               <InfoRow label="Proposed Venue" value={activity.venue} />
               <InfoRow label="Approver" value={activity.venue_approver} />
               <InfoRow label="Off-Campus" value={activity.is_off_campus === "true" ? "Yes" : "No"} />
-              {activity.has_outside_visitors && <InfoRow label="Outside Visitors" value="Yes" />}
+              {(activity.has_outside_visitors === true || activity.has_outside_visitors === "true") && <InfoRow label="Outside Visitors" value="Yes" />}
             </InfoCard>
 
             {/* Schedule Card */}

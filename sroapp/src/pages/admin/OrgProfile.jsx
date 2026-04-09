@@ -46,13 +46,17 @@ const OrgProfile = () => {
     fetchProfile();
   }, [orgId]);
 
+  const escapeHtml = (str) => String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
   const handleGenerateCertificate = (orgName, acadYear) => {
+    const safeName = escapeHtml(orgName);
+    const safeYear = escapeHtml(acadYear || "____");
     const certHtml = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Recognition Certificate - ${orgName}</title>
+        <title>Recognition Certificate - ${safeName}</title>
         <style>
           @page { size: A3 landscape; margin: 0; }
           body { margin: 0; padding: 0; font-family: 'Palatino Linotype', serif; background: #fff; }
@@ -71,8 +75,8 @@ const OrgProfile = () => {
         <div class="cert-border">
           <div class="title">Certificate of Recognition</div>
           <div class="subtitle">This is to certify that the following student organization<br>has been officially recognized by the University of the Philippines Baguio</div>
-          <div class="org-name">${orgName}</div>
-          <div class="year">Academic Year ${acadYear || "____"}</div>
+          <div class="org-name">${safeName}</div>
+          <div class="year">Academic Year ${safeYear}</div>
           <div class="signatories">
             <div class="sig-block">
               <div class="name">Mr. Friedrich Andres Aquino</div>
@@ -88,6 +92,7 @@ const OrgProfile = () => {
       </html>
     `;
     const win = window.open("", "_blank");
+    if (!win) return;
     win.document.write(certHtml);
     win.document.close();
     win.onload = () => win.print();

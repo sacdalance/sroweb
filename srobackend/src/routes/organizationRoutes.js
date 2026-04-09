@@ -46,7 +46,7 @@ router.get('/:id/profile', authMiddleware, verifyAdminRoles, async (req, res) =>
         .order('submitted_at', { ascending: false }),
       supabase.from('org_recognition')
         .select('recognition_id, academic_year, org_status, submitted_at')
-        .eq('organization_id', id)
+        .eq('org_id', id)
         .order('submitted_at', { ascending: false }),
     ]);
 

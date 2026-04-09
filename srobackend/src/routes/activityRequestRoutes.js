@@ -77,8 +77,9 @@ router.post('/', authMiddleware, upload.fields([
   { name: 'form2b', maxCount: 1 }
 ]), async (req, res) => {
   try {
+    const account_id = req.account?.account_id;
     const {
-      account_id, org_id, student_position, student_contact, activity_name, activity_description, activity_type,
+      org_id, student_position, student_contact, activity_name, activity_description, activity_type,
       sdg_goals, charge_fee, university_partner, partner_name, partner_role, venue,
       venue_approver, venue_approver_contact, is_off_campus, green_monitor_name,
       green_monitor_contact, has_outside_visitors, is_recurring, start_date, end_date, start_time, end_time, recurring_days
@@ -126,7 +127,7 @@ router.post('/', authMiddleware, upload.fields([
       is_off_campus,
       green_monitor_name,
       green_monitor_contact,
-      has_outside_visitors,
+      has_outside_visitors: has_outside_visitors === 'true' || has_outside_visitors === true,
       concept_paper_link,
       form_2b_link
     }]).select();
