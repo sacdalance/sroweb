@@ -5,15 +5,13 @@ import { cn } from "@/lib/utils";
 /**
  * Skeleton component backed by react-loading-skeleton.
  *
- * Supports two usage patterns:
- * 1. Tailwind classes: <Skeleton className="h-8 w-32 rounded-full" />
- * 2. Props: <Skeleton height={32} width={128} circle />
+ * Two usage patterns:
+ * 1. Props: <Skeleton height={32} width={128} circle count={3} />
+ * 2. Tailwind classes: <Skeleton className="h-8 w-32 rounded-full" />
  *
- * When using className (pattern 1), the skeleton renders inside a
- * sized div wrapper for backward compatibility with ShadCN usage.
+ * Pattern 2 uses a CSS shimmer div for backward compatibility.
  */
 function Skeleton({ className, circle, count, height, width, inline, borderRadius, containerClassName, ...props }) {
-  // If explicit height/width are provided, use react-loading-skeleton directly
   if (height !== undefined || width !== undefined || count || circle || inline || containerClassName) {
     return (
       <ReactSkeleton
@@ -32,16 +30,18 @@ function Skeleton({ className, circle, count, height, width, inline, borderRadiu
     );
   }
 
-  // Fallback: className-based sizing (backward compat with ShadCN pattern)
+  // Fallback: className-based sizing with CSS shimmer animation
   return (
-    <div className={cn("overflow-hidden", className)} {...props}>
-      <ReactSkeleton
-        height="100%"
-        borderRadius={0}
-        baseColor="hsl(var(--muted))"
-        highlightColor="hsl(var(--muted) / 0.5)"
-      />
-    </div>
+    <div
+      data-slot="skeleton"
+      className={cn(
+        "rounded-md bg-muted relative overflow-hidden",
+        "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite]",
+        "before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent",
+        className
+      )}
+      {...props}
+    />
   );
 }
 
