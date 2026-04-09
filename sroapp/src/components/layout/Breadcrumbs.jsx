@@ -18,6 +18,7 @@ const routeLabels = {
   "annual-reports": "Annual Reports",
   "appointment-settings": "Appointments",
   documents: "Student Forms",
+  adviser: "Adviser Dashboard",
   "super-admin": "Super Admin",
 };
 
