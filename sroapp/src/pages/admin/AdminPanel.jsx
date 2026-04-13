@@ -33,6 +33,7 @@ const AdminPanel = () => {
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
+  const [hideActivities, setHideActivities] = useState(false);
 
   const { role: userRole } = useAuth();
   const navigate = useNavigate();
@@ -231,10 +232,15 @@ const AdminPanel = () => {
     return events;
   }, [rawActivities, appointments]);
 
+  const displayedCalendarEvents = useMemo(() => {
+    if (!hideActivities) return calendarEvents;
+    return calendarEvents.filter(event => event.type !== 'activity');
+  }, [calendarEvents, hideActivities]);
+
   const filteredCalendarList = useMemo(() => {
     if (!selectedDateFilter) return [];
-    return calendarEvents.filter(event => isSameDay(new Date(event.date), selectedDateFilter));
-  }, [calendarEvents, selectedDateFilter]);
+    return displayedCalendarEvents.filter(event => isSameDay(new Date(event.date), selectedDateFilter));
+  }, [displayedCalendarEvents, selectedDateFilter]);
 
 
   const handleItemClick = async (item) => {
@@ -351,9 +357,12 @@ const AdminPanel = () => {
               setSelectedDateFilter(date);
             }
           }}
-          events={calendarEvents}
+          events={displayedCalendarEvents}
           getEventColor={getEventColor}
           legendItems={dashboardLegend}
+          filters={[
+            { label: "Hide Activities", checked: hideActivities, onChange: setHideActivities },
+          ]}
           sidePanelData={filteredCalendarList}
           renderSidePanelItem={(item) => (
             <div
