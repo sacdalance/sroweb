@@ -21,21 +21,7 @@ import CustomCalendar from "@/components/ui/custom-calendar";
 import { Badge } from "@/components/ui/badge";
 import { isSameDay, format } from "date-fns";
 import { Database, ClipboardList, FileText } from "lucide-react";
-
-const activityTypeOptions = [
-  { id: "charitable", label: "Charitable" },
-  { id: "serviceWithinUPB", label: "Service within UPB" },
-  { id: "serviceOutsideUPB", label: "Service outside UPB" },
-  { id: "contestWithinUPB", label: "Contest within UPB" },
-  { id: "contestOutsideUPB", label: "Contest outside UPB" },
-  { id: "educational", label: "Educational" },
-  { id: "incomeGenerating", label: "Income-Generating Project" },
-  { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-  { id: "booth", label: "Booth" },
-  { id: "rehearsals", label: "Rehearsals/Preparation" },
-  { id: "specialEvents", label: "Special Events" },
-  { id: "others", label: "Others" },
-];
+import { activityTypeOptions } from "@/lib/activityTypes";
 
 const getDerivedStatus = (activity) => {
   if (activity.final_status === "Approved") return "Approved";

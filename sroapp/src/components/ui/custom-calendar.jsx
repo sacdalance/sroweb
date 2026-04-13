@@ -2,21 +2,7 @@ import { ChevronLeft, ChevronRight, Repeat2 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, addDays, isWeekend } from "date-fns";
 import { Badge } from "./badge";
 import PropTypes from 'prop-types';
-
-const dotColorMap = {
-  charitable: "bg-pink-400",
-  serviceWithinUPB: "bg-blue-400",
-  serviceOutsideUPB: "bg-cyan-400",
-  contestWithinUPB: "bg-purple-400",
-  contestOutsideUPB: "bg-violet-400",
-  educational: "bg-emerald-400",
-  incomeGenerating: "bg-amber-400",
-  massOrientation: "bg-indigo-400",
-  booth: "bg-orange-400",
-  rehearsals: "bg-slate-400",
-  specialEvents: "bg-rose-400",
-  others: "bg-gray-400",
-};
+import { dotColorMap } from "@/lib/activityTypes";
 
 const CustomCalendar = ({
   mode = 'activities',

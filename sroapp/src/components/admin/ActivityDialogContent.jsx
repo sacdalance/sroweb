@@ -7,21 +7,7 @@ import { Dialog, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "sonner";
 import StatusPill from "@/components/ui/StatusPill";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-const activityTypeOptions = [
-  { id: "charitable", label: "Charitable" },
-  { id: "serviceWithinUPB", label: "Service within UPB" },
-  { id: "serviceOutsideUPB", label: "Service outside UPB" },
-  { id: "contestWithinUPB", label: "Contest within UPB" },
-  { id: "contestOutsideUPB", label: "Contest outside UPB" },
-  { id: "educational", label: "Educational" },
-  { id: "incomeGenerating", label: "Income-Generating Project" },
-  { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-  { id: "booth", label: "Booth" },
-  { id: "rehearsals", label: "Rehearsals/Preparation" },
-  { id: "specialEvents", label: "Special Events" },
-  { id: "others", label: "Others" }
-];
+import { activityTypeOptions } from "@/lib/activityTypes";
 
 const sdgOptions = [
   { id: "noPoverty", label: "No Poverty" },

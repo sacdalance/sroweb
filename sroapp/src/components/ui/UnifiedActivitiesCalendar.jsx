@@ -13,38 +13,7 @@ import DataTable from "@/components/ui/DataTable";
 import PropTypes from 'prop-types';
 import { Dialog } from "@/components/ui/dialog";
 import { isSameDay, format, startOfMonth, endOfMonth } from "date-fns";
-
-// Activity type color mapping
-const activityTypeColors = {
-  charitable: { bg: "bg-pink-100", text: "text-pink-700", border: "border-pink-300" },
-  serviceWithinUPB: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300" },
-  serviceOutsideUPB: { bg: "bg-cyan-100", text: "text-cyan-700", border: "border-cyan-300" },
-  contestWithinUPB: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-300" },
-  contestOutsideUPB: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
-  educational: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300" },
-  incomeGenerating: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300" },
-  massOrientation: { bg: "bg-indigo-100", text: "text-indigo-700", border: "border-indigo-300" },
-  booth: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300" },
-  rehearsals: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
-  specialEvents: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-300" },
-  others: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
-};
-
-// Category map for activity types
-const categoryMap = {
-  charitable: "Charitable",
-  serviceWithinUPB: "Service (within UPB)",
-  serviceOutsideUPB: "Service (outside UPB)",
-  contestWithinUPB: "Contest (within UPB)",
-  contestOutsideUPB: "Contest (outside UPB)",
-  educational: "Educational",
-  incomeGenerating: "Income-Generating Project",
-  massOrientation: "Mass Orientation/General Assembly",
-  booth: "Booth",
-  rehearsals: "Rehearsals/Preparation",
-  specialEvents: "Special Event",
-  others: "Others",
-};
+import { activityTypeColors, categoryMap } from "@/lib/activityTypes";
 
 // Type options for multi-select
 const typeOptions = Object.keys(categoryMap).map(key => ({

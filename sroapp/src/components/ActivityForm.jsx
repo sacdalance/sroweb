@@ -12,6 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Check, ChevronDown, FileText, AlertTriangle } from "lucide-react";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { cn, sanitizeInput } from "@/lib/utils";
+import { activityTypeFormOptions } from "@/lib/activityTypes";
 import FileDropzone from "@/components/ui/file-dropzone";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useBlocker } from "react-router-dom";
@@ -246,20 +247,7 @@ const ActivityForm = ({
     }
   };
 
-  const activityTypeOptions = [
-    { id: "charitable", label: "Charitable" },
-    { id: "serviceWithinUPB", label: "Service (within UPB)" },
-    { id: "serviceOutsideUPB", label: "Service (outside UPB)" },
-    { id: "contestWithinUPB", label: "Contest (within UPB)" },
-    { id: "contestOutsideUPB", label: "Contest (outside UPB)" },
-    { id: "educational", label: "Educational (forum, seminar, exhibits, etc.)" },
-    { id: "incomeGenerating", label: "Income-Generating Project" },
-    { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-    { id: "booth", label: "Booth (membership, registration, ticket payment, etc.)" },
-    { id: "rehearsals", label: "Rehearsals/Preparation" },
-    { id: "specialEvents", label: "Special Events (anniversary, concert, etc.)" },
-    { id: "others", label: "Others" }
-  ];
+  const activityTypeOptions = activityTypeFormOptions;
 
   const sdgOptions = [
     { id: "noPoverty", label: "No Poverty" },

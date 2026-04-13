@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen, Database, ClipboardList } from "lucide-react";
 import StatusPill from "@/components/ui/StatusPill";
 import { isSameDay, format } from "date-fns";
+import { categoryMap } from "@/lib/activityTypes";
 
 // Dashboard Components
 import ActivityTrendsChart from "@/components/dashboard/ActivityTrendsChart";
@@ -59,19 +60,6 @@ const AdminPanel = () => {
     { title: "Total Submissions", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) + (rc.approved || 0) : null, path: "/admin/all-submissions", icon: FileText },
     { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar },
   ];
-
-  const getActivityTypeLabel = (id) => {
-    // Simplified map for dashboard
-    const map = {
-      charitable: "Charitable",
-      serviceWithinUPB: "Service (UPB)",
-      serviceOutsideUPB: "Service (Outside)",
-      educational: "Educational",
-      incomeGenerating: "IGP",
-      others: "Others"
-    };
-    return map[id] || id;
-  };
 
   // Main Data Fetch (Combined)
   useEffect(() => {
