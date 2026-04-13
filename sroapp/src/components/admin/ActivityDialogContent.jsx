@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import StatusPill from "@/components/ui/StatusPill";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const activityTypeOptions = [
   { id: "charitable", label: "Charitable" },
@@ -219,7 +220,7 @@ const ActivityDialogContent = ({
 
   return (
     <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
           {/* Header Section */}
           <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
@@ -465,7 +466,7 @@ const ActivityDialogContent = ({
           )}
 
         </div>
-      </div>
+      </ScrollArea>
 
       {/* Admin Decision Box - pinned below scroll area */}
       {!readOnly && (
