@@ -1,7 +1,22 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, endOfWeek, addDays, isWeekend } from "date-fns";
+import { ChevronLeft, ChevronRight, Repeat2 } from "lucide-react";
+import { format, addMonths, subMonths, startOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, addDays, isWeekend } from "date-fns";
 import { Badge } from "./badge";
 import PropTypes from 'prop-types';
+
+const dotColorMap = {
+  charitable: "bg-pink-400",
+  serviceWithinUPB: "bg-blue-400",
+  serviceOutsideUPB: "bg-cyan-400",
+  contestWithinUPB: "bg-purple-400",
+  contestOutsideUPB: "bg-violet-400",
+  educational: "bg-emerald-400",
+  incomeGenerating: "bg-amber-400",
+  massOrientation: "bg-indigo-400",
+  booth: "bg-orange-400",
+  rehearsals: "bg-slate-400",
+  specialEvents: "bg-rose-400",
+  others: "bg-gray-400",
+};
 
 const CustomCalendar = ({
   mode = 'activities',
@@ -94,16 +109,7 @@ const CustomCalendar = ({
     };
   };
 
-  const getDotColor = (category, event) => {
-    const classes = getEventColor ? getEventColor(category, event) : "";
-    if (classes.includes("bg-orange")) return "bg-orange-400";
-    if (classes.includes("bg-violet")) return "bg-violet-400";
-    if (classes.includes("bg-amber")) return "bg-amber-400";
-    if (classes.includes("bg-gray")) return "bg-gray-400";
-    if (classes.includes("bg-red")) return "bg-red-500";
-    if (classes.includes("bg-sro-secondary")) return "bg-sro-secondary";
-    return "bg-sro-primary";
-  };
+  const getDotColor = (category) => dotColorMap[category] || "bg-gray-400";
 
   return (
     <div className="p-2 sm:p-4 bg-white rounded-lg shadow">
@@ -220,14 +226,15 @@ const CustomCalendar = ({
                     {getActivityDayClass(day).events.slice(0, 2).map((event, index) => (
                       <div
                         key={index}
-                        className={`px-1 py-0.5 text-[10px] sm:text-xs rounded truncate cursor-pointer ${getEventColor(event.category, event)}`}
+                        className={`px-1 py-0.5 text-[10px] sm:text-xs rounded cursor-pointer flex items-center gap-0.5 ${getEventColor(event.category, event)} ${event.isRecurringInstance ? 'border-l-2 border-dashed border-current opacity-80' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onDateSelect && onDateSelect(day);
                         }}
                         title={event.title}
                       >
-                        {event.title}
+                        {event.isRecurringInstance && <Repeat2 className="w-2.5 h-2.5 flex-shrink-0" />}
+                        <span className="truncate">{event.title}</span>
                       </div>
                     ))}
                     {getActivityDayClass(day).events.length > 2 && (
@@ -247,7 +254,7 @@ const CustomCalendar = ({
                     {getActivityDayClass(day).events.slice(0, 4).map((event, idx) => (
                       <div
                         key={idx}
-                        className={`w-1.5 h-1.5 rounded-full ${getDotColor(event.category, event)}`}
+                        className={`w-1.5 h-1.5 rounded-full ${getDotColor(event.category)} ${event.isRecurringInstance ? 'ring-1 ring-offset-1 ring-current' : ''}`}
                       />
                     ))}
                     {getActivityDayClass(day).events.length > 4 && (
