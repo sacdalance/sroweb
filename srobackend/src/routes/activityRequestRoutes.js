@@ -67,8 +67,22 @@ function generateActivityId() {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yy = String(now.getFullYear()).slice(2);
-  const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  const random = Math.floor(10000 + Math.random() * 90000); // 5-digit random for lower collision risk
   return `${mm}${yy}-${random}`;
+}
+
+async function insertActivityWithRetry(activityData, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const activity_id = generateActivityId();
+    const { data, error } = await supabase.from('activity').insert([{
+      ...activityData,
+      activity_id,
+    }]).select();
+
+    if (!error) return { data, activity_id };
+    if (error.code !== '23505') throw error; // Only retry on unique violation
+  }
+  throw new Error('Failed to generate unique activity ID after retries');
 }
 
 // ACTIVITY REQUEST SUBMISSION
@@ -105,10 +119,7 @@ router.post('/', authMiddleware, upload.fields([
       form_2b_link = await uploadToGoogleDrive(form2bFile.buffer, form2bFile.originalname, form2bFile.mimetype);
     }
 
-    const activity_id = generateActivityId();
-
-    const { data: activityInsertData, error: activityError } = await supabase.from('activity').insert([{
-      activity_id,
+    const { data: activityInsertData, activity_id } = await insertActivityWithRetry({
       account_id,
       org_id,
       student_position,
@@ -130,9 +141,7 @@ router.post('/', authMiddleware, upload.fields([
       has_outside_visitors: has_outside_visitors === 'true' || has_outside_visitors === true,
       concept_paper_link,
       form_2b_link
-    }]).select();
-
-    if (activityError) throw activityError;
+    });
 
     const { error: scheduleError } = await supabase.from('activity_schedule').insert([{
       activity_id,
@@ -144,7 +153,11 @@ router.post('/', authMiddleware, upload.fields([
       recurring_days: recurring_days || null
     }]);
 
-    if (scheduleError) throw scheduleError;
+    if (scheduleError) {
+      // Clean up the orphaned activity record
+      await supabase.from('activity').delete().eq('activity_id', activity_id);
+      throw scheduleError;
+    }
 
     res.status(201).json({ message: 'Activity submitted!', data: activityInsertData });
 

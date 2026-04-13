@@ -48,13 +48,14 @@ router.post('/check-or-create', async (req, res) => {
 
     const assignedRole = (adviserOrgs && adviserOrgs.length > 0) ? 5 : 1;
 
-    const { error } = await supabase.from('account').insert([
+    const { error } = await supabase.from('account').upsert(
       {
         account_name: name,
         email,
         role_id: assignedRole,
       },
-    ]);
+      { onConflict: 'email', ignoreDuplicates: true }
+    );
 
     if (error) throw error;
 

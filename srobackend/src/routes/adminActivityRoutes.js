@@ -62,8 +62,22 @@ function generateActivityId() {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yy = String(now.getFullYear()).slice(2);
-  const random = Math.floor(1000 + Math.random() * 9000);
+  const random = Math.floor(10000 + Math.random() * 90000);
   return `${mm}${yy}-${random}`;
+}
+
+async function insertActivityWithRetry(activityData, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const activity_id = generateActivityId();
+    const { data, error } = await supabase.from('activity').insert([{
+      ...activityData,
+      activity_id,
+    }]).select();
+
+    if (!error) return { data, activity_id };
+    if (error.code !== '23505') throw error;
+  }
+  throw new Error('Failed to generate unique activity ID after retries');
 }
 
 router.post('/admin/activity', verifyAdminRoles, upload.fields([
@@ -110,10 +124,8 @@ router.post('/admin/activity', verifyAdminRoles, upload.fields([
     }
 
     const account_id = accountData.account_id;
-    const activity_id = generateActivityId();
 
-    const { data: activityInsertData, error: activityError } = await supabase.from('activity').insert([{
-      activity_id,
+    const { data: activityInsertData, activity_id } = await insertActivityWithRetry({
       account_id,
       org_id,
       student_position,
@@ -138,9 +150,7 @@ router.post('/admin/activity', verifyAdminRoles, upload.fields([
       sro_approval_status: 'Approved',
       odsa_approval_status: 'Approved',
       final_status: 'Approved'
-    }]).select();
-
-    if (activityError) throw activityError;
+    });
 
     const { error: scheduleError } = await supabase.from('activity_schedule').insert([{
       activity_id,
@@ -152,7 +162,10 @@ router.post('/admin/activity', verifyAdminRoles, upload.fields([
       recurring_days: recurring_days || null
     }]);
 
-    if (scheduleError) throw scheduleError;
+    if (scheduleError) {
+      await supabase.from('activity').delete().eq('activity_id', activity_id);
+      throw scheduleError;
+    }
 
     res.status(201).json({ message: 'Admin activity submitted and auto-approved.', data: activityInsertData });
 

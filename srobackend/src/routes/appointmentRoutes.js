@@ -472,7 +472,13 @@ router.post('/', authMiddleware, async (req, res) => {
       })
       .select();
 
-    if (error) throw error;
+    if (error) {
+      // Handle unique constraint violation (concurrent double-booking)
+      if (error.code === '23505') {
+        return res.status(409).json({ error: 'This time slot was just booked. Please select another.' });
+      }
+      throw error;
+    }
 
     // Send confirmation emails
     try {
