@@ -366,7 +366,7 @@ const UnifiedActivitiesCalendar = ({
   const upcomingColumns = useMemo(() => [
     {
       key: "when",
-      header: "When",
+      header: "Date",
       width: "w-[18%]",
       sortable: true,
       sortAccessor: (row) => row.startDate,
