@@ -177,7 +177,8 @@ const AdminPendingRequests = () => {
             schedule:activity_schedule(*),
             account:account(email)
           `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       // Adviser (role 5): only fetch activities from orgs they advise
       if (userRole === 5 && userEmail) {

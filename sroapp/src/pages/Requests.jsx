@@ -111,9 +111,10 @@ const Requests = () => {
     if (authLoading || !accountId) return;
 
     const fetchActivities = async () => {
-      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}`);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}?limit=200`);
       if (!res.ok) throw new Error('Failed to fetch activities');
-      const all = await res.json();
+      const result = await res.json();
+      const all = result.data ?? result;
 
       const requestedActivities = all.filter((a) => a.final_status !== "Approved");
       const approvedActivities = all.filter((a) => a.final_status === "Approved");
@@ -195,9 +196,10 @@ const Requests = () => {
   const handleActivityRowClick = async (act) => {
     setDialogLoading(true);
     try {
-      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}`);
-      const data = await res.json();
-      const fullActivity = data.find((a) => a.activity_id === act.activity_id);
+      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}?limit=200`);
+      const result = await res.json();
+      const all = result.data ?? result;
+      const fullActivity = all.find((a) => a.activity_id === act.activity_id);
       setSelectedActivity(fullActivity);
     } catch (err) {
       console.error("Error fetching activity with account info:", err);
