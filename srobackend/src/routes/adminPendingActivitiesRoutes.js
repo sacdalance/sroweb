@@ -5,28 +5,39 @@ import { verifyAdminRoles } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.get("/incoming", verifyAdminRoles, async (req, res) => {
-  const { data, error } = await supabase
+  const page = parseInt(req.query.page) || 1;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await supabase
     .from("activity")
     .select(`
       *,
       account:account (*),
       organization:organization (*),
       schedule:activity_schedule!activity_schedule_activity_id_fkey (start_date)
-    `)
+    `, { count: "exact" })
     .or("final_status.is.null,final_status.neq.Approved")
-    .order("activity_id", { ascending: false });
+    .order("activity_id", { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching incoming:", error.message);
     return res.status(500).json({ error: error.message });
   }
 
-  return res.status(200).json(data);
+  return res.status(200).json({ data, total: count, page, limit });
 });
 
 // Summary of Activities
 router.get("/summary", verifyAdminRoles, async (req, res) => {
   const { activity_type, status, organization, year, month } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
   let query = supabase
     .from("activity")
     .select(`
@@ -34,7 +45,7 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
       account:account (*),
       organization:organization (*),
       schedule:activity_schedule (*)
-    `)
+    `, { count: "exact" })
     .order("created_at", { ascending: false });
 
     if (activity_type && activity_type !== "all") {
@@ -67,14 +78,15 @@ router.get("/summary", verifyAdminRoles, async (req, res) => {
   //   query = query.filter("schedule.start_date::text", "like", `%-${paddedMonth}-%`);
   // }
 
-  const { data, error } = await query;
+  query = query.range(from, to);
+  const { data, error, count } = await query;
 
   if (error) {
     console.error("Error fetching summary activities:", error.message);
     return res.status(500).json({ error: error.message });
   }
 
-  return res.status(200).json(data);
+  return res.status(200).json({ data, total: count, page, limit });
 });
 
 router.get("/organizations", verifyAdminRoles, async (req, res) => {
@@ -91,7 +103,9 @@ router.get("/organizations", verifyAdminRoles, async (req, res) => {
 router.get("/academic-years", verifyAdminRoles, async (req, res) => {
   const { data, error } = await supabase
     .from("activity_schedule")
-    .select("start_date");
+    .select("start_date")
+    .order("start_date", { ascending: false })
+    .limit(1000);
 
   if (error) return res.status(500).json({ error: error.message });
 
