@@ -93,7 +93,8 @@ router.get("/organizations", verifyAdminRoles, async (req, res) => {
   const { data, error } = await supabase
     .from("organization")
     .select("org_name")
-    .order("org_name", { ascending: true });
+    .order("org_name", { ascending: true })
+    .limit(500);
 
   if (error) return res.status(500).json({ error: error.message });
   const names = data.map((org) => org.org_name);

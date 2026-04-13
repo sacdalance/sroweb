@@ -64,6 +64,7 @@ router.put('/edit/:activity_id', authMiddleware, async (req, res) => {
 
     if (scheduleError) {
       console.error("Schedule update error:", scheduleError);
+      return res.status(500).json({ error: "Activity updated but schedule update failed. Please try again." });
     }
   }
 
