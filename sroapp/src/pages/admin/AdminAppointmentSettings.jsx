@@ -90,7 +90,7 @@ const AdminAppointmentSettings = () => {
       // 1. Get Settings
       const { data: settingsData, error: settingsError } = await supabase
         .from('appointment_settings')
-        .select('*')
+        .select('start_time, end_time, interval_minutes')
         .order('id', { ascending: false })
         .limit(1)
         .single();
@@ -110,7 +110,7 @@ const AdminAppointmentSettings = () => {
       // 2. Get Blocked Slots
       const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
         .from('blocked_slots')
-        .select('*');
+        .select('block_date, block_time');
 
       if (blockedSlotsError) throw blockedSlotsError;
 
@@ -503,7 +503,7 @@ const AdminAppointmentSettings = () => {
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
-        .select('*')
+        .select('requested_date, requested_time_slot')
         .eq('id', appointmentId)
         .single();
 

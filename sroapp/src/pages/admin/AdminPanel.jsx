@@ -107,17 +107,17 @@ const AdminPanel = () => {
           { count: approvedAppsCount },
           { count: reportsCount },
         ] = await Promise.all([
-          supabase.from("activity").select("*", { count: "exact", head: true })
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
             .eq("final_status", "Approved"),
-          supabase.from("activity").select("*", { count: "exact", head: true })
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
             .eq("final_status", "For Appeal"),
-          supabase.from("activity").select("*", { count: "exact", head: true })
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
             .or("final_status.is.null,final_status.eq.Pending"),
-          supabase.from("org_recognition").select("*", { count: "exact", head: true })
+          supabase.from("org_recognition").select("recognition_id", { count: "exact", head: true })
             .or('and(sro_approved.is.null,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.eq.false)'),
-          supabase.from("org_recognition").select("*", { count: "exact", head: true })
+          supabase.from("org_recognition").select("recognition_id", { count: "exact", head: true })
             .eq("sro_approved", true).eq("odsa_approved", true),
-          supabase.from("org_annual_report").select("*", { count: "exact", head: true })
+          supabase.from("org_annual_report").select("report_id", { count: "exact", head: true })
             .ilike("academic_year", `%${new Date().getFullYear()}`),
         ]);
 

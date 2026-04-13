@@ -189,7 +189,7 @@ router.get('/available-slots', authMiddleware, async (req, res) => {
     // Get appointment settings
     const { data: settings, error: settingsError } = await supabase
       .from('appointment_settings')
-      .select('*')
+      .select('allowed_days, start_time, end_time, appointment_duration, max_appointments_per_day')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -211,7 +211,7 @@ router.get('/available-slots', authMiddleware, async (req, res) => {
     // Check if date is blocked
     const { data: blockedSlot, error: blockedSlotError } = await supabase
       .from('blocked_slots')
-      .select('*')
+      .select('reason')
       .eq('block_date', date)
       .single();
 
@@ -401,7 +401,7 @@ router.post('/', authMiddleware, async (req, res) => {
     // Check if date or time is blocked
     const { data: blockedSlots, error: blockedError } = await supabase
       .from('blocked_slots')
-      .select('*')
+      .select('block_date, reason')
       .or(`block_date.eq."${appointment_date}",block_time.eq."${appointment_time}"`);
 
     if (blockedError) throw blockedError;
@@ -418,7 +418,7 @@ router.post('/', authMiddleware, async (req, res) => {
     // Check for existing appointments at the same time
     const { data: existingAppointment, error: existingError } = await supabase
       .from('appointments')
-      .select('*')
+      .select('id')
       .eq('appointment_date', appointment_date)
       .eq('appointment_time', appointment_time)
       .in('status', ['scheduled', 'confirmed'])
@@ -445,7 +445,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (settings?.max_appointments_per_day) {
       const { count, error: countError } = await supabase
         .from('appointments')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('appointment_date', appointment_date)
         .in('status', ['scheduled', 'confirmed']);
 
@@ -726,7 +726,7 @@ router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
     // Check if new date/time is blocked
     const { data: blockedSlots, error: blockedError } = await supabase
       .from('blocked_slots')
-      .select('*')
+      .select('block_date, reason')
       .or(`block_date.eq."${new_date}",block_time.eq."${new_time}"`);
 
     if (blockedError) throw blockedError;
@@ -743,7 +743,7 @@ router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
     // Check if there's already an appointment at this time
     const { data: existingAppointment, error: existingError } = await supabase
       .from('appointments')
-      .select('*')
+      .select('id')
       .eq('appointment_date', new_date)
       .eq('appointment_time', new_time)
       .in('status', ['scheduled', 'confirmed'])

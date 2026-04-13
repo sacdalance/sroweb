@@ -14,7 +14,7 @@ router.post('/check-or-create', async (req, res) => {
   try {
     const { data: existingUser } = await supabase
       .from('account')
-      .select('*')
+      .select('account_id, role_id')
       .eq('email', email)
       .single();
 

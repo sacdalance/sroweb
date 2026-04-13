@@ -70,12 +70,12 @@ export const fetchOrgStats = async () => {
     await Promise.all([
       supabase
         .from("org_annual_report")
-        .select("*", { count: "exact", head: true })
+        .select("report_id", { count: "exact", head: true })
         .ilike("academic_year", `%${currentYear}`),
 
       supabase
         .from("org_recognition")
-        .select("*", { count: "exact", head: true })
+        .select("recognition_id", { count: "exact", head: true })
         .eq("status", "Pending"),
     ]);
 
@@ -89,11 +89,11 @@ export const fetchActivityCounts = async () => {
   const [{ count: approved }, { count: pending }, orgStats] = await Promise.all([
     supabase
       .from("activity")
-      .select("*", { count: "exact", head: true })
+      .select("activity_id", { count: "exact", head: true })
       .eq("final_status", "Approved"),
     supabase
       .from("activity")
-      .select("*", { count: "exact", head: true })
+      .select("activity_id", { count: "exact", head: true })
       .or("final_status.is.null,final_status.eq.For Appeal"),
     fetchOrgStats(),
   ]);

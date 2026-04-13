@@ -244,7 +244,7 @@ router.get('/pdf-status', authMiddleware, async (req, res) => {
   // For brevity, just returning standard status query
   const { count } = await supabase
     .from('activity')
-    .select('*', { count: 'exact', head: true })
+    .select('activity_id', { count: 'exact', head: true })
     .eq('final_status', 'Approved')
     .or('pdf_generated.is.null,pdf_generated.eq.false');
   res.json({ pendingCount: count || 0 });
