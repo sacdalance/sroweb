@@ -133,9 +133,7 @@ const AdminAppointmentSettings = () => {
 
       // Async cleanup past dates (fire and forget or await)
       if (pastBlockedDateIds.length > 0) {
-        supabase.from('blocked_slots').delete().in('block_date', pastBlockedDateIds).then(
-          () => console.log("Cleaned up past blocked dates")
-        );
+        supabase.from('blocked_slots').delete().in('block_date', pastBlockedDateIds);
       }
 
       const times = blockedSlotsData

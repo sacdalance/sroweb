@@ -109,21 +109,16 @@ export const fetchActivityCounts = async () => {
 };
 
 export const fetchActivityDetails = async (activityId) => {
-  const { data: sdgData, error: sdgErr } = await supabase
+  const { data, error } = await supabase
     .from("activity")
-    .select("sdg_goals")
-    .eq("activity_id", activityId);
-  if (sdgErr) throw sdgErr;
-
-  const { data: partnerData, error: partnerErr } = await supabase
-    .from("activity")
-    .select("partner_name")
-    .eq("activity_id", activityId);
-  if (partnerErr) throw partnerErr;
+    .select("sdg_goals, partner_name")
+    .eq("activity_id", activityId)
+    .maybeSingle();
+  if (error) throw error;
 
   return {
-    sdgGoals: sdgData.map((g) => g.goal_name),
-    partners: partnerData.map((p) => p.partner_name),
+    sdgGoals: data?.sdg_goals || [],
+    partners: data?.partner_name ? [data.partner_name] : [],
   };
 };
 

@@ -618,7 +618,6 @@ const EditActivity = () => {
 
     useEffect(() => {
         if (!activity) return;
-        console.log("Incoming Activity:", activity);
 
         setSelectedValue(activity.org_id?.toString());
         setSelectedOrgName(activity.organization?.org_name || "");
