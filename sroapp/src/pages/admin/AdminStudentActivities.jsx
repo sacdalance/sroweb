@@ -73,7 +73,7 @@ const AdminPendingRequests = () => {
     return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
   };
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: "created_at",
       header: "Submission Date",
@@ -143,7 +143,7 @@ const AdminPendingRequests = () => {
         </div>
       )
     }
-  ];
+  ], [activities]);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
