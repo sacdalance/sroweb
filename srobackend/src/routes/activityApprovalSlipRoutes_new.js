@@ -223,6 +223,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
 
       if (updateError) {
         console.error('Batch update error:', updateError.message);
+        errors.push({ id: 'batch_update', error: updateError.message });
       }
     }
 

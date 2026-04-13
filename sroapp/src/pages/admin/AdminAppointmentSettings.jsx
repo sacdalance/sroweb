@@ -503,7 +503,7 @@ const AdminAppointmentSettings = () => {
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
-        .select('requested_date, requested_time_slot')
+        .select('id, requested_date, requested_time_slot, status')
         .eq('id', appointmentId)
         .single();
 

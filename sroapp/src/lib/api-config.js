@@ -5,8 +5,8 @@ export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 // Cache the access token at module level to avoid calling getSession() on every request
 let cachedAccessToken = null;
 
-// Initialize: get current session token
-supabase.auth.getSession().then(({ data: { session } }) => {
+// Single shared promise for initial session fetch — prevents concurrent getSession() calls
+let initPromise = supabase.auth.getSession().then(({ data: { session } }) => {
   cachedAccessToken = session?.access_token || null;
 });
 
@@ -21,9 +21,8 @@ supabase.auth.onAuthStateChange((_event, session) => {
  */
 export async function authFetch(url, options = {}) {
   if (!cachedAccessToken) {
-    // Fallback: try getSession once if cache is empty (e.g., race on first load)
-    const { data: { session } } = await supabase.auth.getSession();
-    cachedAccessToken = session?.access_token || null;
+    // Wait for the initial session fetch to complete (safe against concurrent calls)
+    await initPromise;
   }
   if (!cachedAccessToken) {
     throw new Error("Not authenticated");
