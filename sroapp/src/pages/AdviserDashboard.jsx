@@ -4,7 +4,7 @@ import { useAuth } from "@/context/UserAuthContext";
 import { Dialog } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
-import { Clock, CheckCircle, XCircle, Building2 } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Building2, ListFilter } from "lucide-react";
 import DataTable from "@/components/ui/DataTable";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from "sonner";
@@ -40,6 +40,7 @@ const AdviserDashboard = () => {
   const isSuperadmin = SUPERADMIN_EMAILS.includes(email);
   const [allOrgs, setAllOrgs] = useState([]);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
+  const [showAllPending, setShowAllPending] = useState(false);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -65,6 +66,33 @@ const AdviserDashboard = () => {
 
   const fetchData = async (orgIdOverride) => {
     try {
+      // Superadmin "show all pending" mode — fetch across all orgs
+      if (isSuperadmin && showAllPending) {
+        const { data: activityData, error: actError } = await supabase
+          .from("activity")
+          .select(`
+            *,
+            organization:organization(org_id, org_name),
+            schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days),
+            account:account(account_name, email)
+          `)
+          .eq("adviser_approval_status", "Pending")
+          .is("final_status", null)
+          .order("created_at", { ascending: false });
+
+        if (actError) throw actError;
+
+        // Derive unique orgs for the header subtitle
+        const orgMap = {};
+        (activityData || []).forEach(a => {
+          if (a.organization) orgMap[a.organization.org_id] = a.organization;
+        });
+        setOrgs(Object.values(orgMap));
+
+        setActivities((activityData || []).map(a => ({ ...a, status: getDerivedStatus(a) })));
+        return;
+      }
+
       let adviserOrgs;
 
       if (isSuperadmin && orgIdOverride) {
@@ -210,9 +238,9 @@ const AdviserDashboard = () => {
 
   useEffect(() => {
     if (authLoading || !email) return;
-    if (isSuperadmin && selectedOrgId) setLoading(true);
+    if (isSuperadmin && (selectedOrgId || showAllPending)) setLoading(true);
     fetchData(selectedOrgId || undefined);
-  }, [email, authLoading, selectedOrgId]);
+  }, [email, authLoading, selectedOrgId, showAllPending]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -352,26 +380,47 @@ const AdviserDashboard = () => {
         <div className="flex items-center gap-2 mt-1">
           <Building2 className="w-4 h-4 text-sro-primary" />
           <p className="text-sm text-gray-500">
-            Adviser for: {orgs.length > 0
-              ? orgs.map(o => o.org_name).join(", ")
-              : <span className="italic">No organizations assigned</span>
+            {showAllPending
+              ? <>All organizations — <span className="font-medium text-sro-primary">{activities.length} pending adviser request{activities.length !== 1 ? "s" : ""}</span></>
+              : orgs.length > 0
+                ? <>Adviser for: {orgs.map(o => o.org_name).join(", ")}</>
+                : <span className="italic">No organizations assigned</span>
             }
           </p>
         </div>
 
-        {/* Superadmin org picker */}
+        {/* Superadmin org picker + all-pending toggle */}
         {isSuperadmin && allOrgs.length > 0 && (
-          <div className="mt-3 max-w-xs">
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Superadmin: Select organization to advise
-            </label>
-            <UnifiedDropdown
-              options={allOrgs.map(o => ({ value: String(o.org_id), label: o.org_name }))}
-              value={selectedOrgId ? String(selectedOrgId) : ""}
-              onChange={(val) => setSelectedOrgId(Number(val))}
-              placeholder="Choose an organization..."
-              searchable
-            />
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div className={`max-w-xs ${showAllPending ? "opacity-50 pointer-events-none" : ""}`}>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Superadmin: Select organization to advise
+              </label>
+              <UnifiedDropdown
+                options={allOrgs.map(o => ({ value: String(o.org_id), label: o.org_name }))}
+                value={selectedOrgId ? String(selectedOrgId) : ""}
+                onChange={(val) => {
+                  setSelectedOrgId(Number(val));
+                  setShowAllPending(false);
+                }}
+                placeholder="Choose an organization..."
+                searchable
+              />
+            </div>
+            <button
+              onClick={() => {
+                setShowAllPending(prev => !prev);
+                if (!showAllPending) setSelectedOrgId(null);
+              }}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors ${
+                showAllPending
+                  ? "bg-sro-primary text-white border-sro-primary"
+                  : "bg-white text-gray-600 border-gray-300 hover:border-sro-primary hover:text-sro-primary"
+              }`}
+            >
+              <ListFilter className="w-3.5 h-3.5" />
+              All pending adviser requests
+            </button>
           </div>
         )}
       </div>
