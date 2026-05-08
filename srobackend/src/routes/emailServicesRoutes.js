@@ -7,22 +7,21 @@ import { isValidEmail, sanitizeEmailField } from '../lib/sanitize.js';
 // Create an Express router
 const router = express.Router();
 
+// Create transporter once at module level to reuse SMTP connections
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_SENDER_EMAIL,
+    pass: process.env.GMAIL_SENDER_PASSWORD,
+  },
+});
+
 /**
  * Sends an email using Gmail app password and Nodemailer
  * @param {Object} param0 - Email details
  * @returns {Promise<Object>} - Result of the email send operation
  */
 async function sendEmail({ to, subject, text, html }) {
-  // Create Nodemailer transporter using app password
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_SENDER_EMAIL,
-      pass: process.env.GMAIL_SENDER_PASSWORD, // Gmail app password
-    },
-  });
-
-  // Compose email
   const mailOptions = {
     from: `SRO System <${process.env.GMAIL_SENDER_EMAIL}>`,
     to,

@@ -1,10 +1,16 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -8 },
+};
+
+const noMotion = {
+  initial: { opacity: 1 },
+  animate: { opacity: 1 },
+  exit: { opacity: 1 },
 };
 
 const staggerContainer = {
@@ -15,14 +21,19 @@ const staggerContainer = {
   },
 };
 
+const noStagger = {
+  animate: {},
+};
+
 function AnimatedContainer({ className, children, delay = 0, ...props }) {
+  const prefersReduced = useReducedMotion();
   return (
     <motion.div
       initial="initial"
       animate="animate"
       exit="exit"
-      variants={fadeInUp}
-      transition={{ duration: 0.3, ease: "easeOut", delay }}
+      variants={prefersReduced ? noMotion : fadeInUp}
+      transition={prefersReduced ? { duration: 0 } : { duration: 0.3, ease: "easeOut", delay }}
       className={cn(className)}
       {...props}
     >
@@ -32,11 +43,12 @@ function AnimatedContainer({ className, children, delay = 0, ...props }) {
 }
 
 function StaggerContainer({ className, children, ...props }) {
+  const prefersReduced = useReducedMotion();
   return (
     <motion.div
       initial="initial"
       animate="animate"
-      variants={staggerContainer}
+      variants={prefersReduced ? noStagger : staggerContainer}
       className={cn(className)}
       {...props}
     >
@@ -46,10 +58,11 @@ function StaggerContainer({ className, children, ...props }) {
 }
 
 function StaggerItem({ className, children, ...props }) {
+  const prefersReduced = useReducedMotion();
   return (
     <motion.div
-      variants={fadeInUp}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      variants={prefersReduced ? noMotion : fadeInUp}
+      transition={prefersReduced ? { duration: 0 } : { duration: 0.3, ease: "easeOut" }}
       className={cn(className)}
       {...props}
     >

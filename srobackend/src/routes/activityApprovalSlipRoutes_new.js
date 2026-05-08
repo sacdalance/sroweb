@@ -183,50 +183,53 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
     const templateId = templateRes.data.files[0].id;
     console.log(`📄 Using Template: ${templateRes.data.files[0].name} (${templateId})`);
 
-    // 2. Fetch Approved Activities (Pending Print)
+    // 2. Fetch Approved Activities (Pending Print) — process in batches of 50
     const { data: approvedActivities, error: dbError } = await supabase
       .from('activity')
       .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
       .eq('final_status', 'Approved')
-      .or('pdf_generated.is.null,pdf_generated.eq.false');
+      .or('pdf_generated.is.null,pdf_generated.eq.false')
+      .limit(50);
 
     if (dbError) throw dbError;
     if (!approvedActivities?.length) {
       return res.json({ message: 'No pending activities to generate.', pdfCount: 0 });
     }
 
-    // 3. Generate PDFs
-    let successCount = 0;
+    // 3. Generate PDFs — collect successful IDs for batch DB update
+    const successIds = [];
     const errors = [];
 
     for (const activity of approvedActivities) {
       try {
-        console.log(`Processing: ${activity.activity_name}`);
-        const result = await generateSlipForActivity(activity, templateId);
-
-        // Update DB
-        const { error: updateError } = await supabase
-          .from('activity')
-          .update({
-            pdf_generated: true,
-            pdf_generated_at: new Date().toISOString(),
-            slip_status: 'printed'
-          })
-          .eq('activity_id', activity.activity_id);
-
-        if (updateError) throw updateError;
-        successCount++;
-        console.log(`✅ Generated: ${result.webViewLink}`);
-
+        await generateSlipForActivity(activity, templateId);
+        successIds.push(activity.activity_id);
       } catch (err) {
-        console.error(`❌ Failed ${activity.activity_id}:`, err.message);
+        console.error(`Failed ${activity.activity_id}:`, err.message);
         errors.push({ id: activity.activity_id, error: err.message });
       }
     }
 
+    // 4. Batch update all successful activities in one query
+    if (successIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('activity')
+        .update({
+          pdf_generated: true,
+          pdf_generated_at: new Date().toISOString(),
+          slip_status: 'printed'
+        })
+        .in('activity_id', successIds);
+
+      if (updateError) {
+        console.error('Batch update error:', updateError.message);
+        errors.push({ id: 'batch_update', error: updateError.message });
+      }
+    }
+
     res.json({
-      message: `Generated ${successCount} slips using Google Docs engine.`,
-      pdfCount: successCount,
+      message: `Generated ${successIds.length} slips using Google Docs engine.`,
+      pdfCount: successIds.length,
       errors: errors.length ? errors : undefined
     });
 
@@ -240,9 +243,12 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
 router.get('/pdf-status', authMiddleware, async (req, res) => {
   // ... (Keep existing logic if needed, or simplified)
   // For brevity, just returning standard status query
-  const { data } = await supabase.from('activity').select('activity_id, final_status, pdf_generated').eq('final_status', 'Approved');
-  const pending = data?.filter(x => !x.pdf_generated).length || 0;
-  res.json({ pendingCount: pending });
+  const { count } = await supabase
+    .from('activity')
+    .select('activity_id', { count: 'exact', head: true })
+    .eq('final_status', 'Approved')
+    .or('pdf_generated.is.null,pdf_generated.eq.false');
+  res.json({ pendingCount: count || 0 });
 });
 
 export default router;

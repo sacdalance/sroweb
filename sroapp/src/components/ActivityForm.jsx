@@ -2039,4 +2039,4 @@ const ActivityForm = ({
   );
 };
 
-export default ActivityForm;
+export default React.memo(ActivityForm);

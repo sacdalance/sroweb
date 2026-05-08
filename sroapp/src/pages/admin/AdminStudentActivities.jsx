@@ -73,7 +73,7 @@ const AdminPendingRequests = () => {
     return activityTypeOptions.find((opt) => opt.id === id)?.label || id;
   };
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: "created_at",
       header: "Submission Date",
@@ -143,7 +143,7 @@ const AdminPendingRequests = () => {
         </div>
       )
     }
-  ];
+  ], [activities]);
 
   const refreshSelectedActivity = async (id) => {
     const { data, error } = await supabase
@@ -177,7 +177,8 @@ const AdminPendingRequests = () => {
             schedule:activity_schedule(*),
             account:account(email)
           `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       // Adviser (role 5): only fetch activities from orgs they advise
       if (userRole === 5 && userEmail) {
