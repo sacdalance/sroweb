@@ -82,10 +82,15 @@ const Dashboard = () => {
 
   const fetchActivities = async () => {
     try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+
       const { data, error } = await supabase
         .from("activity")
-        .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
-        .eq("final_status", "Approved");
+        .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule!inner(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
+        .eq("final_status", "Approved")
+        .or(`end_date.gte.${cutoffStr},and(end_date.is.null,start_date.gte.${cutoffStr})`, { referencedTable: "activity_schedule" });
 
       if (error) throw error;
 
