@@ -4,6 +4,7 @@ import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.j
 import streamifier from 'streamifier';
 import multer from 'multer';
 import { google } from 'googleapis';
+import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,7 +18,7 @@ const upload = multer({
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GDRIVE_CLIENT_EMAIL,
-    private_key: process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    private_key: getGoogleServiceAccountKey(),
   },
   projectId: process.env.GDRIVE_PROJECT_ID,
   scopes: ['https://www.googleapis.com/auth/drive.file'],

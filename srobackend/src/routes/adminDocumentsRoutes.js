@@ -1,6 +1,7 @@
 import express from 'express';
 import { google } from 'googleapis';
 import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.js';
+import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,7 +12,7 @@ const router = express.Router();
 const auth = new google.auth.GoogleAuth({
     credentials: {
         client_email: process.env.GDRIVE_CLIENT_EMAIL,
-        private_key: process.env.GDRIVE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        private_key: getGoogleServiceAccountKey(),
     },
     scopes: ['https://www.googleapis.com/auth/drive'],
 });
