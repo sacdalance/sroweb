@@ -55,15 +55,17 @@ const AdminOrgApplications = () => {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        let query = supabase.from("org_recognition").select("*").order("submitted_at", { ascending: false });
-        
+        let query = supabase.from("org_recognition").select("*")
+          .order("submitted_at", { ascending: false })
+          .limit(200);
+
         // ROLE LOGIC: ODSA only sees what SRO has already approved
         if (roleId === 3) query = query.eq("sro_approved", true);
-        
+
         const { data: appData, error: appError } = await query;
         if (!appError) setApplications(appData || []);
 
-        const { data: orgData, error: orgError } = await supabase.from("organization").select("org_name, academic_year");
+        const { data: orgData, error: orgError } = await supabase.from("organization").select("org_name, academic_year").limit(500);
         if (!orgError) setExistingOrgs(orgData || []);
       } catch (error) {
         console.error("Error fetching data:", error);

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen, Database, ClipboardList } from "lucide-react";
 import StatusPill from "@/components/ui/StatusPill";
 import { isSameDay, format } from "date-fns";
+import { categoryMap } from "@/lib/activityTypes";
 
 // Dashboard Components
 import ActivityTrendsChart from "@/components/dashboard/ActivityTrendsChart";
@@ -33,6 +34,7 @@ const AdminPanel = () => {
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState(null);
+  const [hideActivities, setHideActivities] = useState(false);
 
   const { role: userRole } = useAuth();
   const navigate = useNavigate();
@@ -59,29 +61,18 @@ const AdminPanel = () => {
     { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar },
   ];
 
-  const getActivityTypeLabel = (id) => {
-    // Simplified map for dashboard
-    const map = {
-      charitable: "Charitable",
-      serviceWithinUPB: "Service (UPB)",
-      serviceOutsideUPB: "Service (Outside)",
-      educational: "Educational",
-      incomeGenerating: "IGP",
-      others: "Others"
-    };
-    return map[id] || id;
-  };
-
   // Main Data Fetch (Combined)
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // A. Fetch Approved Activities (For Calendar & Chart)
+        // A. Fetch Approved Activities (For Calendar & Chart) — limit to most recent 200
         const { data: approvedData, error: approvedError } = await supabase
           .from("activity")
           .select(`*, organization:organization(org_id, org_name), schedule:activity_schedule(start_date, end_date, start_time, end_time, is_recurring, recurring_days)`)
-          .eq("final_status", "Approved");
+          .eq("final_status", "Approved")
+          .order("created_at", { ascending: false })
+          .limit(200);
 
         if (approvedError) throw approvedError;
 
@@ -89,14 +80,17 @@ const AdminPanel = () => {
         let incomingData = [];
         const res = await authFetch(`${API_BASE_URL}/api/activities/incoming`);
         if (res.ok) {
-          incomingData = await res.json();
+          const result = await res.json();
+          incomingData = result.data ?? result;
         }
 
-        // C. Fetch Appointments
+        // C. Fetch Appointments — limit to active ones
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from("appointments")
           .select(`*, account:account(account_name, email)`)
-          .in('status', ['scheduled', 'confirmed']); // Only active appointments for generic view
+          .in('status', ['scheduled', 'confirmed'])
+          .order("appointment_date", { ascending: true })
+          .limit(100);
 
         if (appointmentsError) throw appointmentsError;
         setAppointments(appointmentsData || []);
@@ -104,34 +98,36 @@ const AdminPanel = () => {
         // D. Combine for "Raw Activities" (Chart Data)
         setRawActivities([...(approvedData || []), ...incomingData]);
 
-        // E. Calculate Request Stats
-        let forAppealCount = 0;
-        let pendingCount = 0;
-        incomingData.forEach(a => {
-          if (a.final_status === "For Appeal") forAppealCount++;
-          if (a.final_status === "Pending" || a.final_status === null) pendingCount++;
-        });
+        // E-G. Fetch all stats as count queries in parallel (no full table scans)
+        const [
+          { count: approvedCount },
+          { count: forAppealCount },
+          { count: pendingCount },
+          { count: pendingAppsCount },
+          { count: approvedAppsCount },
+          { count: reportsCount },
+        ] = await Promise.all([
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
+            .eq("final_status", "Approved"),
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
+            .eq("final_status", "For Appeal"),
+          supabase.from("activity").select("activity_id", { count: "exact", head: true })
+            .or("final_status.is.null,final_status.eq.Pending"),
+          supabase.from("org_recognition").select("recognition_id", { count: "exact", head: true })
+            .or('and(sro_approved.is.null,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.eq.false)'),
+          supabase.from("org_recognition").select("recognition_id", { count: "exact", head: true })
+            .eq("sro_approved", true).eq("odsa_approved", true),
+          supabase.from("org_annual_report").select("report_id", { count: "exact", head: true })
+            .ilike("academic_year", `%${new Date().getFullYear()}`),
+        ]);
 
-        // F. Fetch Org Application Stats
-        const { data: pendingApps } = await supabase.from("org_recognition").select("recognition_id", { count: "exact" })
-          .or('and(sro_approved.is.null,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.is.null),and(sro_approved.eq.true,odsa_approved.eq.false)');
-
-        const { data: approvedApps } = await supabase.from("org_recognition").select("recognition_id", { count: "exact" })
-          .eq("sro_approved", true).eq("odsa_approved", true);
-
-        // G. Fetch Reports Stats
-        const currentYear = new Date().getFullYear();
-        const { data: reports } = await supabase.from("org_annual_report").select("report_id", { count: "exact" })
-          .ilike("academic_year", `%${currentYear}`);
-
-        // Update Counts State
         setRequestsCounts({
-          approved: approvedData?.length || 0,
-          forAppeal: forAppealCount,
-          pending: pendingCount,
-          pendingApplications: pendingApps?.length || 0,
-          approvedApplications: approvedApps?.length || 0,
-          annualReports: reports?.length || 0,
+          approved: approvedCount || 0,
+          forAppeal: forAppealCount || 0,
+          pending: pendingCount || 0,
+          pendingApplications: pendingAppsCount || 0,
+          approvedApplications: approvedAppsCount || 0,
+          annualReports: reportsCount || 0,
         });
 
       } catch (err) {
@@ -231,10 +227,15 @@ const AdminPanel = () => {
     return events;
   }, [rawActivities, appointments]);
 
+  const displayedCalendarEvents = useMemo(() => {
+    if (!hideActivities) return calendarEvents;
+    return calendarEvents.filter(event => event.type !== 'activity');
+  }, [calendarEvents, hideActivities]);
+
   const filteredCalendarList = useMemo(() => {
     if (!selectedDateFilter) return [];
-    return calendarEvents.filter(event => isSameDay(new Date(event.date), selectedDateFilter));
-  }, [calendarEvents, selectedDateFilter]);
+    return displayedCalendarEvents.filter(event => isSameDay(new Date(event.date), selectedDateFilter));
+  }, [displayedCalendarEvents, selectedDateFilter]);
 
 
   const handleItemClick = async (item) => {
@@ -351,9 +352,12 @@ const AdminPanel = () => {
               setSelectedDateFilter(date);
             }
           }}
-          events={calendarEvents}
+          events={displayedCalendarEvents}
           getEventColor={getEventColor}
           legendItems={dashboardLegend}
+          filters={[
+            { label: "Hide Activities", checked: hideActivities, onChange: setHideActivities },
+          ]}
           sidePanelData={filteredCalendarList}
           renderSidePanelItem={(item) => (
             <div

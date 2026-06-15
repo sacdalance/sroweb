@@ -88,7 +88,11 @@ const NotificationsDropdown = ({ accountId }) => {
     if (!accountId) return;
 
     const unsubscribe = subscribeToNotifications(accountId, (newNotif) => {
-      setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+      setNotifications((prev) => {
+        // Deduplicate: skip if already present from a concurrent fetch
+        if (prev.some((n) => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev].slice(0, 20);
+      });
       setUnreadCount((prev) => prev + 1);
       toast(newNotif.title, {
         description: newNotif.message,

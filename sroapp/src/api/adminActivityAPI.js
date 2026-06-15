@@ -29,7 +29,7 @@ export const fetchSummaryActivities = async (filters) => {
   const res = await authFetch(`${API_BASE_URL}/api/activities/summary?${params.toString()}`);
   const result = await res.json();
   if (!res.ok) throw new Error(result.error || "Failed to fetch summary data.");
-  return result;
+  return result.data ?? result;
 };
 
 export const fetchOrganizationNames = async () => {
@@ -47,14 +47,17 @@ export const fetchAcademicYears = async () => {
 export const fetchIncomingRequests = async () => {
   const res = await authFetch(`${API_BASE_URL}/api/activities/incoming`);
   if (!res.ok) throw new Error("Failed to fetch incoming requests");
-  return await res.json();
+  const result = await res.json();
+  return result.data ?? result;
 };
 
 export const fetchApprovedActivities = async () => {
   const { data, error } = await supabase
     .from("activity")
     .select(`*, organization:organization(*), schedule:activity_schedule(*)`)
-    .eq("final_status", "Approved");
+    .eq("final_status", "Approved")
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (error) throw error;
   return data;
@@ -63,67 +66,57 @@ export const fetchApprovedActivities = async () => {
 export const fetchOrgStats = async () => {
   const currentYear = new Date().getFullYear();
 
-  const [{ data: annualReports }, { data: pendingApps }] =
+  const [{ count: annualReportsCount }, { count: pendingAppsCount }] =
     await Promise.all([
       supabase
         .from("org_annual_report")
-        .select("*")
+        .select("report_id", { count: "exact", head: true })
         .ilike("academic_year", `%${currentYear}`),
 
       supabase
         .from("org_recognition")
-        .select("*")
+        .select("recognition_id", { count: "exact", head: true })
         .eq("status", "Pending"),
     ]);
 
   return {
-    annualReportsCount: Array.isArray(annualReports) ? annualReports.length : 0,
-    pendingApplicationsCount: Array.isArray(pendingApps) ? pendingApps.length : 0,
+    annualReportsCount: annualReportsCount || 0,
+    pendingApplicationsCount: pendingAppsCount || 0,
   };
 };
 
 export const fetchActivityCounts = async () => {
-  const { data, error } = await supabase.from("activity").select("final_status");
-
-  if (error) throw error;
-
-  let approved = 0;
-  let pending = 0;
-
-  data.forEach(({ final_status }) => {
-    if (final_status === "Approved") {
-      approved++;
-    } else if (final_status === null || final_status === "For Appeal") {
-      pending++;
-    }
-  });
-
-  const { annualReportsCount, pendingApplicationsCount } = await fetchOrgStats();
+  const [{ count: approved }, { count: pending }, orgStats] = await Promise.all([
+    supabase
+      .from("activity")
+      .select("activity_id", { count: "exact", head: true })
+      .eq("final_status", "Approved"),
+    supabase
+      .from("activity")
+      .select("activity_id", { count: "exact", head: true })
+      .or("final_status.is.null,final_status.eq.For Appeal"),
+    fetchOrgStats(),
+  ]);
 
   return {
-    approved,
-    pending,
-    annualReports: annualReportsCount,
-    pendingApplications: pendingApplicationsCount
+    approved: approved || 0,
+    pending: pending || 0,
+    annualReports: orgStats.annualReportsCount,
+    pendingApplications: orgStats.pendingApplicationsCount,
   };
 };
 
 export const fetchActivityDetails = async (activityId) => {
-  const { data: sdgData, error: sdgErr } = await supabase
+  const { data, error } = await supabase
     .from("activity")
-    .select("sdg_goals")
-    .eq("activity_id", activityId);
-  if (sdgErr) throw sdgErr;
-
-  const { data: partnerData, error: partnerErr } = await supabase
-    .from("activity")
-    .select("partner_name")
-    .eq("activity_id", activityId);
-  if (partnerErr) throw partnerErr;
+    .select("sdg_goals, partner_name")
+    .eq("activity_id", activityId)
+    .maybeSingle();
+  if (error) throw error;
 
   return {
-    sdgGoals: sdgData.map((g) => g.goal_name),
-    partners: partnerData.map((p) => p.partner_name),
+    sdgGoals: data?.sdg_goals || [],
+    partners: data?.partner_name ? [data.partner_name] : [],
   };
 };
 

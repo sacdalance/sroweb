@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import supabase from "@/lib/supabase";
 
 const UserAuthContext = createContext(null);
@@ -37,9 +37,10 @@ export function UserAuthProvider({ children }) {
 
     init();
 
-    // Listen for future auth changes
+    // Listen for future auth changes (skip account re-query on token refresh)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
+      if (event === "TOKEN_REFRESHED") return; // Token refresh doesn't change account data
 
       const currentUser = session?.user || null;
       setUser(currentUser);
@@ -61,14 +62,14 @@ export function UserAuthProvider({ children }) {
     };
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     account,
     role: account?.role_id ?? null,
     accountId: account?.account_id ?? null,
     email: account?.email ?? user?.email ?? null,
     loading,
-  };
+  }), [user, account, loading]);
 
   return (
     <UserAuthContext.Provider value={value}>

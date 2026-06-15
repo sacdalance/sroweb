@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { editActivity } from "../api/activityEditAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner.jsx";
+import { activityTypeFormOptions } from "@/lib/activityTypes";
 
 const EditActivity = () => {
     const { accountId } = useAuth();
@@ -208,20 +209,7 @@ const EditActivity = () => {
     };
 
 
-    const activityTypeOptions = [
-        { id: "charitable", label: "Charitable" },
-        { id: "serviceWithinUPB", label: "Service (within UPB)" },
-        { id: "serviceOutsideUPB", label: "Service (outside UPB)" },
-        { id: "contestWithinUPB", label: "Contest (within UPB)" },
-        { id: "contestOutsideUPB", label: "Contest (outside UPB)" },
-        { id: "educational", label: "Educational (forum, seminar, exhibits, etc.)" },
-        { id: "incomeGenerating", label: "Income-Generating Project" },
-        { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-        { id: "booth", label: "Booth (membership, registration, ticket payment, etc.)" },
-        { id: "rehearsals", label: "Rehearsals/Preparation" },
-        { id: "specialEvents", label: "Special Events (anniversary, concert, etc.)" },
-        { id: "others", label: "Others (please specify, e.g., interview process, final rites)" }
-    ];
+    const activityTypeOptions = activityTypeFormOptions;
 
     const sdgOptions = [
         { id: "noPoverty", label: "No Poverty" },
@@ -630,7 +618,6 @@ const EditActivity = () => {
 
     useEffect(() => {
         if (!activity) return;
-        console.log("Incoming Activity:", activity);
 
         setSelectedValue(activity.org_id?.toString());
         setSelectedOrgName(activity.organization?.org_name || "");

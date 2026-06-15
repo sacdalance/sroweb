@@ -90,7 +90,7 @@ const AdminAppointmentSettings = () => {
       // 1. Get Settings
       const { data: settingsData, error: settingsError } = await supabase
         .from('appointment_settings')
-        .select('*')
+        .select('start_time, end_time, interval_minutes')
         .order('id', { ascending: false })
         .limit(1)
         .single();
@@ -110,7 +110,7 @@ const AdminAppointmentSettings = () => {
       // 2. Get Blocked Slots
       const { data: blockedSlotsData, error: blockedSlotsError } = await supabase
         .from('blocked_slots')
-        .select('*');
+        .select('block_date, block_time');
 
       if (blockedSlotsError) throw blockedSlotsError;
 
@@ -133,9 +133,7 @@ const AdminAppointmentSettings = () => {
 
       // Async cleanup past dates (fire and forget or await)
       if (pastBlockedDateIds.length > 0) {
-        supabase.from('blocked_slots').delete().in('block_date', pastBlockedDateIds).then(
-          () => console.log("Cleaned up past blocked dates")
-        );
+        supabase.from('blocked_slots').delete().in('block_date', pastBlockedDateIds);
       }
 
       const times = blockedSlotsData
@@ -172,73 +170,56 @@ const AdminAppointmentSettings = () => {
   const loadAppointments = async (currentInterval = 30) => {
     try {
       setLoadingAppointments(true);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // 1. Find and auto-reject expired appointments server-side
+      const { data: expiredAppointments } = await supabase
+        .from('appointments')
+        .select('id, appointment_date, account:account(email)')
+        .in('status', ['scheduled', 'reschedule-pending'])
+        .lt('appointment_date', todayStr);
+
+      if (expiredAppointments?.length > 0) {
+        const expiredIds = expiredAppointments.map(app => app.id);
+        const { error: updateError } = await supabase
+          .from('appointments')
+          .update({
+            status: 'rejected',
+            admin_notes: "Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.",
+            updated_at: new Date().toISOString()
+          })
+          .in('id', expiredIds);
+
+        if (updateError) {
+          console.error("Auto-reject update failed", updateError);
+        } else {
+          // Send expiry emails (fire-and-forget)
+          Promise.all(expiredAppointments.map(app =>
+            authFetch(`${API_BASE_URL}/api/send-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: app.account?.email,
+                subject: "Appointment Expired - SRO",
+                html: `<p>Your appointment on <strong>${app.appointment_date}</strong> has expired and been automatically rejected.</p><p>Reason: Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.</p>`
+              })
+            }).catch(e => console.error("Failed to send expiry email", e))
+          ));
+          toast.info(`Auto-rejected ${expiredAppointments.length} elapsed appointment(s).`);
+        }
+      }
+
+      // 2. Fetch all appointments (now with expired ones already updated)
       const { data, error } = await supabase
         .from('appointments')
         .select(`
           *,
           account:account(account_name, email)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
-
-      // --- Auto-Reject Elapsed Appointments ---
-      const now = new Date();
-      const expiredAppointments = data.filter(app => {
-        // Include reschedule-pending
-        if (!['scheduled', 'reschedule-pending'].includes(app.status)) return false;
-
-        // Ensure date/time exist
-        if (!app.appointment_date || !app.appointment_time) return false;
-
-        const appDateTime = new Date(`${app.appointment_date}T${app.appointment_time}`);
-        return appDateTime < now;
-      });
-
-      if (expiredAppointments.length > 0) {
-        try {
-          const expiredIds = expiredAppointments.map(app => app.id);
-
-          // Use Update .in() instead of Upsert to avoid 400 Bad Request
-          const { error: updateError } = await supabase
-            .from('appointments')
-            .update({
-              status: 'rejected',
-              admin_notes: "Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.",
-              updated_at: new Date().toISOString()
-            })
-            .in('id', expiredIds);
-
-          if (updateError) {
-            console.error("Auto-reject update failed", updateError);
-            toast.error("Failed to auto-reject expired appointments.");
-          } else {
-            // Send Emails
-            Promise.all(expiredAppointments.map(app =>
-              authFetch(`${API_BASE_URL}/api/send-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  to: app.account.email,
-                  subject: "Appointment Expired - SRO",
-                  html: `<p>Your appointment on <strong>${app.appointment_date}</strong> has expired and been automatically rejected.</p><p>Reason: Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.</p>`
-                })
-              }).catch(e => console.error("Failed to send expiry email", e))
-            ));
-
-            toast.info(`Auto-rejected ${expiredAppointments.length} elapsed appointment(s).`);
-
-            // Update local data to reflect changes immediately
-            expiredAppointments.forEach(app => {
-              app.status = 'rejected';
-              app.admin_notes = "Date has elapsed without confirmation from SRO. Please rebook or contact the office if you have any inquiries.";
-            });
-          }
-        } catch (err) {
-          console.error("Auto-reject process failed", err);
-        }
-      }
-      // ----------------------------------------
 
       const formattedAppointments = data.map(appointment => {
         const start = new Date(`2000-01-01T${appointment.appointment_time}`);
@@ -522,7 +503,7 @@ const AdminAppointmentSettings = () => {
     try {
       const { data: appointment, error: fetchError } = await supabase
         .from('appointments')
-        .select('*')
+        .select('id, requested_date, requested_time_slot, status')
         .eq('id', appointmentId)
         .single();
 

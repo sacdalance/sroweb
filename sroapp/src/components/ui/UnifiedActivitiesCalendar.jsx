@@ -1,51 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, X, Info, LayoutGrid, Table } from "lucide-react";
+import { CalendarDays, X, Info, LayoutGrid, Table, Repeat2 } from "lucide-react";
 import { CalendarSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import DataTable from "@/components/ui/DataTable";
 import PropTypes from 'prop-types';
 import { Dialog } from "@/components/ui/dialog";
-import { isSameDay, format } from "date-fns";
-
-// Activity type color mapping
-const activityTypeColors = {
-  charitable: { bg: "bg-pink-100", text: "text-pink-700", border: "border-pink-300" },
-  serviceWithinUPB: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-300" },
-  serviceOutsideUPB: { bg: "bg-cyan-100", text: "text-cyan-700", border: "border-cyan-300" },
-  contestWithinUPB: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-300" },
-  contestOutsideUPB: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
-  educational: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300" },
-  incomeGenerating: { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300" },
-  massOrientation: { bg: "bg-indigo-100", text: "text-indigo-700", border: "border-indigo-300" },
-  booth: { bg: "bg-orange-100", text: "text-orange-700", border: "border-orange-300" },
-  rehearsals: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" },
-  specialEvents: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-300" },
-  others: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300" },
-};
-
-// Category map for activity types
-const categoryMap = {
-  charitable: "Charitable",
-  serviceWithinUPB: "Service (within UPB)",
-  serviceOutsideUPB: "Service (outside UPB)",
-  contestWithinUPB: "Contest (within UPB)",
-  contestOutsideUPB: "Contest (outside UPB)",
-  educational: "Educational",
-  incomeGenerating: "Income-Generating Project",
-  massOrientation: "Mass Orientation/General Assembly",
-  booth: "Booth",
-  rehearsals: "Rehearsals/Preparation",
-  specialEvents: "Special Event",
-  others: "Others",
-};
+import { isSameDay, format, startOfMonth, endOfMonth } from "date-fns";
+import { activityTypeColors, categoryMap } from "@/lib/activityTypes";
 
 // Type options for multi-select
 const typeOptions = Object.keys(categoryMap).map(key => ({
@@ -133,21 +101,44 @@ const UnifiedActivitiesCalendar = ({
               }
             }
           } else {
-            calendarEvents.push({
-              id: activity.activity_id,
-              originalId: activity.activity_id,
-              date: new Date(schedule?.start_date),
-              title: activity.activity_name,
-              time: `${schedule?.start_time} to ${schedule?.end_time}`,
-              location: activity.venue,
-              category: activity.activity_type,
-              organization: activity.organization?.org_name,
-              description: activity.activity_description,
-              partners: activity.university_partner,
-              sdgs: activity.sdg_goals,
-              venue: activity.venue,
-              isRecurringInstance: false
-            });
+            const startDate = new Date(schedule?.start_date);
+            const endDate = schedule?.end_date ? new Date(schedule.end_date) : startDate;
+
+            if (endDate > startDate) {
+              for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                calendarEvents.push({
+                  id: `${activity.activity_id}-${d.toISOString().split('T')[0]}`,
+                  originalId: activity.activity_id,
+                  date: new Date(d),
+                  title: activity.activity_name,
+                  time: `${schedule?.start_time} to ${schedule?.end_time}`,
+                  location: activity.venue,
+                  category: activity.activity_type,
+                  organization: activity.organization?.org_name,
+                  description: activity.activity_description,
+                  partners: activity.university_partner,
+                  sdgs: activity.sdg_goals,
+                  venue: activity.venue,
+                  isRecurringInstance: false,
+                });
+              }
+            } else {
+              calendarEvents.push({
+                id: activity.activity_id,
+                originalId: activity.activity_id,
+                date: startDate,
+                title: activity.activity_name,
+                time: `${schedule?.start_time} to ${schedule?.end_time}`,
+                location: activity.venue,
+                category: activity.activity_type,
+                organization: activity.organization?.org_name,
+                description: activity.activity_description,
+                partners: activity.university_partner,
+                sdgs: activity.sdg_goals,
+                venue: activity.venue,
+                isRecurringInstance: false,
+              });
+            }
           }
         });
         setEvents(calendarEvents);
@@ -227,9 +218,11 @@ const UnifiedActivitiesCalendar = ({
     if (selectedYear !== year) setSelectedYear(year);
   }, [currentDate]);
 
-  const getEventColor = (category, event) => {
-    if (event?.isRecurringInstance) return 'bg-orange-200 text-orange-800';
-    return 'bg-red-100 text-sro-primary';
+  const listSectionRef = useRef(null);
+
+  const getEventColor = (category) => {
+    const colors = activityTypeColors[category] || activityTypeColors.others;
+    return `${colors.bg} ${colors.text}`;
   };
 
   const handleDateSelect = (dateOrEvent) => {
@@ -239,6 +232,9 @@ const UnifiedActivitiesCalendar = ({
         setSelectedDateFilter(null);
       } else {
         setSelectedDateFilter(date);
+        setTimeout(() => {
+          listSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       }
     }
   };
@@ -305,6 +301,20 @@ const UnifiedActivitiesCalendar = ({
     });
   }, [events, selectedOrganization, selectedTypes, hideRecurring]);
 
+  const activeTypesInMonth = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const typesSet = new Set();
+    filteredEvents.forEach(event => {
+      const d = new Date(event.date);
+      if (d >= monthStart && d <= monthEnd) {
+        typesSet.add(event.category);
+      }
+    });
+    const typeOrder = Object.keys(categoryMap);
+    return Array.from(typesSet).sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+  }, [filteredEvents, currentDate]);
+
   const filteredListEvents = useMemo(() => {
     return upcomingEvents.filter(event => {
       if (selectedOrganization !== "all" && event.organization !== selectedOrganization) return false;
@@ -322,12 +332,10 @@ const UnifiedActivitiesCalendar = ({
     });
   }, [upcomingEvents, selectedOrganization, selectedTypes, selectedDateFilter, hideRecurring, selectedMonth, selectedYear]);
 
-  const activityCount = filteredListEvents.length;
-
   const upcomingColumns = useMemo(() => [
     {
       key: "when",
-      header: "When",
+      header: "Date",
       width: "w-[18%]",
       sortable: true,
       sortAccessor: (row) => row.startDate,
@@ -372,9 +380,7 @@ const UnifiedActivitiesCalendar = ({
       width: "w-[18%]",
       sortable: true,
       render: (row) => (
-        <span style={{
-          backgroundColor: activityTypeColors[row.category]?.bg.replace('bg-', '') || '#f3f4f6',
-        }} className={`inline-block px-2 py-1 rounded-full text-xs font-medium truncate max-w-full ${activityTypeColors[row.category]?.bg || 'bg-gray-100'} ${activityTypeColors[row.category]?.text || 'text-gray-700'}`}>
+        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium truncate max-w-full ${activityTypeColors[row.category]?.bg || 'bg-gray-100'} ${activityTypeColors[row.category]?.text || 'text-gray-700'}`}>
           {categoryMap[row.category] || row.category}
         </span>
       ),
@@ -462,28 +468,30 @@ const UnifiedActivitiesCalendar = ({
             selectedDate={selectedDateFilter}
             onMonthChange={setCurrentDate}
             events={filteredEvents}
-            getEventColor={(category, event) => getEventColor(category, event)}
+            getEventColor={getEventColor}
           />
         )}
       </div>
 
       {/* Legend */}
-      {showLegend && (
-        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 mb-4 sm:mb-6 px-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-red-100 border border-sro-primary"></span>
-            <span className="text-xs font-medium text-gray-600">Non-recurring Event</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-full bg-orange-200 border border-orange-800"></span>
-            <span className="text-xs font-medium text-gray-600">Recurring Event</span>
+      {showLegend && activeTypesInMonth.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 mb-4 sm:mb-6 px-1">
+          {activeTypesInMonth.map(type => (
+            <div key={type} className="flex items-center gap-1.5">
+              <span className={`inline-block w-3 h-3 rounded-sm ${activityTypeColors[type]?.bg || 'bg-gray-100'} ${activityTypeColors[type]?.border || 'border-gray-300'} border`} />
+              <span className="text-xs font-medium text-gray-600">{categoryMap[type] || type}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-300">
+            <Repeat2 className="w-3 h-3 text-gray-500" />
+            <span className="text-xs font-medium text-gray-500">= Recurring</span>
           </div>
         </div>
       )}
 
       {/* List Section */}
       {showUpcoming && (
-        <Card className="rounded-lg shadow-md mt-4 sm:mt-6 transition-all duration-300">
+        <Card ref={listSectionRef} className="rounded-lg shadow-md mt-4 sm:mt-6 transition-all duration-300">
           <CardHeader className="bg-white p-3 sm:px-4 border-b border-gray-100 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2 overflow-hidden">
               <CardTitle className="text-base sm:text-xl font-bold text-sro-primary flex items-center gap-2 whitespace-nowrap overflow-hidden text-ellipsis">
