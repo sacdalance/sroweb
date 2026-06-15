@@ -6,11 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import DataTable from "@/components/ui/DataTable";
-import axios from 'axios';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, authFetch } from '@/lib/api-config';
 import { CardListSkeleton } from '@/components/ui/skeletons';
 import { Skeleton } from "@/components/ui/skeleton";
-import supabase from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useStudentForms, REQUIRED_FORMS } from '@/hooks/useStudentForms';
 
@@ -30,14 +28,10 @@ const AdminDocuments = () => {
     const fetchPermissions = async () => {
         try {
             setLoadingPermissions(true);
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-            if (!token) return;
-
-            const res = await axios.get(`${API_BASE_URL}/api/documents/permissions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setPermissions(res.data.permissions || []);
+            const res = await authFetch(`${API_BASE_URL}/api/documents/permissions`);
+            if (!res.ok) throw new Error('Failed to fetch permissions');
+            const data = await res.json();
+            setPermissions(data.permissions || []);
         } catch (error) {
             console.error('Error fetching permissions:', error);
             toast.error("Failed to load permissions");
@@ -51,22 +45,22 @@ const AdminDocuments = () => {
             throw new Error("Please enter a valid email");
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
-        await axios.post(`${API_BASE_URL}/api/documents/permissions`, { email: newEmail }, {
-            headers: { Authorization: `Bearer ${token}` }
+        const res = await authFetch(`${API_BASE_URL}/api/documents/permissions`, {
+            method: 'POST',
+            body: JSON.stringify({ email: newEmail }),
         });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to add permission');
+        }
     };
 
     const handleRemovePermission = async (permissionId) => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
-            await axios.delete(`${API_BASE_URL}/api/documents/permissions/${permissionId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const res = await authFetch(`${API_BASE_URL}/api/documents/permissions/${permissionId}`, {
+                method: 'DELETE',
             });
+            if (!res.ok) throw new Error('Failed to remove permission');
 
             toast.success("Access revoked");
             fetchPermissions();

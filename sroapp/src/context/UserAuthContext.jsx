@@ -14,19 +14,21 @@ export function UserAuthProvider({ children }) {
     if (initialized.current) return;
     initialized.current = true;
 
-    const init = async () => {
+    const timeout = (ms) => new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    );
+
+    // Listen for auth changes. INITIAL_SESSION fires once on load with the restored
+    // session (or null) — avoids a separate getSession() call, which can contend
+    // with other callers for the browser's navigator.locks session lock and hang
+    // indefinitely in some environments.
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "TOKEN_REFRESHED") return; // Token refresh doesn't change account data
+
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+
       try {
-        const timeout = (ms) => new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), ms)
-        );
-
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          timeout(8000),
-        ]);
-        const currentUser = session?.user || null;
-        setUser(currentUser);
-
         if (currentUser?.email) {
           const { data } = await Promise.race([
             supabase
@@ -36,35 +38,15 @@ export function UserAuthProvider({ children }) {
               .maybeSingle(),
             timeout(8000),
           ]);
-
-          if (data) setAccount(data);
+          setAccount(data || null);
+        } else {
+          setAccount(null);
         }
       } catch (err) {
-        console.error("[AuthContext] init error:", err);
+        console.error("[AuthContext] account lookup error:", err);
       }
+
       setLoading(false);
-    };
-
-    init();
-
-    // Listen for future auth changes (skip account re-query on token refresh)
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION") return;
-      if (event === "TOKEN_REFRESHED") return; // Token refresh doesn't change account data
-
-      const currentUser = session?.user || null;
-      setUser(currentUser);
-
-      if (currentUser?.email) {
-        const { data } = await supabase
-          .from("account")
-          .select("account_id, role_id, email")
-          .eq("email", currentUser.email)
-          .maybeSingle();
-        setAccount(data || null);
-      } else {
-        setAccount(null);
-      }
     });
 
     return () => {
