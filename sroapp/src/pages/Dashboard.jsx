@@ -12,21 +12,7 @@ import StudentRecentRequests from "@/components/dashboard/StudentRecentRequests"
 import FAQCard from "@/components/FAQCard";
 import { AnimatedContainer } from "@/components/ui/animated-container";
 import { Calendar } from "lucide-react";
-
-const categoryMap = {
-  charitable: "Charitable",
-  serviceWithinUPB: "Service (within UPB)",
-  serviceOutsideUPB: "Service (outside UPB)",
-  contestWithinUPB: "Contest (within UPB)",
-  contestOutsideUPB: "Contest (outside UPB)",
-  educational: "Educational",
-  incomeGenerating: "Income-Generating Project",
-  massOrientation: "Mass Orientation/General Assembly",
-  booth: "Booth",
-  rehearsals: "Rehearsals/Preparation",
-  specialEvents: "Special Event",
-  others: "Others",
-};
+import { categoryMap } from "@/lib/activityTypes";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);

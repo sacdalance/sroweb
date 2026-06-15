@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import supabase from "@/lib/supabase";
 import Layout from "../components/layout/Layout";
 import { PageLoadingSkeleton } from "@/components/ui/skeletons";
@@ -7,41 +7,39 @@ import { UserAuthProvider, useAuth } from "@/context/UserAuthContext";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
 
-// user
-import Dashboard from "../pages/Dashboard";
-import AdviserDashboard from "../pages/AdviserDashboard";
-import ActivityRequest from "../pages/ActivityRequest";
-import Requests from "../pages/Requests";
-import OrgApplication from "../pages/OrgApplication";
-import AnnualReport from "../pages/AnnualReport";
-import AppointmentBooking from "../pages/AppointmentBooking";
-import EditActivity from "../pages/EditActivity";
-import ActivitiesCalendar from "../pages/ActivitiesCalendar";
+// user — lazy loaded for code splitting
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const AdviserDashboard = lazy(() => import("../pages/AdviserDashboard"));
+const ActivityRequest = lazy(() => import("../pages/ActivityRequest"));
+const Requests = lazy(() => import("../pages/Requests"));
+const OrgApplication = lazy(() => import("../pages/OrgApplication"));
+const AnnualReport = lazy(() => import("../pages/AnnualReport"));
+const AppointmentBooking = lazy(() => import("../pages/AppointmentBooking"));
+const EditActivity = lazy(() => import("../pages/EditActivity"));
+const ActivitiesCalendar = lazy(() => import("../pages/ActivitiesCalendar"));
 
-// admin
-import AdminPanel from "../pages/admin/AdminPanel";
-import AdminCreateActivity from "../pages/admin/AdminCreateActivity";
-import AdminStudentActivities from "../pages/admin/AdminStudentActivities";
-
-import AdminOrgApplications from "../pages/admin/AdminOrgApplications";
-import AdminOrganizations from "../pages/admin/AdminOrganizations";
-import OrgProfile from "../pages/admin/OrgProfile";
-import AdminAnnualReports from "../pages/admin/AdminAnnualReports";
-import AdminAppointmentSettings from "../pages/admin/AdminAppointmentSettings";
-import AdminDocuments from "../pages/admin/AdminDocuments";
-import SuperAdminPage from "../pages/admin/SuperAdminPage";
+// admin — lazy loaded
+const AdminPanel = lazy(() => import("../pages/admin/AdminPanel"));
+const AdminCreateActivity = lazy(() => import("../pages/admin/AdminCreateActivity"));
+const AdminStudentActivities = lazy(() => import("../pages/admin/AdminStudentActivities"));
+const AdminOrgApplications = lazy(() => import("../pages/admin/AdminOrgApplications"));
+const AdminOrganizations = lazy(() => import("../pages/admin/AdminOrganizations"));
+const OrgProfile = lazy(() => import("../pages/admin/OrgProfile"));
+const AdminAnnualReports = lazy(() => import("../pages/admin/AdminAnnualReports"));
+const AdminAppointmentSettings = lazy(() => import("../pages/admin/AdminAppointmentSettings"));
+const AdminDocuments = lazy(() => import("../pages/admin/AdminDocuments"));
+const SuperAdminPage = lazy(() => import("../pages/admin/SuperAdminPage"));
+const EmailTestButton = lazy(() => import("../pages/EmailTestButton"));
 
 // route
 import { checkOrCreateUser } from "@/api/authAPI";
 import RequireUser from "@/auth/RequireUser";
 import RequireAdminRole from "@/auth/RequireAdmin";
 
-// try
-import EmailTestButton from "@/pages/EmailTestButton";
-
 const RedirectHome = () => {
   const { user, role, loading } = useAuth();
   const navigate = useNavigate();
+  const hasSynced = useRef(false);
 
   useEffect(() => {
     if (loading) return;
@@ -52,20 +50,23 @@ const RedirectHome = () => {
     }
 
     const syncAndRedirect = async () => {
-      try {
-        await checkOrCreateUser(user.email, user.user_metadata.full_name);
-        console.log("User synced!");
-      } catch (err) {
-        console.error("Sync error:", err.message);
+      if (!hasSynced.current) {
+        hasSynced.current = true;
+        try {
+          await checkOrCreateUser(user.email, user.user_metadata.full_name);
+        } catch (err) {
+          console.error("Sync error:", err.message);
+        }
       }
 
       if (role === 5) {
         navigate("/adviser");
       } else if (role && [2, 3, 4].includes(role)) {
         navigate("/admin");
-      } else {
+      } else if (role) {
         navigate("/dashboard");
       }
+      // If role is still null, wait for next render when role populates
     };
 
     syncAndRedirect();
@@ -107,7 +108,7 @@ const PrivateRoute = () => {
   }
 
   // If logged in and email is valid, render the route
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  return user ? <Suspense fallback={<PageLoadingSkeleton />}><Outlet /></Suspense> : <Navigate to="/login" replace />;
 };
 
 /**
@@ -141,7 +142,7 @@ const router = createBrowserRouter([
           {
             element: <PrivateRoute />,
             children: [
-          // ✅ USER ROUTES (User + SuperAdmin)
+          // USER ROUTES (User + SuperAdmin)
           { path: "dashboard", element: <RequireUser><Dashboard /></RequireUser> },
           { path: "activity-request", element: <RequireUser><ActivityRequest /></RequireUser> },
           { path: "edit-activity", element: <RequireUser><EditActivity /></RequireUser> },

@@ -11,7 +11,21 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-  }, server: {
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase': ['@supabase/supabase-js'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-scroll-area'],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'date-vendor': ['date-fns', 'react-day-picker'],
+        },
+      },
+    },
+  },
+  server: {
     proxy: {
       "/api": "http://localhost:3000", // Proxy API requests to Express backend
       "/activities": {

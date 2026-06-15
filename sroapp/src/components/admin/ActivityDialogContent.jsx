@@ -6,21 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import StatusPill from "@/components/ui/StatusPill";
-
-const activityTypeOptions = [
-  { id: "charitable", label: "Charitable" },
-  { id: "serviceWithinUPB", label: "Service within UPB" },
-  { id: "serviceOutsideUPB", label: "Service outside UPB" },
-  { id: "contestWithinUPB", label: "Contest within UPB" },
-  { id: "contestOutsideUPB", label: "Contest outside UPB" },
-  { id: "educational", label: "Educational" },
-  { id: "incomeGenerating", label: "Income-Generating Project" },
-  { id: "massOrientation", label: "Mass Orientation/General Assembly" },
-  { id: "booth", label: "Booth" },
-  { id: "rehearsals", label: "Rehearsals/Preparation" },
-  { id: "specialEvents", label: "Special Events" },
-  { id: "others", label: "Others" }
-];
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { activityTypeOptions } from "@/lib/activityTypes";
 
 const sdgOptions = [
   { id: "noPoverty", label: "No Poverty" },
@@ -219,7 +206,7 @@ const ActivityDialogContent = ({
 
   return (
     <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
           {/* Header Section */}
           <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
@@ -465,7 +452,7 @@ const ActivityDialogContent = ({
           )}
 
         </div>
-      </div>
+      </ScrollArea>
 
       {/* Admin Decision Box - pinned below scroll area */}
       {!readOnly && (
