@@ -16,16 +16,26 @@ export function UserAuthProvider({ children }) {
 
     const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const timeout = (ms) => new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), ms)
+        );
+
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          timeout(8000),
+        ]);
         const currentUser = session?.user || null;
         setUser(currentUser);
 
         if (currentUser?.email) {
-          const { data, error } = await supabase
-            .from("account")
-            .select("account_id, role_id, email")
-            .eq("email", currentUser.email)
-            .maybeSingle();
+          const { data } = await Promise.race([
+            supabase
+              .from("account")
+              .select("account_id, role_id, email")
+              .eq("email", currentUser.email)
+              .maybeSingle(),
+            timeout(8000),
+          ]);
 
           if (data) setAccount(data);
         }
