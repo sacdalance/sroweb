@@ -5,6 +5,7 @@ import cors from 'cors';
 import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -18,7 +19,7 @@ const upload = multer({
 // Load environment variables
 const parentFolderId = process.env.GDRIVE_ANNUAL_REPORT_FOLDER_ID;
 const serviceAccountEmail = process.env.GDRIVE_CLIENT_EMAIL;
-const privateKey = process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n');
+const privateKey = getGoogleServiceAccountKey();
 const projectId = process.env.GDRIVE_PROJECT_ID;
 
 // Google Drive API client setup

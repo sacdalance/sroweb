@@ -14,47 +14,39 @@ export function UserAuthProvider({ children }) {
     if (initialized.current) return;
     initialized.current = true;
 
-    const init = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user || null;
-        setUser(currentUser);
+    const timeout = (ms) => new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    );
 
-        if (currentUser?.email) {
-          const { data, error } = await supabase
-            .from("account")
-            .select("account_id, role_id, email")
-            .eq("email", currentUser.email)
-            .maybeSingle();
-
-          if (data) setAccount(data);
-        }
-      } catch (err) {
-        console.error("[AuthContext] init error:", err);
-      }
-      setLoading(false);
-    };
-
-    init();
-
-    // Listen for future auth changes (skip account re-query on token refresh)
+    // Listen for auth changes. INITIAL_SESSION fires once on load with the restored
+    // session (or null) — avoids a separate getSession() call, which can contend
+    // with other callers for the browser's navigator.locks session lock and hang
+    // indefinitely in some environments.
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "INITIAL_SESSION") return;
       if (event === "TOKEN_REFRESHED") return; // Token refresh doesn't change account data
 
       const currentUser = session?.user || null;
       setUser(currentUser);
 
-      if (currentUser?.email) {
-        const { data } = await supabase
-          .from("account")
-          .select("account_id, role_id, email")
-          .eq("email", currentUser.email)
-          .maybeSingle();
-        setAccount(data || null);
-      } else {
-        setAccount(null);
+      try {
+        if (currentUser?.email) {
+          const { data } = await Promise.race([
+            supabase
+              .from("account")
+              .select("account_id, role_id, email")
+              .eq("email", currentUser.email)
+              .maybeSingle(),
+            timeout(8000),
+          ]);
+          setAccount(data || null);
+        } else {
+          setAccount(null);
+        }
+      } catch (err) {
+        console.error("[AuthContext] account lookup error:", err);
       }
+
+      setLoading(false);
     });
 
     return () => {

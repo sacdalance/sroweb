@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api-config';
-import supabase from '@/lib/supabase';
-import { toast } from 'sonner';
 
 // Define the hardcoded list of forms required by the system
 export const REQUIRED_FORMS = [
@@ -65,16 +62,9 @@ export const useStudentForms = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
-
-                const headers = {};
-                if (token) {
-                    headers.Authorization = `Bearer ${token}`;
-                }
-
-                const res = await axios.get(`${API_BASE_URL}/api/documents/forms`, { headers });
-                setPublicForms(res.data);
+                const res = await fetch(`${API_BASE_URL}/api/documents/forms`);
+                if (!res.ok) throw new Error('Failed to fetch forms');
+                setPublicForms(await res.json());
                 setError(null);
             } catch (err) {
                 console.error('Fetch error:', err);

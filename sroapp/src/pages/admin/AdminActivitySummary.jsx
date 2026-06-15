@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
-import supabase from "@/lib/supabase";
 import {
   Filter,
   X,
@@ -142,11 +141,7 @@ const AdminActivitySummary = () => {
 
   const handleViewPDFsInDrive = async () => {
     try {
-      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`, {
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`,
-        },
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`);
       if (!response.ok) throw new Error('Failed to get folder URL');
       const { folderUrl } = await response.json();
       window.open(folderUrl, '_blank');

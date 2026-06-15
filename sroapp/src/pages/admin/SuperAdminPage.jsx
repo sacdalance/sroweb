@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/UserAuthContext";
-import supabase from "@/lib/supabase";
+import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { UnifiedDropdown } from "@/components/ui/unified-dropdown";
 import { Button } from "@/components/ui/button";
 import { SettingsSkeleton } from "@/components/ui/skeletons";
@@ -38,17 +38,21 @@ const SuperAdminPage = () => {
     const handleRoleChange = async () => {
         if (!accountId) return;
 
-        // Optimistic update or waiting?
-        const { error } = await supabase
-            .from("account")
-            .update({ role_id: selectedRole })
-            .eq("account_id", accountId);
+        try {
+            const res = await authFetch(`${API_BASE_URL}/api/super-admin/role`, {
+                method: "PUT",
+                body: JSON.stringify({ role_id: selectedRole }),
+            });
 
-        if (!error) {
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Failed to update role");
+            }
+
             alert("Role updated! The page will reload.");
             window.location.reload();
-        } else {
-            alert("Error updating role: " + error.message);
+        } catch (err) {
+            alert("Error updating role: " + err.message);
         }
     };
 

@@ -5,14 +5,18 @@ export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 // Cache the access token at module level to avoid calling getSession() on every request
 let cachedAccessToken = null;
 
-// Single shared promise for initial session fetch — prevents concurrent getSession() calls
-let initPromise = supabase.auth.getSession().then(({ data: { session } }) => {
-  cachedAccessToken = session?.access_token || null;
-});
+// Resolve once the first auth state (including INITIAL_SESSION on page load) is known.
+// Avoids a separate getSession() call, which can contend with other callers for the
+// browser's navigator.locks session lock and hang indefinitely in some environments.
+let resolveInit;
+let initPromise = new Promise((resolve) => { resolveInit = resolve; });
 
-// Keep token in sync on auth state changes (login, token refresh, logout)
 supabase.auth.onAuthStateChange((_event, session) => {
   cachedAccessToken = session?.access_token || null;
+  if (resolveInit) {
+    resolveInit();
+    resolveInit = null;
+  }
 });
 
 /**
