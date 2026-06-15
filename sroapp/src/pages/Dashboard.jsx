@@ -66,7 +66,7 @@ const Dashboard = () => {
         supabase
           .from("org_recognition")
           .select("recognition_id", { count: "exact", head: true })
-          .eq("account_id", acctId),
+          .eq("submitted_by", acctId),
       ]);
 
       setStatCounts({

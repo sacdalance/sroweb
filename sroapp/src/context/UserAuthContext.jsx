@@ -22,31 +22,35 @@ export function UserAuthProvider({ children }) {
     // session (or null) — avoids a separate getSession() call, which can contend
     // with other callers for the browser's navigator.locks session lock and hang
     // indefinitely in some environments.
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "TOKEN_REFRESHED") return; // Token refresh doesn't change account data
 
       const currentUser = session?.user || null;
       setUser(currentUser);
 
-      try {
-        if (currentUser?.email) {
-          const { data } = await Promise.race([
-            supabase
-              .from("account")
-              .select("account_id, role_id, email")
-              .eq("email", currentUser.email)
-              .maybeSingle(),
-            timeout(8000),
-          ]);
-          setAccount(data || null);
-        } else {
-          setAccount(null);
+      // Defer: querying Supabase synchronously inside onAuthStateChange can
+      // deadlock on the internal session lock the callback is invoked under.
+      setTimeout(async () => {
+        try {
+          if (currentUser?.email) {
+            const { data } = await Promise.race([
+              supabase
+                .from("account")
+                .select("account_id, role_id, email")
+                .eq("email", currentUser.email)
+                .maybeSingle(),
+              timeout(8000),
+            ]);
+            setAccount(data || null);
+          } else {
+            setAccount(null);
+          }
+        } catch (err) {
+          console.error("[AuthContext] account lookup error:", err);
         }
-      } catch (err) {
-        console.error("[AuthContext] account lookup error:", err);
-      }
 
-      setLoading(false);
+        setLoading(false);
+      }, 0);
     });
 
     return () => {
