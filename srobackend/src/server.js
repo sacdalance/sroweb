@@ -130,6 +130,10 @@ app.get('/', (req, res) => {
   res.send('Supabase backend is working!');
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
+
+export default app;
