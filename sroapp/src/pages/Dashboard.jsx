@@ -83,7 +83,7 @@ const Dashboard = () => {
   const fetchActivities = async () => {
     try {
       const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 30);
+      cutoff.setDate(cutoff.getDate() - 90);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
 
       const { data, error } = await supabase
