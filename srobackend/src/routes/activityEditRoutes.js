@@ -9,10 +9,23 @@ router.put('/edit/:activity_id', authMiddleware, async (req, res) => {
   const { activity_id } = req.params;
   const body = req.body;
 
-  // Update activity fields
+  const { data: activity, error: fetchError } = await supabase
+    .from('activity')
+    .select('account_id')
+    .eq('activity_id', activity_id)
+    .single();
+
+  if (fetchError || !activity) {
+    return res.status(404).json({ error: 'Activity not found' });
+  }
+
+  const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
+  if (!isAdmin && activity.account_id !== req.account?.account_id) {
+    return res.status(403).json({ error: 'Forbidden: You can only edit your own activities' });
+  }
+
+  // Update activity fields (account_id/org_id are immutable via this endpoint)
   const updatePayload = {
-    account_id: body.account_id,
-    org_id: body.org_id,
     student_position: body.student_position,
     student_contact: body.student_contact,
     activity_name: body.activity_name,

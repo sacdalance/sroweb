@@ -1,6 +1,6 @@
 import express from 'express';
 import { google } from 'googleapis';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, verifyAdminRoles } from '../middleware/authMiddleware.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -140,7 +140,7 @@ router.get('/templates/preview-html', authMiddleware, async (req, res) => {
  * GET /permissions
  * Lists usage permissions for the Public Forms folder
  */
-router.get('/permissions', authMiddleware, async (req, res) => {
+router.get('/permissions', verifyAdminRoles, async (req, res) => {
     try {
         const folderId = process.env.GDRIVE_PUBLIC_FORMS_FOLDER_ID;
         if (!folderId) return res.status(500).json({ error: 'Folder ID not configured' });
@@ -165,7 +165,7 @@ router.get('/permissions', authMiddleware, async (req, res) => {
  * POST /permissions
  * Adds a new 'writer' (editor) to the folder
  */
-router.post('/permissions', authMiddleware, async (req, res) => {
+router.post('/permissions', verifyAdminRoles, async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
@@ -202,7 +202,7 @@ router.post('/permissions', authMiddleware, async (req, res) => {
  * DELETE /permissions/:permissionId
  * Removes a permission
  */
-router.delete('/permissions/:permissionId', authMiddleware, async (req, res) => {
+router.delete('/permissions/:permissionId', verifyAdminRoles, async (req, res) => {
     const { permissionId } = req.params;
 
     try {

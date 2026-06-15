@@ -38,7 +38,7 @@ const drive = google.drive({ version: 'v3', auth });
  * and share it with the submitter and admin accounts (writers/editors)
  */
 async function createDriveFolder(folderName, parentId, allowedEmails = []) {
-  console.log("📁 Target Parent Folder ID:", parentId);
+  console.log("Target Parent Folder ID:", parentId);
 
   const fileMetadata = {
     name: folderName,
@@ -62,12 +62,12 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
   const actualParents = folderDetails.data.parents;
   const folderOwner = folderDetails.data.owners?.[0]?.emailAddress;
 
-  console.log("📦 Created Folder ID:", folderId);
-  console.log("📦 Actual Parent(s):", actualParents);
-  console.log("👤 Folder Owned By:", folderOwner);
+  console.log("Created Folder ID:", folderId);
+  console.log("Actual Parent(s):", actualParents);
+  console.log("Folder Owned By:", folderOwner);
 
   if (!actualParents || !actualParents.includes(parentId)) {
-    throw new Error(`🚫 Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
+    throw new Error(`Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
   }
 
   // Always share with srotest128@gmail.com
@@ -130,11 +130,16 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
  */
 router.post('/', authMiddleware, upload.array('files', 2), async (req, res) => {
   try {
-    const { org_id, submitted_by, academic_year } = req.body;
+    const { org_id, academic_year } = req.body;
+    const submitted_by = req.account?.account_id;
     const files = req.files;
 
-    // 🚨 Validate required fields
-    if (!org_id || !submitted_by || !academic_year) {
+    if (!submitted_by) {
+      return res.status(401).json({ error: 'Account not found for authenticated user.' });
+    }
+
+    // Validate required fields
+    if (!org_id || !academic_year) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
