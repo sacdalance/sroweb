@@ -83,7 +83,7 @@ router.post('/update-status', verifyAdminRoles, async (req, res) => {
     };
 
     if (existing) {
-      // ✅ Update existing organization (Renewal)
+      // Update existing organization (Renewal)
       const { error: updateError } = await supabase
         .from('organization')
         .update(orgData)
@@ -94,7 +94,7 @@ router.post('/update-status', verifyAdminRoles, async (req, res) => {
         return res.status(500).json({ error: updateError.message });
       }
     } else {
-      // ✅ Insert new organization
+      // Insert new organization
       const { error: insertError } = await supabase
         .from('organization')
         .insert([orgData]);

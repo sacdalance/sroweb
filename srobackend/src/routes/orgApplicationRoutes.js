@@ -15,13 +15,13 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max per file
 });
 
-// ✅ Load environment variables
+// Load environment variables
 const parentFolderId = process.env.GDRIVE_ORG_APP_FOLDER_ID;
 const serviceAccountEmail = process.env.GDRIVE_CLIENT_EMAIL;
 const privateKey = process.env.GDRIVE_PRIVATE_KEY.replace(/\\n/g, '\n');
 const projectId = process.env.GDRIVE_PROJECT_ID;
 
-// 🔐 Google Drive API client setup
+// Google Drive API client setup
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: serviceAccountEmail,
@@ -34,11 +34,11 @@ const auth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth });
 
 /**
- * ✅ Create a Google Drive folder under the given parent folder
+ * Create a Google Drive folder under the given parent folder
  * and share it only with the org email and SRO to avoid quota limits
  */
 async function createDriveFolder(folderName, parentId, allowedEmails = []) {
-    console.log("📁 Target Parent Folder ID:", parentId);
+    console.log("Target Parent Folder ID:", parentId);
   
     const fileMetadata = {
       name: folderName,
@@ -53,18 +53,18 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
   
     const folderId = folder.data.id;
   
-    // 🧪 Confirm folder created in correct parent
+    // Confirm folder created in correct parent
     const folderDetails = await drive.files.get({
       fileId: folderId,
       fields: 'id, name, parents, webViewLink, owners',
     });
-  
+
     const actualParents = folderDetails.data.parents;
     if (!actualParents || !actualParents.includes(parentId)) {
-      throw new Error(`🚫 Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
+      throw new Error(`Folder was NOT created in the correct parent. Expected: ${parentId}, Got: ${actualParents}`);
     }
-  
-    // 🔐 Always share with srotest128@gmail.com
+
+    // Always share with srotest128@gmail.com
     await drive.permissions.create({
       fileId: folderId,
       requestBody: {
@@ -74,7 +74,7 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
       },
     });
   
-    // 🔐 Only share with the org email (limit sharing to avoid quota)
+    // Only share with the org email (limit sharing to avoid quota)
     const orgEmail = allowedEmails.find(email => email !== 'srotest128@gmail.com');
     if (orgEmail) {
       await drive.permissions.create({
@@ -86,18 +86,18 @@ async function createDriveFolder(folderName, parentId, allowedEmails = []) {
         },
       });
     }
-  
-    // 📝 Log skipped admins
+
+    // Log skipped admins
     const skipped = allowedEmails.filter(email => email !== 'srotest128@gmail.com' && email !== orgEmail);
     if (skipped.length > 0) {
-      console.warn(`⚠️ Skipped sharing with admin accounts due to quota limits:`, skipped);
+      console.warn(`Skipped sharing with admin accounts due to quota limits:`, skipped);
     }
-  
+
     return folderDetails.data;
   }
-  
+
 /**
- * ✅ Upload a file into the created Drive folder
+ * Upload a file into the created Drive folder
  */
 async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
   const fileMetadata = {
@@ -125,7 +125,7 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
 }
 
 /**
- * ✅ POST /api/org-application - Handles uploading org recognition docs and storing metadata
+ * POST /api/org-application - Handles uploading org recognition docs and storing metadata
  */
 router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
   try {
@@ -141,15 +141,15 @@ router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
       coadviser_email,
       org_type,
       org_status,
-      submitted_by,
     } = req.body;
     const files = req.files;
+    const parsedSubmitter = req.account?.account_id;
 
-    console.log("📥 Raw submitted_by from req.body:", submitted_by);
-const parsedSubmitter = parseInt(submitted_by);
-console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
+    if (!parsedSubmitter) {
+      return res.status(401).json({ error: "Account not found for authenticated user." });
+    }
 
-    // 🚨 Validate required fields
+    // Validate required fields
     if (
       !org_name || !academic_year || !org_email ||
       !org_chairperson || !chairperson_email ||
@@ -168,7 +168,7 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
       }
     }
 
-    // 🔍 Get admin emails (SRO: 2, ODSA: 3, Superadmin: 4)
+    // Get admin emails (SRO: 2, ODSA: 3, Superadmin: 4)
     const { data: adminAccounts, error: adminError } = await supabase
       .from('account')
       .select('email')
@@ -179,12 +179,12 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
     const adminEmails = adminAccounts.map(acc => acc.email);
     const allowedEmails = [org_email, ...adminEmails];
 
-    // 📂 Create Google Drive folder
+    // Create Google Drive folder
     const folderName = `${org_name} - Recognition ${academic_year}`;
     const folder = await createDriveFolder(folderName, parentFolderId, allowedEmails);
     const folderId = folder.id;
 
-    // 📄 Upload files to Drive
+    // Upload files to Drive
     const uploadedLinks = await Promise.all(
       files.map(file =>
         uploadToGoogleDrive(file.buffer, file.originalname, file.mimetype, folderId)
@@ -207,7 +207,7 @@ console.log("✅ Parsed submitted_by as integer:", parsedSubmitter);
     const org_id = baseYear * 10 + nextSuffix; // e.g., 20251
       
 
-    // 📝 Insert record into Supabase DB
+    // Insert record into Supabase DB
     const { error: insertError } = await supabase.from('org_recognition').insert([{
       org_id,
       org_name,

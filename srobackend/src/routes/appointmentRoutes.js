@@ -313,6 +313,7 @@ router.get('/available-slots', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { date, status, user_id } = req.query;
+    const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
 
     let query = supabase
       .from('appointments')
@@ -329,8 +330,10 @@ router.get('/', authMiddleware, async (req, res) => {
       query = query.eq('status', status);
     }
 
-    if (user_id) {
-      query = query.eq('user_id', user_id);
+    if (isAdmin) {
+      if (user_id) query = query.eq('user_id', user_id);
+    } else {
+      query = query.eq('account_id', req.account?.account_id);
     }
 
     const { data, error } = await query.order('date', { ascending: true });
@@ -364,6 +367,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
+    const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
+    if (!isAdmin && data.account_id !== req.account?.account_id) {
+      return res.status(403).json({ error: 'Forbidden: You can only view your own appointments' });
+    }
+
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching appointment:', error);
@@ -375,7 +383,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
-      account_id,
       appointment_date,
       appointment_time,
       reason,
@@ -384,6 +391,7 @@ router.post('/', authMiddleware, async (req, res) => {
       contact_number,
       email
     } = req.body;
+    const account_id = req.account?.account_id;
 
     // Validate required fields
     if (!account_id || !appointment_date || !appointment_time || !reason) {
@@ -714,6 +722,11 @@ router.post('/:id/reschedule-request', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
+    const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
+    if (!isAdmin && appointment.account_id !== req.account?.account_id) {
+      return res.status(403).json({ error: 'Forbidden: You can only reschedule your own appointments' });
+    }
+
     // Check if appointment is in a state that allows rescheduling
     if (['cancelled', 'completed', 'no-show'].includes(appointment.status)) {
       return res.status(400).json({
@@ -970,6 +983,11 @@ router.post('/:id/cancellation-request', authMiddleware, async (req, res) => {
 
     if (!appointment) {
       return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
+    if (!isAdmin && appointment.account_id !== req.account?.account_id) {
+      return res.status(403).json({ error: 'Forbidden: You can only cancel your own appointments' });
     }
 
     // Check if appointment is already cancelled or completed

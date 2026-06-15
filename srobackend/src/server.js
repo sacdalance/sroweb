@@ -28,7 +28,7 @@ import activityApprovalSlipRoutes from './routes/activityApprovalSlipRoutes_new.
 import adminDocumentsRoutes from './routes/adminDocumentsRoutes.js';
 
 
-console.log('📋 Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
+console.log('Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
 
 
 import dotenv from 'dotenv';
@@ -64,6 +64,14 @@ app.use(cors({
 
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
+
+// Block direct browser navigation (HTML requests); allow programmatic API calls
+app.use((req, res, next) => {
+  if (req.accepts('html') && !req.accepts('json')) {
+    return res.status(404).end();
+  }
+  next();
+});
 
 // Global rate limit: 100 requests per minute per IP
 const globalLimiter = rateLimit({

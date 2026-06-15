@@ -11,6 +11,21 @@ router.put('/cancel/:activity_id', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Cancellation reason is required' });
   }
 
+  const { data: activity, error: fetchError } = await supabase
+    .from('activity')
+    .select('account_id')
+    .eq('activity_id', activity_id)
+    .single();
+
+  if (fetchError || !activity) {
+    return res.status(404).json({ error: 'Activity not found' });
+  }
+
+  const isAdmin = [2, 3, 4, 5].includes(req.account?.role_id);
+  if (!isAdmin && activity.account_id !== req.account?.account_id) {
+    return res.status(403).json({ error: 'Forbidden: You can only cancel your own activities' });
+  }
+
   const updatePayload = {
     appeal_reason,
     final_status: "For Cancellation",

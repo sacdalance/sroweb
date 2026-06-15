@@ -1156,7 +1156,7 @@ const ActivityForm = ({
                       if (selected < minDate && selected >= new Date()) {
                         return (
                           <p className="text-xs text-yellow-600 mt-1 px-1 font-medium">
-                            ⚠️ <strong>Warning:</strong> This activity is not 5 business days in advance.
+                            <strong>Warning:</strong> This activity is not 5 business days in advance.
                             Please coordinate directly with SRO. You may still submit your request.
                           </p>
                         );

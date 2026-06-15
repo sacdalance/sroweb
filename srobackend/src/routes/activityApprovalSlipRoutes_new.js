@@ -1,7 +1,7 @@
 import express from 'express';
 import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 import dotenv from 'dotenv';
 import streamifier from 'streamifier';
 
@@ -157,9 +157,9 @@ async function generateSlipForActivity(activity, templateId) {
 /**
  * POST /generate-approval-slips
  */
-router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
+router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   try {
-    console.log('🚀 Starting Google Docs-based PDF generation...');
+    console.log('Starting Google Docs-based PDF generation...');
 
     // 1. Find Master Template
     const templatesFolderId = process.env.GDRIVE_TEMPLATES_FOLDER_ID;
@@ -181,7 +181,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
     }
 
     const templateId = templateRes.data.files[0].id;
-    console.log(`📄 Using Template: ${templateRes.data.files[0].name} (${templateId})`);
+    console.log(`Using Template: ${templateRes.data.files[0].name} (${templateId})`);
 
     // 2. Fetch Approved Activities (Pending Print) — process in batches of 50
     const { data: approvedActivities, error: dbError } = await supabase
@@ -240,7 +240,7 @@ router.post('/generate-approval-slips', authMiddleware, async (req, res) => {
 });
 
 // Reuse existing routes for status checks
-router.get('/pdf-status', authMiddleware, async (req, res) => {
+router.get('/pdf-status', verifyAdminRoles, async (req, res) => {
   // ... (Keep existing logic if needed, or simplified)
   // For brevity, just returning standard status query
   const { count } = await supabase
