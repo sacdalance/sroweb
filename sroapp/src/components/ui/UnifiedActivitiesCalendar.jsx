@@ -398,7 +398,7 @@ const UnifiedActivitiesCalendar = ({
   ], [selectedDateFilter]);
 
   return (
-    <div className="container mx-auto p-2 sm:p-6 max-w-[1600px]">
+    <div className="container mx-auto px-2 sm:px-6 max-w-[1600px]">
       <div className="flex items-center gap-2 mb-4">
         <h1 className={`page-header ${window.location.pathname.includes('/admin') ? 'text-sro-primary' : 'text-black'} mb-0`}>{calendarTitle}</h1>
       </div>

@@ -516,7 +516,7 @@ const AdminPendingRequests = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
+    <div className="container mx-auto px-4 sm:px-6 max-w-[1600px]">
       <Toaster />
 
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
