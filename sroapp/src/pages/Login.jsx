@@ -57,9 +57,9 @@ const Login = () => {
     };
 
     return (
-        <div className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-gray-100">
+        <div className="min-h-screen bg-gray-100">
             {/* Hero */}
-            <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 px-4 py-16 md:py-4 h-screen snap-start snap-always">
+            <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 px-4 py-16 md:py-4 min-h-[100dvh]">
                 {/* System Title and Description - hidden on small screens */}
                 <div className="w-full md:w-1/2 p-4 md:p-10 flex justify-center">
                     <div className="max-w-lg w-full flex flex-col items-center md:items-start
@@ -126,7 +126,7 @@ const Login = () => {
             </div>
 
             {/* Activities Calendar */}
-            <div ref={infoRef} className="min-h-screen px-4 pb-8 snap-start">
+            <div ref={infoRef} className="px-4 pb-8">
                 <UnifiedActivitiesCalendar
                     dialogComponent={PublicActivityDialog}
                     fetchActivities={fetchApprovedActivities}
