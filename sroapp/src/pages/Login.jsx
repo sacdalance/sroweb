@@ -59,7 +59,7 @@ const Login = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Hero */}
-            <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 px-4 py-16 md:py-4 min-h-[100dvh]">
+            <div className="relative flex flex-col items-center justify-center gap-4 px-4 pt-16 pb-4 md:flex-row md:py-4 min-h-[100dvh]">
                 {/* System Title and Description - hidden on small screens */}
                 <div className="w-full md:w-1/2 p-4 md:p-10 flex justify-center">
                     <div className="max-w-lg w-full flex flex-col items-center md:items-start
@@ -118,7 +118,7 @@ const Login = () => {
                 <button
                     onClick={scrollToInfo}
                     aria-label="Scroll down for more information"
-                    className="cursor-pointer absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-sro-primary hover:text-sro-primary/80 transition-colors"
+                    className="cursor-pointer md:absolute md:bottom-4 md:left-1/2 md:-translate-x-1/2 mt-2 flex flex-col items-center gap-1 text-sro-primary hover:text-sro-primary/80 transition-colors"
                 >
                     <span className="text-xs font-medium">More Info</span>
                     <ChevronDown className="w-5 h-5 animate-bounce" />
