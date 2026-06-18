@@ -6,6 +6,7 @@ import { PageLoadingSkeleton } from "@/components/ui/skeletons";
 import { UserAuthProvider, useAuth } from "@/context/UserAuthContext";
 import NotFound from "../pages/NotFound";
 import Login from "../pages/Login";
+import IdleTimeoutWarning from "@/components/IdleTimeoutWarning";
 
 // user — lazy loaded for code splitting
 const Dashboard = lazy(() => import("../pages/Dashboard"));
@@ -96,19 +97,33 @@ const PrivateRoute = () => {
   // Show error if email is not a UP Mail
   if (user && !user.email.endsWith("@up.edu.ph")) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white-100 text-center px-4">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Please use your UP Mail</h2>
-        <p className="text-gray-700 mb-6">The email <strong>{user.email}</strong> is not a valid UP Mail address.</p>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center px-4">
+        <h1 className="text-[64px] lg:text-[80px] font-extrabold text-sro-primary leading-tight">
+          OOPS!
+        </h1>
+        <h2 className="text-[32px] lg:text-[44px] font-bold text-sro-primary mb-4">
+          WRONG EMAIL DOMAIN
+        </h2>
+        <p className="text-sm sm:text-base text-gray-700 mb-6">
+          The email <strong>{user.email}</strong> is not a valid UP Mail address.
+        </p>
         <button
           onClick={handleSignOut}
-          className="bg-sro-primary text-white px-6 py-2 rounded-md hover:bg-sro-primary/90 transition"
-        >Sign Out</button>
+          className="cursor-pointer bg-sro-primary text-white px-6 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 hover:bg-sro-primary/90"
+        >
+          Sign Out
+        </button>
       </div>
     );
   }
 
   // If logged in and email is valid, render the route
-  return user ? <Suspense fallback={<PageLoadingSkeleton />}><Outlet /></Suspense> : <Navigate to="/login" replace />;
+  return user ? (
+    <>
+      <IdleTimeoutWarning />
+      <Suspense fallback={<PageLoadingSkeleton />}><Outlet /></Suspense>
+    </>
+  ) : <Navigate to="/login" replace />;
 };
 
 /**
