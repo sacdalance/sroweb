@@ -1,6 +1,7 @@
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "@/lib/supabase";
-import { FileText, BookOpen, Users, GraduationCap } from "lucide-react";
+import { FileText, BookOpen, Users, GraduationCap, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import UnifiedActivitiesCalendar from "@/components/ui/UnifiedActivitiesCalendar";
@@ -39,6 +40,7 @@ const PublicActivityDialog = (props) => (
 
 const Login = () => {
     const navigate = useNavigate();
+    const infoRef = useRef(null);
 
     // Function to handle Google Sign-In
     const handleGoogleSignIn = async () => {
@@ -50,9 +52,14 @@ const Login = () => {
         if (error) console.error("Login error:", error.message);
     };
 
+    const scrollToInfo = () => {
+        infoRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
     return (
         <div className="min-h-screen bg-gray-100">
-            <div className="flex flex-col md:flex-row items-center justify-center px-4 py-4 min-h-[60vh]">
+            {/* Hero */}
+            <div className="relative flex flex-col md:flex-row items-center justify-center px-4 py-4 min-h-screen">
                 {/* System Title and Description - hidden on small screens */}
                 <div className="w-full md:w-1/2 p-8 md:p-10 flex justify-center">
                     <div className="max-w-lg w-full flex flex-col items-center md:items-start
@@ -106,10 +113,20 @@ const Login = () => {
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Scroll to more info */}
+                <button
+                    onClick={scrollToInfo}
+                    aria-label="Scroll down for more information"
+                    className="cursor-pointer absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-sro-primary hover:text-sro-primary/80 transition-colors"
+                >
+                    <span className="text-xs font-medium">More Info</span>
+                    <ChevronDown className="w-6 h-6 animate-bounce" />
+                </button>
             </div>
 
             {/* Activities Calendar */}
-            <div className="px-4 pb-8">
+            <div ref={infoRef} className="px-4 pb-8">
                 <UnifiedActivitiesCalendar
                     dialogComponent={PublicActivityDialog}
                     fetchActivities={fetchApprovedActivities}

@@ -6,7 +6,7 @@ const OfflinePage = () => {
     };
 
     return (
-        <div className="w-full min-h-screen bg-white flex flex-col items-center justify-center text-center px-4">
+        <div className="fixed inset-0 z-[9999] w-full h-full bg-white flex flex-col items-center justify-center text-center px-4">
             <h1 className="text-[64px] lg:text-[80px] font-extrabold text-sro-primary leading-tight">
                 OOPS!
             </h1>
