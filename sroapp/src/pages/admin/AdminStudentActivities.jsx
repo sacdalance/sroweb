@@ -525,33 +525,30 @@ const AdminPendingRequests = () => {
 
         </div>
         <div className="flex items-center gap-3">
+          {userRole === 4 && (
+            <div className="bg-white border rounded-lg p-1 inline-flex shadow-sm">
+              <button
+                onClick={() => setSuperadminView('adviser')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'adviser' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+              >
+                Adviser View
+              </button>
+              <button
+                onClick={() => setSuperadminView('sro')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'sro' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+              >
+                SRO View
+              </button>
+              <button
+                onClick={() => setSuperadminView('odsa')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'odsa' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+              >
+                ODSA View
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {userRole === 4 && (
-        <div className="flex justify-end mb-4">
-          <div className="bg-white border rounded-lg p-1 inline-flex shadow-sm">
-            <button
-              onClick={() => setSuperadminView('adviser')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'adviser' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
-            >
-              Adviser View
-            </button>
-            <button
-              onClick={() => setSuperadminView('sro')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'sro' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
-            >
-              SRO View
-            </button>
-            <button
-              onClick={() => setSuperadminView('odsa')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${superadminView === 'odsa' ? 'bg-sro-primary text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
-            >
-              ODSA View
-            </button>
-          </div>
-        </div>
-      )}
 
       <Tabs
         defaultValue="requests"
