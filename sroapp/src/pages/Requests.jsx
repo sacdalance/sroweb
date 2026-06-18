@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { TableSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +27,6 @@ const Requests = () => {
   const [cancelReason, setCancelReason] = useState("");
   const [modalAppealReason, setModalAppealReason] = useState("");
   const [editingActivity, setEditingActivity] = useState(null);
-  const [dialogLoading, setDialogLoading] = useState(false);
   const navigate = useNavigate();
   const { accountId, loading: authLoading } = useAuth();
   const [annualReports, setAnnualReports] = useState([]);
@@ -193,19 +192,10 @@ const Requests = () => {
   };
 
   // Handle row click for activity tables
-  const handleActivityRowClick = async (act) => {
-    setDialogLoading(true);
-    try {
-      const res = await authFetch(`${API_BASE_URL}/activities/user/${accountId}?limit=200`);
-      const result = await res.json();
-      const all = result.data ?? result;
-      const fullActivity = all.find((a) => a.activity_id === act.activity_id);
-      setSelectedActivity(fullActivity);
-    } catch (err) {
-      console.error("Error fetching activity with account info:", err);
-    } finally {
-      setDialogLoading(false);
-    }
+  // The row already carries the full activity record from the initial fetch
+  // (same endpoint/payload as below), so just reuse it instead of refetching.
+  const handleActivityRowClick = (act) => {
+    setSelectedActivity(act);
   };
 
   // Column definitions for Activity Requests table
@@ -742,20 +732,11 @@ const Requests = () => {
       {/* Activity Details Dialog */}
       {selectedActivity && (
         <Dialog open={true} onOpenChange={() => setSelectedActivity(null)}>
-          {dialogLoading ? (
-            <DialogContent
-              className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-3xl p-0 overflow-hidden"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-              <DetailSkeleton />
-            </DialogContent>
-          ) : (
-            <ActivityDialogContent
-              activity={selectedActivity}
-              isModalOpen={true}
-              readOnly={true}
-            />
-          )}
+          <ActivityDialogContent
+            activity={selectedActivity}
+            isModalOpen={true}
+            readOnly={true}
+          />
         </Dialog>
       )}
     </div>
