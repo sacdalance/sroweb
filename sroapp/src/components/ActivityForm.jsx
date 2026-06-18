@@ -608,7 +608,7 @@ const ActivityForm = ({
 
 
   return (
-    <div className="min-h-screen flex flex-col items-start justify-start py-8">
+    <div className="flex flex-col items-start justify-start">
       <div className="w-full max-w-2xl mx-auto px-6">
         <h1 className={cn("page-header", mode === "admin" ? "text-sro-primary" : "text-black")}>
           {mode === "edit"
