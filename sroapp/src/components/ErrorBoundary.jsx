@@ -20,6 +20,15 @@ class ErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         console.error("ErrorBoundary caught an error:", error, errorInfo);
         this.setState({ errorInfo });
+
+        // Stale deployment: the loaded page still references a JS chunk hash
+        // that no longer exists on the server after a new Vercel deploy.
+        // Reload once to pick up the fresh index.html with correct hashes.
+        const isChunkLoadError = /Failed to fetch dynamically imported module|Importing a module script failed/i.test(error?.message || "");
+        if (isChunkLoadError && !sessionStorage.getItem("chunk-reload")) {
+            sessionStorage.setItem("chunk-reload", "1");
+            window.location.reload();
+        }
     }
 
     handleRetry = () => {
@@ -99,6 +108,7 @@ class ErrorBoundary extends React.Component {
             );
         }
 
+        sessionStorage.removeItem("chunk-reload");
         return this.props.children;
     }
 }

@@ -811,10 +811,6 @@ const Requests = () => {
                   <StatusPill status={selectedRecognition.odsa_approved === true ? "Approved" : selectedRecognition.odsa_approved === false ? "Rejected" : "Pending"} compact />
                 </div>
               </div>
-
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setSelectedRecognition(null)}>Close</Button>
-              </DialogFooter>
             </div>
           )}
         </DialogContent>
