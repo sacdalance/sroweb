@@ -104,13 +104,10 @@ const AdminAnnualReports = () => {
   if (loading) return <TableSkeleton />;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 max-w-[1600px]">
+    <div className="container mx-auto px-4 sm:px-6 max-w-[1600px]">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b pb-6">
         <div>
           <h1 className="page-header text-sro-primary mb-0">Annual Reports</h1>
-          <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
-            Archive of organization annual accomplishment reports and official submissions.
-          </p>
         </div>
         <div className="flex items-center gap-3">
         </div>

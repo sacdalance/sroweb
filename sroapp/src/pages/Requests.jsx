@@ -78,10 +78,11 @@ const Requests = () => {
     return maxDate < new Date().setHours(0, 0, 0, 0);
   };
 
-  // Pending recognition apps (not fully approved)
-  const pendingRecognitions = useMemo(() => recognitionApps?.filter((app) => !(app.sro_approved && app.odsa_approved)) || [], [recognitionApps]);
-  // Approved recognition apps
-  const approvedRecognitions = useMemo(() => recognitionApps?.filter((app) => app.sro_approved && app.odsa_approved) || [], [recognitionApps]);
+  const getRecognitionStatus = (app) => {
+    if (app.sro_approved === false || app.odsa_approved === false) return "Rejected";
+    if (app.sro_approved && app.odsa_approved) return app.org_status || "Recognized";
+    return "Pending";
+  };
 
   // Get unique org options for filter (Activity Requests)
   const orgOptions = useMemo(() =>
@@ -96,14 +97,14 @@ const Requests = () => {
   );
 
   // Get unique options for Recognition filters
-  const pendingRecognitionOrgOptions = useMemo(() =>
-    [...new Set(pendingRecognitions.map((a) => a.org_name || "Unknown"))].sort(),
-    [pendingRecognitions]
+  const recognitionOrgOptions = useMemo(() =>
+    [...new Set(recognitionApps?.map((a) => a.org_name || "Unknown") || [])].sort(),
+    [recognitionApps]
   );
 
-  const approvedRecognitionOrgOptions = useMemo(() =>
-    [...new Set(approvedRecognitions.map((a) => a.org_name || "Unknown"))].sort(),
-    [approvedRecognitions]
+  const recognitionStatusOptions = useMemo(() =>
+    [...new Set(recognitionApps?.map((a) => getRecognitionStatus(a)) || [])].sort(),
+    [recognitionApps]
   );
 
   const recognitionYearOptions = useMemo(() =>
@@ -418,15 +419,15 @@ const Requests = () => {
     },
   ];
 
-  // Column definitions for Recognition tables
-  const pendingRecognitionColumns = [
+  // Column definitions for Recognition table
+  const recognitionColumns = [
     {
       key: "org_name",
       header: "Organization",
       width: "w-[35%]",
       sortable: true,
       filterable: true,
-      filterOptions: pendingRecognitionOrgOptions,
+      filterOptions: recognitionOrgOptions,
       filterLabel: "Organizations",
       filterAccessor: (row) => row.org_name || "Unknown",
       render: (row) => (
@@ -461,56 +462,12 @@ const Requests = () => {
       key: "status",
       header: "Status",
       width: "w-[20%]",
-      isStatus: true,
-      accessor: () => "Pending",
-    },
-  ];
-
-  const approvedRecognitionColumns = [
-    {
-      key: "org_name",
-      header: "Organization",
-      width: "w-[35%]",
       sortable: true,
       filterable: true,
-      filterOptions: approvedRecognitionOrgOptions,
-      filterLabel: "Organizations",
-      filterAccessor: (row) => row.org_name || "Unknown",
-      render: (row) => (
-        <span className="truncate block text-gray-700" title={row.org_name || "Unknown"}>
-          {row.org_name || "Unknown"}
-        </span>
-      ),
-    },
-    {
-      key: "academic_year",
-      header: "Academic Year",
-      width: "w-[20%]",
-      sortable: true,
-      filterable: true,
-      filterOptions: recognitionYearOptions,
-      filterLabel: "Years",
-      render: (row) => <span className="text-gray-600">{row.academic_year}</span>,
-    },
-    {
-      key: "submitted_at",
-      header: "Submission Date",
-      width: "w-[25%]",
-      sortable: true,
-      sortAccessor: (row) => new Date(row.submitted_at).getTime(),
-      render: (row) => (
-        <span className="text-gray-600">
-          {new Date(row.submitted_at).toLocaleDateString('en-US')}
-        </span>
-      ),
-    },
-    {
-      key: "org_status",
-      header: "Org Status",
-      width: "w-[20%]",
-      sortable: true,
+      filterOptions: recognitionStatusOptions,
+      filterLabel: "Status",
       isStatus: true,
-      accessor: (row) => row.org_status || "Pending",
+      accessor: (row) => getRecognitionStatus(row),
     },
   ];
 
@@ -601,22 +558,11 @@ const Requests = () => {
 
         {/* Org Recognition Tab */}
         <TabsContent value="recognition">
-          <h2 className="text-lg font-semibold mb-4 text-center md:text-left">Pending Recognition Applications</h2>
           <DataTable
-            columns={pendingRecognitionColumns}
-            data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
+            columns={recognitionColumns}
+            data={(recognitionApps || []).map(app => ({ ...app, id: app.recognition_id }))}
             onRowClick={setSelectedRecognition}
-            emptyMessage="No pending recognition applications found."
-            className="mb-8"
-            defaultSort={{ key: "submitted_at", direction: "desc" }}
-          />
-
-          <h2 className="text-lg font-semibold mb-4 text-center md:text-left mt-8">Approved Recognition Applications</h2>
-          <DataTable
-            columns={approvedRecognitionColumns}
-            data={approvedRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
-            onRowClick={setSelectedRecognition}
-            emptyMessage="No approved recognition applications found."
+            emptyMessage="No recognition applications found."
             defaultSort={{ key: "submitted_at", direction: "desc" }}
           />
         </TabsContent>

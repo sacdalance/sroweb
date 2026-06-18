@@ -154,7 +154,7 @@ const AdminDocuments = () => {
 
     if (loading && !publicForms.files?.length && activeTab === 'forms') {
         return (
-            <div className="container mx-auto p-4 sm:p-6 max-w-[1700px]">
+            <div className="container mx-auto px-4 sm:px-6 max-w-[1700px]">
                 <div className="flex items-center justify-between mb-6">
                     <Skeleton className="h-8 w-48" />
                     <Skeleton className="h-9 w-36 rounded-lg" />
@@ -177,7 +177,7 @@ const AdminDocuments = () => {
     }
 
     return (
-        <div className="container mx-auto p-4 sm:p-6 max-w-[1700px]">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[1700px]">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="page-header text-sro-primary mb-1">Student Forms</h1>
