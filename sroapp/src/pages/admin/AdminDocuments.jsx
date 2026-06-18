@@ -210,9 +210,17 @@ const AdminDocuments = () => {
                             const file = getFileForForm(form);
                             const isMissing = !file;
                             const isWordDoc = file && (file.mimeType?.includes('word') || file.mimeType?.includes('officedocument'));
+                            const fileLink = file ? (file.link || file.webViewLink || file.alternateLink) : null;
 
                             return (
-                                <div key={form.id} className={`group bg-white rounded-xl border shadow-sm transition-all duration-300 overflow-hidden flex flex-col h-full ${isMissing ? 'border-red-100' : 'border-gray-200 hover:shadow-md hover:border-sro-primary/30'}`}>
+                                <div
+                                    key={form.id}
+                                    onClick={() => !isMissing && openDrive(fileLink)}
+                                    role={!isMissing ? "button" : undefined}
+                                    tabIndex={!isMissing ? 0 : undefined}
+                                    onKeyDown={(e) => { if (!isMissing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openDrive(fileLink); } }}
+                                    className={`group bg-white rounded-xl border shadow-sm transition-all duration-300 overflow-hidden flex flex-col h-full ${isMissing ? 'border-red-100' : 'border-gray-200 hover:shadow-md hover:border-sro-primary/30 cursor-pointer'}`}
+                                >
                                     <div className={`relative h-48 flex items-center justify-center overflow-hidden border-b transition-colors ${isMissing ? 'bg-red-50/50 border-red-100' : 'bg-gray-50 border-gray-100 group-hover:bg-gray-100'}`}>
                                         {file && file.thumbnail ? (
                                             <img src={file.thumbnail} alt={form.title} className="object-contain h-full w-full p-6 opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" referrerPolicy="no-referrer" />
@@ -282,15 +290,33 @@ const AdminDocuments = () => {
 
                             {/* List Permissions */}
                             <div className="mt-4">
-                                <DataTable
-                                    columns={columns}
-                                    data={permissions}
-                                    loading={loadingPermissions}
-                                    emptyMessage="No editors found. The folder is View Only."
-                                    hidePagination={true}
-                                    viewMode="table"
-                                    hideViewToggle={true}
-                                />
+                                {loadingPermissions ? (
+                                    <div className="bg-white rounded-xl border shadow-sm p-2 sm:p-6">
+                                        <div className="hidden sm:grid grid-cols-[60px_1fr_1fr_60px] gap-4 px-2 py-2 border-b mb-2">
+                                            <Skeleton className="h-4 w-10 mx-auto" />
+                                            <Skeleton className="h-4 w-20 mx-auto" />
+                                            <Skeleton className="h-4 w-24 mx-auto" />
+                                            <Skeleton className="h-4 w-10 mx-auto" />
+                                        </div>
+                                        {Array.from({ length: 4 }).map((_, i) => (
+                                            <div key={i} className="flex items-center gap-4 px-2 py-3 border-b border-gray-50 last:border-0">
+                                                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+                                                <Skeleton className="h-4 flex-1 max-w-[160px]" />
+                                                <Skeleton className="h-6 flex-1 max-w-[260px] rounded" />
+                                                <Skeleton className="h-4 w-4 shrink-0 ml-auto" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <DataTable
+                                        columns={columns}
+                                        data={permissions}
+                                        emptyMessage="No editors found. The folder is View Only."
+                                        hidePagination={true}
+                                        viewMode="table"
+                                        hideViewToggle={true}
+                                    />
+                                )}
                             </div>
                         </CardContent>
                     </Card>

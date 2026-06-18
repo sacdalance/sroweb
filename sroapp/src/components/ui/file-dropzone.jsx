@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useId, useState, useRef } from "react";
 import { UploadCloud, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ const FileDropzone = ({
 }) => {
     const [isDragActive, setIsDragActive] = useState(false);
     const fileInputRef = useRef(null);
+    const inputId = useId();
 
     // Determine if dropzone should be fully disabled
     const isAtMaxFiles = files.length >= maxFiles;
@@ -162,7 +163,7 @@ const FileDropzone = ({
                 style={{ pointerEvents: isDisabled ? "none" : "auto" }}
             >
                 <label
-                    htmlFor={`file-dropzone-input-${maxFiles}`}
+                    htmlFor={inputId}
                     className={cn(
                         "cursor-pointer flex flex-col items-center",
                         isDisabled && "cursor-not-allowed opacity-70"
@@ -172,7 +173,7 @@ const FileDropzone = ({
                     <p className="text-sm text-center">{getDisplayText()}</p>
                     <input
                         ref={fileInputRef}
-                        id={`file-dropzone-input-${maxFiles}`}
+                        id={inputId}
                         type="file"
                         accept={accept}
                         multiple={maxFiles > 1}

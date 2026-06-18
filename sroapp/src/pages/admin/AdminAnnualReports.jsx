@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog";
-import { ExternalLink, Database, FileText } from "lucide-react";
+import { ExternalLink, FileText } from "lucide-react";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
 
@@ -128,10 +128,9 @@ const AdminAnnualReports = () => {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sro-primary flex items-center gap-2">
-              <Database className="h-5 w-5" />
+            <DialogTitle className="text-sro-primary">
               Annual Report Details
             </DialogTitle>
             <DialogDescription>
@@ -164,8 +163,7 @@ const AdminAnnualReports = () => {
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-sro-primary" />
+                <h3 className="text-sm font-bold text-gray-700">
                   SUBMITTED FILES ({selectedReport.files.length})
                 </h3>
                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">

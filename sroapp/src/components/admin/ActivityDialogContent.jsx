@@ -207,7 +207,7 @@ const ActivityDialogContent = ({
   return (
     <DialogContent className="w-[95vw] sm:w-[90vw] max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col">
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-3 sm:p-4 md:p-5 overflow-hidden max-w-full">
+        <div className="p-3 sm:p-4 md:p-5 max-w-full">
           {/* Header Section */}
           <DialogHeader className="mb-3 sm:pr-12 overflow-hidden">
             <div className="flex flex-col items-center sm:items-start sm:flex-row sm:justify-between gap-2">
@@ -497,9 +497,10 @@ const ActivityDialogContent = ({
                   <textarea
                     value={sroComment}
                     onChange={e => setSroComment(e.target.value)}
-                    rows={1}
+                    rows={3}
                     placeholder="Enter SRO remarks..."
-                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-y focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary disabled:bg-gray-50 disabled:cursor-not-allowed"
+                    disabled={isActionLocked}
                   />
                 </div>
                 <div>
@@ -507,9 +508,10 @@ const ActivityDialogContent = ({
                   <textarea
                     value={odsaComment}
                     onChange={e => setOdsaComment(e.target.value)}
-                    rows={1}
+                    rows={3}
                     placeholder="Enter ODSA remarks..."
-                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm resize-y focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary disabled:bg-gray-50 disabled:cursor-not-allowed"
+                    disabled={isActionLocked}
                   />
                 </div>
               </div>
@@ -540,11 +542,11 @@ const ActivityDialogContent = ({
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    rows={1}
+                    rows={3}
                     placeholder={((isAdviser && hasActed(activity.adviser_approval_status)) || (isSRO && hasActed(activity.sro_approval_status)) || (isODSA && hasActed(activity.odsa_approval_status))) && comment.trim() === ""
                       ? "No remark was given."
                       : "Enter your remarks..."}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm resize-y focus:outline-none focus:ring-2 focus:ring-sro-primary/20 focus:border-sro-primary disabled:bg-gray-50 disabled:cursor-not-allowed"
                     disabled={isActionLocked}
                   />
                 </div>

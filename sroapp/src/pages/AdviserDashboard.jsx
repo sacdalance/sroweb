@@ -29,6 +29,7 @@ const getDerivedStatus = (activity) => {
 const AdviserDashboard = () => {
   const { user, email, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [orgs, setOrgs] = useState([]);
   const [activities, setActivities] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -233,12 +234,17 @@ const AdviserDashboard = () => {
       toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
+      setDataLoading(false);
     }
   };
 
   useEffect(() => {
     if (authLoading || !email) return;
-    if (isSuperadmin && (selectedOrgId || showAllPending)) setLoading(true);
+    if (isSuperadmin && (selectedOrgId || showAllPending)) {
+      setDataLoading(true);
+    } else {
+      setLoading(true);
+    }
     fetchData(selectedOrgId || undefined);
   }, [email, authLoading, selectedOrgId, showAllPending]);
 
@@ -426,34 +432,52 @@ const AdviserDashboard = () => {
       </div>
 
       {/* Stat Cards */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map((stat) => (
-          <StaggerItem
-            key={stat.label}
-            className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow duration-200"
-          >
-            <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor}`}>
-              <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+      {dataLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border p-4 flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-lg" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-3 w-24" />
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className={`text-2xl font-bold ${stat.countColor} animate-[fadeIn_0.4s_ease-in-out]`}>
-                {stat.count}
-              </p>
-              <p className="text-xs text-gray-500 font-medium leading-tight">{stat.label}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+          ))}
+        </div>
+      ) : (
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {statCards.map((stat) => (
+            <StaggerItem
+              key={stat.label}
+              className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow duration-200"
+            >
+              <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor}`}>
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-2xl font-bold ${stat.countColor} animate-[fadeIn_0.4s_ease-in-out]`}>
+                  {stat.count}
+                </p>
+                <p className="text-xs text-gray-500 font-medium leading-tight">{stat.label}</p>
+              </div>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      )}
 
       {/* Activity Requests Table */}
-      <DataTable
-        columns={columns}
-        data={activities.map(a => ({ ...a, id: a.activity_id }))}
-        onRowClick={handleViewDetails}
-        emptyMessage="No activity requests found for your organizations."
-        defaultSort={{ key: "created_at", direction: "desc" }}
-        defaultFilters={{ status: "Pending Adviser" }}
-      />
+      {dataLoading ? (
+        <TableSkeleton />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={activities.map(a => ({ ...a, id: a.activity_id }))}
+          onRowClick={handleViewDetails}
+          emptyMessage="No activity requests found for your organizations."
+          defaultSort={{ key: "created_at", direction: "desc" }}
+          defaultFilters={{ status: "Pending Adviser" }}
+        />
+      )}
 
       {/* Activity Detail Dialog */}
       {selectedActivity && (

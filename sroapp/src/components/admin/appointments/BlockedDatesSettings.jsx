@@ -148,41 +148,56 @@ const BlockedDatesSettings = ({
                         <div className="flex items-center justify-between mb-2">
                             <h4 className="text-sm font-semibold text-gray-700">Blocked List ({blockedDates.length})</h4>
 
-                            {/* Dynamic Button Action */}
-                            {pendingDates.length > 0 ? (
-                                <Button
-                                    size="sm"
-                                    className="h-7 text-xs bg-sro-primary hover:bg-sro-primary/90 text-white animate-in zoom-in duration-200"
-                                    onClick={attemptConfirmBlock}
-                                >
-                                    <Check className="h-3 w-3 mr-1" />
-                                    Block {pendingDates.length} Selected
-                                </Button>
-                            ) : (
-                                <Popover open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-full">
-                                            <Plus className="h-4 w-4" />
-                                            <span className="sr-only">Add Date Manually</span>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-3" align="end">
-                                        <div className="flex flex-col gap-2">
-                                            <h5 className="font-medium text-sm">Block Specific Date</h5>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="date"
-                                                    className="border rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-sro-primary"
-                                                    value={manualDate}
-                                                    onChange={(e) => setManualDate(e.target.value)}
-                                                />
-                                                <Button size="sm" onClick={handleManualAdd} disabled={!manualDate} className="bg-sro-primary text-white hover:bg-sro-primary/90">Add</Button>
-                                            </div>
+                            <Popover open={isManualAddOpen} onOpenChange={setIsManualAddOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-7 w-7 p-0 rounded-full">
+                                        <Plus className="h-4 w-4" />
+                                        <span className="sr-only">Add Date Manually</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-3" align="end">
+                                    <div className="flex flex-col gap-2">
+                                        <h5 className="font-medium text-sm">Block Specific Date</h5>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="date"
+                                                className="border rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-sro-primary"
+                                                value={manualDate}
+                                                onChange={(e) => setManualDate(e.target.value)}
+                                            />
+                                            <Button size="sm" onClick={handleManualAdd} disabled={!manualDate} className="bg-sro-primary text-white hover:bg-sro-primary/90">Add</Button>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
-                            )}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
+
+                        {/* Pending Selection Action Bar */}
+                        {pendingDates.length > 0 && (
+                            <div className="flex items-center justify-between gap-2 mb-2 p-2 rounded-md border border-sro-primary/30 bg-sro-primary/5 animate-in slide-in-from-top-1 duration-200">
+                                <span className="text-xs font-medium text-sro-primary">
+                                    {pendingDates.length} date{pendingDates.length > 1 ? 's' : ''} selected
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs text-gray-500 hover:text-gray-700"
+                                        onClick={() => setPendingDates([])}
+                                    >
+                                        Clear
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        className="h-7 text-xs bg-sro-primary hover:bg-sro-primary/90 text-white"
+                                        onClick={attemptConfirmBlock}
+                                    >
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Block Selected
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="border rounded-md flex-1 bg-gray-50/50 p-2 overflow-hidden flex flex-col">
                             {blockedDates.length === 0 ? (

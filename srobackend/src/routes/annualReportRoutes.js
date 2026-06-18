@@ -35,11 +35,31 @@ const auth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth });
 
 /**
+ * Find an existing folder with this exact name under the parent folder,
+ * so resubmissions reuse the same folder instead of creating duplicates.
+ */
+async function findExistingFolder(folderName, parentId) {
+  const escapedName = folderName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const res = await drive.files.list({
+    q: `name = '${escapedName}' and '${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+    fields: 'files(id, name, parents, webViewLink, owners)',
+  });
+
+  return res.data.files?.[0] || null;
+}
+
+/**
  * Create a Google Drive folder under the given parent folder
  * and share it with the submitter and admin accounts (writers/editors)
  */
 async function createDriveFolder(folderName, parentId, allowedEmails = []) {
   console.log("Target Parent Folder ID:", parentId);
+
+  const existing = await findExistingFolder(folderName, parentId);
+  if (existing) {
+    console.log("Reusing existing folder:", existing.id);
+    return existing;
+  }
 
   const fileMetadata = {
     name: folderName,

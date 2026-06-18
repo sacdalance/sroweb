@@ -864,9 +864,9 @@ const AdminAppointmentSettings = () => {
 
       {/* Appointment Details Dialog - Restored Full Detail */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="max-w-2xl" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Appointment Details</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-sro-primary">Appointment Details</DialogTitle>
           </DialogHeader>
 
           {selectedAppointment && (
@@ -874,7 +874,7 @@ const AdminAppointmentSettings = () => {
               {/* Student Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500">Student Information</h3>
+                  <h3 className="text-sm font-semibold text-sro-primary">Student Information</h3>
                   <div className="mt-1">
                     <p className="text-sm">{selectedAppointment.formattedName}</p>
                     <p className="text-sm text-gray-500">{selectedAppointment.email}</p>
@@ -882,7 +882,7 @@ const AdminAppointmentSettings = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500">Appointment Status</h3>
+                  <h3 className="text-sm font-semibold text-sro-primary">Appointment Status</h3>
                   <div className="mt-1">
                     <StatusPill status={selectedAppointment.status} />
                   </div>
@@ -891,7 +891,7 @@ const AdminAppointmentSettings = () => {
 
               {/* Appointment Details */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-500">Meeting Details</h3>
+                <h3 className="text-sm font-semibold text-sro-primary">Meeting Details</h3>
                 <div className="mt-1 grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm">
@@ -930,7 +930,7 @@ const AdminAppointmentSettings = () => {
                 </div>
                 {selectedAppointment.notes && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-medium text-gray-500 mb-1">Additional Notes</p>
+                    <p className="text-sm font-medium text-sro-primary mb-1">Additional Notes</p>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border border-gray-100">
                       {selectedAppointment.notes}
                     </p>
@@ -978,7 +978,7 @@ const AdminAppointmentSettings = () => {
               {/* Admin Notes */}
               {selectedAppointment.status === 'scheduled' && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-1">Admin Notes</h3>
+                  <h3 className="text-sm font-semibold text-sro-primary mb-1">Admin Notes</h3>
                   <Textarea
                     value={adminComment}
                     onChange={(e) => setAdminComment(e.target.value)}

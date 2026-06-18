@@ -43,15 +43,16 @@ const CustomCalendar = ({
     if (selectedDate && isSameDay(day, selectedDate)) {
       classes += "bg-sro-secondary text-white font-bold ";
     }
-    else if (isToday(day)) {
-      classes += "border-2 border-sro-secondary text-sro-secondary font-bold ";
-    }
-    // Highlighted (Pending Selection) - Prioritize over available but under blocked if needed, or parallel
+    // Highlighted (Pending Selection) - must win over "today" styling, otherwise clicking
+    // today's date shows no feedback since it still looks like the unselected "today" ring.
     else if (highlightedDates.some(date => isSameDay(date, day))) {
       classes += "bg-sro-primary/20 text-sro-primary font-bold ring-2 ring-sro-primary ring-inset ";
     }
     else if (blockedDates.some(date => isSameDay(day, date))) {
       classes += "bg-red-100 text-sro-primary font-bold ";
+    }
+    else if (isToday(day)) {
+      classes += "border-2 border-sro-secondary text-sro-secondary font-bold ";
     }
     else if (isDateAvailable && isDateAvailable(day)) {
       if (datesWithAppointments.some(date => isSameDay(date, day))) {
