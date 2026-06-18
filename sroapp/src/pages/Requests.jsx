@@ -7,13 +7,14 @@ import supabase from "@/lib/supabase";
 import { useAuth } from "@/context/UserAuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { X, AlertTriangle, Pencil } from "lucide-react";
+import { X, AlertTriangle, Pencil, ExternalLink } from "lucide-react";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from 'sonner';
 import DataTable from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import StatusPill from "@/components/ui/StatusPill";
 
 
 const Requests = () => {
@@ -31,6 +32,20 @@ const Requests = () => {
   const { accountId, loading: authLoading } = useAuth();
   const [annualReports, setAnnualReports] = useState([]);
   const [recognitionApps, setRecognitionApps] = useState([]);
+  const [selectedRecognition, setSelectedRecognition] = useState(null);
+
+  const categoriesList = [
+    { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
+    { id: "socio-civic", name: "Socio-Civic/Cause-Oriented Organizations" },
+    { id: "fraternity", name: "Fraternity/Sorority/Confraternity" },
+    { id: "performing", name: "Performing Groups" },
+    { id: "political", name: "Political Organizations" },
+    { id: "regional", name: "Regional/Provincial and Socio-Cultural Organizations" },
+    { id: "special", name: "Special Interests Organizations" },
+    { id: "sports", name: "Sports and Recreation Organizations" },
+    { id: "probation", name: "On Probation Organizations" }
+  ];
+  const getCategoryName = (id) => categoriesList.find((cat) => cat.id === id)?.name || id;
 
   const formatDateRange = (schedule) => {
     if (!Array.isArray(schedule) || schedule.length === 0) return "TBD";
@@ -143,7 +158,7 @@ const Requests = () => {
     const fetchRecognitionApps = async () => {
       const { data, error } = await supabase
         .from("org_recognition")
-        .select("recognition_id, academic_year, submitted_at, sro_approved, odsa_approved, org_name, org_status")
+        .select("recognition_id, academic_year, submitted_at, sro_approved, odsa_approved, org_name, org_status, org_type, org_chairperson, drive_folder_link")
         .eq("submitted_by", accountId);
 
       if (!error && data) {
@@ -590,6 +605,7 @@ const Requests = () => {
           <DataTable
             columns={pendingRecognitionColumns}
             data={pendingRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
+            onRowClick={setSelectedRecognition}
             emptyMessage="No pending recognition applications found."
             className="mb-8"
             defaultSort={{ key: "submitted_at", direction: "desc" }}
@@ -599,6 +615,7 @@ const Requests = () => {
           <DataTable
             columns={approvedRecognitionColumns}
             data={approvedRecognitions.map(app => ({ ...app, id: app.recognition_id }))}
+            onRowClick={setSelectedRecognition}
             emptyMessage="No approved recognition applications found."
             defaultSort={{ key: "submitted_at", direction: "desc" }}
           />
@@ -739,6 +756,69 @@ const Requests = () => {
           />
         </Dialog>
       )}
+
+      {/* Org Recognition Details Dialog */}
+      <Dialog open={!!selectedRecognition} onOpenChange={() => setSelectedRecognition(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sro-primary">Recognition Application Details</DialogTitle>
+            <DialogDescription>
+              Status for <strong>{selectedRecognition?.org_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRecognition && (
+            <div className="space-y-6 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Organization Name</p>
+                  <p className="text-sm font-semibold">{selectedRecognition.org_name || "Unknown"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Category</p>
+                  <p className="text-sm">{getCategoryName(selectedRecognition.org_type)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Chairperson</p>
+                  <p className="text-sm">{selectedRecognition.org_chairperson || "N/A"}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold">Academic Year</p>
+                  <p className="text-sm font-mono">{selectedRecognition.academic_year}</p>
+                </div>
+                <div className="col-span-2 pt-2 border-t flex justify-between items-center">
+                  <p className="text-xs text-gray-500 italic">
+                    Submitted on {new Date(selectedRecognition.submitted_at).toLocaleString()}
+                  </p>
+                  {selectedRecognition.drive_folder_link && (
+                    <Button variant="outline" size="sm" asChild className="gap-2">
+                      <a href={selectedRecognition.drive_folder_link} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View Files
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg bg-white shadow-sm flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">SRO Status</span>
+                  <StatusPill status={selectedRecognition.sro_approved === true ? "Approved" : selectedRecognition.sro_approved === false ? "Rejected" : "Pending"} compact />
+                </div>
+                <div className="p-4 border rounded-lg bg-white shadow-sm flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">ODSA Status</span>
+                  <StatusPill status={selectedRecognition.odsa_approved === true ? "Approved" : selectedRecognition.odsa_approved === false ? "Rejected" : "Pending"} compact />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setSelectedRecognition(null)}>Close</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
