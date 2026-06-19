@@ -768,7 +768,7 @@ const OrgApplication = () => {
               </DialogDescription>
             </div>
           </DialogHeader>
-          <DialogFooter className="flex flex-row justify-center gap-6 mt-4">
+          <DialogFooter className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6 mt-4">
             <Button
               variant="sro-secondary" className="font-semibold px-6 py-2 rounded-xl shadow-none"
               onClick={() => handleInterviewResponse(true)}

@@ -53,7 +53,7 @@ const AppointmentDetailsDialog = ({
 
                     <div className="space-y-4">
                         {/* Student Details */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-sro-primary">Student Information</h3>
                                 <div className="mt-1">
@@ -73,7 +73,7 @@ const AppointmentDetailsDialog = ({
                         {/* Appointment Details */}
                         <div>
                             <h3 className="text-sm font-semibold text-sro-primary">Meeting Details</h3>
-                            <div className="mt-1 grid grid-cols-2 gap-4">
+                            <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm">
                                         <span className="font-medium">Type:</span> {(() => {
@@ -130,7 +130,7 @@ const AppointmentDetailsDialog = ({
                         {appointment.status === 'reschedule-pending' && (
                             <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
                                 <h3 className="text-sm font-semibold text-amber-800 mb-2">Reschedule Request Details</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <span className="text-xs font-semibold text-gray-500 uppercase">Original Schedule</span>
                                         <p className="text-sm font-medium">

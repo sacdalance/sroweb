@@ -685,38 +685,38 @@ const EditActivity = () => {
                 <form onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} className="space-y-8">
 
                     {/* Menu Bar */}
-                    <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-4 gap-2 sm:gap-0">
                         <Button
                             type="button"
                             variant={currentSection === "general-info" ? "default" : "ghost"}
-                            className={`${currentSection === "general-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
+                            className={`w-full sm:w-auto ${currentSection === "general-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("general-info")}
                         >
                             General Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="hidden sm:block h-6" />
                         <Button
                             type="button"
                             variant={currentSection === "date-info" ? "default" : "ghost"}
-                            className={`${currentSection === "date-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
+                            className={`w-full sm:w-auto ${currentSection === "date-info" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("date-info")}
                         >
                             Date Information
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="hidden sm:block h-6" />
                         <Button
                             type="button"
                             variant={currentSection === "specifications" ? "default" : "ghost"}
-                            className={`${currentSection === "specifications" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
+                            className={`w-full sm:w-auto ${currentSection === "specifications" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("specifications")}
                         >
                             Specifications
                         </Button>
-                        <Separator orientation="vertical" className="h-6" />
+                        <Separator orientation="vertical" className="hidden sm:block h-6" />
                         <Button
                             type="button"
                             variant={currentSection === "submission" ? "default" : "ghost"}
-                            className={`${currentSection === "submission" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
+                            className={`w-full sm:w-auto ${currentSection === "submission" ? "bg-sro-secondary text-white" : "text-sro-secondary hover:text-sro-secondary hover:bg-sro-secondary/10"}`}
                             onClick={() => handleMenuNavigation("submission")}
                         >
                             Submission
