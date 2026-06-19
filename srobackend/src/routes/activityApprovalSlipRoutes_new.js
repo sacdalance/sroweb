@@ -101,29 +101,47 @@ function buildSlipHtml(activity) {
  * Render filled HTML to a PDF buffer with Puppeteer. No GCP/Drive needed.
  * A single browser instance is reused across requests.
  */
-// On Vercel (or any serverless env) the bundled desktop Chromium can't launch,
-// so we use puppeteer-core + @sparticuz/chromium. Locally we use the full
-// puppeteer package that ships its own working Chromium.
-const IS_SERVERLESS = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+// On Vercel/Lambda (or any host without a local Chrome) the bundled desktop
+// Chromium can't launch, so we use puppeteer-core + @sparticuz/chromium.
+// Where a real Chrome exists (local dev) we use the full puppeteer package.
+const IS_SERVERLESS =
+  !!process.env.VERCEL ||
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.SLIP_PDF_ENGINE === 'serverless';
 
-async function launchBrowser() {
-  if (IS_SERVERLESS) {
-    const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
-      import('@sparticuz/chromium'),
-      import('puppeteer-core'),
-    ]);
-    return puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
-  }
+async function launchServerlessBrowser() {
+  const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    import('@sparticuz/chromium'),
+    import('puppeteer-core'),
+  ]);
+  return puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
+}
+
+async function launchLocalBrowser() {
   const { default: puppeteer } = await import('puppeteer');
   return puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
+}
+
+async function launchBrowser() {
+  if (IS_SERVERLESS) {
+    return launchServerlessBrowser();
+  }
+  // Try the local Chrome; if it isn't installed (e.g. a sandboxed host that
+  // didn't set VERCEL), fall back to the bundled serverless Chromium.
+  try {
+    return await launchLocalBrowser();
+  } catch (err) {
+    console.warn('Local Chrome launch failed, falling back to @sparticuz/chromium:', err.message);
+    return launchServerlessBrowser();
+  }
 }
 
 let browserPromise = null;
