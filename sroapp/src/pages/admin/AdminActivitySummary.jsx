@@ -176,14 +176,11 @@ const AdminActivitySummary = () => {
   };
 
   const handleViewPDFsInDrive = async () => {
-    const driveWindow = window.open('', '_blank', 'noopener,noreferrer');
     try {
       const folderUrl = await getApprovalSlipsFolderUrl();
-      if (driveWindow) driveWindow.location = folderUrl;
-      else window.open(folderUrl, '_blank', 'noopener,noreferrer');
+      window.open(folderUrl, '_blank', 'noopener,noreferrer');
       toast.success('Opening Google Drive folder...');
     } catch (error) {
-      if (driveWindow) driveWindow.close();
       toast.error('Failed to open Google Drive folder.');
     }
   };

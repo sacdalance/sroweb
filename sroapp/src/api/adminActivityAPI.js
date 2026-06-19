@@ -1,6 +1,7 @@
 import supabase from "@/lib/supabase";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
+const APPROVAL_SLIPS_FOLDER_ID = import.meta.env.VITE_GDRIVE_APPROVAL_SLIPS_FOLDER_ID;
 let cachedApprovalSlipsFolderUrl = null;
 
 export const submitAdminActivity = async (activity, schedule, files) => {
@@ -49,6 +50,11 @@ export const syncApprovalSlipStatuses = async (activityIds = null) => {
 export const getApprovalSlipsFolderUrl = async () => {
   if (cachedApprovalSlipsFolderUrl) return cachedApprovalSlipsFolderUrl;
 
+  if (APPROVAL_SLIPS_FOLDER_ID) {
+    cachedApprovalSlipsFolderUrl = `https://drive.google.com/drive/folders/${APPROVAL_SLIPS_FOLDER_ID}`;
+    return cachedApprovalSlipsFolderUrl;
+  }
+
   const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`);
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Failed to get approval slips folder URL");
@@ -56,6 +62,8 @@ export const getApprovalSlipsFolderUrl = async () => {
   cachedApprovalSlipsFolderUrl = result.folderUrl;
   return cachedApprovalSlipsFolderUrl;
 };
+
+export const getCachedApprovalSlipsFolderUrl = () => cachedApprovalSlipsFolderUrl;
 
 export const fetchOrganizationNames = async () => {
   const res = await authFetch(`${API_BASE_URL}/api/activities/organizations`);

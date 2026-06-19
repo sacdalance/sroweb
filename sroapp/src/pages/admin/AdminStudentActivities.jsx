@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
-import { generateApprovalSlips, downloadApprovalSlip, syncApprovalSlipStatuses, getApprovalSlipsFolderUrl } from "@/api/adminActivityAPI";
+import { generateApprovalSlips, downloadApprovalSlip, syncApprovalSlipStatuses, getApprovalSlipsFolderUrl, getCachedApprovalSlipsFolderUrl } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { TableSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
@@ -465,14 +465,18 @@ const AdminPendingRequests = () => {
   };
 
   const handleViewPDFsInDrive = async () => {
-    const driveWindow = window.open('', '_blank', 'noopener,noreferrer');
     try {
+      const cachedFolderUrl = getCachedApprovalSlipsFolderUrl();
+      if (cachedFolderUrl) {
+        window.open(cachedFolderUrl, '_blank', 'noopener,noreferrer');
+        toast.success('Opening Google Drive folder...');
+        return;
+      }
+
       const folderUrl = await getApprovalSlipsFolderUrl();
-      if (driveWindow) driveWindow.location = folderUrl;
-      else window.open(folderUrl, '_blank', 'noopener,noreferrer');
+      window.open(folderUrl, '_blank', 'noopener,noreferrer');
       toast.success('Opening Google Drive folder...');
     } catch (error) {
-      if (driveWindow) driveWindow.close();
       toast.error('Failed to open Google Drive folder.');
     }
   };
