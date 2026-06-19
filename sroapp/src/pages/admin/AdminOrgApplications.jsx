@@ -298,9 +298,9 @@ const AdminOrgApplications = () => {
                   <p className="text-[10px] uppercase text-gray-400 font-bold">Academic Year</p>
                   <p className="text-sm font-mono">{selectedApp.academic_year}</p>
                 </div>
-                <div className="col-span-2 pt-2 border-t flex justify-between items-center">
+                <div className="sm:col-span-2 pt-2 border-t flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                    <p className="text-xs text-gray-500 italic">Submitted on {new Date(selectedApp.submitted_at).toLocaleString()}</p>
-                   <Button variant="outline" size="sm" asChild className="gap-2">
+                   <Button variant="outline" size="sm" asChild className="gap-2 w-full sm:w-auto">
                     <a href={selectedApp.drive_folder_link} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-3.5 w-3.5" />
                       View Files
