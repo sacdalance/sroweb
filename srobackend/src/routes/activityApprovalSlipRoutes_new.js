@@ -101,26 +101,49 @@ function buildSlipHtml(activity) {
  * Render filled HTML to a PDF buffer with Puppeteer. No GCP/Drive needed.
  * A single browser instance is reused across requests.
  */
+// On Vercel (or any serverless env) the bundled desktop Chromium can't launch,
+// so we use puppeteer-core + @sparticuz/chromium. Locally we use the full
+// puppeteer package that ships its own working Chromium.
+const IS_SERVERLESS = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+async function launchBrowser() {
+  if (IS_SERVERLESS) {
+    const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+      import('@sparticuz/chromium'),
+      import('puppeteer-core'),
+    ]);
+    return puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  }
+  const { default: puppeteer } = await import('puppeteer');
+  return puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+}
+
 let browserPromise = null;
 function getBrowser() {
   if (!browserPromise) {
-    // Lazy-load Puppeteer only when a PDF is actually needed, so non-PDF
-    // routes (e.g. the Drive folder URL) don't pay its heavy startup cost.
-    browserPromise = import('puppeteer')
-      .then(({ default: puppeteer }) => puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      }))
-      .catch((err) => {
-        browserPromise = null; // allow retry on next request
-        throw err;
-      });
+    // Lazy-load only when a PDF is actually needed, so non-PDF routes
+    // (e.g. the Drive folder URL) don't pay the heavy browser startup cost.
+    browserPromise = launchBrowser().catch((err) => {
+      browserPromise = null; // allow retry on next request
+      throw err;
+    });
   }
   return browserPromise;
 }
 
 async function renderSlipPdf(activity) {
-  const browser = await getBrowser();
+  // Serverless functions freeze between invocations, so a cached browser can
+  // be dead by the next call. There we launch fresh and close after; locally
+  // we reuse one long-lived browser for speed.
+  const browser = IS_SERVERLESS ? await launchBrowser() : await getBrowser();
   const page = await browser.newPage();
   try {
     await page.setContent(buildSlipHtml(activity), { waitUntil: 'networkidle0' });
@@ -131,6 +154,7 @@ async function renderSlipPdf(activity) {
     });
   } finally {
     await page.close();
+    if (IS_SERVERLESS) await browser.close();
   }
 }
 

@@ -18,6 +18,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
     "@supabase/supabase-js": "^2.49.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -29,6 +30,7 @@
     "nodemailer": "^6.10.1",
     "pg": "^8.14.1",
     "puppeteer": "^24.9.0",
+    "puppeteer-core": "^25.1.0",
     "streamifier": "^0.1.1"
   },
   "devDependencies": {
