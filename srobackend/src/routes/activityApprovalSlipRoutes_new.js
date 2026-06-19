@@ -210,6 +210,13 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
           { fileId: existing.id, alt: 'media' },
           { responseType: 'arraybuffer' }
         );
+        // The slip exists in Drive — make sure the DB reflects that.
+        if (activity.slip_status !== 'printed') {
+          await supabase
+            .from('activity')
+            .update({ pdf_generated: true, pdf_generated_at: new Date().toISOString(), slip_status: 'printed' })
+            .eq('activity_id', activity.activity_id);
+        }
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         return res.send(Buffer.from(driveFile.data));
@@ -391,13 +398,15 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     }
 
     // Generate missing slips; skip those already in the folder.
-    const createdIds = [];
+    const createdIds = [];   // freshly generated this run
+    const presentIds = [];    // slip now exists in Drive (created OR already there)
     let skippedCount = 0;
     const errors = [];
 
     for (const activity of approvedActivities) {
       try {
         const { created } = await generateSlipForActivity(activity);
+        presentIds.push(activity.activity_id);
         if (created) createdIds.push(activity.activity_id);
         else skippedCount++;
       } catch (err) {
@@ -406,8 +415,11 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
       }
     }
 
-    // Keep the DB flag in sync for activities whose slips now exist in Drive.
-    if (createdIds.length > 0) {
+    // Mark every activity whose slip exists in Drive as printed — including ones
+    // that were skipped because the file was already there. This keeps the DB
+    // slip_status in sync with the folder (fixes "Needs Slip" despite a slip
+    // existing in Drive).
+    if (presentIds.length > 0) {
       const { error: updateError } = await supabase
         .from('activity')
         .update({
@@ -415,7 +427,7 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
           pdf_generated_at: new Date().toISOString(),
           slip_status: 'printed'
         })
-        .in('activity_id', createdIds);
+        .in('activity_id', presentIds);
 
       if (updateError) {
         console.error('Batch update error:', updateError.message);
