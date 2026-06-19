@@ -1,5 +1,4 @@
 import express from 'express';
-import { google } from 'googleapis';
 import { supabase } from '../supabaseClient.js';
 import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
@@ -206,6 +205,7 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
     try {
       const existing = await findSlipInFolder(fileName);
       if (existing) {
+        const drive = await getDrive();
         const driveFile = await drive.files.get(
           { fileId: existing.id, alt: 'media' },
           { responseType: 'arraybuffer' }
@@ -250,18 +250,28 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
   }
 });
 
-// Google Auth Setup
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GDRIVE_CLIENT_EMAIL,
-    private_key: getGoogleServiceAccountKey(),
-  },
-  scopes: [
-    'https://www.googleapis.com/auth/drive',
-  ],
-});
-
-const drive = google.drive({ version: 'v3', auth });
+// Lazy-init the Drive client. googleapis is heavy to import, so we only load
+// it when a route actually performs a Drive operation — routes that don't
+// (e.g. the folder-URL endpoint) stay fast and cheap on cold start.
+let drivePromise = null;
+function getDrive() {
+  if (!drivePromise) {
+    drivePromise = import('googleapis').then(({ google }) => {
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: process.env.GDRIVE_CLIENT_EMAIL,
+          private_key: getGoogleServiceAccountKey(),
+        },
+        scopes: ['https://www.googleapis.com/auth/drive'],
+      });
+      return google.drive({ version: 'v3', auth });
+    }).catch((err) => {
+      drivePromise = null;
+      throw err;
+    });
+  }
+  return drivePromise;
+}
 
 function getSlipsFolderId() {
   // Prefer the dedicated slips folder; fall back to the general Drive folder
@@ -277,6 +287,7 @@ function getSlipsFolderId() {
  * This is how we decide "generate only if it's not already there".
  */
 async function findSlipInFolder(fileName) {
+  const drive = await getDrive();
   const folderId = getSlipsFolderId();
   const escapedName = fileName.replace(/'/g, "\\'");
   const existing = await drive.files.list({
@@ -296,6 +307,7 @@ async function findSlipInFolder(fileName) {
  */
 async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   try {
+    const drive = await getDrive();
     const folderId = getSlipsFolderId();
 
     // Guard against the check-then-create race: look again right before create.
@@ -448,18 +460,6 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   } finally {
     batchInProgress = false;
   }
-});
-
-// Reuse existing routes for status checks
-router.get('/pdf-status', verifyAdminRoles, async (req, res) => {
-  // ... (Keep existing logic if needed, or simplified)
-  // For brevity, just returning standard status query
-  const { count } = await supabase
-    .from('activity')
-    .select('activity_id', { count: 'exact', head: true })
-    .eq('final_status', 'Approved')
-    .or('pdf_generated.is.null,pdf_generated.eq.false');
-  res.json({ pendingCount: count || 0 });
 });
 
 /**
