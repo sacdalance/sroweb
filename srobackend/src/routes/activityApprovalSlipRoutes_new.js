@@ -5,10 +5,183 @@ import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
 import dotenv from 'dotenv';
 import streamifier from 'streamifier';
+import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
 const router = express.Router();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'approvalSlipTemplate.html');
+const SEAL_PATH = path.join(__dirname, '..', '..', '..', 'sroapp', 'public', 'UPSeal-BW.jpg');
+
+// Cache the template + seal data URI so we read from disk only once.
+let cachedTemplate = null;
+let cachedSealDataUri = null;
+
+function loadTemplate() {
+  if (cachedTemplate) return cachedTemplate;
+  cachedTemplate = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+  return cachedTemplate;
+}
+
+function loadSealDataUri() {
+  if (cachedSealDataUri !== null) return cachedSealDataUri;
+  try {
+    const buf = fs.readFileSync(SEAL_PATH);
+    cachedSealDataUri = `data:image/jpeg;base64,${buf.toString('base64')}`;
+  } catch (e) {
+    console.warn('UP seal image not found, rendering slip without it:', e.message);
+    cachedSealDataUri = ''; // render with no image rather than crash
+  }
+  return cachedSealDataUri;
+}
+
+// Escape user-supplied values so they can't break the HTML/inject markup.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Build the filled HTML for one activity using the local template.
+ * Placeholders match the template tokens exactly (e.g. {orgName}, {student}).
+ */
+function buildSlipHtml(activity) {
+  const sched = activity.schedule?.[0];
+  const activityDate = sched?.start_date
+    ? new Date(sched.start_date).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' })
+    : 'N/A';
+  const activityTime = sched
+    ? `${sched.start_time?.slice(0, 5) || 'TBD'} - ${sched.end_time?.slice(0, 5) || 'TBD'}`
+    : 'N/A';
+  const dateApproved = activity.odsa_approval_date
+    ? new Date(activity.odsa_approval_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const replacements = {
+    '{formCode}': `SRO-${activity.activity_id}`,
+    '{orgName}': activity.organization?.org_name,
+    '{student}': activity.account?.account_name,
+    '{studentPosition}': activity.student_position,
+    '{studentContact}': activity.student_contact,
+    '{activityName}': activity.activity_name,
+    '{activityDesc}': activity.activity_description,
+    '{activityDate}': activityDate,
+    '{activityTime}': activityTime,
+    '{venue}': activity.venue,
+    '{venueApprover}': activity.venue_approver,
+    '{partneredBool}': activity.university_partner ? 'Yes' : 'No',
+    '{universityPartner}': activity.partner_name,
+    '{universityPartnerRole}': activity.partner_role,
+    '{campusBool}': activity.is_off_campus ? 'Yes' : 'No',
+    '{feesBool}': activity.charge_fee ? 'Yes' : 'No',
+    '{greenCampusMonitor}': activity.green_monitor_name,
+    '{greenCampusContact}': activity.green_monitor_contact,
+    '{adviserName}': activity.organization?.adviser_name,
+    '{adviserContact}': activity.organization?.adviser_email,
+    '{dateApproved}': dateApproved,
+    '{sroComments}': activity.sro_remarks || 'None',
+  };
+
+  let html = loadTemplate().replace('{{SEAL_SRC}}', loadSealDataUri());
+  for (const [token, value] of Object.entries(replacements)) {
+    const safe = (value === undefined || value === null || value === '') ? 'N/A' : escapeHtml(value);
+    html = html.split(token).join(safe);
+  }
+  return html;
+}
+
+/**
+ * Render filled HTML to a PDF buffer with Puppeteer. No GCP/Drive needed.
+ * A single browser instance is reused across requests.
+ */
+let browserPromise = null;
+function getBrowser() {
+  if (!browserPromise) {
+    browserPromise = puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    }).catch((err) => {
+      browserPromise = null; // allow retry on next request
+      throw err;
+    });
+  }
+  return browserPromise;
+}
+
+async function renderSlipPdf(activity) {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setContent(buildSlipHtml(activity), { waitUntil: 'networkidle0' });
+    return await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' },
+    });
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * GET /approval-slip/:activityId/pdf
+ * Generates the slip on demand with Puppeteer and streams it to the admin.
+ */
+router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) => {
+  try {
+    const { activityId } = req.params;
+
+    const { data: activity, error } = await supabase
+      .from('activity')
+      .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
+      .eq('activity_id', activityId)
+      .single();
+
+    if (error || !activity) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+    if (activity.final_status !== 'Approved') {
+      return res.status(400).json({ error: 'Approval slip is only available for approved activities.' });
+    }
+
+    const pdfBuffer = await renderSlipPdf(activity);
+    const safeName = String(activity.activity_name || 'Activity').replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
+    const fileName = `Approval_Slip_${safeName}_${activity.activity_id}.pdf`;
+
+    // Best-effort: save a copy to Drive. A Drive failure must NOT block the
+    // admin's download, so we catch and log rather than throw.
+    let driveLink = null;
+    try {
+      const uploadResult = await uploadPDFToGoogleDrive(pdfBuffer, fileName);
+      driveLink = uploadResult.webViewLink;
+      await supabase
+        .from('activity')
+        .update({
+          pdf_generated: true,
+          pdf_generated_at: new Date().toISOString(),
+          slip_status: 'printed',
+        })
+        .eq('activity_id', activity.activity_id);
+    } catch (driveErr) {
+      console.error(`Drive save failed for activity ${activity.activity_id} (download still served):`, driveErr.message);
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Slip PDF generation error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Google Auth Setup
 const auth = new google.auth.GoogleAuth({
@@ -18,20 +191,20 @@ const auth = new google.auth.GoogleAuth({
   },
   scopes: [
     'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/documents' // Docs API
   ],
 });
 
 const drive = google.drive({ version: 'v3', auth });
-const docs = google.docs({ version: 'v1', auth });
 
 /**
  * Upload PDF Buffer to Drive
  */
 async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   try {
-    const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID;
-    if (!folderId) throw new Error('GDRIVE_APPROVAL_SLIPS_FOLDER_ID not set');
+    // Prefer the dedicated slips folder; fall back to the general Drive folder
+    // so this works even before GDRIVE_APPROVAL_SLIPS_FOLDER_ID is configured.
+    const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID || process.env.GDRIVE_FOLDER_ID;
+    if (!folderId) throw new Error('No Drive folder configured (set GDRIVE_APPROVAL_SLIPS_FOLDER_ID or GDRIVE_FOLDER_ID)');
 
     const fileMetadata = {
       name: fileName,
@@ -63,128 +236,28 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
 }
 
 /**
- * Generate Single Slip using Google Docs Logic
+ * Generate a single slip with Puppeteer and upload it to the Drive folder.
+ * No Google Docs template required.
  */
-async function generateSlipForActivity(activity, templateId) {
-  let copyId = null;
-  try {
-    // 1. Copy Template
-    const copyRes = await drive.files.copy({
-      fileId: templateId,
-      requestBody: {
-        name: `TEMP_GEN_${activity.activity_name}`,
-      },
-    });
-    copyId = copyRes.data.id;
-
-    // 2. Prepare Replacements
-    // Using simple {} to match user's template exactly
-    const replacements = {
-      '{activityID}': activity.activity_id,
-      '{orgName}': activity.organization?.org_name || 'N/A',
-      '{studentName}': activity.account?.account_name || 'N/A', // Changed from {student}
-      '{studentPosition}': activity.student_position || 'N/A',
-      '{studentContact}': activity.student_contact || 'N/A',
-      '{activityName}': activity.activity_name || 'N/A',
-      '{activityDesc}': activity.activity_description || 'N/A',
-      '{venue}': activity.venue || 'N/A',
-      '{venueApprover}': activity.venue_approver || 'N/A',
-      '{partneredBool}': activity.university_partner ? 'Yes' : 'No',
-      '{universityPartner}': activity.partner_name || 'N/A',
-      '{universityPartnerRole}': activity.partner_role || 'N/A',
-      '{campusBool}': activity.is_off_campus ? 'Yes' : 'No',
-      '{feesBool}': activity.charge_fee ? 'Yes' : 'No',
-      '{greenCampusMonitor}': activity.green_monitor_name || 'N/A',
-      '{greenCampusContact}': activity.green_monitor_contact || 'N/A',
-      '{adviserName}': activity.organization?.adviser_name || 'N/A',
-      '{adviserContact}': activity.organization?.adviser_email || 'N/A',
-      '{dateApproved}': activity.odsa_approval_date ? new Date(activity.odsa_approval_date).toLocaleDateString() : new Date().toLocaleDateString(),
-      '{sroNotes}': activity.sro_remarks || 'None',  // Changed from sroComments
-      '{odsaNotes}': activity.odsa_remarks || 'None', // Added odsaNotes
-    };
-
-    // Schedule Formatting
-    const sched = activity.schedule?.[0];
-    if (sched) {
-      replacements['{activityDate}'] = sched.start_date ? new Date(sched.start_date).toLocaleDateString() : 'N/A';
-      replacements['{activityTime}'] = `${sched.start_time?.slice(0, 5) || 'TBD'} - ${sched.end_time?.slice(0, 5) || 'TBD'}`;
-    } else {
-      replacements['{activityDate}'] = 'N/A';
-      replacements['{activityTime}'] = 'N/A';
-    }
-
-    // 3. Batch Update (Replace Text)
-    const requests = Object.entries(replacements).map(([key, value]) => ({
-      replaceAllText: {
-        containsText: { text: key, matchCase: false }, // Case insensitive for safety
-        replaceText: String(value || ''),
-      },
-    }));
-
-    await docs.documents.batchUpdate({
-      documentId: copyId,
-      requestBody: { requests },
-    });
-
-    // 4. Export to PDF
-    const exportRes = await drive.files.export({
-      fileId: copyId,
-      mimeType: 'application/pdf',
-      responseType: 'arraybuffer',
-    });
-
-    // 5. Upload Result
-    const fileName = `Approval_Slip_${activity.activity_name}_${activity.activity_id}.pdf`;
-    const uploadResult = await uploadPDFToGoogleDrive(Buffer.from(exportRes.data), fileName);
-
-    // 6. Cleanup Temp Doc
-    try {
-      await drive.files.delete({ fileId: copyId });
-    } catch (cleanupErr) {
-      console.warn('Failed to delete temp doc:', copyId);
-    }
-
-    return uploadResult;
-
-  } catch (error) {
-    // Attempt cleanup on error
-    if (copyId) {
-      try { await drive.files.delete({ fileId: copyId }); } catch (e) { }
-    }
-    throw error;
-  }
+async function generateSlipForActivity(activity) {
+  const pdfBuffer = await renderSlipPdf(activity);
+  const safeName = String(activity.activity_name || 'Activity').replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
+  const fileName = `Approval_Slip_${safeName}_${activity.activity_id}.pdf`;
+  return uploadPDFToGoogleDrive(pdfBuffer, fileName);
 }
 
 /**
  * POST /generate-approval-slips
+ * Batch-generates slips for every approved activity that doesn't have one yet,
+ * renders them with Puppeteer, and saves them to the Drive folder.
+ * Activities already generated (pdf_generated = true) are skipped, so a repeat
+ * click never creates duplicates in Drive.
  */
 router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   try {
-    console.log('Starting Google Docs-based PDF generation...');
+    console.log('Starting Puppeteer-based PDF generation...');
 
-    // 1. Find Master Template
-    const templatesFolderId = process.env.GDRIVE_TEMPLATES_FOLDER_ID;
-    if (!templatesFolderId) throw new Error('GDRIVE_TEMPLATES_FOLDER_ID not configured');
-
-    // Look for 'Form_1B' OR 'MASTER_APPROVAL_SLIP'
-    const q = `'${templatesFolderId}' in parents and (name contains 'Form_1B' or name contains 'MASTER_APPROVAL_SLIP') and mimeType='application/vnd.google-apps.document' and trashed=false`;
-    const templateRes = await drive.files.list({
-      q,
-      fields: 'files(id, name)',
-      orderBy: 'modifiedTime desc' // Pick most recently modified one if multiple
-    });
-
-    if (templateRes.data.files.length === 0) {
-      return res.status(404).json({
-        error: 'Master Template not found',
-        message: 'Please search for "Form_1B" or "MASTER_APPROVAL_SLIP" in the Templates folder.'
-      });
-    }
-
-    const templateId = templateRes.data.files[0].id;
-    console.log(`Using Template: ${templateRes.data.files[0].name} (${templateId})`);
-
-    // 2. Fetch Approved Activities (Pending Print) — process in batches of 50
+    // Fetch approved activities that have NOT been generated yet (skip existing).
     const { data: approvedActivities, error: dbError } = await supabase
       .from('activity')
       .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
@@ -194,16 +267,16 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
 
     if (dbError) throw dbError;
     if (!approvedActivities?.length) {
-      return res.json({ message: 'No pending activities to generate.', pdfCount: 0 });
+      return res.json({ message: 'No new slips to generate — all approved activities already have one.', pdfCount: 0 });
     }
 
-    // 3. Generate PDFs — collect successful IDs for batch DB update
+    // Generate + upload PDFs, collecting successful IDs for a batch DB update.
     const successIds = [];
     const errors = [];
 
     for (const activity of approvedActivities) {
       try {
-        await generateSlipForActivity(activity, templateId);
+        await generateSlipForActivity(activity);
         successIds.push(activity.activity_id);
       } catch (err) {
         console.error(`Failed ${activity.activity_id}:`, err.message);
@@ -211,7 +284,7 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
       }
     }
 
-    // 4. Batch update all successful activities in one query
+    // Mark all successful activities so they're skipped next time.
     if (successIds.length > 0) {
       const { error: updateError } = await supabase
         .from('activity')
@@ -229,7 +302,7 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     }
 
     res.json({
-      message: `Generated ${successIds.length} slips using Google Docs engine.`,
+      message: `Generated ${successIds.length} slip(s) and saved to Drive.`,
       pdfCount: successIds.length,
       errors: errors.length ? errors : undefined
     });

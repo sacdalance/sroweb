@@ -130,3 +130,32 @@ export const generateApprovalSlips = async () => {
   if (!res.ok) throw new Error(result.error || "Failed to generate approval slips");
   return result;
 };
+
+/**
+ * Download the approval slip PDF for a single approved activity.
+ * Generated on-demand by the backend (Puppeteer) and streamed straight
+ * to the browser as a file download — no Google Drive involved.
+ */
+export const downloadApprovalSlip = async (activityId, activityName = "Activity") => {
+  const res = await authFetch(`${API_BASE_URL}/api/approval-slip/${activityId}/pdf`);
+
+  if (!res.ok) {
+    let message = "Failed to generate approval slip";
+    try {
+      const err = await res.json();
+      message = err.error || message;
+    } catch { /* response wasn't JSON */ }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const safeName = String(activityName).replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Approval_Slip_${safeName}_${activityId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};

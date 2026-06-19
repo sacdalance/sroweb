@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { cn } from "@/lib/utils";
-import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips } from "@/api/adminActivityAPI";
+import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips, downloadApprovalSlip } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
 import {
@@ -25,6 +25,7 @@ import {
   X,
   ArrowRight,
   FileText,
+  Download,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -70,6 +71,7 @@ const AdminActivitySummary = () => {
 
   // PDF generation state
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -116,6 +118,18 @@ const AdminActivitySummary = () => {
     const statusText = (a.final_status || "").toLowerCase();
     return !a.final_status || statusText.includes("pending") || statusText === "for appeal";
   }).length;
+
+  const handleDownloadSlip = async (row) => {
+    try {
+      setDownloadingId(row.activity_id);
+      await downloadApprovalSlip(row.activity_id, row.activity_name);
+    } catch (error) {
+      console.error("Error downloading approval slip:", error);
+      toast.error(`Failed to download slip: ${error.message}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const handleGenerateApprovalSlips = async () => {
     try {
@@ -319,21 +333,30 @@ const AdminActivitySummary = () => {
     },
     {
       key: "pdf_status",
-      header: "PDF",
+      header: "Slip",
       width: "w-[110px]",
       render: (row) => (
         <div className="flex items-center justify-center">
           {row.final_status === "Approved" ? (
-            <Badge
-              className={cn(
-                "text-[10px] px-2 py-0 shadow-none border font-semibold",
-                row.pdf_generated
-                  ? "bg-green-50 text-green-700 border-green-100"
-                  : "bg-amber-50 text-amber-700 border-amber-100"
-              )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloadingId === row.activity_id}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadSlip(row);
+              }}
+              className="h-7 gap-1.5 text-xs border-gray-200 hover:border-sro-primary hover:text-sro-primary"
             >
-              {row.pdf_generated ? "Generated" : "Needed"}
-            </Badge>
+              {downloadingId === row.activity_id ? (
+                <LoadingSpinner variant="inline" />
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5" />
+                  PDF
+                </>
+              )}
+            </Button>
           ) : (
             <span className="text-gray-300 text-xs">—</span>
           )}
