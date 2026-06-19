@@ -1,6 +1,8 @@
 import supabase from "@/lib/supabase";
 import { API_BASE_URL, authFetch } from "@/lib/api-config";
 
+let cachedApprovalSlipsFolderUrl = null;
+
 export const submitAdminActivity = async (activity, schedule, files) => {
   const formData = new FormData();
   if (files.conceptPaperFile) formData.append("conceptPaper", files.conceptPaperFile);
@@ -30,6 +32,29 @@ export const fetchSummaryActivities = async (filters) => {
   const result = await res.json();
   if (!res.ok) throw new Error(result.error || "Failed to fetch summary data.");
   return result.data ?? result;
+};
+
+export const syncApprovalSlipStatuses = async (activityIds = null) => {
+  const res = await authFetch(`${API_BASE_URL}/api/approval-slips/sync-status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(activityIds && activityIds.length ? { activityIds } : {}),
+  });
+
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || "Failed to sync approval slip statuses");
+  return result;
+};
+
+export const getApprovalSlipsFolderUrl = async () => {
+  if (cachedApprovalSlipsFolderUrl) return cachedApprovalSlipsFolderUrl;
+
+  const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Failed to get approval slips folder URL");
+
+  cachedApprovalSlipsFolderUrl = result.folderUrl;
+  return cachedApprovalSlipsFolderUrl;
 };
 
 export const fetchOrganizationNames = async () => {

@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
-import { generateApprovalSlips, downloadApprovalSlip } from "@/api/adminActivityAPI";
+import { generateApprovalSlips, downloadApprovalSlip, syncApprovalSlipStatuses, getApprovalSlipsFolderUrl } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { TableSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
@@ -63,6 +63,7 @@ const AdminPendingRequests = () => {
   // Activity Summary State
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [bulkDownloading, setBulkDownloading] = useState(false);
   const [slipDialogOpen, setSlipDialogOpen] = useState(false);
   const [selectedSlipIds, setSelectedSlipIds] = useState(() => new Set());
 
@@ -180,6 +181,11 @@ const AdminPendingRequests = () => {
   const fetchAllActivities = async () => {
     try {
       setLoading(true);
+      try {
+        await syncApprovalSlipStatuses();
+      } catch (syncErr) {
+        console.error("Slip status sync failed:", syncErr);
+      }
 
       let query = supabase
         .from("activity")
@@ -392,12 +398,10 @@ const AdminPendingRequests = () => {
   };
 
   // --- Activity Summary Helpers ---
-  // Open the selection dialog, pre-checking the activities that still need a slip.
+  // Open the selection dialog with no preselection so admins can choose whether
+  // they're generating missing slips or downloading ones already in Drive.
   const openSlipDialog = () => {
-    const needsSlip = summaryActivities
-      .filter((a) => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup')
-      .map((a) => a.activity_id);
-    setSelectedSlipIds(new Set(needsSlip));
+    setSelectedSlipIds(new Set());
     setSlipDialogOpen(true);
   };
 
@@ -461,14 +465,45 @@ const AdminPendingRequests = () => {
   };
 
   const handleViewPDFsInDrive = async () => {
+    const driveWindow = window.open('', '_blank', 'noopener,noreferrer');
     try {
-      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`);
-      if (!response.ok) throw new Error('Failed to get folder URL');
-      const { folderUrl } = await response.json();
-      window.open(folderUrl, '_blank');
+      const folderUrl = await getApprovalSlipsFolderUrl();
+      if (driveWindow) driveWindow.location = folderUrl;
+      else window.open(folderUrl, '_blank', 'noopener,noreferrer');
       toast.success('Opening Google Drive folder...');
     } catch (error) {
+      if (driveWindow) driveWindow.close();
       toast.error('Failed to open Google Drive folder.');
+    }
+  };
+
+  const handleDownloadSelectedSlips = async () => {
+    const selectedActivities = summaryActivities.filter((a) => selectedSlipIds.has(a.activity_id));
+    const downloadableActivities = selectedActivities.filter(
+      (a) => a.slip_status === 'printed' || a.slip_status === 'ready_for_pickup'
+    );
+
+    if (downloadableActivities.length === 0) {
+      toast.info("Select at least one slip that is already in Drive to download.");
+      return;
+    }
+
+    try {
+      setBulkDownloading(true);
+
+      for (const activity of downloadableActivities) {
+        await downloadApprovalSlip(activity.activity_id, activity.activity_name);
+      }
+
+      toast.success(
+        `Downloaded ${downloadableActivities.length} slip${downloadableActivities.length === 1 ? "" : "s"}.`
+      );
+      setSlipDialogOpen(false);
+    } catch (error) {
+      console.error("Error downloading selected approval slips:", error);
+      toast.error(`Failed to download selected slips: ${error.message}`);
+    } finally {
+      setBulkDownloading(false);
     }
   };
 
@@ -476,6 +511,17 @@ const AdminPendingRequests = () => {
   const summaryActivities = useMemo(() => {
     return activities.filter(a => a.final_status === 'Approved');
   }, [activities]);
+
+  const selectedSummaryActivities = useMemo(
+    () => summaryActivities.filter((a) => selectedSlipIds.has(a.activity_id)),
+    [summaryActivities, selectedSlipIds]
+  );
+  const selectedNeedsSlipCount = selectedSummaryActivities.filter(
+    (a) => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup'
+  ).length;
+  const selectedDownloadableCount = selectedSummaryActivities.filter(
+    (a) => a.slip_status === 'printed' || a.slip_status === 'ready_for_pickup'
+  ).length;
 
   const needsSlipCount = summaryActivities.filter(a => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup').length;
   const printedCount = summaryActivities.filter(a => a.slip_status === 'printed').length;
@@ -868,12 +914,12 @@ const AdminPendingRequests = () => {
       </Tabs>
 
       {/* Slip Generation Selection Dialog */}
-      <Dialog open={slipDialogOpen} onOpenChange={(open) => !generatingPDFs && setSlipDialogOpen(open)}>
+      <Dialog open={slipDialogOpen} onOpenChange={(open) => !generatingPDFs && !bulkDownloading && setSlipDialogOpen(open)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generate Approval Slips</DialogTitle>
+            <DialogTitle>Manage Approval Slips</DialogTitle>
             <DialogDescription>
-              Select which approved activities to generate slips for. Slips already in Drive are skipped automatically.
+              Select approved activities, then choose whether to generate missing slips or download slips already in Drive.
             </DialogDescription>
           </DialogHeader>
 
@@ -886,6 +932,15 @@ const AdminPendingRequests = () => {
               Select all ({summaryActivities.length})
             </label>
             <span className="text-xs text-gray-500">{selectedSlipIds.size} selected</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-md border bg-sro-accent-50/40 px-3 py-2 text-sro-accent-700">
+              Generate eligible: {selectedNeedsSlipCount}
+            </div>
+            <div className="rounded-md border bg-sro-secondary-50/40 px-3 py-2 text-sro-secondary-700">
+              Download eligible: {selectedDownloadableCount}
+            </div>
           </div>
 
           <div className="max-h-[320px] overflow-y-auto -mx-1 px-1 space-y-1">
@@ -925,12 +980,27 @@ const AdminPendingRequests = () => {
           </div>
 
           <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => setSlipDialogOpen(false)} disabled={generatingPDFs}>
+            <Button variant="outline" onClick={() => setSlipDialogOpen(false)} disabled={generatingPDFs || bulkDownloading}>
               Cancel
             </Button>
             <Button
+              variant="outline"
+              className="gap-2 border-sro-secondary text-sro-secondary hover:bg-sro-secondary/5"
+              disabled={bulkDownloading || generatingPDFs || selectedDownloadableCount === 0}
+              onClick={handleDownloadSelectedSlips}
+            >
+              {bulkDownloading ? (
+                <LoadingSpinner variant="inline" />
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Download ({selectedDownloadableCount})
+                </>
+              )}
+            </Button>
+            <Button
               className="bg-sro-primary hover:bg-sro-primary/90 gap-2"
-              disabled={generatingPDFs || selectedSlipIds.size === 0}
+              disabled={generatingPDFs || bulkDownloading || selectedNeedsSlipCount === 0}
               onClick={() => handleGenerateApprovalSlips([...selectedSlipIds])}
             >
               {generatingPDFs ? (
@@ -938,7 +1008,7 @@ const AdminPendingRequests = () => {
               ) : (
                 <>
                   <FileText className="h-4 w-4" />
-                  Generate ({selectedSlipIds.size})
+                  Generate ({selectedNeedsSlipCount})
                 </>
               )}
             </Button>

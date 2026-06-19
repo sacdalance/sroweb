@@ -2,7 +2,10 @@ import express from 'express';
 import { supabase } from '../supabaseClient.js';
 import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
+import { createNotification } from '../lib/createNotification.js';
+import { escapeHtml as escapeEmailHtml, isValidEmail, sanitizeEmailField } from '../lib/sanitize.js';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 import streamifier from 'streamifier';
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +18,14 @@ const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'approvalSlipTemplate.html');
 const SEAL_PATH = path.join(__dirname, '..', '..', '..', 'sroapp', 'public', 'UPSeal-BW.jpg');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_SENDER_EMAIL,
+    pass: process.env.GMAIL_SENDER_PASSWORD,
+  },
+});
 
 // Cache the template + seal data URI so we read from disk only once.
 let cachedTemplate = null;
@@ -211,12 +222,7 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
           { responseType: 'arraybuffer' }
         );
         // The slip exists in Drive — make sure the DB reflects that.
-        if (activity.slip_status !== 'printed') {
-          await supabase
-            .from('activity')
-            .update({ pdf_generated: true, pdf_generated_at: new Date().toISOString(), slip_status: 'printed' })
-            .eq('activity_id', activity.activity_id);
-        }
+        await syncSlipStatuses([activity], { sendEmails: true });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         return res.send(Buffer.from(driveFile.data));
@@ -229,14 +235,7 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
     const pdfBuffer = await renderSlipPdf(activity);
     try {
       await uploadPDFToGoogleDrive(pdfBuffer, fileName);
-      await supabase
-        .from('activity')
-        .update({
-          pdf_generated: true,
-          pdf_generated_at: new Date().toISOString(),
-          slip_status: 'printed',
-        })
-        .eq('activity_id', activity.activity_id);
+      await syncSlipStatuses([activity], { sendEmails: true });
     } catch (driveErr) {
       console.error(`Drive save failed for activity ${activity.activity_id} (download still served):`, driveErr.message);
     }
@@ -279,6 +278,26 @@ function getSlipsFolderId() {
   const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID || process.env.GDRIVE_FOLDER_ID;
   if (!folderId) throw new Error('No Drive folder configured (set GDRIVE_APPROVAL_SLIPS_FOLDER_ID or GDRIVE_FOLDER_ID)');
   return folderId;
+}
+
+async function listSlipFilesInFolder() {
+  const drive = await getDrive();
+  const folderId = getSlipsFolderId();
+  const files = [];
+  let pageToken;
+
+  do {
+    const result = await drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: 'nextPageToken, files(id, name, webViewLink)',
+      pageSize: 1000,
+      pageToken,
+    });
+    files.push(...(result.data.files || []));
+    pageToken = result.data.nextPageToken;
+  } while (pageToken);
+
+  return files;
 }
 
 /**
@@ -338,6 +357,141 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
     console.error('Upload Error:', error);
     throw error;
   }
+}
+
+async function sendSlipReadyEmail(activity) {
+  const recipientEmail = activity.account?.email;
+  if (!recipientEmail || !isValidEmail(recipientEmail)) return false;
+
+  const studentName = escapeEmailHtml(activity.account?.account_name || 'Student');
+  const orgName = escapeEmailHtml(activity.organization?.org_name || 'your organization');
+  const activityName = escapeEmailHtml(activity.activity_name || 'your activity');
+
+  await transporter.sendMail({
+    from: `SRO System <${process.env.GMAIL_SENDER_EMAIL}>`,
+    to: sanitizeEmailField(recipientEmail),
+    subject: sanitizeEmailField(`Approval Slip Ready - ${activity.activity_name || activity.activity_id}`),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+        <p>Dear ${studentName},</p>
+        <p>Your approval slip for <strong>${activityName}</strong> under <strong>${orgName}</strong> is now available in the system.</p>
+        <p>Activity Form ID: <strong>#${escapeEmailHtml(activity.activity_id)}</strong></p>
+        <p>Please coordinate with the Student Relations Office for the next steps.</p>
+        <p><strong>REMINDER: This is an automated e-mail. Kindly do not reply to this e-mail.</strong></p>
+        <p>Thank you,<br>
+        <small><i>Yours in honour, excellence and service,</i></small><br><br>
+        <strong>Office of Student Affairs | Student Relations Office<br>
+        E-mail: sro.upbaguio@up.edu.ph</strong></p>
+      </div>
+    `,
+  });
+
+  if (activity.account_id) {
+    createNotification({
+      recipientId: activity.account_id,
+      type: 'approval_slip_ready',
+      title: 'Approval slip ready',
+      message: `The approval slip for "${activity.activity_name}" is now available.`,
+      referenceType: 'activity',
+      referenceId: activity.activity_id,
+    });
+  }
+
+  return true;
+}
+
+async function syncSlipStatuses(activities, { sendEmails = false } = {}) {
+  if (!activities?.length) {
+    return { printedIds: [], missingIds: [], newlyPrintedIds: [], emailedIds: [], emailErrors: [] };
+  }
+
+  const printedIds = [];
+  const missingIds = [];
+  const newlyPrinted = [];
+
+  // Fast path for the common single-activity case used by download/generate.
+  // This avoids listing the entire folder when we only need one filename check.
+  if (activities.length === 1) {
+    const activity = activities[0];
+    const existsInDrive = !!(await findSlipInFolder(slipFileName(activity)));
+    if (existsInDrive) {
+      printedIds.push(activity.activity_id);
+      if (activity.slip_status !== 'printed' || !activity.pdf_generated) {
+        newlyPrinted.push(activity);
+      }
+    } else if (activity.slip_status === 'printed' || activity.slip_status === 'ready_for_pickup' || activity.pdf_generated) {
+      missingIds.push(activity.activity_id);
+    }
+  } else {
+    const slipFiles = await listSlipFilesInFolder();
+    const slipNames = new Set(slipFiles.map((file) => file.name));
+
+    for (const activity of activities) {
+      const existsInDrive = slipNames.has(slipFileName(activity));
+      if (existsInDrive) {
+        printedIds.push(activity.activity_id);
+        if (activity.slip_status !== 'printed' || !activity.pdf_generated) {
+          newlyPrinted.push(activity);
+        }
+      } else if (activity.slip_status === 'printed' || activity.slip_status === 'ready_for_pickup' || activity.pdf_generated) {
+        missingIds.push(activity.activity_id);
+      }
+    }
+  }
+
+  if (printedIds.length > 0) {
+    const { error: printedError } = await supabase
+      .from('activity')
+      .update({
+        pdf_generated: true,
+        pdf_generated_at: new Date().toISOString(),
+        slip_status: 'printed',
+      })
+      .in('activity_id', printedIds);
+
+    if (printedError) throw printedError;
+  }
+
+  if (missingIds.length > 0) {
+    const { error: missingError } = await supabase
+      .from('activity')
+      .update({
+        pdf_generated: false,
+        pdf_generated_at: null,
+        slip_status: null,
+      })
+      .in('activity_id', missingIds);
+
+    if (missingError) throw missingError;
+  }
+
+  const emailedIds = [];
+  const emailErrors = [];
+  if (sendEmails && newlyPrinted.length > 0) {
+    const emailResults = await Promise.allSettled(
+      newlyPrinted.map(async (activity) => {
+        await sendSlipReadyEmail(activity);
+        return activity.activity_id;
+      })
+    );
+
+    emailResults.forEach((result, index) => {
+      const activityId = newlyPrinted[index].activity_id;
+      if (result.status === 'fulfilled') emailedIds.push(activityId);
+      else {
+        console.error(`Slip-ready email failed for activity ${activityId}:`, result.reason?.message || result.reason);
+        emailErrors.push({ id: activityId, error: result.reason?.message || 'Failed to send email' });
+      }
+    });
+  }
+
+  return {
+    printedIds,
+    missingIds,
+    newlyPrintedIds: newlyPrinted.map((activity) => activity.activity_id),
+    emailedIds,
+    emailErrors,
+  };
 }
 
 function slipFileName(activity) {
@@ -411,14 +565,12 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
 
     // Generate missing slips; skip those already in the folder.
     const createdIds = [];   // freshly generated this run
-    const presentIds = [];    // slip now exists in Drive (created OR already there)
     let skippedCount = 0;
     const errors = [];
 
     for (const activity of approvedActivities) {
       try {
         const { created } = await generateSlipForActivity(activity);
-        presentIds.push(activity.activity_id);
         if (created) createdIds.push(activity.activity_id);
         else skippedCount++;
       } catch (err) {
@@ -431,20 +583,9 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     // that were skipped because the file was already there. This keeps the DB
     // slip_status in sync with the folder (fixes "Needs Slip" despite a slip
     // existing in Drive).
-    if (presentIds.length > 0) {
-      const { error: updateError } = await supabase
-        .from('activity')
-        .update({
-          pdf_generated: true,
-          pdf_generated_at: new Date().toISOString(),
-          slip_status: 'printed'
-        })
-        .in('activity_id', presentIds);
-
-      if (updateError) {
-        console.error('Batch update error:', updateError.message);
-        errors.push({ id: 'batch_update', error: updateError.message });
-      }
+    const syncResult = await syncSlipStatuses(approvedActivities, { sendEmails: true });
+    if (syncResult.emailErrors.length > 0) {
+      errors.push(...syncResult.emailErrors);
     }
 
     res.json({
@@ -459,6 +600,40 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     res.status(500).json({ error: error.message });
   } finally {
     batchInProgress = false;
+  }
+});
+
+router.post('/approval-slips/sync-status', verifyAdminRoles, async (req, res) => {
+  try {
+    const requestedIds = Array.isArray(req.body?.activityIds)
+      ? req.body.activityIds.map(Number).filter((n) => Number.isFinite(n))
+      : null;
+
+    let query = supabase
+      .from('activity')
+      .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
+      .eq('final_status', 'Approved')
+      .limit(500);
+
+    if (requestedIds && requestedIds.length > 0) {
+      query = query.in('activity_id', requestedIds);
+    }
+
+    const { data: approvedActivities, error } = await query;
+    if (error) throw error;
+
+    const result = await syncSlipStatuses(approvedActivities || [], { sendEmails: true });
+    res.json({
+      success: true,
+      printedCount: result.printedIds.length,
+      missingCount: result.missingIds.length,
+      newlyPrintedCount: result.newlyPrintedIds.length,
+      emailedCount: result.emailedIds.length,
+      emailErrors: result.emailErrors,
+    });
+  } catch (err) {
+    console.error('Slip status sync error:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL, authFetch } from "@/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 import DataTable from "@/components/ui/DataTable";
 import { cn } from "@/lib/utils";
-import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips, downloadApprovalSlip } from "@/api/adminActivityAPI";
+import { fetchSummaryActivities, fetchOrganizationNames, fetchAcademicYears, generateApprovalSlips, downloadApprovalSlip, syncApprovalSlipStatuses, getApprovalSlipsFolderUrl } from "@/api/adminActivityAPI";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { Link } from "react-router-dom";
 import {
@@ -77,6 +76,11 @@ const AdminActivitySummary = () => {
     const loadSummary = async () => {
       try {
         setLoading(true);
+        try {
+          await syncApprovalSlipStatuses();
+        } catch (syncErr) {
+          console.error("Slip status sync failed:", syncErr);
+        }
         const activities = await fetchSummaryActivities({
           activity_type: 'all',
           organization: 'All Organizations',
@@ -172,13 +176,14 @@ const AdminActivitySummary = () => {
   };
 
   const handleViewPDFsInDrive = async () => {
+    const driveWindow = window.open('', '_blank', 'noopener,noreferrer');
     try {
-      const response = await authFetch(`${API_BASE_URL}/api/approval-slips-folder-url`);
-      if (!response.ok) throw new Error('Failed to get folder URL');
-      const { folderUrl } = await response.json();
-      window.open(folderUrl, '_blank');
+      const folderUrl = await getApprovalSlipsFolderUrl();
+      if (driveWindow) driveWindow.location = folderUrl;
+      else window.open(folderUrl, '_blank', 'noopener,noreferrer');
       toast.success('Opening Google Drive folder...');
     } catch (error) {
+      if (driveWindow) driveWindow.close();
       toast.error('Failed to open Google Drive folder.');
     }
   };
