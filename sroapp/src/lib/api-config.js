@@ -2,6 +2,13 @@ import supabase from "@/lib/supabase";
 
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
+function buildNetworkErrorMessage(isUploadRequest) {
+  if (isUploadRequest) {
+    return "Upload failed. Please retry on stable Wi-Fi or use smaller PDF files.";
+  }
+  return "Network request failed. Please check your connection and try again.";
+}
+
 // Cache the access token at module level to avoid calling getSession() on every request
 let cachedAccessToken = null;
 
@@ -42,5 +49,13 @@ export async function authFetch(url, options = {}) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json";
   }
 
-  return fetch(url, { ...options, headers });
+  try {
+    return await fetch(url, { ...options, headers });
+  } catch (error) {
+    const isUploadRequest = options.body instanceof FormData;
+    const wrappedError = new Error(buildNetworkErrorMessage(isUploadRequest));
+    wrappedError.name = error?.name || "NetworkError";
+    wrappedError.cause = error;
+    throw wrappedError;
+  }
 }

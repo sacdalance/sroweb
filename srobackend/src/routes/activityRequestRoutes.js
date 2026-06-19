@@ -29,6 +29,8 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
+const elapsedMs = (startedAt) => Date.now() - startedAt;
+
 // Upload to Google Drive function
 async function uploadToGoogleDrive(fileBuffer, fileName, mimeType) {
   const fileMetadata = {
@@ -91,6 +93,7 @@ router.post('/', authMiddleware, upload.fields([
   { name: 'conceptPaper', maxCount: 1 },
   { name: 'form2b', maxCount: 1 }
 ]), async (req, res) => {
+  const requestStartedAt = Date.now();
   try {
     const account_id = req.account?.account_id;
     const {
@@ -106,18 +109,44 @@ router.post('/', authMiddleware, upload.fields([
     const conceptPaperFile = req.files?.conceptPaper?.[0];
     const form2bFile = req.files?.form2b?.[0];
 
+    console.info('[activityRequest] Submission started', {
+      account_id,
+      activity_name,
+      hasConceptPaper: !!conceptPaperFile,
+      conceptPaperSize: conceptPaperFile?.size || 0,
+      hasForm2b: !!form2bFile,
+      form2bSize: form2bFile?.size || 0,
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
+
     if (conceptPaperFile) {
       if (!conceptPaperFile.originalname.toLowerCase().endsWith('.pdf') || conceptPaperFile.mimetype !== 'application/pdf') {
         return res.status(400).json({ error: 'Only PDF files are allowed for Concept Paper.' });
       }
+      const uploadStartedAt = Date.now();
       concept_paper_link = await uploadToGoogleDrive(conceptPaperFile.buffer, conceptPaperFile.originalname, conceptPaperFile.mimetype);
+      console.info('[activityRequest] Concept paper uploaded', {
+        activity_name,
+        fileName: conceptPaperFile.originalname,
+        size: conceptPaperFile.size,
+        uploadMs: elapsedMs(uploadStartedAt),
+        elapsedMs: elapsedMs(requestStartedAt),
+      });
     }
 
     if (form2bFile) {
       if (!form2bFile.originalname.toLowerCase().endsWith('.pdf') || form2bFile.mimetype !== 'application/pdf') {
         return res.status(400).json({ error: 'Only PDF files are allowed for Form 2B.' });
       }
+      const uploadStartedAt = Date.now();
       form_2b_link = await uploadToGoogleDrive(form2bFile.buffer, form2bFile.originalname, form2bFile.mimetype);
+      console.info('[activityRequest] Form 2B uploaded', {
+        activity_name,
+        fileName: form2bFile.originalname,
+        size: form2bFile.size,
+        uploadMs: elapsedMs(uploadStartedAt),
+        elapsedMs: elapsedMs(requestStartedAt),
+      });
     }
 
     const { data: activityInsertData, activity_id } = await insertActivityWithRetry({
@@ -160,10 +189,20 @@ router.post('/', authMiddleware, upload.fields([
       throw scheduleError;
     }
 
+    console.info('[activityRequest] Submission completed', {
+      activity_id,
+      activity_name,
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
+
     res.status(201).json({ message: 'Activity submitted!', data: activityInsertData });
 
   } catch (error) {
-    console.error('Submission Error:', error.message);
+    console.error('[activityRequest] Submission Error:', {
+      message: error.message,
+      elapsedMs: elapsedMs(requestStartedAt),
+      stack: error.stack,
+    });
     res.status(500).json({ error: error.message });
   }
 });

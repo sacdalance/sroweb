@@ -36,6 +36,38 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 
+const MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const LARGE_UPLOAD_WARNING_BYTES = 5 * 1024 * 1024;
+
+const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+const getActivityUploadWarning = (formData) => {
+  const fileEntries = [
+    ["Concept Paper", formData.conceptPaperFile],
+    ["Form 2B", formData.form2bFile],
+  ].filter(([, file]) => file);
+
+  const oversized = fileEntries.filter(([, file]) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
+  if (oversized.length > 0) {
+    const [label, file] = oversized[0];
+    return {
+      level: "error",
+      message: `${label} is ${formatFileSize(file.size)}. Please keep each PDF under 10 MB.`,
+    };
+  }
+
+  const large = fileEntries.filter(([, file]) => file.size >= LARGE_UPLOAD_WARNING_BYTES);
+  if (large.length > 0) {
+    const details = large.map(([label, file]) => `${label} (${formatFileSize(file.size)})`).join(", ");
+    return {
+      level: "warning",
+      message: `Large PDFs can fail on mobile uploads. Consider compressing: ${details}.`,
+    };
+  }
+
+  return null;
+};
+
 
 
 const universityPartnersList = {
@@ -515,6 +547,15 @@ const ActivityForm = ({
         toast.error(result.message || "Validation failed");
         return;
       }
+    }
+
+    const uploadWarning = getActivityUploadWarning(formData);
+    if (uploadWarning?.level === "error") {
+      toast.error(uploadWarning.message);
+      return;
+    }
+    if (uploadWarning?.level === "warning") {
+      toast.warning(uploadWarning.message, { duration: 6000 });
     }
 
     setIsSubmitting(true);
@@ -1803,6 +1844,11 @@ const ActivityForm = ({
                       disabled={isSubmitting}
                       error={fieldErrors.conceptPaperFile}
                     />
+                    {formData.conceptPaperFile && (
+                      <p className="mt-2 text-xs text-gray-500 break-words">
+                        Selected size: {formatFileSize(formData.conceptPaperFile.size)}. Smaller PDFs upload more reliably on mobile.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1825,6 +1871,11 @@ const ActivityForm = ({
                       disabled={isSubmitting}
                       error={fieldErrors.form2bFile}
                     />
+                    {formData.form2bFile && (
+                      <p className="mt-2 text-xs text-gray-500 break-words">
+                        Selected size: {formatFileSize(formData.form2bFile.size)}. Keep each PDF under 10 MB for smoother uploads.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1845,7 +1896,7 @@ const ActivityForm = ({
                   className={`${buttonClasses()} w-full sm:w-auto`}
                 >
                   {isSubmitting ? (
-                    <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
+                    <LoadingSpinner text="Uploading PDFs..." variant="inline" className="text-white" />
                   ) : mode === "edit" ? (
                     "Save Changes"
                   ) : mode === "admin" ? (

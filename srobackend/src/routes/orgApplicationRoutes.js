@@ -34,6 +34,8 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
+const elapsedMs = (startedAt) => Date.now() - startedAt;
+
 /**
  * Find an existing folder with this exact name under the parent folder,
  * so resubmissions reuse the same folder instead of creating duplicates.
@@ -149,6 +151,7 @@ async function uploadToGoogleDrive(fileBuffer, fileName, mimeType, folderId) {
  * POST /api/org-application - Handles uploading org recognition docs and storing metadata
  */
 router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
+  const requestStartedAt = Date.now();
   try {
     const {
       org_name,
@@ -165,6 +168,14 @@ router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
     } = req.body;
     const files = req.files;
     const parsedSubmitter = req.account?.account_id;
+
+    console.info('[orgApplication] Submission started', {
+      submitted_by: parsedSubmitter,
+      org_name,
+      fileCount: files?.length || 0,
+      totalBytes: (files || []).reduce((sum, file) => sum + (file.size || 0), 0),
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
 
     if (!parsedSubmitter) {
       return res.status(401).json({ error: "Account not found for authenticated user." });
@@ -202,15 +213,29 @@ router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
 
     // Create Google Drive folder
     const folderName = `${org_name} - Recognition ${academic_year}`;
+    const folderCreateStartedAt = Date.now();
     const folder = await createDriveFolder(folderName, parentFolderId, allowedEmails);
     const folderId = folder.id;
+    console.info('[orgApplication] Drive folder ready', {
+      org_name,
+      folderId,
+      folderMs: elapsedMs(folderCreateStartedAt),
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
 
     // Upload files to Drive
+    const uploadStartedAt = Date.now();
     const uploadedLinks = await Promise.all(
       files.map(file =>
         uploadToGoogleDrive(file.buffer, file.originalname, file.mimetype, folderId)
       )
     );
+    console.info('[orgApplication] Files uploaded', {
+      org_name,
+      fileCount: files.length,
+      uploadMs: elapsedMs(uploadStartedAt),
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
 
     const baseYear = parseInt(academic_year.split("-")[0]); // 2025
     const min = baseYear * 10;      // 20250
@@ -250,13 +275,23 @@ router.post('/', authMiddleware, upload.array('files', 6), async (req, res) => {
 
     if (insertError) throw insertError;
 
+    console.info('[orgApplication] Submission completed', {
+      org_name,
+      org_id,
+      elapsedMs: elapsedMs(requestStartedAt),
+    });
+
     res.status(201).json({
       message: "Organization application submitted.",
       folder_link: folder.webViewLink,
       file_links: uploadedLinks,
     });
   } catch (error) {
-    console.error("Org Application Submission Error:", error.message);
+    console.error("[orgApplication] Submission Error:", {
+      message: error.message,
+      elapsedMs: elapsedMs(requestStartedAt),
+      stack: error.stack,
+    });
     res.status(500).json({ error: error.message });
   }
 });

@@ -24,6 +24,31 @@ import { orgApplicationSchema } from "@/lib/zodSchemas";
 import { useStudentForms, REQUIRED_FORMS } from "@/hooks/useStudentForms";
 
 const DRAFT_KEY = "org_application_draft";
+const MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const LARGE_UPLOAD_WARNING_BYTES = 5 * 1024 * 1024;
+
+const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+const getOrgUploadWarning = (files) => {
+  const oversized = files.filter((file) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
+  if (oversized.length > 0) {
+    return {
+      level: "error",
+      message: `${oversized[0].name} is ${formatFileSize(oversized[0].size)}. Please keep each PDF under 10 MB.`,
+    };
+  }
+
+  const large = files.filter((file) => file.size >= LARGE_UPLOAD_WARNING_BYTES);
+  if (large.length > 0) {
+    const largestSize = Math.max(...large.map((file) => file.size));
+    return {
+      level: "warning",
+      message: `${large.length} large PDF${large.length === 1 ? "" : "s"} selected. Largest: ${formatFileSize(largestSize)}. Consider compressing before mobile upload.`,
+    };
+  }
+
+  return null;
+};
 
 const categoriesList = [
   { id: "academic", name: "Academic & Socio-Academic Student Organizations" },
@@ -250,8 +275,18 @@ const OrgApplication = () => {
       toast.error("Please fill out all required fields correctly.");
       return;
     }
+
+    const uploadWarning = getOrgUploadWarning(files);
+    if (uploadWarning?.level === "error") {
+      toast.error(uploadWarning.message);
+      return;
+    }
+    if (uploadWarning?.level === "warning") {
+      toast.warning(uploadWarning.message, { duration: 6000 });
+    }
+
     setIsUploading(true);
-    toast.loading("Submitting organization application...");
+    toast.loading("Uploading organization PDFs...");
     try {
       await submitOrgApplication({
         org_name: orgName,
@@ -665,6 +700,13 @@ const OrgApplication = () => {
               disabled={isUploading}
               error={fieldErrors.files === "invalid"}
             />
+            {files.length > 0 && (
+              <p className="text-xs text-gray-500 break-words">
+                Total selected: {files.length} file{files.length === 1 ? "" : "s"}.
+                {" "}Largest file: {formatFileSize(Math.max(...files.map((file) => file.size)))}.
+                Keep each PDF under 10 MB for smoother uploads.
+              </p>
+            )}
             {fieldErrors.files === "invalid" && (
               <p className="text-xs text-sro-primary mt-1 px-1 font-medium">Please upload exactly 6 PDF files.</p>
             )}
@@ -676,7 +718,7 @@ const OrgApplication = () => {
                 variant="sro-secondary" className="w-full sm:w-auto"
               >
                 {isUploading ? (
-                  <LoadingSpinner text="Submitting..." variant="inline" className="text-white" />
+                  <LoadingSpinner text="Uploading PDFs..." variant="inline" className="text-white" />
                 ) : (
                   "Submit Application"
                 )}
