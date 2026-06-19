@@ -1963,14 +1963,14 @@ const ActivityForm = ({
           </AlertDialog>
 
           <AlertDialog open={showRemindersDialog} onOpenChange={setShowRemindersDialog}>
-            <AlertDialogContent className="max-h-[90vh] overflow-hidden">
+            <AlertDialogContent className="max-h-[90dvh] overflow-hidden">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-sro-primary">
                   SRO Activity Request Guidelines
                 </AlertDialogTitle>
               </AlertDialogHeader>
 
-              <ScrollArea className="h-[60vh] pr-4">
+              <ScrollArea className="h-[60dvh] pr-4">
                 <div className="text-sm text-muted-foreground space-y-4 leading-relaxed">
                   <p className="text-black font-medium">Before you proceed with your activity request, please be reminded of the following:</p>
                   <ol className="list-decimal list-inside space-y-2">

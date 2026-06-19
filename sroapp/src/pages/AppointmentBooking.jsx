@@ -912,7 +912,7 @@ const AppointmentBooking = () => {
       </Tabs>
 
       <Dialog open={!!reschedulingAppointment} onOpenChange={(open) => !open && setReschedulingAppointment(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Reschedule Appointment</DialogTitle>
             <DialogDescription>

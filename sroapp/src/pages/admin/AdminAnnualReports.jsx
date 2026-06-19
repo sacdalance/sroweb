@@ -125,7 +125,7 @@ const AdminAnnualReports = () => {
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sro-primary">
               Annual Report Details

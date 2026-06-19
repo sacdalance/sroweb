@@ -109,8 +109,8 @@ const FAQCard = ({ className }) => {
       </Card>
 
       <Dialog open={showAll} onOpenChange={setShowAll}>
-        <DialogContent className="max-w-lg max-h-[80vh] p-0 overflow-hidden">
-          <ScrollArea className="max-h-[80vh]">
+        <DialogContent className="max-w-lg max-h-[80dvh] p-0 overflow-hidden">
+          <ScrollArea className="max-h-[80dvh]">
             <div className="p-6 space-y-4">
               <DialogHeader>
                 <DialogTitle className="text-sro-primary flex items-center gap-2">

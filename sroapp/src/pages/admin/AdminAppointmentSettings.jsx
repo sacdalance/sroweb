@@ -864,7 +864,7 @@ const AdminAppointmentSettings = () => {
 
       {/* Appointment Details Dialog - Restored Full Detail */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto" onInteractOutside={(e) => { if (isProcessing) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (isProcessing) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-sro-primary">Appointment Details</DialogTitle>
           </DialogHeader>

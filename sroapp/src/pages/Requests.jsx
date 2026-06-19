@@ -705,7 +705,7 @@ const Requests = () => {
 
       {/* Org Recognition Details Dialog */}
       <Dialog open={!!selectedRecognition} onOpenChange={() => setSelectedRecognition(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sro-primary">Recognition Application Details</DialogTitle>
             <DialogDescription>
