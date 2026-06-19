@@ -17,7 +17,7 @@ const Layout = () => {
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div className="fixed w-full h-screen flex bg-sro-bg-off-white">
+    <div className="fixed w-full h-[100svh] flex bg-sro-bg-off-white">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={handleSidebarClose}
@@ -36,7 +36,7 @@ const Layout = () => {
       />
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 transition-all duration-300 flex flex-col h-screen">
+      <div className="flex-1 min-w-0 transition-all duration-300 flex flex-col h-[100svh]">
         <Navbar
           onMenuClick={() => setSidebarOpen((open) => !open)}
           onCollapseToggle={() => setSidebarCollapsed((c) => !c)}
@@ -44,7 +44,7 @@ const Layout = () => {
           sidebarOpen={sidebarOpen}
           accountId={accountId}
         />
-        <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100vh-3.5rem)] overflow-auto no-scrollbar">
+        <main className="pt-14 px-4 md:px-6 lg:px-8 w-full min-w-0 xl:min-w-[unset] flex-1 h-[calc(100svh-3.5rem)] overflow-auto no-scrollbar">
           <ErrorBoundary>
             <NetworkGuard>
               <div className="py-6">
