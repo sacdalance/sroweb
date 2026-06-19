@@ -371,6 +371,7 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     const requestedIds = Array.isArray(req.body?.activityIds)
       ? req.body.activityIds.map(Number).filter((n) => Number.isFinite(n))
       : null;
+    console.log('[generate-approval-slips] received activityIds:', JSON.stringify(req.body?.activityIds), '-> using:', requestedIds);
 
     let query = supabase
       .from('activity')
