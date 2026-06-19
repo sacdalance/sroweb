@@ -5,7 +5,6 @@ import { verifyAdminRoles } from '../middleware/authMiddleware.js';
 import { getGoogleServiceAccountKey } from '../lib/googleAuth.js';
 import dotenv from 'dotenv';
 import streamifier from 'streamifier';
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -105,13 +104,17 @@ function buildSlipHtml(activity) {
 let browserPromise = null;
 function getBrowser() {
   if (!browserPromise) {
-    browserPromise = puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    }).catch((err) => {
-      browserPromise = null; // allow retry on next request
-      throw err;
-    });
+    // Lazy-load Puppeteer only when a PDF is actually needed, so non-PDF
+    // routes (e.g. the Drive folder URL) don't pay its heavy startup cost.
+    browserPromise = import('puppeteer')
+      .then(({ default: puppeteer }) => puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      }))
+      .catch((err) => {
+        browserPromise = null; // allow retry on next request
+        throw err;
+      });
   }
   return browserPromise;
 }

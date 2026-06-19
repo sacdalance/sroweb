@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/ta
 import { Dialog } from "@/components/ui/dialog";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
-import { generateApprovalSlips } from "@/api/adminActivityAPI";
+import { generateApprovalSlips, downloadApprovalSlip } from "@/api/adminActivityAPI";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { TableSkeleton, CalendarSkeleton } from "@/components/ui/skeletons";
 import DataTable from "@/components/ui/DataTable";
@@ -20,7 +20,7 @@ import StatusPill from "@/components/ui/StatusPill";
 import CustomCalendar from "@/components/ui/custom-calendar";
 import { Badge } from "@/components/ui/badge";
 import { isSameDay, format } from "date-fns";
-import { Database, ClipboardList, FileText } from "lucide-react";
+import { Database, ClipboardList, FileText, Download } from "lucide-react";
 import { activityTypeOptions } from "@/lib/activityTypes";
 
 const getDerivedStatus = (activity) => {
@@ -53,6 +53,7 @@ const AdminPendingRequests = () => {
 
   // Activity Summary State
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   // Helper to extract unique options for filters
   const getUniqueOrgOptions = (data) => {
@@ -384,7 +385,19 @@ const AdminPendingRequests = () => {
     try {
       setGeneratingPDFs(true);
       const result = await generateApprovalSlips();
-      toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
+      const failCount = result.errors?.filter((e) => e.id !== 'batch_update').length || 0;
+      const made = result.pdfCount || 0;
+      const skipped = result.skippedCount || 0;
+
+      if (failCount > 0 && made === 0) {
+        toast.error(`Failed to generate ${failCount} slip${failCount === 1 ? '' : 's'}. The Drive folder may not be shared with the service account.`);
+      } else if (failCount > 0) {
+        toast.warning(`Generated ${made}, skipped ${skipped}, but ${failCount} failed.`);
+      } else if (made > 0) {
+        toast.success(`Generated ${made} new slip${made === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} already in Drive` : ''}.`);
+      } else {
+        toast.info(`All approved activities already have slips (${skipped} in Drive).`);
+      }
       // Refresh activities to update slip_status
       await fetchAllActivities();
     } catch (error) {
@@ -392,6 +405,24 @@ const AdminPendingRequests = () => {
       toast.error(`Failed to generate approval slips: ${error.message}`);
     } finally {
       setGeneratingPDFs(false);
+    }
+  };
+
+  const handleDownloadSlip = async (row) => {
+    try {
+      setDownloadingId(row.activity_id);
+      await downloadApprovalSlip(row.activity_id, row.activity_name);
+      // The slip now exists in Drive — reflect that on the row immediately.
+      setActivities((prev) =>
+        prev.map((a) =>
+          a.activity_id === row.activity_id ? { ...a, slip_status: 'printed' } : a
+        )
+      );
+    } catch (error) {
+      console.error("Error downloading approval slip:", error);
+      toast.error(`Failed to download slip: ${error.message}`);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -754,6 +785,37 @@ const AdminPendingRequests = () => {
                       filterOptions: ["Needs Slip", "Printed", "For Pickup"],
                       accessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
                       filterAccessor: (row) => row.slip_status === 'printed' ? 'Printed' : row.slip_status === 'ready_for_pickup' ? 'For Pickup' : 'Needs Slip',
+                    },
+                    {
+                      key: "slip_action",
+                      header: "Slip",
+                      width: "w-[120px]",
+                      render: (row) => {
+                        const hasSlip = row.slip_status === 'printed' || row.slip_status === 'ready_for_pickup';
+                        return (
+                          <div className="flex items-center justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={downloadingId === row.activity_id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadSlip(row);
+                              }}
+                              className="h-7 gap-1.5 text-xs border-gray-200 hover:border-sro-primary hover:text-sro-primary"
+                            >
+                              {downloadingId === row.activity_id ? (
+                                <LoadingSpinner variant="inline" />
+                              ) : (
+                                <>
+                                  <Download className="h-3.5 w-3.5" />
+                                  {hasSlip ? "Download" : "Generate"}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      },
                     },
                   ]}
                   data={summaryActivities}

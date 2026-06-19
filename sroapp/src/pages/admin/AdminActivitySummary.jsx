@@ -192,6 +192,38 @@ const AdminActivitySummary = () => {
       accessor: (row) => row.final_status || "Pending",
     },
     {
+      key: "pdf_status",
+      header: "Slip",
+      width: "w-[120px]",
+      render: (row) => (
+        <div className="flex items-center justify-center">
+          {row.final_status === "Approved" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloadingId === row.activity_id}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadSlip(row);
+              }}
+              className="h-7 gap-1.5 text-xs border-gray-200 hover:border-sro-primary hover:text-sro-primary"
+            >
+              {downloadingId === row.activity_id ? (
+                <LoadingSpinner variant="inline" />
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5" />
+                  {row.pdf_generated ? "Download" : "Generate"}
+                </>
+              )}
+            </Button>
+          ) : (
+            <span className="text-gray-300 text-xs">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "created_at",
       header: "Submission",
       sortable: true,
@@ -348,38 +380,6 @@ const AdminActivitySummary = () => {
           </div>
         );
       },
-    },
-    {
-      key: "pdf_status",
-      header: "Slip",
-      width: "w-[110px]",
-      render: (row) => (
-        <div className="flex items-center justify-center">
-          {row.final_status === "Approved" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={downloadingId === row.activity_id}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownloadSlip(row);
-              }}
-              className="h-7 gap-1.5 text-xs border-gray-200 hover:border-sro-primary hover:text-sro-primary"
-            >
-              {downloadingId === row.activity_id ? (
-                <LoadingSpinner variant="inline" />
-              ) : (
-                <>
-                  <Download className="h-3.5 w-3.5" />
-                  {row.pdf_generated ? "Download" : "Generate"}
-                </>
-              )}
-            </Button>
-          ) : (
-            <span className="text-gray-300 text-xs">—</span>
-          )}
-        </div>
-      ),
     },
   ];
 
