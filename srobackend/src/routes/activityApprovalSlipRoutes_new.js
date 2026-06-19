@@ -133,7 +133,10 @@ async function renderSlipPdf(activity) {
 
 /**
  * GET /approval-slip/:activityId/pdf
- * Generates the slip on demand with Puppeteer and streams it to the admin.
+ * Downloads the activity's slip. If the slip already exists in the Drive
+ * folder, that existing copy is served (no regeneration) so everyone gets the
+ * same file. Only when it's missing do we generate it, save it to Drive, then
+ * serve it.
  */
 router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) => {
   try {
@@ -152,16 +155,28 @@ router.get('/approval-slip/:activityId/pdf', verifyAdminRoles, async (req, res) 
       return res.status(400).json({ error: 'Approval slip is only available for approved activities.' });
     }
 
-    const pdfBuffer = await renderSlipPdf(activity);
-    const safeName = String(activity.activity_name || 'Activity').replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
-    const fileName = `Approval_Slip_${safeName}_${activity.activity_id}.pdf`;
+    const fileName = slipFileName(activity);
 
-    // Best-effort: save a copy to Drive. A Drive failure must NOT block the
-    // admin's download, so we catch and log rather than throw.
-    let driveLink = null;
+    // 1. If it's already in Drive, serve that copy — don't regenerate.
     try {
-      const uploadResult = await uploadPDFToGoogleDrive(pdfBuffer, fileName);
-      driveLink = uploadResult.webViewLink;
+      const existing = await findSlipInFolder(fileName);
+      if (existing) {
+        const driveFile = await drive.files.get(
+          { fileId: existing.id, alt: 'media' },
+          { responseType: 'arraybuffer' }
+        );
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        return res.send(Buffer.from(driveFile.data));
+      }
+    } catch (lookupErr) {
+      console.error(`Drive lookup failed for activity ${activityId}, will generate fresh:`, lookupErr.message);
+    }
+
+    // 2. Not in Drive — generate, save to Drive (best-effort), then serve.
+    const pdfBuffer = await renderSlipPdf(activity);
+    try {
+      await uploadPDFToGoogleDrive(pdfBuffer, fileName);
       await supabase
         .from('activity')
         .update({
@@ -221,16 +236,21 @@ async function findSlipInFolder(fileName) {
 }
 
 /**
- * Upload PDF Buffer to Drive
+ * Upload PDF Buffer to Drive, idempotently by filename.
+ * Re-checks for an existing file immediately before creating, so even if two
+ * requests race past an earlier existence check, the second one reuses the
+ * first's file instead of creating a duplicate.
+ * Returns { fileId, webViewLink, created }.
  */
 async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   try {
     const folderId = getSlipsFolderId();
 
-    const fileMetadata = {
-      name: fileName,
-      parents: [folderId],
-    };
+    // Guard against the check-then-create race: look again right before create.
+    const existing = await findSlipInFolder(fileName);
+    if (existing) {
+      return { fileId: existing.id, webViewLink: existing.webViewLink, created: false };
+    }
 
     const media = {
       mimeType: 'application/pdf',
@@ -238,8 +258,8 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
     };
 
     const res = await drive.files.create({
-      requestBody: fileMetadata,
-      media: media,
+      requestBody: { name: fileName, parents: [folderId] },
+      media,
       fields: 'id, webViewLink',
     });
 
@@ -249,7 +269,7 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
       requestBody: { role: 'reader', type: 'anyone' },
     });
 
-    return { fileId: res.data.id, webViewLink: res.data.webViewLink };
+    return { fileId: res.data.id, webViewLink: res.data.webViewLink, created: true };
   } catch (error) {
     console.error('Upload Error:', error);
     throw error;
@@ -270,15 +290,22 @@ function slipFileName(activity) {
 async function generateSlipForActivity(activity) {
   const fileName = slipFileName(activity);
 
+  // Fast path: skip the expensive Puppeteer render if it's already there.
   const existing = await findSlipInFolder(fileName);
   if (existing) {
-    return { created: false }; // already there — skip
+    return { created: false };
   }
 
   const pdfBuffer = await renderSlipPdf(activity);
-  await uploadPDFToGoogleDrive(pdfBuffer, fileName);
-  return { created: true };
+  // upload() re-checks existence atomically and returns whether it created it.
+  const result = await uploadPDFToGoogleDrive(pdfBuffer, fileName);
+  return { created: result.created };
 }
+
+// Single-flight guard: only one batch generation may run at a time, so a
+// double-click (or two admins) can't kick off overlapping batches that race
+// each other into duplicate uploads.
+let batchInProgress = false;
 
 /**
  * POST /generate-approval-slips
@@ -287,6 +314,10 @@ async function generateSlipForActivity(activity) {
  * of truth). Existing slips are skipped, so repeat clicks never duplicate.
  */
 router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
+  if (batchInProgress) {
+    return res.status(409).json({ error: 'A slip generation is already running. Please wait for it to finish.' });
+  }
+  batchInProgress = true;
   try {
     console.log('Starting Puppeteer-based PDF generation...');
 
@@ -345,6 +376,8 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   } catch (error) {
     console.error('Generation Error:', error);
     res.status(500).json({ error: error.message });
+  } finally {
+    batchInProgress = false;
   }
 });
 

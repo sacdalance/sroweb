@@ -123,6 +123,12 @@ const AdminActivitySummary = () => {
     try {
       setDownloadingId(row.activity_id);
       await downloadApprovalSlip(row.activity_id, row.activity_name);
+      // The slip now exists in Drive — reflect that on the row immediately.
+      setSummaryActivities((prev) =>
+        prev.map((a) =>
+          a.activity_id === row.activity_id ? { ...a, pdf_generated: true } : a
+        )
+      );
     } catch (error) {
       console.error("Error downloading approval slip:", error);
       toast.error(`Failed to download slip: ${error.message}`);
@@ -365,7 +371,7 @@ const AdminActivitySummary = () => {
               ) : (
                 <>
                   <Download className="h-3.5 w-3.5" />
-                  PDF
+                  {row.pdf_generated ? "Download" : "Generate"}
                 </>
               )}
             </Button>
