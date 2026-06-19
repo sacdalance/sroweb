@@ -50,15 +50,15 @@ const AdminPanel = () => {
   // Stats
   const [requestsCounts, setRequestsCounts] = useState(null);
 
-  // Stats data for the summary section - STRICT SRO PRIMARY
+  // Stats data for the summary section — student-dashboard styling, admin data.
   const rc = requestsCounts || {};
   const statsSummary = [
-    { title: "Pending Requests", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) : null, path: "/admin/student-activities", icon: Clock },
-    { title: "Approved Requests", count: requestsCounts ? rc.approved || 0 : null, path: "/admin/student-activities", icon: CheckCircle },
-    { title: "Pending Applications", count: requestsCounts ? rc.pendingApplications || 0 : null, path: "/admin/org-applications", icon: BookOpen },
-    { title: "Approved Applications", count: requestsCounts ? rc.approvedApplications || 0 : null, path: "/admin/organizations", icon: FileCheck },
-    { title: "Total Submissions", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) + (rc.approved || 0) : null, path: "/admin/all-submissions", icon: FileText },
-    { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar },
+    { title: "Pending Requests", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) : null, path: "/admin/student-activities", icon: Clock, bgColor: "bg-sro-accent-50", iconColor: "text-sro-accent-500", countColor: "text-sro-accent-700" },
+    { title: "Approved Requests", count: requestsCounts ? rc.approved || 0 : null, path: "/admin/student-activities", icon: CheckCircle, bgColor: "bg-sro-secondary-50", iconColor: "text-sro-secondary", countColor: "text-sro-secondary-700" },
+    { title: "Pending Applications", count: requestsCounts ? rc.pendingApplications || 0 : null, path: "/admin/org-applications", icon: BookOpen, bgColor: "bg-blue-50", iconColor: "text-blue-500", countColor: "text-blue-700" },
+    { title: "Approved Applications", count: requestsCounts ? rc.approvedApplications || 0 : null, path: "/admin/organizations", icon: FileCheck, bgColor: "bg-sro-primary-50", iconColor: "text-sro-primary", countColor: "text-sro-primary-700" },
+    { title: "Total Submissions", count: requestsCounts ? (rc.forAppeal || 0) + (rc.pending || 0) + (rc.approved || 0) : null, path: "/admin/all-submissions", icon: FileText, bgColor: "bg-sro-accent-50", iconColor: "text-sro-accent-500", countColor: "text-sro-accent-700" },
+    { title: "Annual Reports", count: requestsCounts ? rc.annualReports || 0 : null, path: "/admin/annual-reports", icon: Calendar, bgColor: "bg-blue-50", iconColor: "text-blue-500", countColor: "text-blue-700" },
   ];
 
   // Main Data Fetch (Combined)
@@ -264,7 +264,7 @@ const AdminPanel = () => {
 
   if (loading && !rawActivities.length && !appointments.length) {
     return (
-      <div className="space-y-6 p-6 md:p-10">
+      <div className="space-y-6 max-w-[1600px] mx-auto">
         <div className="flex justify-between items-end">
           <div>
             <Skeleton className="h-8 w-64" />
@@ -272,9 +272,9 @@ const AdminPanel = () => {
           </div>
           <Skeleton className="h-9 w-52 rounded-full" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-lg border p-4 flex items-center gap-3 h-[100px]">
+            <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3 h-[100px]">
               <Skeleton className="w-12 h-12 rounded-full shrink-0" />
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-6 w-12" />
@@ -293,13 +293,14 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <div className="flex flex-col w-full max-w-[1600px] mx-auto p-4 sm:p-6 gap-6">
+    <div className="flex flex-col">
+      <div className="flex flex-col w-full max-w-[1600px] mx-auto gap-6">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
           <div>
-            <h1 className="text-3xl font-bold text-sro-primary tracking-tight">{greeting}, Admin!</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{greeting}, Admin!</h1>
+            <p className="text-sm text-gray-500 mt-1">Here's what's happening across the office today.</p>
           </div>
           <div className="flex items-center gap-2 text-sm font-medium bg-white px-3 py-1.5 rounded-full border shadow-sm text-sro-primary">
             <Calendar className="w-4 h-4" />
@@ -307,20 +308,20 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        {/* 1. Stats Grid (Strict SRO Primary) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* 1. Stats Grid (student-dashboard styling) */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {statsSummary.map((stat, index) => (
             <Link
               to={stat.path || "#"}
               key={index}
-              className={`group flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-sro-primary/30 transition-all duration-200 h-[100px] ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
+              className={`group flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 h-[100px] ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
             >
-              <div className={`p-3 rounded-full shrink-0 bg-sro-primary/10 text-sro-primary group-hover:scale-110 transition-transform`}>
-                <stat.icon className="w-6 h-6" />
+              <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
               <div className="min-w-0">
                 {stat.count !== null ? (
-                  <h3 className="text-2xl font-bold text-gray-900 group-hover:text-sro-primary transition-colors animate-[fadeIn_0.4s_ease-in-out]">{stat.count}</h3>
+                  <h3 className={`text-2xl font-bold ${stat.countColor} animate-[fadeIn_0.4s_ease-in-out]`}>{stat.count}</h3>
                 ) : (
                   <Skeleton className="h-7 w-10 mb-1" />
                 )}

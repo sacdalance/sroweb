@@ -133,9 +133,14 @@ const NotificationsDropdown = ({ accountId }) => {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[380px] p-0" sideOffset={8}>
+      <PopoverContent
+        align="end"
+        collisionPadding={8}
+        className="w-[calc(100vw-1rem)] sm:w-[380px] max-w-[380px] p-0 rounded-xl shadow-lg overflow-hidden"
+        sideOffset={8}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50/60">
           <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
           {unreadCount > 0 && (
             <Button
@@ -152,9 +157,12 @@ const NotificationsDropdown = ({ accountId }) => {
         {/* Notification list */}
         <ScrollArea className="max-h-[400px]">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Bell className="w-8 h-8 text-gray-200 mb-2" />
-              <p className="text-sm text-gray-400">No notifications yet</p>
+            <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gray-50 mb-3">
+                <Bell className="w-6 h-6 text-gray-300" />
+              </div>
+              <p className="text-sm font-medium text-gray-600">No notifications yet</p>
+              <p className="text-xs text-gray-400 mt-1">We'll let you know when something needs your attention.</p>
             </div>
           ) : (
             <div className="divide-y">
