@@ -135,8 +135,20 @@ const AdminActivitySummary = () => {
     try {
       setGeneratingPDFs(true);
       const result = await generateApprovalSlips();
-      toast.success(`Successfully generated ${result.pdfCount} approval slip PDFs!`);
-      
+      const failCount = result.errors?.filter((e) => e.id !== 'batch_update').length || 0;
+      const made = result.pdfCount || 0;
+      const skipped = result.skippedCount || 0;
+
+      if (failCount > 0 && made === 0) {
+        toast.error(`Failed to generate ${failCount} slip${failCount === 1 ? '' : 's'}. The Drive folder may not be shared with the service account.`);
+      } else if (failCount > 0) {
+        toast.warning(`Generated ${made}, skipped ${skipped}, but ${failCount} failed. Check the server logs.`);
+      } else if (made > 0) {
+        toast.success(`Generated ${made} new slip${made === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} already in Drive` : ''}.`);
+      } else {
+        toast.info(`All approved activities already have slips (${skipped} in Drive).`);
+      }
+
       // Refresh
       const activities = await fetchSummaryActivities({
         activity_type: 'all',

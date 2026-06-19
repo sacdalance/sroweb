@@ -196,15 +196,36 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
+function getSlipsFolderId() {
+  // Prefer the dedicated slips folder; fall back to the general Drive folder
+  // so this works even before GDRIVE_APPROVAL_SLIPS_FOLDER_ID is configured.
+  const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID || process.env.GDRIVE_FOLDER_ID;
+  if (!folderId) throw new Error('No Drive folder configured (set GDRIVE_APPROVAL_SLIPS_FOLDER_ID or GDRIVE_FOLDER_ID)');
+  return folderId;
+}
+
+/**
+ * Look for an existing slip with this exact name in the folder.
+ * Returns the file ({ id, webViewLink }) if found, otherwise null.
+ * This is how we decide "generate only if it's not already there".
+ */
+async function findSlipInFolder(fileName) {
+  const folderId = getSlipsFolderId();
+  const escapedName = fileName.replace(/'/g, "\\'");
+  const existing = await drive.files.list({
+    q: `name='${escapedName}' and '${folderId}' in parents and trashed=false`,
+    fields: 'files(id, webViewLink)',
+    pageSize: 1,
+  });
+  return existing.data.files?.[0] || null;
+}
+
 /**
  * Upload PDF Buffer to Drive
  */
 async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   try {
-    // Prefer the dedicated slips folder; fall back to the general Drive folder
-    // so this works even before GDRIVE_APPROVAL_SLIPS_FOLDER_ID is configured.
-    const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID || process.env.GDRIVE_FOLDER_ID;
-    if (!folderId) throw new Error('No Drive folder configured (set GDRIVE_APPROVAL_SLIPS_FOLDER_ID or GDRIVE_FOLDER_ID)');
+    const folderId = getSlipsFolderId();
 
     const fileMetadata = {
       name: fileName,
@@ -235,57 +256,70 @@ async function uploadPDFToGoogleDrive(pdfBuffer, fileName) {
   }
 }
 
+function slipFileName(activity) {
+  const safeName = String(activity.activity_name || 'Activity').replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
+  return `Approval_Slip_${safeName}_${activity.activity_id}.pdf`;
+}
+
 /**
- * Generate a single slip with Puppeteer and upload it to the Drive folder.
- * No Google Docs template required.
+ * Generate a single slip if it isn't already in the Drive folder.
+ * Existence is checked by filename in the folder (the source of truth), so we
+ * only render with Puppeteer + upload when the slip is actually missing.
+ * Returns { created: boolean }.
  */
 async function generateSlipForActivity(activity) {
+  const fileName = slipFileName(activity);
+
+  const existing = await findSlipInFolder(fileName);
+  if (existing) {
+    return { created: false }; // already there — skip
+  }
+
   const pdfBuffer = await renderSlipPdf(activity);
-  const safeName = String(activity.activity_name || 'Activity').replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
-  const fileName = `Approval_Slip_${safeName}_${activity.activity_id}.pdf`;
-  return uploadPDFToGoogleDrive(pdfBuffer, fileName);
+  await uploadPDFToGoogleDrive(pdfBuffer, fileName);
+  return { created: true };
 }
 
 /**
  * POST /generate-approval-slips
- * Batch-generates slips for every approved activity that doesn't have one yet,
- * renders them with Puppeteer, and saves them to the Drive folder.
- * Activities already generated (pdf_generated = true) are skipped, so a repeat
- * click never creates duplicates in Drive.
+ * For every approved activity, generates a slip ONLY if it isn't already in
+ * the Drive folder (existence checked by filename — the folder is the source
+ * of truth). Existing slips are skipped, so repeat clicks never duplicate.
  */
 router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   try {
     console.log('Starting Puppeteer-based PDF generation...');
 
-    // Fetch approved activities that have NOT been generated yet (skip existing).
+    // Fetch ALL approved activities. The Drive folder decides what's missing.
     const { data: approvedActivities, error: dbError } = await supabase
       .from('activity')
       .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
       .eq('final_status', 'Approved')
-      .or('pdf_generated.is.null,pdf_generated.eq.false')
-      .limit(50);
+      .limit(200);
 
     if (dbError) throw dbError;
     if (!approvedActivities?.length) {
-      return res.json({ message: 'No new slips to generate — all approved activities already have one.', pdfCount: 0 });
+      return res.json({ message: 'No approved activities found.', pdfCount: 0, skippedCount: 0 });
     }
 
-    // Generate + upload PDFs, collecting successful IDs for a batch DB update.
-    const successIds = [];
+    // Generate missing slips; skip those already in the folder.
+    const createdIds = [];
+    let skippedCount = 0;
     const errors = [];
 
     for (const activity of approvedActivities) {
       try {
-        await generateSlipForActivity(activity);
-        successIds.push(activity.activity_id);
+        const { created } = await generateSlipForActivity(activity);
+        if (created) createdIds.push(activity.activity_id);
+        else skippedCount++;
       } catch (err) {
         console.error(`Failed ${activity.activity_id}:`, err.message);
         errors.push({ id: activity.activity_id, error: err.message });
       }
     }
 
-    // Mark all successful activities so they're skipped next time.
-    if (successIds.length > 0) {
+    // Keep the DB flag in sync for activities whose slips now exist in Drive.
+    if (createdIds.length > 0) {
       const { error: updateError } = await supabase
         .from('activity')
         .update({
@@ -293,7 +327,7 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
           pdf_generated_at: new Date().toISOString(),
           slip_status: 'printed'
         })
-        .in('activity_id', successIds);
+        .in('activity_id', createdIds);
 
       if (updateError) {
         console.error('Batch update error:', updateError.message);
@@ -302,8 +336,9 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
     }
 
     res.json({
-      message: `Generated ${successIds.length} slip(s) and saved to Drive.`,
-      pdfCount: successIds.length,
+      message: `Generated ${createdIds.length} new slip(s), skipped ${skippedCount} already in Drive.`,
+      pdfCount: createdIds.length,
+      skippedCount,
       errors: errors.length ? errors : undefined
     });
 
@@ -323,6 +358,19 @@ router.get('/pdf-status', verifyAdminRoles, async (req, res) => {
     .eq('final_status', 'Approved')
     .or('pdf_generated.is.null,pdf_generated.eq.false');
   res.json({ pendingCount: count || 0 });
+});
+
+/**
+ * GET /approval-slips-folder-url
+ * Returns the Drive folder URL (from env) so the "Drive Folder" button can
+ * open it without exposing the folder ID to the frontend.
+ */
+router.get('/approval-slips-folder-url', verifyAdminRoles, (req, res) => {
+  const folderId = process.env.GDRIVE_APPROVAL_SLIPS_FOLDER_ID || process.env.GDRIVE_FOLDER_ID;
+  if (!folderId) {
+    return res.status(404).json({ error: 'No Drive folder configured' });
+  }
+  res.json({ folderUrl: `https://drive.google.com/drive/folders/${folderId}` });
 });
 
 export default router;
