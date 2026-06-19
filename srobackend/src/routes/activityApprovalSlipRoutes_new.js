@@ -366,16 +366,27 @@ router.post('/generate-approval-slips', verifyAdminRoles, async (req, res) => {
   try {
     console.log('Starting Puppeteer-based PDF generation...');
 
-    // Fetch ALL approved activities. The Drive folder decides what's missing.
-    const { data: approvedActivities, error: dbError } = await supabase
+    // Optional: caller may pass a specific list of activity IDs to generate.
+    // If omitted, generate for ALL approved activities.
+    const requestedIds = Array.isArray(req.body?.activityIds)
+      ? req.body.activityIds.map(Number).filter((n) => Number.isFinite(n))
+      : null;
+
+    let query = supabase
       .from('activity')
       .select(`*, account:account(*), organization:organization(*), schedule:activity_schedule(*)`)
       .eq('final_status', 'Approved')
       .limit(200);
 
+    if (requestedIds && requestedIds.length > 0) {
+      query = query.in('activity_id', requestedIds);
+    }
+
+    const { data: approvedActivities, error: dbError } = await query;
+
     if (dbError) throw dbError;
     if (!approvedActivities?.length) {
-      return res.json({ message: 'No approved activities found.', pdfCount: 0, skippedCount: 0 });
+      return res.json({ message: 'No matching approved activities found.', pdfCount: 0, skippedCount: 0 });
     }
 
     // Generate missing slips; skip those already in the folder.

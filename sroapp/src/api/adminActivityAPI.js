@@ -120,10 +120,11 @@ export const fetchActivityDetails = async (activityId) => {
   };
 };
 
-export const generateApprovalSlips = async () => {
+export const generateApprovalSlips = async (activityIds = null) => {
   const res = await authFetch(`${API_BASE_URL}/api/generate-approval-slips`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(activityIds && activityIds.length ? { activityIds } : {}),
   });
 
   const result = await res.json();

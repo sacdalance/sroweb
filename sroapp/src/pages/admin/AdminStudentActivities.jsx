@@ -9,7 +9,16 @@ import CalendarWithSidePanel from "@/components/ui/CalendarWithSidePanel";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { Dialog } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { toast, Toaster } from "sonner";
 import { approveActivity, rejectActivity } from "@/api/approveRejectRequestAPI";
 import { generateApprovalSlips, downloadApprovalSlip } from "@/api/adminActivityAPI";
@@ -54,6 +63,8 @@ const AdminPendingRequests = () => {
   // Activity Summary State
   const [generatingPDFs, setGeneratingPDFs] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [slipDialogOpen, setSlipDialogOpen] = useState(false);
+  const [selectedSlipIds, setSelectedSlipIds] = useState(() => new Set());
 
   // Helper to extract unique options for filters
   const getUniqueOrgOptions = (data) => {
@@ -381,10 +392,32 @@ const AdminPendingRequests = () => {
   };
 
   // --- Activity Summary Helpers ---
-  const handleGenerateApprovalSlips = async () => {
+  // Open the selection dialog, pre-checking the activities that still need a slip.
+  const openSlipDialog = () => {
+    const needsSlip = summaryActivities
+      .filter((a) => a.slip_status !== 'printed' && a.slip_status !== 'ready_for_pickup')
+      .map((a) => a.activity_id);
+    setSelectedSlipIds(new Set(needsSlip));
+    setSlipDialogOpen(true);
+  };
+
+  const toggleSlipId = (id) => {
+    setSelectedSlipIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllSlips = (checked) => {
+    setSelectedSlipIds(checked ? new Set(summaryActivities.map((a) => a.activity_id)) : new Set());
+  };
+
+  const handleGenerateApprovalSlips = async (activityIds = null) => {
     try {
       setGeneratingPDFs(true);
-      const result = await generateApprovalSlips();
+      const result = await generateApprovalSlips(activityIds);
       const failCount = result.errors?.filter((e) => e.id !== 'batch_update').length || 0;
       const made = result.pdfCount || 0;
       const skipped = result.skippedCount || 0;
@@ -405,6 +438,7 @@ const AdminPendingRequests = () => {
       toast.error(`Failed to generate approval slips: ${error.message}`);
     } finally {
       setGeneratingPDFs(false);
+      setSlipDialogOpen(false);
     }
   };
 
@@ -693,8 +727,8 @@ const AdminPendingRequests = () => {
                         Drive Folder
                       </Button>
                       <Button
-                        onClick={handleGenerateApprovalSlips}
-                        disabled={generatingPDFs || needsSlipCount === 0}
+                        onClick={openSlipDialog}
+                        disabled={generatingPDFs || summaryActivities.length === 0}
                         size="sm"
                         className="bg-sro-primary hover:bg-sro-primary/90 gap-2"
                       >
@@ -832,6 +866,85 @@ const AdminPendingRequests = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Slip Generation Selection Dialog */}
+      <Dialog open={slipDialogOpen} onOpenChange={(open) => !generatingPDFs && setSlipDialogOpen(open)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Generate Approval Slips</DialogTitle>
+            <DialogDescription>
+              Select which approved activities to generate slips for. Slips already in Drive are skipped automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between border-b pb-2 mb-1">
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <Checkbox
+                checked={summaryActivities.length > 0 && selectedSlipIds.size === summaryActivities.length}
+                onCheckedChange={(checked) => toggleAllSlips(!!checked)}
+              />
+              Select all ({summaryActivities.length})
+            </label>
+            <span className="text-xs text-gray-500">{selectedSlipIds.size} selected</span>
+          </div>
+
+          <div className="max-h-[320px] overflow-y-auto -mx-1 px-1 space-y-1">
+            {summaryActivities.map((a) => {
+              const hasSlip = a.slip_status === 'printed' || a.slip_status === 'ready_for_pickup';
+              return (
+                <label
+                  key={a.activity_id}
+                  className="flex items-start gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                >
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={selectedSlipIds.has(a.activity_id)}
+                    onCheckedChange={() => toggleSlipId(a.activity_id)}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-800 truncate" title={a.activity_name}>
+                      {a.activity_name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {a.organization?.org_name || 'Unknown org'}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0",
+                      hasSlip
+                        ? "bg-sro-secondary-50 text-sro-secondary-700"
+                        : "bg-sro-accent-50 text-sro-accent-700"
+                    )}
+                  >
+                    {hasSlip ? "In Drive" : "Needs Slip"}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setSlipDialogOpen(false)} disabled={generatingPDFs}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-sro-primary hover:bg-sro-primary/90 gap-2"
+              disabled={generatingPDFs || selectedSlipIds.size === 0}
+              onClick={() => handleGenerateApprovalSlips([...selectedSlipIds])}
+            >
+              {generatingPDFs ? (
+                <LoadingSpinner variant="inline" className="text-white" />
+              ) : (
+                <>
+                  <FileText className="h-4 w-4" />
+                  Generate ({selectedSlipIds.size})
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Activity Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
