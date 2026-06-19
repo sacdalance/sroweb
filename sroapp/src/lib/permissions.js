@@ -4,5 +4,5 @@ export const SUPERADMIN_EMAILS = [
     "mmlarua@up.edu.ph",
     "ltcuadra@up.edu.ph",
     "lssacdalan@up.edu.ph",
-    "faaaquino@up.edu.ph",
+    "faaquino@up.edu.ph",
 ];
