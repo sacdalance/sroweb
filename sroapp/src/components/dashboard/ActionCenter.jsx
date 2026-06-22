@@ -42,7 +42,7 @@ const ActionCenter = ({ counts, loading = false, className }) => {
     return (
         <Card className={cn("flex flex-col h-full shadow-sm border border-gray-200", className)}>
             <CardHeader className="pb-3 border-b border-gray-100">
-                <CardTitle className="text-lg font-bold text-sro-primary flex items-center justify-between">
+                <CardTitle className="text-base font-bold text-sro-primary flex items-center justify-between">
                     <span className="flex items-center gap-2">
                         Action Center
                     </span>

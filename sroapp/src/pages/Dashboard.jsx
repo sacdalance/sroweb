@@ -205,7 +205,7 @@ const Dashboard = () => {
               Here's what's happening with your activities today.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm font-medium text-sro-primary bg-white px-3 py-1.5 rounded-full border shadow-sm">
+          <div className="flex items-center gap-2 self-start w-fit text-sm font-medium text-sro-primary bg-white px-3 py-1.5 rounded-full border shadow-sm">
             <Calendar className="w-4 h-4" />
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",

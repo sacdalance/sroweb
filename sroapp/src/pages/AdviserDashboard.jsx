@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import supabase from "@/lib/supabase";
 import { useAuth } from "@/context/UserAuthContext";
 import { Dialog } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
-import { Clock, CheckCircle, XCircle, Building2, ListFilter } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Building2, ListFilter, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import DataTable from "@/components/ui/DataTable";
 import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { toast } from "sonner";
@@ -346,12 +348,12 @@ const AdviserDashboard = () => {
   const statCards = [
     { label: "Pending Endorsement", count: stats.pending, icon: Clock, bgColor: "bg-sro-accent-50", iconColor: "text-sro-accent-500", countColor: "text-sro-accent-700" },
     { label: "Endorsed", count: stats.endorsed, icon: CheckCircle, bgColor: "bg-sro-secondary-50", iconColor: "text-sro-secondary", countColor: "text-sro-secondary-700" },
-    { label: "Rejected", count: stats.rejected, icon: XCircle, bgColor: "bg-red-50", iconColor: "text-red-500", countColor: "text-red-700" },
+    { label: "Rejected", count: stats.rejected, icon: XCircle, bgColor: "bg-sro-primary-50", iconColor: "text-sro-primary", countColor: "text-sro-primary-700" },
   ];
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-[1350px] mx-auto space-y-6">
         <div>
           <Skeleton className="h-8 w-64 mb-2" />
           <Skeleton className="h-4 w-48" />
@@ -373,32 +375,45 @@ const AdviserDashboard = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-[1350px] mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-          {firstName ? (
-            <span className="animate-[fadeIn_0.4s_ease-in-out]">{greeting}, {firstName}!</span>
-          ) : (
-            <>{greeting}!</>
-          )}
-        </h1>
-        <div className="flex items-center gap-2 mt-1">
-          <Building2 className="w-4 h-4 text-sro-primary" />
-          <p className="text-sm text-gray-500">
-            {showAllPending
-              ? <>All organizations — <span className="font-medium text-sro-primary">{activities.length} pending adviser request{activities.length !== 1 ? "s" : ""}</span></>
-              : orgs.length > 0
-                ? <>Adviser for: {orgs.map(o => o.org_name).join(", ")}</>
-                : <span className="italic">No organizations assigned</span>
-            }
-          </p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            {firstName ? (
+              <span className="animate-[fadeIn_0.4s_ease-in-out]">{greeting}, {firstName}!</span>
+            ) : (
+              <>{greeting}!</>
+            )}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Building2 className="w-4 h-4 text-sro-primary" />
+            <p className="text-sm text-gray-500">
+              {showAllPending
+                ? <>All organizations — <span className="font-medium text-sro-primary">{activities.length} pending adviser request{activities.length !== 1 ? "s" : ""}</span></>
+                : orgs.length > 0
+                  ? <>Adviser for: {orgs.map(o => o.org_name).join(", ")}</>
+                  : <span className="italic">No organizations assigned</span>
+              }
+            </p>
+          </div>
         </div>
+        <div className="flex items-center gap-2 self-start w-fit text-sm font-medium text-sro-primary bg-white px-3 py-1.5 rounded-full border shadow-sm">
+          <Calendar className="w-4 h-4" />
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </div>
+      </div>
 
-        {/* Superadmin org picker + all-pending toggle */}
-        {isSuperadmin && allOrgs.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <div className={`max-w-xs ${showAllPending ? "opacity-50 pointer-events-none" : ""}`}>
+      {/* Superadmin org picker + all-pending toggle */}
+      {isSuperadmin && allOrgs.length > 0 && (
+        <Card className="shadow-sm">
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className={`max-w-xs flex-1 min-w-[200px] ${showAllPending ? "opacity-50 pointer-events-none" : ""}`}>
               <label className="block text-xs font-medium text-gray-500 mb-1">
                 Superadmin: Select organization to advise
               </label>
@@ -413,23 +428,20 @@ const AdviserDashboard = () => {
                 searchable
               />
             </div>
-            <button
+            <Button
+              variant={showAllPending ? "sro-primary" : "outline"}
+              className="text-xs"
               onClick={() => {
                 setShowAllPending(prev => !prev);
                 if (!showAllPending) setSelectedOrgId(null);
               }}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border transition-colors ${
-                showAllPending
-                  ? "bg-sro-primary text-white border-sro-primary"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-sro-primary hover:text-sro-primary"
-              }`}
             >
               <ListFilter className="w-3.5 h-3.5" />
               All pending adviser requests
-            </button>
-          </div>
-        )}
-      </div>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stat Cards */}
       {dataLoading ? (

@@ -9,6 +9,7 @@ import ActivityDialogContent from "@/components/admin/ActivityDialogContent";
 import { DashboardSkeleton, DetailSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Calendar, CheckCircle, Clock, FileCheck, BookOpen, Database, ClipboardList } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "@/components/ui/animated-container";
 import StatusPill from "@/components/ui/StatusPill";
 import { isSameDay, format } from "date-fns";
 import { categoryMap } from "@/lib/activityTypes";
@@ -302,34 +303,35 @@ const AdminPanel = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{greeting}, Admin!</h1>
             <p className="text-sm text-gray-500 mt-1">Here's what's happening across the office today.</p>
           </div>
-          <div className="flex items-center gap-2 text-sm font-medium bg-white px-3 py-1.5 rounded-full border shadow-sm text-sro-primary">
+          <div className="flex items-center gap-2 w-fit text-sm font-medium bg-white px-3 py-1.5 rounded-full border shadow-sm text-sro-primary">
             <Calendar className="w-4 h-4" />
             {new Date().toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
 
-        {/* 1. Stats Grid (student-dashboard styling) */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* 1. Stats Grid (matches student-dashboard StudentStatCards styling) */}
+        <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {statsSummary.map((stat, index) => (
-            <Link
-              to={stat.path || "#"}
-              key={index}
-              className={`group flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 h-[100px] ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
-            >
-              <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
-              </div>
-              <div className="min-w-0">
-                {stat.count !== null ? (
-                  <h3 className={`text-2xl font-bold ${stat.countColor} animate-[fadeIn_0.4s_ease-in-out]`}>{stat.count}</h3>
-                ) : (
-                  <Skeleton className="h-7 w-10 mb-1" />
-                )}
-                <p className="text-xs font-medium text-gray-500 leading-tight line-clamp-2">{stat.title}</p>
-              </div>
-            </Link>
+            <StaggerItem key={index}>
+              <Link
+                to={stat.path || "#"}
+                className={`flex items-center gap-3 bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow duration-200 ${!stat.path ? 'cursor-default pointer-events-none' : ''}`}
+              >
+                <div className={`p-2.5 rounded-lg shrink-0 ${stat.bgColor}`}>
+                  <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+                </div>
+                <div className="min-w-0">
+                  {stat.count !== null ? (
+                    <p className={`text-2xl font-bold ${stat.countColor} animate-[fadeIn_0.4s_ease-in-out]`}>{stat.count}</p>
+                  ) : (
+                    <Skeleton className="h-7 w-10 mb-1" />
+                  )}
+                  <p className="text-xs text-gray-500 font-medium leading-tight line-clamp-2">{stat.title}</p>
+                </div>
+              </Link>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
 
         {/* 2. Charts & Action Center */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-auto xl:h-[320px]">

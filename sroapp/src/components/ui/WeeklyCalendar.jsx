@@ -133,27 +133,31 @@ const WeeklyCalendar = ({
 
     return (
         <Card className="shadow-sm flex flex-col h-full">
-            <CardHeader className="pb-3 px-4">
+            <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col">
-                        <CardTitle className="text-xl font-bold text-sro-primary">Activities Calendar</CardTitle>
-                        <span className="text-sm font-medium text-black mt-1">
+                        <CardTitle className="text-base font-bold text-sro-primary">Activities Calendar</CardTitle>
+                        <span className="text-sm font-medium text-gray-500 mt-1">
                             {getWeekRange(currentWeekStart)}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
                             onClick={() => handleWeekNavigation("prev")}
-                            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
                         >
                             <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
                             onClick={() => handleWeekNavigation("next")}
-                            className="p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
                         >
                             <ChevronRight className="h-4 w-4" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </CardHeader>
@@ -241,9 +245,9 @@ const WeeklyCalendar = ({
                 )}
             </CardContent>
             {/* Legend for recurring activities */}
-            <div className="flex flex-wrap gap-4 px-4 pb-2">
+            <div className="flex flex-wrap gap-4 px-6">
                 <div className="flex items-center gap-2">
-                    <span className="inline-block w-4 h-4 rounded-full bg-red-100 border border-sro-primary"></span>
+                    <span className="inline-block w-4 h-4 rounded-full bg-sro-primary-50 border border-sro-primary"></span>
                     <span className="text-xs text-sro-primary font-medium">Nonrecurring Event</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -251,10 +255,10 @@ const WeeklyCalendar = ({
                     <span className="text-xs text-orange-800 font-medium">Recurring Event</span>
                 </div>
             </div>
-            <div className="flex justify-center mt-auto border-t pt-4 pb-4">
+            <div className="flex justify-end mt-auto px-6 pt-4 border-t">
                 <Link to={calendarLink}>
-                    <Button variant="sro-secondary" className="text-sm flex items-center gap-1">
-                        View Monthly Calendar <ArrowRight className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" className="text-xs text-sro-primary hover:text-sro-primary-800">
+                        View Monthly Calendar <ArrowRight className="w-3 h-3 ml-1" />
                     </Button>
                 </Link>
             </div>

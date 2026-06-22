@@ -116,7 +116,7 @@ const CalendarWithSidePanel = ({
                 <div className="lg:col-span-1">
                     <Card className="h-full border border-gray-200 shadow-sm flex flex-col">
                         <CardHeader className="pb-3 border-b border-gray-100 bg-white shrink-0">
-                            <CardTitle className="text-lg flex items-center gap-2 text-sro-primary font-bold">
+                            <CardTitle className="text-base flex items-center gap-2 text-sro-primary font-bold">
                                 {selectedDate ? (
                                     <>
                                         <Calendar className="w-5 h-5" />

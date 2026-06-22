@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Repeat2 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay, startOfWeek, addDays, isWeekend } from "date-fns";
 import { Badge } from "./badge";
+import { Button } from "./button";
 import PropTypes from 'prop-types';
 import { dotColorMap } from "@/lib/activityTypes";
 
@@ -135,18 +136,22 @@ const CustomCalendar = ({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-full"
             onClick={handlePrevMonth}
-            className="p-1 sm:p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-full"
             onClick={handleNextMonth}
-            className="p-1 sm:p-1.5 rounded-full bg-white text-sro-secondary hover:bg-gray-100 border border-sro-secondary"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
