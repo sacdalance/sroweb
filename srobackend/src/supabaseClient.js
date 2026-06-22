@@ -11,5 +11,5 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 // Create Supabase client with secret keys (DO NOT expose these in frontend)
 export const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );

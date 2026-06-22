@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import supabase from "@/lib/supabase";
 
 const UserAuthContext = createContext(null);
@@ -7,13 +7,8 @@ export function UserAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
 
   useEffect(() => {
-    // Prevent double-init from StrictMode
-    if (initialized.current) return;
-    initialized.current = true;
-
     const timeout = (ms) => new Promise((_, reject) =>
       setTimeout(() => reject(new Error("timeout")), ms)
     );
