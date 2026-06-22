@@ -28,10 +28,6 @@ import activityApprovalSlipRoutes from './routes/activityApprovalSlipRoutes_new.
 import adminDocumentsRoutes from './routes/adminDocumentsRoutes.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 
-
-console.log('Activity Approval Slip Routes loaded:', activityApprovalSlipRoutes);
-
-
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -125,7 +121,6 @@ app.use('/api', strictLimiter, emailServicesRoutes);
 
 // Activity Approval Slip Generation
 app.use('/api', activityApprovalSlipRoutes);
-console.log('Activity Approval Slip routes mounted at /api');
 
 // Documents Management (Templates & Forms)
 app.use('/api/documents', adminDocumentsRoutes);
